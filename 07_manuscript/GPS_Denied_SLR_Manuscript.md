@@ -9,7 +9,7 @@
 
 ## ABSTRACT
 
-Unmanned Aerial Vehicles (UAVs) operating in complex, GPS-denied environments—such as indoor building structures, urban canyons, underground mining tunnels, forest canopies, and electronic warfare jamming zones—face critical state estimation and drift challenges. This Systematic Literature Review (SLR) provides a quantitative and qualitative synthesis of 657 empirical studies selected from an initial pool of 2,000 raw records (1,000 IEEE Xplore, 1,000 Scopus) following PRISMA 2020 guidelines. We present a multi-dimensional taxonomy covering platform types, sensor modalities, state estimation algorithms, operational environments, and evaluation metrics. Our findings reveal that while Visual-Inertial Odometry (VIO) and LiDAR SLAM remain foundational, hybrid deep learning-assisted dead-reckoning and multi-agent collaborative SLAM are rapidly growing solution paradigms. We highlight open challenges regarding Size, Weight, Power, and Cost (SWaP-C) constraints, sensor degradation under severe weather/lighting, and real-time edge processing, offering a strategic roadmap for future research.
+Unmanned Aerial Vehicles (UAVs) operating in complex, GPS-denied environments—such as indoor building structures, urban canyons, underground mining tunnels, forest canopies, and electronic warfare jamming zones—face critical state estimation and drift challenges. This Systematic Literature Review (SLR) provides a quantitative and qualitative synthesis of 1,692 included empirical studies selected from an initial pool of 2,000 raw records (1,000 IEEE Xplore, 1,000 Scopus) and 1,719 unique deduplicated papers following PRISMA 2020 guidelines. We present a multi-dimensional taxonomy covering platform types, sensor modalities, state estimation algorithms, operational environments, and evaluation metrics. Our findings reveal that while Visual-Inertial Odometry (VIO) and LiDAR SLAM remain foundational, hybrid deep learning-assisted dead-reckoning and multi-agent collaborative SLAM are rapidly growing solution paradigms. We highlight open challenges regarding Size, Weight, Power, and Cost (SWaP-C) constraints, sensor degradation under severe weather/lighting, and real-time edge processing, offering a strategic roadmap for future research.
 
 **Keywords**: Unmanned Aerial Vehicles (UAVs), GPS-Denied Navigation, Sensor Fusion, Visual-Inertial Odometry (VIO), LiDAR SLAM, Swarm Robotics, Deep Learning Odometry.
 
@@ -21,8 +21,8 @@ Unmanned Aerial Vehicles (UAVs) have transitioned from open-sky outdoor applicat
 
 Achieving drift-free autonomous navigation without external position updates requires robust onboard multi-sensor fusion and real-time state estimation algorithms. Over the past decade, significant advancements have been made in Visual-Inertial Navigation Systems (VINS), 3D LiDAR SLAM, Ultra-Wideband (UWB) radio positioning, and deep neural network-aided odometry. However, researchers and practitioners face fragmented literature across robotics, control, computer vision, and aerospace engineering.
 
-This systematic literature review addresses this gap by synthesizing 657 peer-reviewed empirical studies. The main contributions of this review are:
-1. **PRISMA-Compliant Quantitative Dataset**: Analysis of 657 screened and extracted papers out of 2,000 candidate publications.
+This systematic literature review addresses this gap by synthesizing 1,692 peer-reviewed empirical studies. The main contributions of this review are:
+1. **PRISMA-Compliant Quantitative Dataset**: Analysis of 1,692 screened and extracted papers out of 1,719 deduplicated publications.
 2. **Comprehensive Taxonomy**: Classification of hardware platforms, sensor suites, estimation architectures, and operational domains.
 3. **Comparative Analysis of Core Frameworks**: Evaluation of filter-based VIO, optimization-based VIO, LiDAR-visual-inertial fusion, and radio-assisted localization.
 4. **Open Challenges & Future Roadmap**: Identification of key bottlenecks in SWaP-C, resilience against sensor failure, and edge AI execution.
@@ -40,7 +40,7 @@ This review was conducted in accordance with the Preferred Reporting Items for S
 - **RQ4**: What key open challenges hinder long-duration, fully autonomous GPS-denied flight?
 
 ### 2.2 Search Strategy and Data Sources
-Searches were conducted across IEEE Xplore and Scopus databases for articles published between 2010 and 2025 using the core search query:
+Searches were conducted across IEEE Xplore and Scopus databases for articles published between 2010 and 2026 using the core search query:
 > `("GPS-denied" OR "GNSS-denied" OR "indoor navigation") AND ("UAV" OR "quadrotor" OR "drone") AND ("sensor fusion" OR "VIO" OR "SLAM")`
 
 - **IEEE Xplore**: 1,000 records retrieved.
@@ -49,11 +49,11 @@ Searches were conducted across IEEE Xplore and Scopus databases for articles pub
 
 ### 2.3 PRISMA 2020 Flow Metrics
 1. **Identification**: 2,000 raw records exported.
-2. **Deduplication**: 1,304 duplicate records identified and removed via automated DOI and title-similarity matching (`01_deduplicate.py`), resulting in 696 unique papers.
-3. **Screening**: 696 papers evaluated against pre-defined inclusion/exclusion criteria.
-   - **Included**: 657 empirical studies (94.4%).
-   - **Excluded**: 39 non-empirical, editorial, or out-of-scope papers (5.6%).
-4. **Data Extraction**: 657 papers processed into a structured JSON database and compiled into `extracted_master.csv`.
+2. **Deduplication**: Individual per-source field standardization was performed (`01_deduplicate.py`), identifying 281 cross-database duplicate records (14.1% duplication rate), resulting in 1,719 unique papers (999 IEEE Xplore, 720 Scopus).
+3. **Screening**: 1,719 papers evaluated against pre-defined inclusion/exclusion criteria.
+   - **Included**: 1,692 empirical studies (98.4%).
+   - **Excluded**: 27 non-empirical, orbital, or out-of-scope papers (1.6%).
+4. **Data Extraction**: 1,700 paper responses processed into a structured JSON database and compiled into `extracted_master.csv`.
 
 ---
 
