@@ -17,6 +17,16 @@ OUT_DIR  = r"E:\GPS_Denied_SLR\07_manuscript"
 df = pd.read_csv(CSV_PATH, low_memory=False)
 print(f"Loaded {len(df)} rows, {len(df.columns)} columns")
 
+# Headline performance claims exclude Q-low papers once Stage-2 appraisal is
+# populated. Until then, retain the full set and label the output as pending QA.
+qa_available = "qa_tier" in df.columns and df["qa_tier"].fillna("").isin(["Q-high", "Q-medium", "Q-low"]).any()
+qa_note = (
+    "Q-high/Q-medium only; Q-low papers are excluded from headline claims."
+    if qa_available
+    else
+    "QA tiers are not populated; headline-quality filtering is pending Stage-2 appraisal."
+)
+
 # ── Clean method names ─────────────────────────────────────────────────────────
 METHOD_LABELS = {
     "Filter_Based_VIO":               "Filter-Based VIO (MSCKF/EKF)",
@@ -40,13 +50,18 @@ rows = []
 for method, g in grp:
     label   = METHOD_LABELS.get(method, method)
     n_total = len(g)
+    q_high_medium = (
+        g["qa_tier"].isin(["Q-high", "Q-medium"]).sum()
+        if qa_available else "pending"
+    )
     n_real  = (g["experiment_type"] == "Real_World").sum()
     n_sim   = (g["experiment_type"] == "Simulation").sum()
     n_both  = (g["experiment_type"] == "Both").sum()
     ratio   = f"{n_real/n_sim:.1f}:1" if n_sim > 0 else "N/A"
 
     # ATE numeric subset
-    ate_df  = g[(g["performance_metric"] == "ATE_RMSE") &
+    metric_source = g[g["qa_tier"].isin(["Q-high", "Q-medium"])] if qa_available else g
+    ate_df  = metric_source[(metric_source["performance_metric"] == "ATE_RMSE") &
                 (g["performance_unit"] == "m") &
                 pd.to_numeric(g["performance_value"], errors="coerce").notna()].copy()
     ate_df["perf_num"] = pd.to_numeric(ate_df["performance_value"], errors="coerce")
@@ -65,6 +80,7 @@ for method, g in grp:
     rows.append({
         "Method":          label,
         "Total":           n_total,
+        "Q-high/Q-medium": q_high_medium,
         "Real-World":      n_real,
         "Simulation":      n_sim,
         "Both":            n_both,
@@ -87,11 +103,13 @@ def df_to_md(df):
         lines.append("| " + " | ".join(str(r[c]) for c in cols) + " |")
     return "\n".join(lines)
 
-full_md = f"""### Table 1: Method Distribution and Validation Breakdown (N=1,700)
+full_md = f"""### Table 1: Method Distribution and Validation Breakdown (N={len(df)})
 
-{df_to_md(summary_df[['Method','Total','Real-World','Simulation','Both','Real:Sim']])}
+{df_to_md(summary_df[['Method','Total','Q-high/Q-medium','Real-World','Simulation','Both','Real:Sim']])}
 
 *Real:Sim* = ratio of real-world to simulation experiments. Higher = more field-validated.
+{qa_note}
+Each performance claim must state: **N papers (Q-high/Q-medium) informed each claim.**
 """
 
 # ── TABLE 2: ATE performance only (numeric, metres) ───────────────────────────
@@ -106,6 +124,7 @@ ate_md = f"""### Table 2: ATE_RMSE Performance by Primary Method (numeric metres
 *ATE Median/Min/Max* computed only on papers reporting numeric ATE_RMSE in metres.
 Values >200 m excluded as likely unit-mismatch artefacts from abstract-only extraction.
 Methods with <3 valid ATE papers omitted from this table.
+{qa_note}
 """
 
 # ── TABLE 3: Sensor co-occurrence with IMU ─────────────────────────────────────

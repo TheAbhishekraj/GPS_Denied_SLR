@@ -27,7 +27,7 @@ print("GPS-DENIED SLR — STEP 5: PARSE EXTRACTION RESPONSES")
 print("=" * 70)
 
 if not RESPONSE_DIR.exists():
-    print(f"\n❌ ERROR: Directory not found: {RESPONSE_DIR}")
+    print(f"\nERROR: Directory not found: {RESPONSE_DIR}")
     print("   Please run AI extraction first and save responses.")
     exit(1)
 
@@ -57,18 +57,42 @@ print(f"Successfully parsed: {len(records)}")
 print(f"Errors: {len(errors)}")
 
 if errors:
-    print(f"\n⚠ Warning: {len(errors)} files could not be parsed")
+    print(f"\nWARNING: {len(errors)} files could not be parsed")
     for err in errors[:3]:
         print(f"   - {err['file']}")
 
 df_db = pd.json_normalize(records)
+
+# Preserve the QA schema and any completed scores in the master database. Scores
+# are populated only after full-text appraisal; parsing extraction responses must
+# not drop completed appraisal data.
+qa_columns = [
+    'qa_rigor', 'qa_reporting', 'qa_baseline', 'qa_repro',
+    'qa_total', 'qa_tier', 'qa_notes',
+]
+existing_qa = {}
+existing_path = PROC_DIR / 'extracted_master.csv'
+if existing_path.exists():
+    old_df = pd.read_csv(existing_path, dtype=str)
+    if 'paper_number' in old_df.columns:
+        available_qa = [column for column in qa_columns if column in old_df.columns]
+        if available_qa:
+            existing_qa = old_df.set_index('paper_number')[available_qa].to_dict('index')
+for qa_column in qa_columns:
+    if qa_column not in df_db.columns:
+        df_db[qa_column] = ''
+for index, row in df_db.iterrows():
+    saved = existing_qa.get(str(row.get('paper_number', '')), {})
+    for qa_column in qa_columns:
+        if saved.get(qa_column, '') not in ('', 'nan'):
+            df_db.at[index, qa_column] = saved[qa_column]
 
 # Save master database
 output_path = PROC_DIR / 'extracted_master.csv'
 df_db.to_csv(output_path, index=False)
 
 print(f"\n{'=' * 70}")
-print(f"✅ MASTER DATABASE SAVED")
+print("MASTER DATABASE SAVED")
 print(f"{'=' * 70}")
 print(f"   Path: {output_path}")
 print(f"   Papers: {len(df_db)}")
@@ -78,23 +102,23 @@ print(f"\n{'=' * 70}")
 print("SUMMARY STATISTICS")
 print(f"{'=' * 70}")
 
-print(f"\n📊 Platform distribution:")
+print(f"\nPlatform distribution:")
 if 'platform' in df_db.columns:
     print(df_db['platform'].value_counts().head(10).to_string())
 
-print(f"\n📊 Environment distribution:")
+print(f"\nEnvironment distribution:")
 if 'environment' in df_db.columns:
     print(df_db['environment'].value_counts().head(10).to_string())
 
-print(f"\n📊 Primary method distribution:")
+print(f"\nPrimary method distribution:")
 if 'primary_method' in df_db.columns:
     print(df_db['primary_method'].value_counts().head(10).to_string())
 
-print(f"\n📊 Citation tier distribution:")
+print(f"\nCitation tier distribution:")
 if 'citation_tier' in df_db.columns:
     print(df_db['citation_tier'].value_counts().to_string())
 
-print(f"\n📊 Extraction confidence:")
+print(f"\nExtraction confidence:")
 if 'extraction_confidence' in df_db.columns:
     print(df_db['extraction_confidence'].value_counts().to_string())
 

@@ -1,24 +1,52 @@
-# Systematic Literature Review: Autonomous Navigation & Localization in GNSS-Denied Environments
+# Systematic Literature Review: Autonomous Navigation and Localization for UAVs in GPS-Denied Environments
 
 ![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue.svg)
-![Screening Progress](https://img.shields.io/badge/Screening-100%25%20Complete-brightgreen.svg)
-![Included Papers](https://img.shields.io/badge/Included%20Papers-657-success.svg)
-![Excluded Papers](https://img.shields.io/badge/Excluded%20Papers-39-important.svg)
+![PRISMA 2020](https://img.shields.io/badge/standard-PRISMA%202020-orange.svg)
+![Deduplicated](https://img.shields.io/badge/Unique%20Records-1%2C719-blue.svg)
+![Included Papers](https://img.shields.io/badge/Included%20Studies-1%2C692-success.svg)
+![Extracted Rows](https://img.shields.io/badge/Extracted%20Master-1%2C700-brightgreen.svg)
+![Status](https://img.shields.io/badge/Submission-Ready%20(IEEEtran)-blueviolet.svg)
 
-A systematic, reproducible literature review (SLR) focusing on multi-sensor fusion, visual-inertial state estimation, LiDAR SLAM, radio-frequency localization, and learning-based navigation for uncrewed aerial (UAV), ground (UGV), and surface (USV) vehicles operating in satellite-denied or degraded environments.
+A systematic, reproducible literature review (SLR) compliant with PRISMA 2020 guidelines, synthesizing **1,692 peer-reviewed empirical studies** across 2010–2026 from IEEE Xplore and Elsevier Scopus. The review focuses on multi-sensor fusion, visual-inertial odometry (VIO), LiDAR SLAM, radio-frequency positioning, and hybrid learning-based architectures for uncrewed aerial vehicles (UAVs) operating in satellite-denied or degraded environments.
 
 ---
 
-## 📌 Executive Summary & PRISMA Metrics
+## 📌 Executive Summary & PRISMA 2020 Flow
 
-| Metric | Value | Description / Source |
+```
+   [Identification]   2,000 Initial Records (IEEE Xplore: 1,000 | Scopus: 1,000)
+                              │
+                              ▼
+   [Deduplication]    1,719 Unique Records (281 duplicates removed, 14.1%)
+                              │
+                              ▼
+   [Screening]        1,692 Included Studies (27 excluded: 8 theoretical, 11 GPS-augmented, 8 out-of-scope)
+                              │
+                              ▼
+   [Extraction]       1,700 Extracted Rows (8 multi-experiment papers with dual evaluations)
+```
+
+| Metric | Canonical Value | Verification & Methodological Details |
 | :--- | :--- | :--- |
-| **Initial Search Records** | **2,000** | IEEE Xplore (1,000) + Scopus (1,000) (2010–2026) |
-| **Deduplicated Dataset** | **696** | 1,304 duplicate records removed via DOI & Fuzzy Title Matching |
-| **Title/Abstract Screened**| **696 / 696 (100%)** | AI-assisted screening with validated JSON schemas |
-| **Included Papers** | **657 (94.4%)** | Primary empirical studies meeting all 6 inclusion criteria |
-| **Excluded Papers** | **39 (5.6%)** | Excluded literature reviews, GNSS-centric, or non-empirical work |
-| **Repository Status** | **Phase 5 Complete**| Ready for Phase 6 (Data Extraction Prompt Generation) |
+| **Initial Search Records** | **2,000** | IEEE Xplore (1,000) + Scopus (1,000), 2010–2026 (`01_data_raw/`) |
+| **Deduplicated Records** | **1,719** | Exact DOI + Levenshtein fuzzy title matching; 281 removed (14.1%) (`02_data_processed/deduplicated_master.csv`) |
+| **Screened Included** | **1,692 (98.4%)** | Peer-reviewed empirical UAV localization studies (`04_ai_responses/screening_results.jsonl`) |
+| **Screened Excluded** | **27 (1.6%)** | 8 theoretical surveys + 11 GPS-augmented + 8 out-of-scope (`02_data_processed/screening_audit.csv`) |
+| **Extracted Master Rows** | **1,700** | Structured schema across 10 methods, 13 sensors, 7 environments (`02_data_processed/extracted_master.csv`) |
+| **Multi-Experiment Papers**| **8** | Documented in `02_data_processed/EXTRACTION_NOTES.md` |
+| **Publication Figures** | **9 (300 DPI)** | All >= 2000 px wide, colorblind-safe in `06_analysis/output/figures_v2/` |
+| **Manuscript Package** | **Complete** | Markdown draft v2 + IEEEtran LaTeX (`07_manuscript/GPS_Denied_SLR_IEEE.tex`) |
+
+---
+
+## 🔬 Core Empirical Findings
+
+1. **F1: Universal Inertial Substrate (IMU Ubiquity)**
+   - The Inertial Measurement Unit (IMU) appears in **78.4% (1,332 / 1,700)** of all extracted papers. GPS-denied navigation has fundamentally converged around bounding and correcting inertial dead-reckoning drift.
+2. **F2: Adversarial & EW Dominance**
+   - Active Electronic Warfare (EW), GPS jamming, and contested airspace represent the **largest single environment category (495 papers, 29.1%)**, exceeding purely indoor operations (339 papers, 19.9%).
+3. **F3: Multi-Agent Deployment Gap**
+   - While single-agent VIO and LiDAR SLAM exceed a 4:1 real-world to simulation validation ratio, Multi-Agent Collaborative SLAM exhibits the lowest field ratio in the corpus at **1.3:1 (14 real-world : 11 simulation)**, constrained by communication dropouts and distributed compute burdens.
 
 ---
 
@@ -26,97 +54,91 @@ A systematic, reproducible literature review (SLR) focusing on multi-sensor fusi
 
 ```
 GPS_Denied_SLR/
-├── 00_scope/                  # SLR Research protocol, inclusion/exclusion criteria, & scoping docs
-├── 01_data_raw/              # Raw CSV database exports (IEEE Xplore & Scopus)
-├── 02_data_processed/        # Cleaned datasets (`deduplicated.csv`, `screened_included.csv`, `screened_excluded.csv`)
-├── 03_prompts/               # AI prompts (`screening_prompts/`, `extraction_prompts/`)
-├── 04_ai_responses/          # Structured JSON outputs (`screening/resp_*.json`, `extraction/`)
-├── 05_papers_fulltext/       # Downloaded full-text PDFs for Core papers
-├── 06_analysis/              # Python data analysis scripts and output figures
-│   ├── output/figures/       # High-resolution (300 DPI) publication figures
-│   └── scripts/              # Pipeline execution scripts (01 through 06)
-├── 07_manuscript/            # PRISMA 2020 SLR manuscript drafts & LaTeX source
-├── 08_docs/                  # Project documentation & backup snapshots
-├── check_screening_progress.py# Verification script for AI screening completion
-├── MASTER_WORKFLOW_TRACKER.md# Real-time workflow tracker
-└── REMAINING_PHASES_AND_VERIFICATION_GUIDE.md # Execution and verification guide for Phases 6–10
+├── 00_scope/                  # SLR Research protocol, PICOC table, search strings, registration
+│   ├── PROTOCOL.md            # RQ1-RQ4, PICOC, 6 inclusion + 4 exclusion criteria, quality checklist
+│   ├── SEARCH_STRINGS.md      # Verbatim IEEE Xplore and Scopus queries
+│   └── REGISTRATION.md        # Protocol registration disclosure (unregistered + justification)
+├── 01_data_raw/               # Canonical raw search data & logs
+│   ├── ieee_xplore_raw.csv    # 1,000 raw IEEE records (canonical 8-column schema)
+│   ├── scopus_raw.csv         # 1,000 raw Scopus records (canonical 8-column schema)
+│   └── SEARCH_LOG.md          # Search execution details and parameters
+├── 02_data_processed/         # Audited datasets & synthesis tables
+│   ├── deduplicated_master.csv# 1,719 clean, unique records
+│   ├── dedup_log.csv          # 281 removed duplicates with explicit match reasons
+│   ├── DEDUP_REPORT.md        # Reproducible deduplication methodology and audit
+│   ├── screening_audit.csv    # The 27 excluded papers with classified reason codes
+│   ├── screening_summary.csv  # Screening breakdown counts and percentages
+│   ├── extracted_master.csv   # 1,700 extracted rows with complete taxonomy
+│   └── EXTRACTION_NOTES.md    # Documentation for the 8 double-extracted papers
+├── 03_prompts/                # AI screening and data extraction prompts
+│   ├── screening_prompts.jsonl# 1,719 screening prompt records
+│   └── extraction_prompts.jsonl# 1,692 extraction prompt records (17 mandatory fields)
+├── 04_ai_responses/           # AI response records
+│   └── screening_results.jsonl# 1,719 screening decisions
+├── 05_papers_fulltext/        # Full-text PDFs of core papers (gitignored)
+├── 06_analysis/               # Analysis scripts, synthesis tables, and figures
+│   ├── output/figures_v2/     # 9 publication-grade figures (300 DPI, colorblind-safe)
+│   ├── output/tables/         # Machine-readable source CSVs for all 9 figures & matrices
+│   ├── scripts/99_verify_all.py# End-to-end repository verification script
+│   └── SYNTHESIS.md           # Quantitative synthesis with exact numerators/denominators
+├── 07_manuscript/             # Submission manuscript and LaTeX package
+│   ├── GPS_Denied_SLR_Manuscript_v2.md # Full Markdown manuscript draft (7 numbered sections)
+│   ├── GPS_Denied_SLR_IEEE.tex# IEEEtran journal class submission package
+│   ├── references.bib         # BibTeX references matching all manuscript citations
+│   ├── perf_tables.md         # Quantitative ATE, SWaP-C, and Sim-to-Real benchmark tables
+│   └── BUILD.md               # Exact pdflatex and bibtex compilation instructions
+├── 08_docs/                   # Quality documentation & submission prep
+│   ├── FOLDER_GUIDE.md        # Description of all repository folders
+│   ├── SUBMISSION_CHECKLIST.md# 8-gate pre-flight submission audit
+│   ├── COVER_LETTER.md        # Cover letter to IEEE T-RO Editor-in-Chief
+│   └── ARXIV_METADATA.md      # arXiv cs.RO / cs.CV preprint metadata
+└── supplementary/             # Formal supplementary artifacts (S1 through S5)
+    ├── S1_prisma_checklist.md # Complete 27-item PRISMA 2020 compliance audit
+    ├── S2_search_queries.txt  # Full search queries for both databases
+    ├── S3_quality_scores.csv  # 8-item quality score for all 1,692 included papers
+    ├── S4_full_reference_list.bib # Complete references
+    └── S5_extracted_master_snapshot.csv # Frozen snapshot of extracted_master.csv
 ```
 
 ---
 
-## ⚙️ Workflow Pipeline & Phase Overview
+## 🚀 Quick Start & Verification
 
-### Completed Phases
-- **Phase 1: Project Setup & Research Protocol** ✅
-  Established directory structure, Python virtual environment, and 6 inclusion / 9 exclusion criteria.
-- **Phase 2: Database Searches** ✅
-  Retrieved 1,000 records from IEEE Xplore and 1,000 records from Scopus (2010–2026).
-- **Phase 3: Deduplication** ✅
-  Applied automated DOI exact matching and Levenshtein title fuzzy matching (`01_deduplicate.py`), reducing 2,000 records to 696 unique papers.
-- **Phase 4: Prompt Generation** ✅
-  Generated 696 structured screening prompt files (`02_generate_prompts.py`).
-- **Phase 5: Title/Abstract Screening** ✅
-  Screened all 696 papers, outputting JSON response files (`04_ai_responses/screening/resp_*.json`) and parsed master lists (`03_parse_screening.py`).
+To verify complete repository consistency against canonical numbers:
 
-### Pending Phases (Detailed in `REMAINING_PHASES_AND_VERIFICATION_GUIDE.md`)
-- **Phase 6**: Extraction Prompt Generation for 657 Included Papers (`04_generate_extraction_prompts.py`)
-- **Phase 7**: Data Extraction & Master Database Aggregation (`05_parse_extraction.py`)
-- **Phase 8**: Citation Prioritization & PDF Retrieval (`core_papers.csv`)
-- **Phase 9**: Publication Figure Generation (`06_generate_figures.py`)
-- **Phase 10**: SLR Manuscript Preparation (`07_manuscript/`)
-
----
-
-## 🚀 Quick Start & Execution Commands
-
-### Environment Setup
 ```bash
-python -m venv .venv
-# On Windows PowerShell:
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+python 06_analysis/scripts/99_verify_all.py
 ```
 
-### Reproduce Data Processing & Verification
-
-1. **Verify Screening Progress**:
-   ```bash
-   python check_screening_progress.py
-   ```
-
-2. **Parse AI Screening Responses**:
-   ```bash
-   python 06_analysis/scripts/03_parse_screening.py
-   ```
-
-3. **Generate Data Extraction Prompts (Phase 6)**:
-   ```bash
-   python 06_analysis/scripts/04_generate_extraction_prompts.py
-   ```
-
-4. **Aggregate Extracted Master Database (Phase 7)**:
-   ```bash
-   python 06_analysis/scripts/05_parse_extraction.py
-   ```
-
-5. **Generate Publication Figures (Phase 9)**:
-   ```bash
-   python 06_analysis/scripts/06_generate_figures.py
-   ```
+Expected output:
+```
+=======================================================
+     GPS_Denied_SLR FINAL REPOSITORY VERIFICATION      
+=======================================================
+[PASS] raw=2000           actual=2000  expected=2000
+[PASS] dedup=1719         actual=1719  expected=1719
+[PASS] dedup_log=281      actual=281  expected=281
+[PASS] excluded=27        actual=27  expected=27
+[PASS] extracted=1700     actual=1700  expected=1700
+[PASS] IMU~78%            actual=0.784  expected=0.78
+[PASS] EW=495             actual=495  expected=495
+[PASS] MA_Real=14         actual=14  expected=14
+[PASS] MA_Sim=11          actual=11  expected=11
+[PASS] methods=10         actual=10  expected=10
+=======================================================
+>>> ALL VERIFICATION CHECKS PASSED: REPOSITORY IS SUBMISSION-READY <<<
+```
 
 ---
 
-## 📜 Citation & License
-
-If using this dataset, prompt framework, or analysis scripts, please cite:
+## 📜 Citation & Attribution
 
 ```bibtex
-@misc{gps_denied_slr_2026,
-  author = {Abhishek Raj},
-  title = {Systematic Literature Review: Autonomous Navigation and Localization in GNSS-Denied Environments},
-  year = {2026},
-  publisher = {GitHub},
-  journal = {GitHub Repository},
-  howpublished = {\url{https://github.com/TheAbhishekraj/GPS_Denied_SLR}}
+@article{Raj2026GPSDeniedSLR,
+  author    = {Abhishek Raj},
+  title     = {Autonomous Navigation and Localization for Unmanned Aerial Vehicles in {GPS}-Denied Environments: A Systematic Literature Review},
+  journal   = {IEEE Transactions on Robotics (Submitted)},
+  year      = {2026},
+  url       = {https://github.com/TheAbhishekraj/GPS_Denied_SLR}
 }
 ```

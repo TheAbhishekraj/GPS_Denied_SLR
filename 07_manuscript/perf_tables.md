@@ -1,19 +1,21 @@
-### Table 1: Method Distribution and Validation Breakdown (N=1,700)
+### Table 1: Method Distribution and Validation Breakdown (N=1700)
 
-| Method | Total | Real-World | Simulation | Both | Real:Sim |
-| --- | --- | --- | --- | --- | --- |
-| Radio/Infrastructure (UWB/WiFi/5G) | 975 | 728 | 220 | 27 | 3.3:1 |
-| Hybrid Classical-DL | 231 | 164 | 64 | 3 | 2.6:1 |
-| LiDAR SLAM (LOAM/FAST-LIO2/LIO-SAM) | 146 | 125 | 17 | 4 | 7.4:1 |
-| Filter-Based VIO (MSCKF/EKF) | 134 | 105 | 24 | 5 | 4.4:1 |
-| Visual SLAM | 70 | 57 | 10 | 3 | 5.7:1 |
-| Optimization-Based VIO (OKVIS/VINS-Mono/ORB-SLAM3) | 47 | 32 | 11 | 4 | 2.9:1 |
-| Visual-LiDAR-Inertial Fusion (VLI) | 45 | 36 | 8 | 1 | 4.5:1 |
-| Multi-Agent Collaborative SLAM | 26 | 14 | 11 | 1 | 1.3:1 |
-| Deep Learning Odometry | 25 | 21 | 4 | 0 | 5.2:1 |
-| Map-Based Localization | 1 | 0 | 1 | 0 | 0.0:1 |
+| Method | Total | Q-high/Q-medium | Real-World | Simulation | Both | Real:Sim |
+| --- | --- | --- | --- | --- | --- | --- |
+| Radio/Infrastructure (UWB/WiFi/5G) | 975 | pending | 728 | 220 | 27 | 3.3:1 |
+| Hybrid Classical-DL | 231 | pending | 164 | 64 | 3 | 2.6:1 |
+| LiDAR SLAM (LOAM/FAST-LIO2/LIO-SAM) | 146 | pending | 125 | 17 | 4 | 7.4:1 |
+| Filter-Based VIO (MSCKF/EKF) | 134 | pending | 105 | 24 | 5 | 4.4:1 |
+| Visual SLAM | 70 | pending | 57 | 10 | 3 | 5.7:1 |
+| Optimization-Based VIO (OKVIS/VINS-Mono/ORB-SLAM3) | 47 | pending | 32 | 11 | 4 | 2.9:1 |
+| Visual-LiDAR-Inertial Fusion (VLI) | 45 | pending | 36 | 8 | 1 | 4.5:1 |
+| Multi-Agent Collaborative SLAM | 26 | pending | 14 | 11 | 1 | 1.3:1 |
+| Deep Learning Odometry | 25 | pending | 21 | 4 | 0 | 5.2:1 |
+| Map-Based Localization | 1 | pending | 0 | 1 | 0 | 0.0:1 |
 
 *Real:Sim* = ratio of real-world to simulation experiments. Higher = more field-validated.
+QA tiers are not populated; headline-quality filtering is pending Stage-2 appraisal.
+Each performance claim must state: **N papers (Q-high/Q-medium) informed each claim.**
 
 
 ---
@@ -34,6 +36,7 @@
 *ATE Median/Min/Max* computed only on papers reporting numeric ATE_RMSE in metres.
 Values >200 m excluded as likely unit-mismatch artefacts from abstract-only extraction.
 Methods with <3 valid ATE papers omitted from this table.
+QA tiers are not populated; headline-quality filtering is pending Stage-2 appraisal.
 
 
 ---
