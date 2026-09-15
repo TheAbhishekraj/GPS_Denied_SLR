@@ -102,6 +102,20 @@ Hybrids outperform pure DL 8:1 in real-world. End-to-end (DeepVO) fails to gener
 - **Magnetometers**: 18% (indoor steel distortion limits).
 - **Acoustic/sonar**: 9% (close-range avoidance).
 
+### 3.7 Quantitative Benchmark Comparison across Modalities
+| Method | Total Papers | ATE Papers (n) | ATE Median | ATE Min | ATE Max |
+|---|---|---|---|---|---|
+| Visual SLAM | 70 | 5 | 0.290 m | 0.052 m | 5.360 m |
+| Optimization-Based VIO | 47 | 5 | 0.800 m | 0.500 m | 150.000 m |
+| LiDAR SLAM | 146 | 19 | 0.890 m | 0.010 m | 100.000 m |
+| Filter-Based VIO | 134 | 13 | 2.000 m | 0.089 m | 15.000 m |
+| Visual-LiDAR-Inertial Fusion (VLI) | 45 | 11 | 2.600 m | 0.050 m | 10.000 m |
+| Hybrid Classical-DL | 231 | 21 | 3.000 m | 0.024 m | 200.000 m |
+| Radio/Infrastructure (UWB/WiFi/5G) | 975 | 112 | 5.000 m | 0.011 m | 200.000 m |
+| Multi-Agent Collaborative SLAM | 26 | 3 | 8.000 m | 0.540 m | 48.200 m |
+
+*Note: Computed from papers reporting numeric ATE_RMSE in metres with unit-mismatch outliers (>200 m) filtered out. Visual SLAM and LiDAR SLAM demonstrate the highest median trajectory precision (<1 m), while radio-based and multi-agent systems trade absolute localization precision for wide-area coverage and collaborative coordination.*
+
 ---
 
 ## 4. SYNTHESIS AND ANALYSIS
