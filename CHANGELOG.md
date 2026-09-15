@@ -154,3 +154,63 @@ unreviewable.
   endorsed by this agent; left untracked.
 - `extract_master_v2.py` is no longer present in the working tree (removed by the
   external actor). Nothing was committed from it.
+
+---
+
+## 2026-09-15 — PHASES 2–4 ARTIFACTS COMMITTED — independently verified
+
+| Field | Value |
+|---|---|
+| Phase | 2 (search verify), 3 (dedup verify), 4 (v2 screening prompt generator) |
+| Timestamp | 2026-09-15 |
+| Produced by | external agent (Antigravity IDE), not this agent |
+| Outputs committed | `01_data_raw/SEARCH_LOG_VERIFY.md` (838 B) · `02_data_processed/DEDUP_VERIFY.md` (975 B) · `verify_phase2.py` (1,903 B) · `verify_phase3.py` (2,162 B) · `phase4_prompts_v2.py` (4,564 B) |
+| Verification | **performed by this agent, independently of the producing agent** |
+
+### Independent verification of the claimed numbers — ALL CORRECT
+
+| Claim in artifact | Independently measured | Verdict |
+|---|---|---|
+| `ieee_xplore_raw.csv` = 1,000 rows | 1,000 | ✅ |
+| `scopus_raw.csv` = 1,000 rows | 1,000 | ✅ |
+| Both have 8 expected columns | both exactly `id,title,abstract,authors,year,doi,venue,source` | ✅ |
+| Zero empty titles | 0 and 0 | ✅ |
+| Source values | `IEEE` and `Scopus` respectively | ✅ |
+| `deduplicated_master.csv` = 1,719 | 1,719 | ✅ |
+| `dedup_log.csv` = 281 | 281 | ✅ |
+| Reasons limited to DOI/Title match | `{DOI match: 277, Title match: 4}` | ✅ |
+| Removal rate 14.05% | 281/2000 = 14.05% | ✅ |
+| "All records trace to source rows" | 1,719 + 281 = 2,000 exactly | ✅ |
+
+### The one hardcoded, non-derived claim — externally corroborated
+
+`verify_phase3.py` lines 31–35 emit a "Dedup Method Recap" as **static text**, not
+derived from data. Its Levenshtein ≥0.90 and DOI-normalization statements match
+`PROTOCOL.md` §7. Its tie-breaking rule ("keep IEEE Xplore if available; otherwise
+older year; otherwise lexicographically smaller DOI") appears **nowhere else** in
+the repo and was checked separately against `dedup_log.csv`:
+
+- dropped records by source: `SCOPUS` 280, `IEEE` 1
+- retained records by source: `IEEE` 279, `CANONICAL` 1, `SCOPUS` 1
+- ⇒ "prefer IEEE" holds in **279 / 281 (99.3%)** of cases, with 2 fallback cases
+  consistent with the stated rule. Claim **corroborated**, not falsified.
+
+### Caveats recorded (flagged, not silently resolved)
+
+1. **Criteria divergence — BLOCKING for Phase 4.** `phase4_prompts_v2.py` embeds
+   the **I1–I5 / E1–E4** template from `09_prompts/MASTER_PROMPT_v2.md`, whereas
+   `AGENT_RUNBOOK.md` Part 0 rule 2 designates **I1–I6 / E1–E8** in
+   `00_scope/screening_criteria_v2.md` as authoritative (and that file's §13
+   approval block is still unsigned). Running this generator would produce
+   1,719 prompts against superseded criteria. **Do not run Phase 4 yet.**
+2. **Hardcoded paths.** `verify_phase2.py`, `verify_phase3.py`, and
+   `phase4_prompts_v2.py` all hardcode `E:\GPS_Denied_SLR\...`, violating
+   `AGENT_RUNBOOK.md` Part 0 rule 3 and the Phase 13 reproducibility gate
+   ("fresh clone → identical outputs"). Committed as-is to preserve provenance.
+3. **ID namespace mismatch (traceability gap).** `dedup_log.csv` uses
+   `IEEE_0157` / `SCOPUS_0486` / `CANONICAL`, while `deduplicated_master.csv` uses
+   `REC_0001…REC_1719`. The log therefore **cannot be joined to the master by ID**,
+   so per-record dedup provenance is not machine-recoverable despite the
+   `DEDUP_VERIFY.md` "all records trace" conclusion.
+4. `verify_phase3.py` writes `DEDUP_VERIFY.md` with `encoding="utf-8"` (no BOM),
+   unlike sibling documents that carry a BOM.
