@@ -115,3 +115,42 @@ agent from authoring or "improving" criteria on its own initiative.
 6. **Untracked `extract_master_v2.py` (2,057 B, repo root):** not created by this
    agent; contains mojibake-encoded text and would corrupt `MASTER_PROMPT_v2.md`
    if run. Left untouched; flagged for owner deletion.
+
+---
+
+## 2026-09-15 — INCIDENT — `MASTER_PROMPT_v2.md` encoding corruption; restored
+
+| Field | Value |
+|---|---|
+| Type | File-integrity incident (external writer) |
+| Timestamp | Detected and corrected 2026-09-15 (file mtime of bad write: 22:47:52) |
+| Affected file | `09_prompts/MASTER_PROMPT_v2.md` |
+| Committed good state | blob `70a9edb` (commit `19fcf33`), 29,584 B in blob, LF, UTF-8 BOM |
+| Bad worktree state | 31,280 B, **no BOM**, **1,700 CRs = 856 CRLF + 844 lone CRs**, 0 bare LF, no trailing newline |
+| Action taken | `git checkout -- 09_prompts/MASTER_PROMPT_v2.md` → restored |
+| Post-restore hash | worktree `70a9edb8e07973202421d45a982174ee8bde31c1` == `HEAD:09_prompts/MASTER_PROMPT_v2.md` ✓ |
+| Post-restore profile | 30,441 B, BOM present, 857 CRLF, 0 lone CR, trailing newline, 857 lines, 0 mojibake |
+| Data loss | **None.** Line-by-line comparison showed all 857 lines textually identical; only line 1 (BOM) and line-ending encoding differed. |
+
+### Why this is recorded
+
+An external writer — not this agent — rewrote `MASTER_PROMPT_v2.md` after commit
+`19fcf33`, stripping the UTF-8 BOM and emitting 844 lines terminated with a lone
+CR instead of CRLF. The corruption was benign in content but would have produced
+mis-diffing (`git diff` reported all 857 lines changed) and inconsistent rendering.
+
+This matches the same external actor that produced the mojibake-laden
+`extract_master_v2.py`. Enforcement note: the repo runs with `core.autocrlf=true`,
+so any external editor must preserve BOM + CRLF or content-level diffs become
+unreviewable.
+
+### Also observed (same external actor, same window)
+
+- `verify_phase2.py` (untracked, 1,157 B) appeared. It writes
+  `01_data_raw/SEARCH_LOG_VERIFY.md` and asserts both raw CSVs have exactly 1,000
+  rows and 8 expected columns — i.e. `MASTER_PROMPT_v2.md` PHASE 2.
+  **Note:** it hardcodes absolute `E:\GPS_Denied_SLR\...` paths, violating
+  `AGENT_RUNBOOK.md` Part 0 rule 3 ("NO HARDCODED PATHS"). Not reviewed or
+  endorsed by this agent; left untracked.
+- `extract_master_v2.py` is no longer present in the working tree (removed by the
+  external actor). Nothing was committed from it.
