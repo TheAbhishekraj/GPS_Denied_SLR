@@ -250,3 +250,15 @@ the repo and was checked separately against `dedup_log.csv`:
 
 ## [2026-09-16]
 - PDCA Phase 1: validated 30 PDFs (0 fakes), extended retrieval +0 PDFs, coverage 4.7%. Halt trigger: YES (07b script missing).
+
+## Phase 7 Extraction Run — 2026-09-16
+- Inputs: 636 screened papers, 171 PDFs on disk in 05_papers_fulltext/
+- Outputs: extracted_master_v2.csv (171 rows), screened_included_v2_fulltext.csv (171 rows)
+- QA Tiers: Q-high=83, Q-medium=81, Q-low=7
+- Citation Tiers: Core=71, Important=93, Peripheral=7
+
+## Phase 7 Extraction Run — 2026-09-16
+- Inputs: 636 screened papers, 171 PDFs on disk in 05_papers_fulltext/
+- Outputs: extracted_master_v2.csv (171 rows), screened_included_v2_fulltext.csv (171 rows)
+- QA Tiers: Q-high=83, Q-medium=81, Q-low=7
+- Citation Tiers: Core=71, Important=93, Peripheral=7
