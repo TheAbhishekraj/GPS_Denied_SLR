@@ -247,3 +247,6 @@ the repo and was checked separately against `dedup_log.csv`:
    `DEDUP_VERIFY.md` "all records trace" conclusion.
 4. `verify_phase3.py` writes `DEDUP_VERIFY.md` with `encoding="utf-8"` (no BOM),
    unlike sibling documents that carry a BOM.
+
+## [2026-09-16]
+- PDCA Phase 1: validated 30 PDFs (0 fakes), extended retrieval +0 PDFs, coverage 4.7%. Halt trigger: YES (07b script missing).
