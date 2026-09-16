@@ -1,60 +1,42 @@
-### Table 1: Method Distribution and Validation Breakdown (N=1700)
+# Systematic Review Synthesis Tables (Canonical Dataset: N = 636)
 
-| Method | Total | Q-high/Q-medium | Real-World | Simulation | Both | Real:Sim |
-| --- | --- | --- | --- | --- | --- | --- |
-| Radio/Infrastructure (UWB/WiFi/5G) | 975 | pending | 728 | 220 | 27 | 3.3:1 |
-| Hybrid Classical-DL | 231 | pending | 164 | 64 | 3 | 2.6:1 |
-| LiDAR SLAM (LOAM/FAST-LIO2/LIO-SAM) | 146 | pending | 125 | 17 | 4 | 7.4:1 |
-| Filter-Based VIO (MSCKF/EKF) | 134 | pending | 105 | 24 | 5 | 4.4:1 |
-| Visual SLAM | 70 | pending | 57 | 10 | 3 | 5.7:1 |
-| Optimization-Based VIO (OKVIS/VINS-Mono/ORB-SLAM3) | 47 | pending | 32 | 11 | 4 | 2.9:1 |
-| Visual-LiDAR-Inertial Fusion (VLI) | 45 | pending | 36 | 8 | 1 | 4.5:1 |
-| Multi-Agent Collaborative SLAM | 26 | pending | 14 | 11 | 1 | 1.3:1 |
-| Deep Learning Odometry | 25 | pending | 21 | 4 | 0 | 5.2:1 |
-| Map-Based Localization | 1 | pending | 0 | 1 | 0 | 0.0:1 |
+## Table 1: State Estimation Algorithm Family Distribution & Empirical Validation
 
-*Real:Sim* = ratio of real-world to simulation experiments. Higher = more field-validated.
-QA tiers are not populated; headline-quality filtering is pending Stage-2 appraisal.
-Each performance claim must state: **N papers (Q-high/Q-medium) informed each claim.**
-
+| Algorithm Family | Total Papers | Real-World Validation | Simulation Only | Q-medium Tier | Q-low Tier |
+|---|---|---|---|---|---|
+| other | 296 | 126 | 170 | 13 | 283 |
+| EKF | 80 | 29 | 51 | 6 | 74 |
+| DNN | 75 | 33 | 42 | 3 | 72 |
+| VIO_SLAM | 71 | 31 | 40 | 6 | 65 |
+| VIO | 29 | 19 | 10 | 4 | 25 |
+| particle_filter | 25 | 13 | 12 | 1 | 24 |
+| SLAM | 20 | 10 | 10 | 1 | 19 |
+| hybrid | 15 | 8 | 7 | 1 | 14 |
+| graph_SLAM | 12 | 7 | 5 | 1 | 11 |
+| LiDAR_SLAM | 7 | 1 | 6 | 0 | 7 |
+| UKF | 6 | 3 | 3 | 0 | 6 |
 
 ---
 
-### Table 2: ATE_RMSE Performance by Primary Method (numeric metres, outliers >200 m excluded, N>=3)
+## Table 2: Operational Environment Breakdown by Platform Type
 
-| Method | Total | ATE Papers (m) | ATE Median | ATE Min | ATE Max |
-| --- | --- | --- | --- | --- | --- |
-| Radio/Infrastructure (UWB/WiFi/5G) | 975 | 112 | 5.000 m | 0.011 m | 200.000 m |
-| Hybrid Classical-DL | 231 | 21 | 3.000 m | 0.024 m | 200.000 m |
-| LiDAR SLAM (LOAM/FAST-LIO2/LIO-SAM) | 146 | 19 | 0.890 m | 0.010 m | 100.000 m |
-| Filter-Based VIO (MSCKF/EKF) | 134 | 13 | 2.000 m | 0.089 m | 15.000 m |
-| Visual-LiDAR-Inertial Fusion (VLI) | 45 | 11 | 2.600 m | 0.050 m | 10.000 m |
-| Optimization-Based VIO (OKVIS/VINS-Mono/ORB-SLAM3) | 47 | 5 | 0.800 m | 0.500 m | 150.000 m |
-| Visual SLAM | 70 | 5 | 0.290 m | 0.052 m | 5.360 m |
-| Multi-Agent Collaborative SLAM | 26 | 3 | 8.000 m | 0.540 m | 48.200 m |
-
-*ATE Median/Min/Max* computed only on papers reporting numeric ATE_RMSE in metres.
-Values >200 m excluded as likely unit-mismatch artefacts from abstract-only extraction.
-Methods with <3 valid ATE papers omitted from this table.
-QA tiers are not populated; headline-quality filtering is pending Stage-2 appraisal.
-
+| Environment | UAV | UGV | Total |
+|---|---|---|---|
+| indoor | 106 | 2 | 108 |
+| mixed | 89 | 2 | 91 |
+| outdoor | 267 | 1 | 268 |
+| simulation | 167 | 2 | 169 |
 
 ---
 
-### Table 3: Sensor Modality Frequency (N=1,700, multi-label)
+## Table 3: Application Domain Breakdown
 
-| Sensor | Papers | Pct |
-| --- | --- | --- |
-| IMU | 1332 | 78.4% |
-| Monocular_Camera | 900 | 52.9% |
-| LiDAR_3D | 328 | 19.3% |
-| UWB | 134 | 7.9% |
-| Stereo_Camera | 68 | 4.0% |
-| Radar_mmWave | 61 | 3.6% |
-| Sonar | 59 | 3.5% |
-| Depth_Camera | 51 | 3.0% |
-| LiDAR_2D | 45 | 2.6% |
-| WiFi | 30 | 1.8% |
-| Thermal_Camera | 20 | 1.2% |
-
-IMU appears in **1332/1700 = 78.4%** of all papers.
+| Application Domain | Paper Count | Percentage (%) |
+|---|---|---|
+| navigation | 412 | 64.8% |
+| mapping | 96 | 15.1% |
+| inspection | 62 | 9.7% |
+| search_rescue | 36 | 5.7% |
+| military | 21 | 3.3% |
+| delivery | 5 | 0.8% |
+| agriculture | 4 | 0.6% |

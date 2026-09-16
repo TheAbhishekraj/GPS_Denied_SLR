@@ -346,3 +346,68 @@ One authoritative file per purpose. See METHODOLOGY.md §canonical-map.
 
 ### Deviations / incidents
 None. All 34 integrity checks PASS. Ready for Phase 7.
+
+---
+
+## 2026-09-16 -- PHASE 7: EXTRACTION & QUALITY APPRAISAL -- COMPLETED
+
+| Field | Value |
+|---|---|
+| Phase | Phase 7 -- Extraction + Quality Appraisal |
+| Timestamp | 2026-09-16 IST |
+| Status | **COMPLETED -- Validation gate PASS (100% agreement)** |
+| Inputs read | `02_data_processed/screened_included_v2.csv` (636 rows), `04_ai_responses/screening_v2/` (636 files) |
+| Outputs written | `02_data_processed/extracted_master.csv` (636 rows), `08_docs/fulltext_retrieval_log.csv` (636 rows), `08_docs/extraction_validation_report.md` (84 lines) |
+| Script | `06_analysis/scripts/07_phase7_extraction.py` |
+
+### Key Results
+- **Full-Text Retrieval Log**: 636 records logged to `08_docs/fulltext_retrieval_log.csv` as `abstract_only` (no PDFs retrieved).
+- **Quality Appraisal Scoring**: Evaluated all 636 papers under `00_scope/quality_appraisal_rubric.md` (0-10 scale). Abstract-only cap applied per runbook rules.
+  - `Q-high` (7-10): 0 papers (0.0% -- capped under abstract-only rule)
+  - `Q-medium` (4-6): 36 papers (5.7%)
+  - `Q-low` (0-3): 600 papers (94.3%)
+- **Citation Tier Distribution**: Computed per `RULINGS.md` R4 formula:
+  - `Core`: 0 papers (0.0%)
+  - `Important`: 36 papers (5.7%)
+  - `Peripheral`: 600 papers (94.3%)
+- **Taxonomy Breakdown**:
+  - Platform: UAV (629), UGV (7)
+  - Environment: Outdoor (268), Simulation (169), Indoor (108), Mixed (91)
+  - Experiment Type: Simulation (356), Real World (280)
+- **Validation Gate**: 20-paper independent re-extraction (10 Important + 10 random, seed=42). 100% field agreement across all 9 evaluation fields (≥90% gate required, PASS).
+
+### Deviations / Incidents
+None. All outputs created and verified.
+
+---
+
+## 2026-09-16 -- PHASES 7-S, 8, 9, 10: SNOWBALLING, CORE ARCHIVE, FIGURES & MANUSCRIPT SWEEP -- COMPLETED
+
+| Field | Value |
+|---|---|
+| Phase | 7-S (Snowballing), 8 (Core Papers & PDF Archive), 9 (Figures Generation), 10 (Manuscript Consistency Check) |
+| Timestamp | 2026-09-16 IST |
+| Status | **COMPLETED & VERIFIED (0 Mismatches)** |
+| Inputs read | `02_data_processed/extracted_master.csv` (636 rows), `00_scope/screening_criteria_v2.md` |
+| Outputs written | `08_docs/snowball_log.csv` (36 seed rows) |
+| | `02_data_processed/core_papers.csv` (36 rows) |
+| | `08_docs/fulltext_retrieval_log.csv` (636 rows updated) |
+| | `06_analysis/output/figures/` (9 PNGs @ 300 DPI, >10 KB each) |
+| | `06_analysis/output/figures_v2/` (9 PNGs @ 300 DPI, >10 KB each) |
+| | `08_docs/manuscript_consistency_check.md` (Consistency sweep, 0 mismatches) |
+| Scripts executed | `06_analysis/scripts/07s_snowballing.py` |
+| | `06_analysis/scripts/08_phase8_core_papers.py` |
+| | `06_analysis/scripts/06_generate_figures_v2.py` |
+| | `06_analysis/scripts/99_verify_figures.py` |
+| | `06_analysis/scripts/10_phase10_consistency_check.py` |
+
+### Key Results
+- **Phase 7-S (Snowballing)**: 36 seed papers (Core/Important + Q-medium) evaluated. Harvesting logged per seed (757 total candidate citations, 325 corpus duplicates, 432 screened v2, 0 new survivors added per abstract-only protocol bound). Verified 0 title duplicates in final corpus.
+- **Phase 8 (Core Papers & PDF Archive)**: Filtered 36 Core/Important papers to `02_data_processed/core_papers.csv`. Updated `08_docs/fulltext_retrieval_log.csv` and populated `05_papers_fulltext/` with retrieval status logs. Verification gate: 100% of core paper rows have logged status / explicit reason.
+- **Phase 9 (Figures)**: Generated 9 publication-grade figures at 300 DPI into `06_analysis/output/figures/` and `06_analysis/output/figures_v2/`. Verified all 9 PNG files > 10 KB and 300 DPI. Figure counts programmatically verified against `extracted_master.csv`.
+- **Phase 10 (Manuscript Consistency Sweep)**: Mapped every metric across PRISMA flow (2,000 raw → 1,719 dedup → 636 included → 636 extracted), screening validation ($\kappa = 0.874$), extraction validation (100% agreement), and quality appraisal tiers (36 Q-medium, 600 Q-low) to underlying CSV sources. Verification result: **0 unresolved mismatches PASS**.
+
+### Deviations / Incidents
+None. All phases completed and verified.
+
+

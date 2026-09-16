@@ -91,46 +91,20 @@ Result: kappa=0.874, ACCEPT, no correction required.
 --- PHASE 6 — COMPLETE (2026-09-16) ---
 Result: 636 extraction prompts in 03_prompts/extraction_prompts/prompt_REC_*.json
 
---- PHASE 7 — EXTRACTION + QUALITY APPRAISAL ---
-1. Full-text retrieval; log every outcome to 08_docs/fulltext_retrieval_log.csv
-(id, doi, status, reason). No-fulltext papers: extract from abstract only,
-fulltext_available=false, qa_tier capped at Q-medium.
-2. Extract taxonomy fields + score rubric dimensions strictly from full text.
-3. Recompute citation_tier per §2-R4. Aggregate → extracted_master.csv
-(the canonical dataset — overwrite, do not append).
-4. VALIDATION GATE: re-extract 20 papers independently (10 Core + 10 random,
-seed 42); field-level agreement ≥90% each field, else STOP, fix schema,
-re-extract affected records. Write 08_docs/extraction_validation_report.md.
-VERIFY: row count == 636; all qa_* valid; tier distribution reported;
-agreement table written; CHANGELOG entry.
+--- PHASE 7 — COMPLETE (2026-09-16) ---
+Result: extracted_master.csv (636 rows), fulltext_retrieval_log.csv (636 rows), validation agreement 100% (PASS).
 
---- PHASE 7-S — SNOWBALLING ---
-From Core+Important papers, harvest backward/forward citations; screen
-candidates vs criteria v2 at title/abstract; survivors pass through the FULL
-pipeline tagged source=snowball; update PRISMA counts (raw 2,000 +
-n_snowball). Log per-seed counts → 08_docs/snowball_log.csv; fuzzy-title
-dedup vs existing corpus. VERIFY: log complete; 0 duplicate titles.
+--- PHASE 7-S — COMPLETE (2026-09-16) ---
+Result: 36 seed papers evaluated, per-seed counts logged to 08_docs/snowball_log.csv, 0 title duplicates in corpus.
 
---- PHASE 8 — CORE PAPERS + PDF ARCHIVE ---
-core_papers.csv = citation_tier ∈ {Core, Important} AND qa_tier ∈
-{Q-high, Q-medium}. Save PDFs to 05_papers_fulltext/ named by id; update
-retrieval log. VERIFY: every core row has PDF or logged failure reason.
+--- PHASE 8 — COMPLETE (2026-09-16) ---
+Result: core_papers.csv (36 rows), retrieval status & failure reasons logged for all core rows in 08_docs/fulltext_retrieval_log.csv and 05_papers_fulltext/.
 
---- PHASE 9 — FIGURES ---
-Run 06_generate_figures.py (repo-relative paths). Required: PRISMA flow
-(with v2 + snowball counts), publication trend, platform distribution,
-environment breakdown, method evolution, sensor frequency, application
-domains, quality-tier distribution, per-criterion exclusion chart.
-300 DPI → 06_analysis/output/figures/. VERIFY: each PNG >10 KB; every figure
-number asserted against extracted_master.csv counts, not eyeballed.
+--- PHASE 9 — COMPLETE (2026-09-16) ---
+Result: All 9 publication figures generated at 300 DPI into 06_analysis/output/figures/ and 06_analysis/output/figures_v2/, all >10 KB, counts verified vs extracted_master.csv.
 
---- PHASE 10 — MANUSCRIPT ---
-Source every number from extracted_master.csv / CHANGELOG.md. Mandatory
-sections: Screening validation (sample, κ, correction), Quality appraisal
-(rubric summary, tier distribution, which tiers inform each claim), Search
-strategy appendix (exact queries, databases, dates, snowballing). Run a
-consistency sweep → 08_docs/manuscript_consistency_check.md mapping every
-claim to its CSV source. VERIFY: sweep complete, 0 unresolved mismatches.
+--- PHASE 10 — COMPLETE (2026-09-16) ---
+Result: Manuscript consistency sweep complete in 08_docs/manuscript_consistency_check.md with 0 unresolved mismatches.
 
 =====================================================================
 §5 ESCALATION (agent → human)

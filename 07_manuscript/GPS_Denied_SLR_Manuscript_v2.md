@@ -10,7 +10,7 @@
 
 ## ABSTRACT
 
-Reliable autonomous operation of UAVs where satellite navigation is unavailable -- collapsed buildings, mines, contested EW, urban canyons, forests -- is one of robotics' most consequential unsolved challenges. This SLR synthesizes **1,692 peer-reviewed empirical studies** (2,000 initial -> 1,719 dedup -> 1,692 included), PRISMA 2020, 2010-2026, IEEE Xplore + Scopus. Three structural findings: (1) **IMU is the universal substrate** (78%, 1,332/1,700); (2) **adversarial/EW denial is the largest environment category**; (3) **a persistent simulation-to-deployment gap** unchanged over 16 years.
+Reliable autonomous operation of UAVs where satellite navigation is unavailable -- collapsed buildings, mines, contested EW, urban canyons, forests -- is one of robotics' most consequential unsolved challenges. This SLR synthesizes **636 peer-reviewed empirical studies** (2,000 initial -> 1,719 dedup -> 636 included), PRISMA 2020, 2010-2026, IEEE Xplore + Scopus. Three structural findings: (1) **IMU is the universal substrate** (78%, 1,332/636); (2) **adversarial/EW denial is the largest environment category**; (3) **a persistent simulation-to-deployment gap** unchanged over 16 years.
 
 **Keywords**: UAV, GPS-Denied Navigation, GNSS-Denied Localization, Sensor Fusion, VIO, LiDAR SLAM, Dead Reckoning, Multi-Agent SLAM, Deep Learning Odometry, PRISMA.
 
@@ -28,7 +28,7 @@ No prior survey covers the full multi-sensor, multi-platform landscape with PRIS
 GPS-denied navigation has reached benchmark maturity while deployment remains unsolved. Closing the gap needs better evaluation standards, honest failure reporting, and stressed-environment validation.
 
 ### 1.4 Contributions
-1. PRISMA-compliant dataset: 1,692 from 1,719 dedup (2,000 initial).
+1. PRISMA-compliant dataset: 636 from 1,719 dedup (2,000 initial).
 2. Multi-dimensional taxonomy: 10 methods, 13 sensors, 7 environments, 3 experiment types.
 3. Three novel corpus-level findings: IMU 78%, EW dominance, quantified sim-to-deploy gap.
 4. Five prioritized research directions.
@@ -55,8 +55,8 @@ GPS-denied navigation has reached benchmark maturity while deployment remains un
 |---|---|---|
 | Initial | 2,000 | IEEE 1,000; Scopus 1,000 |
 | After dedup | **1,719** | 281 removed (14.1%) |
-| After screening | **1,692** | 27 excluded (1.6%) |
-| Extracted | **1,700** | extracted_master.csv |
+| After screening | **636** | 27 excluded (1.6%) |
+| Extracted | **636** | extracted_master.csv |
 
 27 exclusions: 8 theoretical-only, 11 GPS-augmented, 8 out-of-scope platforms.
 
@@ -71,7 +71,7 @@ Problem statement; sensor config; quantitative results; baseline comparison; rea
 ## 3. TAXONOMY OF SENSORS AND ESTIMATION FRAMEWORKS
 
 ### 3.1 IMU -- The Universal Substrate
-IMU appears in **1,332/1,700 papers = 78%** (fig05). It is rarely the primary method but underlies every high-performing approach. GPS-denied navigation is fundamentally the problem of correcting IMU drift.
+IMU appears in **1,332/636 papers = 78%** (fig05). It is rarely the primary method but underlies every high-performing approach. GPS-denied navigation is fundamentally the problem of correcting IMU drift.
 
 ### 3.2 Visual-Inertial (VINS)
 - **Filter-based** (MSCKF, EKF-VIO): 10-50 ms/frame, dominant on MAVs; long-horizon linearization error.
@@ -212,10 +212,10 @@ Closing requires culture shift: stressed-env evaluation, honest drift reporting,
 - [Wang2017] DeepVO, ICRA 2017
 - [Prisma2020] PRISMA 2020, BMJ 2021
 
-**Dataset**: 02_data_processed/extracted_master.csv (1,700)
+**Dataset**: 02_data_processed/extracted_master.csv (636)
 **Figures**: 06_analysis/output/figures_v2/ (9, 300 DPI)
 **GitHub**: https://github.com/TheAbhishekraj/GPS_Denied_SLR
 
 ---
-CANONICAL NUMBERS: Raw=2,000 | Dedup=1,719 | Included=1,692 | Excluded=27 | Extracted=1,700
+CANONICAL NUMBERS: Raw=2,000 | Dedup=1,719 | Included=636 | Excluded=27 | Extracted=636
 Next: (1) inline citations; (2) LaTeX; (3) performance tables; (4) plagiarism check

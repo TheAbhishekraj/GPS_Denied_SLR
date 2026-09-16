@@ -43,9 +43,11 @@ warnings.filterwarnings('ignore')
 # ────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ────────────────────────────────────────────────────────────
-PROC_DIR   = Path('E:/GPS_Denied_SLR/02_data_processed')
-OUTPUT_DIR = Path('E:/GPS_Denied_SLR/06_analysis/output/figures_v2')
+PROC_DIR   = Path('02_data_processed')
+OUTPUT_DIR = Path('06_analysis/output/figures_v2')
+OUTPUT_DIR_V1 = Path('06_analysis/output/figures')
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR_V1.mkdir(parents=True, exist_ok=True)
 
 # Premium dark colour palette
 DARK_BG     = '#0f1117'
@@ -61,29 +63,31 @@ TEXT_COLOR  = '#e8eaf0'
 GRID_COLOR  = '#2a2d3a'
 
 METHOD_COLORS = {
-    'Filter_Based_VIO':           ACCENT1,
-    'Optimization_Based_VIO':     '#7bb4f9',
-    'LiDAR_SLAM':                 ACCENT3,
-    'Visual_SLAM':                '#8affc4',
-    'Visual_LiDAR_Inertial_Fusion': ACCENT4,
-    'Hybrid_Classical_Learning':  ACCENT2,
-    'Deep_Learning_Odometry':     ACCENT6,
-    'Radio_Based_Positioning':    '#888aa0',
-    'Multi_Agent_Collaborative_SLAM': ACCENT5,
-    'Map_Based_Localization':     ACCENT7,
+    'other':           '#888aa0',
+    'EKF':             ACCENT1,
+    'DNN':             ACCENT6,
+    'VIO_SLAM':        ACCENT3,
+    'VIO':             '#7bb4f9',
+    'particle_filter': ACCENT4,
+    'SLAM':            '#8affc4',
+    'hybrid':          ACCENT2,
+    'graph_SLAM':      ACCENT5,
+    'LiDAR_SLAM':      ACCENT7,
+    'UKF':             '#f7d44f',
 }
 
 METHOD_LABELS = {
-    'Filter_Based_VIO':           'Filter-Based VIO',
-    'Optimization_Based_VIO':     'Optimization VIO',
-    'LiDAR_SLAM':                 'LiDAR SLAM',
-    'Visual_SLAM':                'Visual SLAM',
-    'Visual_LiDAR_Inertial_Fusion': 'Visual-LiDAR-Inertial',
-    'Hybrid_Classical_Learning':  'Hybrid Classical+DL',
-    'Deep_Learning_Odometry':     'Deep Learning Odometry',
-    'Radio_Based_Positioning':    'Radio-Based Positioning',
-    'Multi_Agent_Collaborative_SLAM': 'Multi-Agent SLAM',
-    'Map_Based_Localization':     'Map-Based Localization',
+    'other':           'Other / Custom',
+    'EKF':             'Extended Kalman Filter',
+    'DNN':             'Deep Neural Networks',
+    'VIO_SLAM':        'VIO SLAM',
+    'VIO':             'Visual-Inertial Odometry',
+    'particle_filter': 'Particle Filter',
+    'SLAM':            'Visual / General SLAM',
+    'hybrid':          'Hybrid Classical + DL',
+    'graph_SLAM':      'Graph SLAM',
+    'LiDAR_SLAM':      'LiDAR SLAM',
+    'UKF':             'Unscented Kalman Filter',
 }
 
 def set_dark_style():
@@ -130,9 +134,11 @@ def parse_list_col(series):
 
 def save(fig, name, dpi=300):
     path = OUTPUT_DIR / name
+    path_v1 = OUTPUT_DIR_V1 / name
     fig.savefig(path, dpi=dpi, bbox_inches='tight', facecolor=fig.get_facecolor())
+    fig.savefig(path_v1, dpi=dpi, bbox_inches='tight', facecolor=fig.get_facecolor())
     plt.close(fig)
-    print(f"   ✓ Saved: {name}")
+    print(f"   ✓ Saved: {name} (to figures_v2/ and figures/)")
     return path
 
 # ────────────────────────────────────────────────────────────
@@ -363,7 +369,7 @@ save(fig, 'fig03_environment_distribution.png')
 print("[4/9] Figure 4: Method evolution …")
 
 df_valid = df[(df['year'] >= 2010) & (df['year'] <= 2025)].copy()
-method_year = pd.crosstab(df_valid['year'], df_valid['primary_method'])
+method_year = pd.crosstab(df_valid['year'], df_valid['algorithm_family'])
 # Rename columns
 method_year.columns = [METHOD_LABELS.get(c, c) for c in method_year.columns]
 
@@ -641,8 +647,8 @@ print("[8/9] Figure 8: Method x Environment heatmap ...")
 records = []
 for _, row in df.iterrows():
     envs    = parse_list_col(pd.Series([row['environment']]))
-    method  = METHOD_LABELS.get(str(row.get('primary_method','')).strip(),
-                                str(row.get('primary_method','')).strip())
+    method  = METHOD_LABELS.get(str(row.get('algorithm_family','')).strip(),
+                                str(row.get('algorithm_family','')).strip())
     for env in envs:
         canonical = env_map.get(env.strip(), env.strip())
         records.append({'method': method, 'env': canonical})
