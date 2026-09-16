@@ -53,6 +53,15 @@
 
 ## 5. Quality Assessment Checklist (8 items, each scored 0/0.5/1)
 
+> ⚠ **SUPERSEDED by `00_scope/quality_appraisal_rubric.md` — see `RULINGS.md` R2.**
+> This 8-item 0/0.5/1 checklist is **historical only**. The binding rubric is
+> `quality_appraisal_rubric.md` (0–10 scale: rigor 0–4, reporting 0–3, baseline
+> 0–2, reproducibility 0–1; tiers Q-high 7–10 / Q-medium 4–6 / Q-low 0–3),
+> producing the `qa_rigor, qa_reporting, qa_baseline, qa_repro, qa_total,
+> qa_tier, qa_notes` columns. Migration equivalence: dimension A ⊇ items 1–3,
+> B ⊇ items 4–5, C ⊇ item 6, D  items 7–8. The QA ≥ 3.0/8.0 threshold below is
+> **not** in force. Do not score any v2 paper with this checklist.
+
 | # | Quality Item |
 |---|-------------|
 | **QA1** | Clear statement of GPS-denied/GNSS-denied motivation and problem scope |

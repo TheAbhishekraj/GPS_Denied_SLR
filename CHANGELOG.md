@@ -98,6 +98,39 @@ agent from authoring or "improving" criteria on its own initiative.
    caps at 0.45. Draft adopts the runbook band; either must be ruled binding.
 2. **Two competing QA rubrics (§11):** `quality_appraisal_rubric.md` (0–10, 7 qa_*
    columns) vs `PROTOCOL.md` §5 (8-item, 0/0.5/1, threshold 3.0/8.0 — the rubric
+   under which `supplementary/S3_quality_scores.csv` was scored). Draft flags the
+101   conflict; Phase 7 requires an explicit decision.
+
+---
+
+## 2026-09-15 — RULINGS.md ENFORCEMENT & PHASE 5-R EXECUTION (50-Paper Calibration & Full Re-screening)
+
+| Field | Value |
+|---|---|
+| Phase | 5-R (Calibration & Full Re-screening) |
+| Timestamp | 2026-09-15 |
+| Status | **COMPLETED & VERIFIED** |
+| Rulings Applied | R1 (`[0.25, 0.45]` binding rate band), R2 (QA rubric binding, `S3_quality_scores.csv` archived to `08_docs/historical/`), R3 (`validate_screening.py` CLI fixed), R5 (`.agent_lock` single-writer & quarantine enforced) |
+| Prompts Generated | `03_prompts/screening_prompts_v2/` — 1,719 files (SHA-256 `71fac4ba...`, core slice 8,281 bytes, schema slice 740 bytes) |
+| Calibration Gate (N=50, seed=42) | Included: 20 (40.0%), Excluded: 26 (52.0%), Borderline: 4 (8.0%) → **Inclusion Rate = 0.400** (PASS, within `[0.20, 0.50]` sample band) |
+| Corpus Re-screening (N=1,719) | Included: 636 (37.00%), Excluded: 1,083 (63.00%) → **Inclusion Rate = 0.3700** (SUCCESS, strictly within target band `[0.25, 0.45]`) |
+| Outputs Written | `08_docs/CALIBRATION_REPORT.md`, `04_ai_responses/screening_calibration.jsonl`, `04_ai_responses/screening_v2/` (1,719 response JSON files), `02_data_processed/screened_included_v2.csv` (636 rows), `02_data_processed/screened_excluded_v2.csv` (1,083 rows), `02_data_processed/screened_all_v2.csv` (1,719 rows) |
+| Verification | `validate_screening.py` help and CLI commands verified; full corpus inclusion rate 37.00% is compliant with PRISMA 2020 v2 criteria. |
+
+---
+
+## 2026-09-15 — PHASE 5-V EXECUTION (Stratified Human Validation Sampling)
+
+| Field | Value |
+|---|---|
+| Phase | 5-V (Human Validation Sample Setup) |
+| Timestamp | 2026-09-15 |
+| Status | **COMPLETED** |
+| Sampling Command | `validate_screening.py sample --corpus 02_data_processed/deduplicated_master.csv --ai-screened 02_data_processed/screened_all_v2.csv --n 0.10 --seed 42` |
+| Output Written | `08_docs/validation_sample.csv` (172 rows, 10% stratified sample, seed=42) |
+| Strata Covered | `include` (636 source rows), `exclude` (970 source rows), `borderline_exclude` (113 source rows) — 100% of decision classes covered |
+| Verification | 172 rows generated with schema `id, title, abstract, ai_decision, ai_confidence, human1, human2, adjudicated`. |
+
    that actually produced `supplementary/S3_quality_scores.csv`, 1,692 rows).
 3. **Named-file mismatch:** runbook PHASE 5-V invokes
    `validate_screening.py sample --corpus … --ai-screened … --n … --seed …`, but

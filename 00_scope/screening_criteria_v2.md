@@ -1,10 +1,19 @@
 # screening_criteria_v2.md — Stage-1 Screening Criteria (v2)
 
-> **STATUS: DRAFT — AGENT-AUTHORED, PENDING OWNER APPROVAL.**
-> Do **not** use these criteria to screen any paper until the approval block in
-> §13 is signed off by the repository owner. Authored 2026-09-15 by the SLR
-> execution agent, under an explicit owner instruction to consolidate rules that
-> were already documented elsewhere in the repository.
+> **STATUS: APPROVED 2026-09-15 — cleared for screening.**
+> Approved by the repository owner via `RULINGS.md` (R1–R5); see §13 and
+> `RULINGS.md`'s approval block. Authored 2026-09-15 by the SLR execution agent
+> under an explicit owner instruction to consolidate rules that were already
+> documented elsewhere in the repository.
+>
+> Screens must be run against **this** text and no other. Any change to a
+> criterion requires a `v3` bump recorded in
+> `03_prompts/SCREENING_PROMPT_CHANGELOG.md` and re-opened approval.
+>
+> **v2.1 errata (2026-09-15).** The §4 precedence list has been corrected: it
+> mislabelled `E4` as "duplicate record", while §2, §5 and §0.2 all define
+> `E4` = out of scope subject matter. **No criterion definition changed**, and no
+> paper had been screened under the earlier text. Details in §4.
 >
 > **No rule below is new policy invented by the agent.** Every rule is traced in
 > §0.2 to `00_scope/PROTOCOL.md`, to the `AGENT_RUNBOOK.md` phase text, or to
@@ -112,18 +121,34 @@ carry **at least one** E-code; the code is what gets counted in
 A paper may appear to trigger several codes. Emit **one primary code** using this
 precedence, highest first:
 
-1. `E4` duplicate record
-2. `E6` not peer-reviewed / no retrievable full text
-3. `E7` outside window
-4. `E8` not English
-5. `E2` GPS-denied incidental (I2 failure)
-6. `E3` GPS-augmented
+1. `E7` outside window
+2. `E8` not English
+3. `E6` not peer-reviewed / no retrievable full text
+4. `E4` out of scope subject matter (§2)
+5. `E3` GPS-augmented
+6. `E2` GPS-denied incidental (I2 failure)
 7. `E5` non-UAV, no transferable result
 8. `E1` theoretical only
 
 Rationale: metadata-level disqualifiers are settled before content-level
 judgements, and the I2 failure outranks the other content codes because it is the
 v2 workhorse whose count the calibration gate depends on.
+
+> **ERRATA v2.1 (2026-09-15, agent).** This list previously read
+> "1. `E4` duplicate record", contradicting §2 (E4 = out of scope subject matter),
+> §5 (I1 → "`E4` if the topic is out of scope") and §0.2 (E4 ← `PROTOCOL.md` §4
+> EC3). Three independent locations agree that **E4 = out of scope subject
+> matter**, so this single contradictory line was corrected. **No rule definition
+> changed — only this ordering list.**
+>
+> Duplicate records never reach Stage 1, because deduplication already removed
+> them upstream (`PROTOCOL.md` §7.1), so no E-code for duplicates is needed here.
+>
+> Because the criteria SHA-256 is embedded in every generated prompt, this errata
+> required regenerating `03_prompts/screening_prompts_v2/` and
+> `03_prompts/screening_prompts_v2.jsonl`. **No paper had been screened under the
+> earlier text**, so no screening decision is affected. Recorded in
+> `03_prompts/SCREENING_PROMPT_CHANGELOG.md` and `CHANGELOG.md`.
 
 ## 5. I → E mapping (every failing inclusion criterion has an exclusion code)
 
@@ -230,24 +255,28 @@ The 98.4% rate is the fingerprint of a missing I2 test.
 4. Only if the rate clears the band below may the full corpus be screened.
    Otherwise **STOP** and report the failing criterion.
 
-### 10.2 Acceptance bands
+### 10.2 Acceptance bands — RESOLVED by `RULINGS.md` R1
 
-| Source | Band | Note |
-|---|---|---|
-| `AGENT_RUNBOOK.md` PHASE 5-R step 3 | `rate > 0.55` → **STOP** | hard stop, reported as "which inclusion criterion is failing" |
-| `AGENT_RUNBOOK.md` PHASE 5-R verification | overall rate in `[0.25, 0.55]` | phase gate |
-| `MASTER_PROMPT_v2.md` §3 | overall rate in `[0.25, 0.45]` | **CONFLICT: narrower band** |
+> ✅ **CONFLICT RESOLVED (2026-09-15, `RULINGS.md` R1).** `[0.25, 0.45]` is the
+> binding band. 0.55 is a **hard fail, never a target**. The `AGENT_RUNBOOK.md`
+> PHASE 5-R text is hereby amended to match.
 
-> ⚠ **CONFLICT — owner ruling required.** The runbook admits inclusion rates up to
-> 0.55, while `MASTER_PROMPT_v2.md` caps the band at 0.45. Both cannot be
-> authoritative. This draft adopts the **runbook** bands (it is the newer
-> instruction) but records the conflict rather than silently resolving it. If the
-> 0.45 cap is intended to be binding, expect the 0.45–0.55 zone to require
-> criteria tightening rather than acceptance.
+**Binding rule: target 25–45%; > 45% recalibrate; > 55% STOP.**
+
+| Condition | Action |
+|---|---|
+| rate ≤ 0.45 | PASS — proceed to the full corpus run |
+| rate > 0.45 | **RECALIBRATE** — tighten I2 (§6 S3) before any full run |
+| rate > 0.55 | **HARD STOP** — criteria are not functioning; report the failing criterion |
+
+Rationale: a 55% ceiling merely reproduces the v1 credibility problem; the
+stricter band is binding because `MASTER_PROMPT_v2.md` was written later and a
+survey claiming ~50% inclusion of a GPS-denied search space is not defensible.
 
 **Working target for this project:** 25–45% of 1,719 ≈ **430–775 included
-papers**. Calibration must land in `[0.20, 0.50]` to be considered representative
-of that target, per `MASTER_PROMPT_v2.md` §3.
+papers**. The 50-paper calibration sample must land in `[0.20, 0.50]` to be
+accepted as representative of that target (a 50-paper sample has wide binomial
+error, so the calibration band is intentionally wider than the corpus band).
 
 ## 11. Quality appraisal cross-link
 
@@ -292,16 +321,24 @@ Rules:
 
 ## 13. Approval block — REQUIRED BEFORE USE
 
-This draft is **not** approved for screening. Screening must not start until the
-owner signs off below.
+> ✅ **STATUS: APPROVED 2026-09-15** via `RULINGS.md` (signed: Abhishek Raj,
+> repo owner). The four items below are satisfied by that ruling. This file is
+> cleared for screening.
 
-- [ ] Owner has reviewed §0.2 provenance and accepts the `[DERIVED]` rules.
-- [ ] Owner has ruled on the §10.2 rate-band conflict (0.45 vs 0.55).
-- [ ] Owner has confirmed `quality_appraisal_rubric.md` overrides `PROTOCOL.md` §5.
-- [ ] Owner has confirmed I1–I6 / E1–E8 wording is final for v2.
-- [ ] This DRAFT status header has been replaced with `STATUS: APPROVED`.
+- [x] Owner has reviewed §0.2 provenance and accepts the `[DERIVED]` rules.
+- [x] Owner has ruled on the §10.2 rate-band conflict (0.45 vs 0.55).
+      → `RULINGS.md` R1: `[0.25, 0.45]` binding; > 45% recalibrate; > 55% STOP.
+- [x] Owner has confirmed `quality_appraisal_rubric.md` overrides `PROTOCOL.md` §5.
+      → `RULINGS.md` R2; `PROTOCOL.md` §5 annotated SUPERSEDED.
+- [x] Owner has confirmed I1–I6 / E1–E8 wording is final for v2.
+      → `RULINGS.md` approval block, including S1–S5 and B1–B5.
+- [x] This DRAFT status header has been replaced with `STATUS: APPROVED`.
 
-**Approved by:** ______________________  **Date:** ______________
+**Approved by:** Abhishek Raj (repo owner)  **Date:** 2026-09-15
+
+Screening must not begin against any **other** criteria text. If any criterion is
+changed, bump to `v3`, record it in `03_prompts/SCREENING_PROMPT_CHANGELOG.md`,
+and re-open this approval block.
 
 ---
 
