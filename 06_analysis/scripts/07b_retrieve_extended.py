@@ -9,7 +9,7 @@ PDF_DIR = ROOT/"05_papers_fulltext"
 PDF_DIR.mkdir(exist_ok=True)
 UA = {"User-Agent": "SLR-Retriever/2.0 (mailto:abhishek.raj.research@gmail.com)"}
 
-def _get(url, timeout=20):
+def _get(url, timeout=12):
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read()
@@ -65,7 +65,7 @@ def try_arxiv(title):
 
 def download_pdf(url, dest):
     try:
-        data = _get(url, timeout=40)
+        data = _get(url, timeout=25)
         if len(data) < 5000 or not data.startswith(b"%PDF"): return False
         dest.write_bytes(data)
         return True
@@ -84,7 +84,7 @@ def main():
             r["status"] = "failed"; r["fulltext_available"] = "False"
             r["retrieval_status"] = "reconciled_missing"
     new_count = 0
-    print(f"Processing {len(rows)} papers...")
+    print(f"Processing {len(rows)} papers...", flush=True)
     for i, row in enumerate(rows, 1):
         pid   = row.get("id") or row.get("paper_id")
         doi   = (row.get("doi") or "").strip()
@@ -101,7 +101,7 @@ def main():
                 log[pid].update({"status":"downloaded","fulltext_available":"True",
                                  "retrieval_status":f"ext_{src}","reason":""})
         if i % 25 == 0:
-            print(f"  {i}/{len(rows)}  new={new_count}")
+            print(f"  {i}/{len(rows)}  new={new_count}", flush=True)
         time.sleep(0.4)
     with LOG.open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["id","doi","status","reason",
@@ -109,7 +109,8 @@ def main():
         w.writeheader()
         for pid in log: w.writerow(log[pid])
     on_disk = len(list(PDF_DIR.glob("*.pdf")))
-    print(f"\nNew this run: {new_count}")
-    print(f"Total on disk: {on_disk} / {len(rows)} ({100*on_disk/len(rows):.1f}%)")
+    print(f"\nNew this run: {new_count}", flush=True)
+    print(f"Total on disk: {on_disk} / {len(rows)} ({100*on_disk/len(rows):.1f}%)", flush=True)
 
 if __name__ == "__main__": main()
+
