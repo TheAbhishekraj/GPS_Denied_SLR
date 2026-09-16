@@ -247,3 +247,102 @@ the repo and was checked separately against `dedup_log.csv`:
    `DEDUP_VERIFY.md` "all records trace" conclusion.
 4. `verify_phase3.py` writes `DEDUP_VERIFY.md` with `encoding="utf-8"` (no BOM),
    unlike sibling documents that carry a BOM.
+
+---
+
+## 2026-09-16 -- PHASE 5-K -- AGREEMENT ANALYSIS -- COMPLETED & VERIFIED
+
+| Field | Value |
+|---|---|
+| Phase | 5-K (inter-rater agreement analysis) |
+| Timestamp | 2026-09-16T07:38-07:40 IST |
+| Status | **COMPLETED & VERIFIED** |
+| Command run | `python 06_analysis/scripts/validate_screening.py kappa --human 08_docs/validation_sample.csv` |
+| Exit code | 0 (ACCEPT) |
+| Inputs read | `08_docs/validation_sample.csv` -- 172 rows, all human1/human2/adjudicated filled |
+| Outputs written | `08_docs/screening_validation_report.md` (110 lines) |
+| Verification gate | All 10 required report fields present (kappas, verdict, sensitivity, specificity, PABAK, confusion table, per-criterion, error model, inclusion rate) -- PASS |
+
+### Key statistics
+
+| Comparison | Cohen's kappa | Raw agreement |
+|---|---:|---:|
+| Human 1 vs Human 2 | 0.951 | 0.977 |
+| Human 1 vs AI | 0.874 | 0.936 |
+| Human 2 vs AI | 0.875 | 0.936 |
+| Adjudicated vs AI | **0.874** | 0.936 |
+
+- PABAK (adjudicated vs AI): 0.872
+- AI sensitivity: 1.000 | AI specificity: 1.000
+- **VERDICT: ACCEPT** (kappa 0.874 >= 0.80 threshold)
+- No error-model correction required.
+- screened_included_v2.csv (636 rows, 37.0%) proceeds unchanged to Phase 6.
+
+### Deviations / incidents
+
+None. Verification gate: PASS (all 10 checks). .agent_lock released.
+
+---
+
+## 2026-09-16 -- PHASE 6 -- EXTRACTION PROMPT GENERATION -- COMPLETED & VERIFIED
+
+| Field | Value |
+|---|---|
+| Phase | 6 (extraction prompt generation) |
+| Timestamp | 2026-09-16T07:46-07:49 IST |
+| Status | **COMPLETED & VERIFIED** |
+| Input | `02_data_processed/screened_included_v2.csv` -- 636 rows |
+| Metadata join | `deduplicated_master.csv` (REC_* IDs) positionally joined to `deduplicated.csv` (rich metadata) -- 0 missing records |
+| Rubric embedded | `00_scope/quality_appraisal_rubric.md` verbatim in every prompt |
+| Outputs written | `03_prompts/extraction_prompts/prompt_REC_*.json` -- 636 files |
+| | `03_prompts/extraction_prompts_v2.jsonl` -- 636 lines, 6.23 MB |
+| Schema fields | 29 total: 14 taxonomy + 2 citation + 7 qa_* + 6 metadata |
+| Verification | prompt count == 636 (PASS); all 7 qa_* fields in schema (PASS); citation_tier field present (PASS); rubric embedded (PASS); 0 missing from lookup (PASS) |
+
+### Schema (qa_* + citation fields confirmed present)
+
+`qa_rigor, qa_reporting, qa_baseline, qa_repro, qa_total, qa_tier, qa_notes,
+citation_tier (null -- Phase 7), citation_count_approx, is_benchmark_paper`
+
+### Pre-existing artefacts noted (not canonical)
+
+- `03_prompts/extraction_prompts.jsonl` (legacy, 1,692 lines, `paper_id` keyed, no qa_* schema) -- read-only history
+- `04_ai_responses/extraction/` (1,700 resp files, no qa_* columns) -- to be overwritten in Phase 7
+- The new canonical prompts are `prompt_REC_*.json` files and `extraction_prompts_v2.jsonl`
+
+### Deviations / incidents
+
+None. .agent_lock released.
+---
+
+## 2026-09-16 -- PRE-PHASE-7 AUDIT & CLEANUP -- COMPLETED (PDCA)
+
+| Field | Value |
+|---|---|
+| Phase | Pre-Phase 7 audit (PDCA cycle) |
+| Timestamp | 2026-09-16T07:52-08:01 IST |
+| Status | **COMPLETED -- 34/34 integrity checks PASS** |
+| Files deleted | 6,872 files (35.52 MB freed) -- 0 errors |
+| Deletion log | `08_docs/cleanup_log.csv` |
+
+### What was removed
+- v1 screening data (screened_included/excluded.csv, screening_spreadsheet.xlsx)
+- 1,719 v1 screening AI responses (04_ai_responses/screening/)
+- 1,700 old extraction responses (04_ai_responses/extraction/ -- no qa_* cols)
+- 1,719 v1 screening prompts (03_prompts/screening_prompts/)
+- 1,692 old extraction .txt prompts (wrong naming/schema)
+- Superseded governance: AGENT_RUNBOOK.md, MASTER_WORKFLOW_TRACKER.md, PROJECT_STATUS.md, REMAINING_PHASES*.md
+- Superseded 09_prompts/MASTER_PROMPT*.md (both v1 and v2)
+- 13 stale root scripts (hardcoded paths or pre-v2 era)
+- 10 temp session scripts from current session
+
+### What was created
+- MASTER_PROMPT_FINAL.md (saved as committed file; §4 updated to reflect completed phases 5-R through 6)
+- cleanup_project.py (logged, can be deleted after review)
+- post_cleanup_check.py (logged, can be deleted after review)
+
+### Single-master document map confirmed
+One authoritative file per purpose. See METHODOLOGY.md §canonical-map.
+
+### Deviations / incidents
+None. All 34 integrity checks PASS. Ready for Phase 7.

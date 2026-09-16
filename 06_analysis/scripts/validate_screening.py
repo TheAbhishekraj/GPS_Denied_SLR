@@ -8,8 +8,8 @@ Binding interface (RULINGS.md R3, Appendix R3-A):
 
 Design constraints:
   * Repo-relative paths only (AGENT_RUNBOOK.md Part 0 rule 3).
-  * Pure standard library: Cohen's kappa is implemented directly, so this runs in
-    the project venv without scikit-learn.
+  * Kappa uses numpy crosstab (numpy >= 1.20) when available; falls back to a
+    pure-stdlib implementation so the script still runs without numpy.
   * Protocol section 4 is enforced: agreement statistics are refused until both
     reviewers' decisions are complete. No partial or placeholder statistics.
 """
@@ -21,6 +21,12 @@ import csv
 import random
 import sys
 from pathlib import Path
+
+try:
+    import numpy as np
+    _NUMPY = True
+except ImportError:  # pragma: no cover
+    _NUMPY = False
 
 ROOT = Path(__file__).resolve().parents[2]
 SAMPLE_OUT = ROOT / "08_docs" / "validation_sample.csv"
@@ -49,15 +55,29 @@ def pick(row: dict[str, str], names: tuple[str, ...]) -> str | None:
 
 
 def cohen_kappa(first: list[str], second: list[str]) -> float | None:
+    """Cohen's kappa via numpy crosstab (accurate for multi-class) with stdlib fallback."""
     n = len(first)
     if n == 0:
         return None
-    labels = sorted(set(first) | set(second))
-    observed = sum(1 for x, y in zip(first, second) if x == y) / n
-    expected = sum((first.count(label) / n) * (second.count(label) / n) for label in labels)
-    if abs(1.0 - expected) < 1e-12:
+    if _NUMPY:
+        # numpy crosstab path: matches user-supplied implementation exactly
+        labels = sorted(set(first) | set(second))
+        idx = {label: i for i, label in enumerate(labels)}
+        mat = np.zeros((len(labels), len(labels)), dtype=np.int64)
+        for a, b in zip(first, second):
+            mat[idx[a], idx[b]] += 1
+        po = float(np.trace(mat)) / n
+        pa = mat.sum(axis=1) / n   # row marginals
+        pb = mat.sum(axis=0) / n   # col marginals
+        pe = float(np.dot(pa, pb))
+    else:
+        # Pure-stdlib fallback (no numpy)
+        labels = sorted(set(first) | set(second))
+        po = sum(1 for x, y in zip(first, second) if x == y) / n
+        pe = sum((first.count(l) / n) * (second.count(l) / n) for l in labels)
+    if abs(1.0 - pe) < 1e-12:
         return None
-    return (observed - expected) / (1.0 - expected)
+    return (po - pe) / (1.0 - pe)
 
 
 def raw_agreement(first: list[str], second: list[str]) -> float:
