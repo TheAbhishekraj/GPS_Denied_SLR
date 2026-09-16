@@ -12,8 +12,12 @@ DOI_RE = re.compile(r"10\.\d{4,9}/[-._;()/:A-Z0-9]+", re.IGNORECASE)
 
 def read_first_pages(path, max_pages=2):
     try:
-        import fitz
-        doc = fitz.open(str(path))
+        try:
+            import pymupdf
+            doc = pymupdf.open(str(path))
+        except ImportError:
+            import fitz
+            doc = fitz.open(str(path))
         text = "".join(doc[i].get_text() for i in range(min(max_pages, len(doc))))
         doc.close()
         return text

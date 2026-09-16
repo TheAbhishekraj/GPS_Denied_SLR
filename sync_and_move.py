@@ -10,8 +10,7 @@ import os
 import pathlib
 import re
 import shutil
-import sys
-import fitz
+import pymupdf
 
 ROOT = pathlib.Path(".")
 CSV_PRIORITY = ROOT / "08_docs/priority_300_download.csv"
@@ -56,7 +55,7 @@ for pdf in staged_files:
     # 1. Extract text from PDF using PyMuPDF
     text = ""
     try:
-        doc = fitz.open(pdf)
+        doc = pymupdf.open(pdf)
         for pno in range(min(len(doc), 3)):
             t = doc[pno].get_text("text")
             text += " " + t
