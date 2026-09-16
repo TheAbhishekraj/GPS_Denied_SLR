@@ -38,13 +38,13 @@ methodology. This SLR fills that gap.
 ## SECTION 2 — THE THREE GOALS (in priority order)
 
 ### Goal 1 — Assemble a defensible full-text corpus
-**Target**: 330 PDFs on disk (>=45% coverage of the 636 screened papers).
+**Target**: 330 PDFs on disk (≥45% coverage of the 636 screened papers).
 **Why**: The current 30 PDFs (4.7%) are insufficient for a publishable SLR.
-**Success metric**: `05_papers_fulltext/` contains >=286 valid `%PDF` files.
+**Success metric**: `05_papers_fulltext/` contains ≥286 valid `%PDF` files.
 
 ### Goal 2 — Extract, score, and validate the corpus
 **Target**: `extracted_master_v2.csv` with 27 fields per paper, Q-high > 0,
-Core > 0, field-level agreement >= 90%.
+Core > 0, field-level agreement ≥ 90%.
 **Why**: Enables evidence-weighted synthesis (the review's unique angle).
 **Success metric**: Phase 7b validation report shows all fields PASS.
 
@@ -62,11 +62,11 @@ This is the entire project in one view. Every step, tool, and status.
 
 | # | Step | Tool | Time | Status | Blocker |
 |---|---|---|---|---|---|
-| 0 | Verify state | PS | 5 min | Done | — |
-| 1 | Environment setup | Cline | 5 min | Done | — |
-| 2A | Priority list (initial) | Cline | 2 min | Superseded by 2A-fix | — |
-| 2A-fix | Year-stratified list | Cline | 2 min | Done | — |
-| **2B** | **Extended OA retrieval** | **Cline** | **20 min** | **Current** | **None** |
+| 0 | Verify state | PS | 5 min | ✅ Done | — |
+| 1 | Environment setup | Cline | 5 min | ✅ Done | — |
+| 2A | Priority list (initial) | Cline | 2 min | ✅ Superseded by 2A-fix | — |
+| 2A-fix | Year-stratified list | Cline | 2 min | ✅ Done | — |
+| **2B** | **Extended OA retrieval** | **Cline** | **20 min** | **⏳ Current** | **None** |
 | 3a | Extra OA sources | Cline | 15 min | Optional | Only if 2B < 50 PDFs |
 | **3b** | **Manual IEEE download** | **Human** | **2 hrs** | **Blocked by 2B** | **University access required** |
 | 4 | Auto-rename staged PDFs | Cline | 5 min | Blocked by 3b | — |
@@ -82,7 +82,7 @@ This is the entire project in one view. Every step, tool, and status.
 | 12 | Supplementary | Cline | 30 min | Blocked by 11 | — |
 | 13 | Submission prep | Human | 1 hr | Blocked by 12 | Journal access required |
 
-**Critical path**: 2B -> 3b -> 4 -> 5 -> 6 -> 7 -> 7b -> 7-S -> 8 -> 9 -> 10 -> 11 -> 12 -> 13
+**Critical path**: 2B → 3b → 4 → 5 → 6 → 7 → 7b → 7-S → 8 → 9 → 10 → 11 → 12 → 13
 
 **Total remaining time**: ~12 hours of human work + AI runtime.
 
@@ -148,12 +148,14 @@ the result, and commit. Do not hand off to a human unnecessarily.
 
 **Decision tree**:
 
-    Does this task require...
-    +-- University login? --> MANUAL (hand off)
-    +-- Human judgment on data? --> MANUAL (produce worksheet, wait)
-    +-- External paid tool (iThenticate, Grammarly)? --> MANUAL (flag for user)
-    +-- Journal account? --> MANUAL (flag for user)
-    +-- None of the above? --> AUTOMATED (execute, verify, commit)
+```
+Does this task require...
+├── University login? → MANUAL (hand off)
+├── Human judgment on data? → MANUAL (produce worksheet, wait)
+├── External paid tool (iThenticate, Grammarly)? → MANUAL (flag for user)
+├── Journal account? → MANUAL (flag for user)
+└── None of the above? → AUTOMATED (execute, verify, commit)
+```
 
 **If unsure**: default to AUTOMATED with a verification step. If verification
 fails, escalate to MANUAL.
@@ -224,7 +226,7 @@ Test-Path ".agent_lock"
 | No `priority_300_download.csv` | Step 2A | Generate priority list |
 | `priority_300_download.csv` exists, no staging PDFs | Step 2B | Run extended OA retrieval |
 | Staging PDFs < 200 | Step 3b (in progress) | Continue manual download |
-| Staging PDFs >= 180, no rename log | Step 4 | Run auto-rename |
+| Staging PDFs ≥ 180, no rename log | Step 4 | Run auto-rename |
 | `rename_log.csv` exists, no coverage report | Step 5 | Run coverage verification |
 | Coverage report exists, no filtered CSV | Step 6 | Apply I6 filter |
 | Filtered CSV exists, no `extracted_master_v2.csv` | Step 7 | Run Phase 7 extraction |
@@ -305,7 +307,7 @@ R10 Escalation. STOP and report (never guess) when:
     - Two rules conflict
     - Any verification fails 3 times
     - Unexpected file changes during a run
-    - A human-only task is required and no handoff was produced
+    - A human-only task is required
 ```
 
 ---
@@ -362,10 +364,10 @@ python 06_analysis\scripts\99_verify_all.py
 
 Returns PASS/FAIL for:
 - Corpus size = 636
-- Filtered corpus >= 286
-- Extracted rows >= 286
+- Filtered corpus ≥ 286
+- Extracted rows ≥ 286
 - Q-high > 0, Core > 0
-- PDFs >= 286, coverage >= 45%
+- PDFs ≥ 286, coverage ≥ 45%
 - README clean (no v1 numbers)
 - 9 figures present
 
@@ -417,10 +419,10 @@ Agent will then resume at: <next step>
 1. Open 08_docs/priority_300_download.csv in Excel
 2. Open 08_docs/downloads_staging/ in File Explorer
 3. Log into university library portal (IEEE Xplore)
-4. For each row: click ieee_link -> PDF button -> download
+4. For each row: click ieee_link → PDF button → download
 5. Move PDF to staging folder (do NOT rename)
 6. Type Y in done_Y_N column
-7. Repeat until staged count >= 180
+7. Repeat until staged count ≥ 180
 
 ## Inputs the human needs
 - File: 08_docs/priority_300_download.csv
@@ -473,7 +475,7 @@ Print the handoff for the user.
 ```
 Execute Step 4 from MASTER_EXECUTION_PROMPT.md.
 Run 06_analysis/scripts/12_auto_rename.py.
-Verify match rate >= 85%.
+Verify match rate ≥ 85%.
 Report using the STEP 4 REPORT BLOCK.
 ```
 
@@ -666,7 +668,7 @@ Next action required: Run 07b_retrieve_extended.py
 What I (agent) will do:
   1. Verify 07b script has no hardcoded paths
   2. Run 07b_retrieve_extended.py (~20 min, rate-limited)
-  3. Verify new PDFs on disk vs log claims (delta <= 5)
+  3. Verify new PDFs on disk vs log claims (delta ≤ 5)
   4. Commit updated fulltext_retrieval_log.csv
   5. Report STEP 2B results
 
@@ -708,11 +710,11 @@ Print this and keep visible.
 ```
 02_data_processed/deduplicated_master.csv          (1,719)
 02_data_processed/screened_included_v2.csv         (636)
-02_data_processed/screened_included_v2_fulltext.csv (>=286)
-02_data_processed/extracted_master_v2.csv          (>=286)
+02_data_processed/screened_included_v2_fulltext.csv (≥286)
+02_data_processed/extracted_master_v2.csv          (≥286)
 02_data_processed/core_papers_v2.csv
 02_data_processed/prisma_counts_v2.json
-05_papers_fulltext/*.pdf                           (>=286)
+05_papers_fulltext/*.pdf                           (≥286)
 06_analysis/output/figures_v2/*.png                (9 @ 300 DPI)
 07_manuscript/GPS_Denied_SLR_Manuscript_v3.md
 07_manuscript/GPS_Denied_SLR_IEEE_v3.tex
@@ -748,21 +750,21 @@ The agent must verify ALL of these before reporting completion.
 === PROJECT COMPLETION CHECKLIST ===
 
 CORPUS:
-[ ] >=330 PDFs on disk (of 636)
-[ ] Coverage >=45%
-[ ] Every method category has >=5 papers
+[ ] ≥330 PDFs on disk (of 636)
+[ ] Coverage ≥45%
+[ ] Every method category has ≥5 papers
 
 EXTRACTION:
-[ ] extracted_master_v2.csv exists (>=286 rows)
+[ ] extracted_master_v2.csv exists (≥286 rows)
 [ ] Q-high > 0
 [ ] Core > 0
 [ ] All 27 fields populated
-[ ] Field-level agreement >=90% (Phase 7b)
+[ ] Field-level agreement ≥90% (Phase 7b)
 [ ] Snowball log complete
 [ ] PRISMA branches separate
 
 FIGURES:
-[ ] 9 PNGs @ 300 DPI, >=2000px wide
+[ ] 9 PNGs @ 300 DPI, ≥2000px wide
 [ ] Every figure has source CSV
 [ ] PRISMA numbers match prisma_counts_v2.json
 
@@ -789,7 +791,7 @@ SUBMISSION:
 [ ] 10 gates have PASS or PENDING
 [ ] Internal gates verified
 [ ] External gates flagged for human
-[ ] COVER_LETTER.md <=400 words
+[ ] COVER_LETTER.md ≤400 words
 [ ] ARXIV_METADATA.md complete
 
 GOVERNANCE:
@@ -834,12 +836,3 @@ The "broken" attempt at Phase 7 (35e23bb) is preserved under tag
 ---
 
 **End of MASTER_AGENT_BRIEF.md**
-
-This file is self-contained. Any agent reading it can:
-1. Understand the project
-2. Detect the current phase
-3. Know what to do vs what to hand off
-4. Execute the next step with proper verification
-5. Escalate appropriately when blocked
-
-Hand this to any agent and it will be productive within minutes.
