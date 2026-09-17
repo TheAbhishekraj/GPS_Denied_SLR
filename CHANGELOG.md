@@ -251,6 +251,22 @@ the repo and was checked separately against `dedup_log.csv`:
 ## [2026-09-16]
 - PDCA Phase 1: validated 30 PDFs (0 fakes), extended retrieval +0 PDFs, coverage 4.7%. Halt trigger: YES (07b script missing).
 
+
+## Phase 7 Extraction Run — 2026-09-16
+- Inputs: 636 screened papers, 171 PDFs on disk in 05_papers_fulltext/
+- Outputs: extracted_master_v2.csv (171 rows), screened_included_v2_fulltext.csv (171 rows)
+- QA Tiers: Q-high=83, Q-medium=81, Q-low=7
+- Citation Tiers: Core=71, Important=93, Peripheral=7
+
+## Version-1 Full-Text Synthesis — 2026-09-17
+- Corpus: 171 local PDFs matched to 171 of 636 included records (26.9% coverage).
+- Generated: extraction validation sample, Core/Important subset, nine figures,
+  synthesis matrices, and `GPS_Denied_SLR_Manuscript_v1_171.md`.
+- Updated figure/synthesis scripts to consume the v2 full-text schema.
+- Added Windows UTF-8 stdout handling to the Phase-7 extractor.
+- Completed the Version-1 manuscript, corrected LaTeX draft, figure captions,
+  DOI audit, and human-validation status report.
+
 ## Phase 7 Extraction Run — 2026-09-16
 - Inputs: 636 screened papers, 171 PDFs on disk in 05_papers_fulltext/
 - Outputs: extracted_master_v2.csv (171 rows), screened_included_v2_fulltext.csv (171 rows)
@@ -260,5 +276,32 @@ the repo and was checked separately against `dedup_log.csv`:
 ## Phase 7 Extraction Run — 2026-09-16
 - Inputs: 636 screened papers, 171 PDFs on disk in 05_papers_fulltext/
 - Outputs: extracted_master_v2.csv (171 rows), screened_included_v2_fulltext.csv (171 rows)
-- QA Tiers: Q-high=83, Q-medium=81, Q-low=7
-- Citation Tiers: Core=71, Important=93, Peripheral=7
+- QA Tiers: Q-high=38, Q-medium=84, Q-low=49
+- Citation Tiers: Core=35, Important=87, Peripheral=49
+
+## [Unreleased] - 2026-09-17
+
+### Added
+- `MASTER_SLR_WRITING_SOP_V2.md` in repo root.
+- `08_docs/PDF_EXTRACTION_AUDIT_PROTOCOL.md`.
+- `NEXT_STEPS_TO_330.md`.
+- `08_docs/CORPUS_VERSION_LOG.md`.
+
+### Changed
+- Corpus documentation now tracks V1 current corpus at 171 PDFs and V2 target at 330 PDFs.
+- Counts reconciled after keyword fix:
+  - Q-high: 38, 22.2%
+  - Q-medium: 84, 49.1%
+  - Q-low: 49, 28.7%
+  - Core: 35; Important: 87; Peripheral: 49
+  - Real: 22; Sim: 78; Both: 71
+- Deprecated pre-keyword-fix counts; manuscript must use audited post-fix counts only.
+
+### Blocked
+- IEEE daily download limit reached; resume after midnight local time.
+
+### Next
+- Phase 2: write `06_analysis/scripts/17_audit_extraction.py`.
+- Phase 3: run audit on V1, 171 PDFs.
+- Phase 5-6: download 159 more PDFs to reach 330.
+- Phase 7+: re-extract, update manuscript V2, submit.
