@@ -68,10 +68,25 @@ def read(path: Path) -> str:
 
 
 def expected_columns() -> list[str]:
+    """Enumerated column list from the master prompt.
+
+    The declared count in the prose is parsed rather than hardcoded, so a stale
+    literal cannot silently break this check. Callers must compare the declared
+    count against the enumerated list: that mismatch was a real defect in the
+    original spec ("66 columns" against 63 enumerated names).
+    """
     text = read(PROMPT)
-    block = text.split("(66 comma-separated columns):")[1]
-    block = block.split("(The agent must join")[0]
-    return [n.strip() for n in block.replace("\n", "").split(",") if n.strip()]
+    m = re.search(r"\((\d+) comma-separated columns\):", text)
+    if not m:
+        raise SystemExit("P-err: no '(N comma-separated columns):' marker in prompt")
+    declared = int(m.group(1))
+    block = text[m.end():].split("(The agent must join")[0]
+    names = [n.strip() for n in block.replace("\n", "").split(",") if n.strip()]
+    if declared != len(names):
+        raise SystemExit(
+            f"P-err: prompt declares {declared} columns but enumerates {len(names)}"
+        )
+    return names
 
 
 def main() -> int:
