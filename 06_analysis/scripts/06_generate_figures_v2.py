@@ -142,17 +142,27 @@ print("=" * 70)
 print("GPS-DENIED SLR -- STEP 6 v2: GENERATE PUBLICATION FIGURES")
 print("=" * 70)
 
-df = pd.read_csv(PROC_DIR / 'extracted_master.csv')
+df = pd.read_csv(PROC_DIR / 'extracted_master_v2.csv')
+df = df.rename(columns={
+    'platform_type': 'platform',
+    'sensor_list': 'sensors',
+})
+if 'venue_tier' not in df.columns:
+    df['venue_tier'] = df['citation_tier'].map({
+        'Core': 'Core',
+        'Important': 'Important',
+        'Peripheral': 'Peripheral',
+    }).fillna('Unknown')
 N_EXTRACTED = len(df)
 
 try:
-    df_incl = pd.read_csv(PROC_DIR / 'screened_included.csv')
+    df_incl = pd.read_csv(PROC_DIR / 'screened_included_v2.csv')
     N_INCLUDED = len(df_incl)
 except Exception:
     N_INCLUDED = N_EXTRACTED
 
 try:
-    df_excl = pd.read_csv(PROC_DIR / 'screened_excluded.csv')
+    df_excl = pd.read_csv(PROC_DIR / 'screened_excluded_v2.csv')
     N_EXCLUDED = len(df_excl)
 except Exception:
     N_EXCLUDED = 39
@@ -402,9 +412,13 @@ era_spans = [
     (2022, 2025, 'DL Hybrid\nSurge', ACCENT2),
 ]
 ymax = method_year.sum(axis=1).max()
+available_years = list(method_year.index)
 for start, end, label, color in era_spans:
-    x0 = list(method_year.index).index(start) - 0.4
-    x1 = list(method_year.index).index(end) + 0.4
+    era_years = [year for year in available_years if start <= year <= end]
+    if not era_years:
+        continue
+    x0 = available_years.index(min(era_years)) - 0.4
+    x1 = available_years.index(max(era_years)) + 0.4
     ax.axvspan(x0, x1, alpha=0.07, color=color)
     ax.text((x0+x1)/2, ymax * 1.02, label, ha='center', va='bottom',
             fontsize=8, color=color, fontweight='bold')

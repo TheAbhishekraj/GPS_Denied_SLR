@@ -71,11 +71,36 @@ def load_master() -> dict[str, dict[str, str]]:
 
 
 def load_records() -> tuple[list[dict[str, str]], list[str]]:
+    """Read the inbox.
+
+    Two formats are accepted, and both are additive-safe:
+      *.json   - a single object, or a list of objects
+      *.jsonl  - one JSON object per line (recommended for long runs: an
+                 appended line is committed on its own, so an interrupted run
+                 cannot corrupt records that were already written)
+    """
     records: list[dict[str, str]] = []
     errors: list[str] = []
-    for path in sorted(INBOX.glob("*.json")):
+    for path in sorted(INBOX.glob("*.json")) + sorted(INBOX.glob("*.jsonl")):
+        raw = path.read_text(encoding="utf-8")
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
+            if path.suffix == ".jsonl":
+                for n, line in enumerate(raw.splitlines(), 1):
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    try:
+                        rec = json.loads(line)
+                    except json.JSONDecodeError as exc:
+                        errors.append(f"{path.name}:{n}: invalid JSON ({exc})")
+                        continue
+                    if not isinstance(rec, dict):
+                        errors.append(f"{path.name}:{n}: not an object")
+                        continue
+                    rec.setdefault("_source_file", f"{path.name}:{n}")
+                    records.append(rec)
+                continue
+            data = json.loads(raw)
         except json.JSONDecodeError as exc:
             errors.append(f"{path.name}: invalid JSON ({exc})")
             continue
@@ -166,8 +191,12 @@ def render_md(row: dict[str, str]) -> str:
 
     def metric(label: str, value_key: str, unit_key: str) -> str:
         val = g(value_key)
-        unit = g(unit_key) if val != "NOT_REPORTED" else ""
-        return f"| {label} | {val} | {unit} |"
+        # A cell is never left blank: when the value is absent the unit cell
+        # says so too, rather than rendering as "| NOT_REPORTED |  |".
+        if val == "NOT_REPORTED":
+            return f"| {label} | NOT_REPORTED | NOT_REPORTED | (see extraction_source) |"
+        unit = g(unit_key)
+        return f"| {label} | {val} | {unit} | (see extraction_source) |"
 
     return f"""# {g('id')} — {g('title')}
 
@@ -277,8 +306,8 @@ inferred.
 | qa_baseline | {g('qa_baseline')} | 2 |
 | qa_reproducibility | {g('qa_reproducibility')} | 1 |
 | **qa_total** | **{g('qa_total')}** | **10** |
-| qa_tier | {g('qa_tier')} | |
-| citation_tier | {g('citation_tier')} | |
+| qa_tier | {g('qa_tier')} | - |
+| citation_tier | {g('citation_tier')} | - |
 
 ## 14. Extraction provenance
 
