@@ -3,7 +3,7 @@
 You are working in E:\GPS_Denied_SLR. Your job is to read 171 PDFs and produce
 two artifacts:
 
-1. `02_data_processed/MASTER_EVIDENCE_V1.csv` — one row per paper, 66 columns.
+1. `02_data_processed/MASTER_EVIDENCE_V1.csv` — one row per paper, 63 columns.
 2. `03_extraction/per_paper/<id>.md` — one file per paper using the template
    at `01_corpus/MASTER_PAPER_TEMPLATE.md`.
 
@@ -35,10 +35,35 @@ two artifacts:
 ## FORBIDDEN IN ALL NEW OUTPUTS
 1,692 — 1,700 — 1,719 — 2,000 — 281 — 1,332 — 495 — 98.4%
 
+## OPERATOR NOTE — numeric-reporting expectation (added 2026-09-17)
+
+A pre-flight probe of all 171 PDFs established the honest baseline for the
+numeric columns. Read this before Step 2 and do not treat it as a target to hit:
+
+- ~44 / 171 papers report any unit-anchored accuracy metric.
+- ~127 / 171 papers report none.
+- Only ~6 / 171 papers use the metric ATE at all.
+
+Therefore, expecting roughly **44 (band 38–61) rows** to carry a value other
+than `NOT_REPORTED` in at least one of: `best_ate_rmse`, `best_rpe`,
+`drift_rate_pct`, `success_rate_pct`, `improvement_vs_baseline_pct`,
+`other_metric_value`.
+
+Hard rules:
+- Do NOT widen a metric to reach a count. A number is only valid if it appears
+  in the paper with a unit, traceable to a table, figure or page.
+- Non-reporting is the expected outcome for the majority of rows and is itself
+  a finding. `NOT_REPORTED` is a correct, complete answer.
+- If you find yourself above ~61 numeric rows, re-check for invented or
+  borrowed values (e.g. numbers copied from a related-work comparison of other
+  systems into the paper's own `best_ate_rmse`).
+
+Evidence for these expectations: `06_analysis/output/pdf_numeric_probe_v1/`.
+
 ## STEP 1 — Create the header CSV (once)
 
 Create `02_data_processed/MASTER_EVIDENCE_V1.csv` with exactly this header row
-(66 comma-separated columns):
+(63 comma-separated columns):
 
 id,authors,title,year,venue,venue_type,doi,url,abstract_summary,problem_setting,
 historical_context,approach_family,named_method,core_idea,algorithmic_components,
