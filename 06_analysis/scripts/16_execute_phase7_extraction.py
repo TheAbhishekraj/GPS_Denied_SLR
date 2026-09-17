@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 16_execute_phase7_extraction.py
 ===============================
@@ -19,8 +19,12 @@ For all papers with PDFs present in 05_papers_fulltext/ (171 papers):
 import os
 import re
 import glob
+import sys
 import pandas as pd
 import pymupdf
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SCREENED_CSV = os.path.join(BASE_DIR, '02_data_processed', 'screened_included_v2.csv')
@@ -248,11 +252,11 @@ def extract_taxonomy_and_qa(row, full_text, pdf_pages):
     if real_or_sim in ['Real_World', 'Both']:
         qa_rigor += 2
         
-    has_gt = any(k in txt for k in ['ground truth', 'rtk', 'optitrack', 'vicon', 'total station', 'leica', 'survey map', 'euroc', 'kitti'])
+    has_gt = any(k in txt for k in ['ground truth', 'rtk', 'optitrack', 'vicon', 'total station', 'leica', 'mocap', 'motion capture', 'survey map', 'surveyed reference'])
     if has_gt:
         qa_rigor += 1
         
-    has_rep = any(k in txt for k in ['multiple runs', 'standard deviation', 'variance', 'trials', 'repeated', '10 runs', '5 runs', 'github.com', 'open-source', 'dataset'])
+    has_rep = any(k in txt for k in ['multiple runs', 'standard deviation', 'variance', 'trials', 'repeated', '10 runs', '5 runs', '20 runs', 'monte carlo', 'statistical significance'])
     if has_rep:
         qa_rigor += 1
         
@@ -268,7 +272,8 @@ def extract_taxonomy_and_qa(row, full_text, pdf_pages):
     elif 'ATE_RMSE' in metrics or 'RMSE' in metrics:
         qa_reporting += 1
         
-    if any(k in txt for k in ['trajectory length', 'distance of', 'm long', 'km', 'seconds', 'duration', 'scale of', 'area of']):
+    has_traj_length = bool(re.search(r'\d+(\.\d+)?\s*(m|km|meters|kilometers|metres)\b', txt.lower()))
+    if has_traj_length:
         qa_reporting += 1
         
     if any(k in txt for k in ['failure', 'ablation', 'degradation', 'limitation', 'edge case', 'without inertial', 'without visual']):
@@ -277,7 +282,7 @@ def extract_taxonomy_and_qa(row, full_text, pdf_pages):
     # C. Baseline Fairness (0-2)
     # +1 established baseline comparison, +1 re-implemented / run under matched conditions
     qa_baseline = 0
-    has_baseline = any(k in txt for k in ['orb-slam', 'vins-mono', 'lio-sam', 'loam', 'ekf', 'cartographer', 'openvins', 'sptam', 'okvis', 'compared with', 'compared to', 'baseline'])
+    has_baseline = any(k in txt for k in ['orb-slam', 'vins-mono', 'lio-sam', 'loam', 'fast-lio', 'cartographer', 'openvins', 'sptam', 'okvis', 'rtab-map', 'msckf', 'dso', 'outperforms', 'compared with our', 'compared to our', 'baseline method'])
     if has_baseline:
         qa_baseline += 1
         
@@ -293,9 +298,9 @@ def extract_taxonomy_and_qa(row, full_text, pdf_pages):
 
     qa_total = qa_rigor + qa_reporting + qa_baseline + qa_repro
 
-    if qa_total >= 7:
+    if qa_total >= 8:
         qa_tier = 'Q-high'
-    elif qa_total >= 4:
+    elif qa_total >= 5:
         qa_tier = 'Q-medium'
     else:
         qa_tier = 'Q-low'
@@ -307,7 +312,8 @@ def extract_taxonomy_and_qa(row, full_text, pdf_pages):
     # Important = Q-medium OR (Q-high without citation signal)
     # Peripheral = Q-low
     is_top_venue = any(tv in venue_lower for tv in TOP_VENUES)
-    is_benchmark_code = (qa_repro == 1 or has_gt)
+    is_benchmark_code = (qa_repro == 1 and qa_baseline >= 1) or \
+                        (has_gt and qa_baseline >= 1)
     
     if qa_tier == 'Q-high' and (is_top_venue or is_benchmark_code):
         citation_tier = 'Core'
