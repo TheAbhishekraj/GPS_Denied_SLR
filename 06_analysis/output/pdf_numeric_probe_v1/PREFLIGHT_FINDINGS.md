@@ -106,3 +106,85 @@ values.** `NOT_REPORTED` is the correct value wherever a paper is silent.
 Extraction agent **not started** — the confirmation checklist requires the probe
 result first, and it is now back. Awaiting the A / B / C decision in section 3
 before spending the 6–10 h run.
+
+## 7. Third defect: Check V4 cannot pass as written
+
+Run verbatim, Check V4 of the verification protocol returns **235 matches**, not
+0, because:
+
+1. it scans `02_data_processed` and `08_docs` **recursively**, which sweeps the
+   legacy artifacts that the new work is supposed to replace —
+   `deduplicated.csv` (85), `restart_backup_20260906_181323/deduplicated.csv`
+   (69), `deduplicated_master.csv` (10), `extracted_master.csv` (9),
+   `screened_included.csv` (9), `screened_all_v2.csv` (3),
+   `screened_excluded_v2.csv` (10), `historical/S3_quality_scores_protocol5.csv`
+   (9), plus `DEDUP_REPORT.md`, `EXTRACTION_NOTES.md`, `priority_300_download.csv`
+   and others;
+2. it **self-matches its own definition line** —
+   `MASTER_VERIFICATION_PROTOCOL.md:55` is the `$bad = Select-String ...` line
+   itself, and `MASTER_EXTRACTION_PROMPT.md:36` is the FORBIDDEN list. A check
+   that must quote the forbidden strings in order to forbid them can never
+   report zero;
+3. it omits `281` from its own pattern, although the master prompt's FORBIDDEN
+   list includes it. The two lists disagree.
+
+**Amendment V4.1** — scan only the newly produced artifacts by name, exclude
+the two governing documents, and align the pattern with the prompt:
+
+```powershell
+$targets = @(
+  '02_data_processed\MASTER_EVIDENCE_V1.csv',
+  '08_docs\MASTER_EVIDENCE_VERIFY_SAMPLE.csv',
+  '08_docs\MASTER_EVIDENCE_VERIFY_SAMPLE_DONE.csv',
+  '08_docs\MASTER_VERIFICATION_REPORT.md'
+) + (Get-ChildItem 03_extraction\per_paper\*.md -ErrorAction SilentlyContinue).FullName
+$targets = $targets | Where-Object { Test-Path $_ }
+$bad = Select-String -Path $targets -Pattern '1,692|1,700|1,719|2,000|281|1,332|495|98\.4%'
+"forbidden matches: $(@($bad).Count)"
+```
+
+PASS is then genuinely meaningful: 0 matches in the *evidence artifacts*. The
+legacy files are not cleansed by this check and were never in scope.
+
+## 8. Fourth finding: the canonical master CSV exists only in the working tree
+
+This one is the most consequential finding of the pre-flight, and it inverts the
+first impression.
+
+`git status` reports `M 02_data_processed/extracted_master_v2.csv`. The diff is a
+**content** change, not a line-ending artifact: 127 of 171 rows differ, across
+`qa_notes` (127), `qa_total` (111), `qa_tier` (87), `qa_baseline` (82),
+`citation_tier` (78), `qa_rigor` (40), `qa_reporting` (38).
+
+Copying the two versions apart and testing both against the canonical vectors
+(`06_analysis/scripts/08c_master_csv_integrity_check.py`):
+
+| Distribution | HEAD (committed) | Working tree | Canonical |
+|---|---|---|---|
+| qa_tier Q-high / Q-medium / Q-low | 83 / 81 / 7 | **38 / 84 / 49** | 38 / 84 / 49 |
+| citation_tier Core / Important / Peripheral | 71 / 93 / 7 | **35 / 87 / 49** | 35 / 87 / 49 |
+| real_or_sim Real_World / Simulation / Both | 22 / 78 / 71 | **22 / 78 / 71** | 22 / 78 / 71 |
+
+So the **uncommitted working-tree edit is the correction, not the corruption.**
+The committed copy is stale pre-correction QA scoring.
+
+The audit of record settles it. `V1_audit_20260917T124255Z.json` was generated
+today at 12:42:55Z, names `extracted_master_v2.csv` as its `csv_source`, and
+records `qa_total_csv = 1` for REC_0001 and `qa_total_csv = 7` for REC_0003 —
+the working-tree values, not the HEAD values (3 and 8). Its `distribution` block
+reproduces the canonical vectors exactly.
+
+**Consequences**
+
+1. The canonical numbers in `MASTER_EXTRACTION_PROMPT.md` are correct — but only
+   against the working tree. They are wrong against HEAD.
+2. Every check that reconciles against this file (G2, G6, V1, V5, V7) is
+   currently reconciling against an uncommitted file. A `git checkout --`,
+   `git stash`, or fresh clone silently restores the stale QA scoring and
+   invalidates the audit alignment.
+3. The file is the single point of failure for the whole extraction run, so it
+   has been committed as the file of record. No content was changed by this
+   work; only the already-present audited bytes were placed under version
+   control.
+4. The untracked `07_manuscript/MASTER_PROMPT_AI_FULL_PAPER_V1_171.md` was left
+   untracked and untouched, per the instruction not to touch the stale drafts.
