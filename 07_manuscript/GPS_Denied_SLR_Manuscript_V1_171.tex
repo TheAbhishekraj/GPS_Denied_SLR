@@ -1,0 +1,432 @@
+﻿% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+  journal]{IEEEtran}
+\usepackage{xcolor}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{longtable,booktabs,array}
+\newcounter{none} % for unnumbered tables
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+% fallback for those not using the hyperref driver hyperxmp:
+\makeatletter
+\@ifundefined{xmpquote}{\newcommand{\xmpquote}[1]{#1}}{}
+\makeatother
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\section{Autonomous Navigation and Localization for Unmanned Aerial
+Vehicles in GPS-Denied Environments: A Systematic Literature
+Review}\label{autonomous-navigation-and-localization-for-unmanned-aerial-vehicles-in-gps-denied-environments-a-systematic-literature-review}
+
+\textbf{Version 1 manuscript (V1; N = 171)}\\
+Abhishek Raj
+
+\subsection{Abstract}\label{abstract}
+
+GPS/GNSS denial removes a primary source of absolute position and
+exposes the limits of autonomous aerial navigation. This systematic
+literature review synthesized methods for localization and navigation of
+unmanned aerial vehicles (UAVs) in GPS-denied environments. The
+Version-1 full-text corpus comprised 171 papers (26.9\% coverage of the
+636-record included set); 465 included records were not retrieved.
+Eligibility required a UAV-relevant platform, GPS/GNSS denial as the
+primary contribution, quantitative experimental or simulated results,
+peer review, publication from 2010-01-01 through 2026-06-30, and English
+text. A CSV-driven extraction and 0--10 appraisal rubric were audited
+against the Version-1 PDF set. Quality tiers were Q-high 38/171
+(22.2\%), Q-medium 84/171 (49.1\%), and Q-low 49/171 (28.7\%); citation
+tiers were Core 35/171 (20.5\%), Important 87/171 (50.9\%), and
+Peripheral 49/171 (28.7\%). Experiments were Real\_World 22/171
+(12.9\%), Simulation 78/171 (45.6\%), and Both 71/171 (41.5\%). The
+synthesis indicates a progression from visual odometry and SLAM toward
+visual--inertial, LiDAR--inertial, radio, and multi-sensor approaches,
+while real-world and adversarial validation remain uneven. Findings are
+limited by partial full-text coverage and machine-assisted extraction.
+
+\textbf{Keywords:} UAV; GPS-denied; GNSS-denied; visual-inertial
+odometry; LiDAR SLAM; sensor fusion; systematic literature review;
+electronic warfare; localization.
+
+\subsection{I. Introduction}\label{i-introduction}
+
+\subsubsection{A. Operational
+motivation}\label{a-operational-motivation}
+
+UAV autonomy in indoor, urban, underground, forest, maritime, and
+adversarial/electronic-warfare (EW) settings cannot assume continuous
+GNSS. The review therefore treats denial, degradation, or jamming as a
+core operating condition rather than a peripheral robustness test.
+
+\subsubsection{B. Historical evolution}\label{b-historical-evolution}
+
+The V1 corpus spans 2010--2026. The evidence narrative moves from indoor
+visual odometry and early SLAM, through visual--inertial odometry (VIO),
+to LiDAR--inertial fusion, radio and cooperative localization, and
+recent learning- and geo-localization approaches. This is a qualitative
+evolution statement; no unreported performance values are inferred.
+
+\subsubsection{C. Gap and contributions}\label{c-gap-and-contributions}
+
+Prior reviews often combine general navigation with GPS-denied use cases
+or do not expose full-text coverage. This review contributes: (1) an
+explicit primary-contribution eligibility test; (2) a reproducible CSV
+schema and 0--10 quality rubric; (3) a versioned V1 corpus with audit
+traceability; and (4) separate accounting for real, simulated, and mixed
+validation.
+
+\subsubsection{D. Organization}\label{d-organization}
+
+Section II summarizes related work. Section III specifies protocol and
+methods. Section IV reports V1 results. Sections V--VII discuss
+implications, limitations, and conclusions. Appendices and the
+supplementary package provide reproducibility records.
+
+\subsection{II. Related Work}\label{ii-related-work}
+
+The literature contains several recurring method families: visual
+odometry and VIO; visual, LiDAR, and LiDAR--inertial SLAM; inertial and
+filter-based navigation; radio/UWB and cooperative localization; map- or
+geo-localization; and learning-assisted estimators. These families are
+not mutually exclusive in the extracted records. The present review
+differs by requiring GPS/GNSS denial to be the primary contribution and
+by preserving UNKNOWN or NOT\_REPORTED values rather than imputing
+metrics.
+
+\subsection{III. Review Protocol and
+Methods}\label{iii-review-protocol-and-methods}
+
+\subsubsection{A. Research questions and
+PICOC}\label{a-research-questions-and-picoc}
+
+RQ1 asks which methods were proposed during 2010--2026. RQ2 asks which
+sensor modalities and fusion strategies were used and how prevalence
+changed. RQ3 asks where methods were validated and the real/simulation
+ratio. RQ4 asks which open challenges remain, especially in
+adversarial/EW settings.
+
+The PICOC population was fixed-wing, rotary-wing, and hybrid UAVs; the
+intervention was localization/navigation without GPS/GNSS; comparisons
+were method families and time periods; outcomes included accuracy,
+drift, computation, validation status, and sensor requirements; and
+context covered indoor, urban, underground, forest, adversarial/EW, and
+maritime environments.
+
+\subsubsection{B. Information sources and
+search}\label{b-information-sources-and-search}
+
+IEEE Xplore and Scopus were the named databases. The search window was
+2010-01-01 through 2026-06-30. Search strings, source logs, and
+retrieval status are preserved in the S1--S10 supplementary package. No
+PDFs were downloaded for this manuscript-generation task.
+
+\subsubsection{C. Eligibility and
+screening}\label{c-eligibility-and-screening}
+
+All I1--I6 had to hold: UAV platform or explicitly transferable UAV
+result; GPS/GNSS-denied navigation/localization as the primary
+contribution; quantitative localization/navigation results;
+peer-reviewed journal or conference publication; in-window publication;
+and English language. Any E1--E8 condition excluded a record:
+theoretical-only; incidental denial; GPS-augmented; out-of-scope
+subject; non-UAV without transferability; non-peer-reviewed or
+insufficiently retrievable; outside the window; or non-English. The I2
+primary-contribution rule was applied strictly.
+
+\subsubsection{D. Deduplication and corpus
+versioning}\label{d-deduplication-and-corpus-versioning}
+
+Deduplication used DOI-exact matching and title fuzzy matching at the
+protocol threshold. The manuscript is V1 and uses only the 171-row
+extracted corpus. The planned target corpus is not substituted into any
+V1 result. Counts in this document were reconciled to
+\texttt{02\_data\_processed/extracted\_master\_v2.csv} and
+\texttt{06\_analysis/audit/V1\_audit\_20260917T124255Z.json}.
+
+\subsubsection{E. Extraction and quality
+appraisal}\label{e-extraction-and-quality-appraisal}
+
+The extraction schema includes bibliographic fields, platform, sensors,
+method category, environment, experiment type, metrics, application,
+multi-agent status, notes, quality dimensions, quality tier, and
+citation tier. QA uses rigor (0--4), reporting (0--3), baseline (0--2),
+and reproducibility (0--1), summed to 0--10. Q-high is 8--10, Q-medium
+5--7, and Q-low 0--4. Citation tiers are Core, Important, and
+Peripheral. Multi-label sensor and environment fields are not mutually
+exclusive.
+
+\subsubsection{F. Audit and
+reproducibility}\label{f-audit-and-reproducibility}
+
+The audit reported 170 PASS and 1 PASS\_EXCEPTION. The exception was
+REC\_1137: equation-dense text produced a 52.5\% short-token ratio;
+manual review found no genuine extraction failure. The reproducibility
+package identifies every source path, schema, quality row, audit status,
+and seed-42 spot-check row.
+
+\subsection{IV. Results}\label{iv-results}
+
+\subsubsection{A. PRISMA flow and corpus
+coverage}\label{a-prisma-flow-and-corpus-coverage}
+
+The review flow yielded 636 stage-1 included records, of which 465 were
+not retrieved for V1 and 171 full texts were extracted. Coverage was
+171/636 = 26.9\%.
+
+\subsubsection{B. Quality and citation
+tiers}\label{b-quality-and-citation-tiers}
+
+Q-high comprised 38/171 (22.2\%), Q-medium 84/171 (49.1\%), and Q-low
+49/171 (28.7\%). Citation tiers were Core 35/171 (20.5\%), Important
+87/171 (50.9\%), and Peripheral 49/171 (28.7\%). These are categorical
+counts from the authoritative CSV, not estimates beyond V1.
+
+\subsubsection{C. Experiment type and
+validation}\label{c-experiment-type-and-validation}
+
+Real\_World validation occurred in 22/171 (12.9\%), Simulation in 78/171
+(45.6\%), and Both in 71/171 (41.5\%). Mixed validation was common
+enough to warrant a separate category; it must not be collapsed into
+either real or simulation.
+
+\subsubsection{D. Methods, sensors, environments, and
+applications}\label{d-methods-sensors-environments-and-applications}
+
+Method, sensor, environment, platform, and application distributions are
+provided as CSV-derived tables. Because sensor and environment fields
+are multi-label, their category totals can exceed 171 and should not be
+interpreted as mutually exclusive study counts. Metrics reported in the
+source include ATE/RMSE, drift, success rate, and computational latency;
+values marked NOT\_REPORTED remain missing.
+
+\subsubsection{E. Audit result}\label{e-audit-result}
+
+All 171 extracted records had an audit disposition: 170 PASS and 1
+PASS\_EXCEPTION. The exception was manually reviewed as an extraction
+artefact rather than a genuine failure. A separate 20-paper human
+validation remains a required submission task and is not represented as
+completed here.
+
+\subsection{V. Discussion}\label{v-discussion}
+
+\subsubsection{A. RQ1: method landscape}\label{a-rq1-method-landscape}
+
+The V1 record set supports a heterogeneous method landscape rather than
+a single dominant estimator. Visual--inertial and SLAM families coexist
+with LiDAR--inertial fusion, filter-based methods, radio/UWB,
+cooperative methods, and map-based approaches. Method labels should
+therefore be read as primary categories assigned by the extraction
+schema.
+
+\subsubsection{B. RQ2: sensors and
+fusion}\label{b-rq2-sensors-and-fusion}
+
+The corpus emphasizes combinations of IMU with cameras and/or LiDAR,
+while radio and other modalities appear in narrower roles. Fusion is
+attractive because it can trade visual observability, geometric
+structure, and inertial continuity, but sensor availability and
+computation constrain deployment.
+
+\subsubsection{C. RQ3: environments and
+sim-to-real}\label{c-rq3-environments-and-sim-to-real}
+
+Indoor and urban scenarios recur, with underground, forest, maritime,
+and adversarial/EW settings represented unevenly. The 78 simulation-only
+and 71 mixed records show substantial dependence on simulated or hybrid
+evidence; the 22 real-world records provide the direct operational
+subset.
+
+\subsubsection{D. RQ4: open challenges and
+EW}\label{d-rq4-open-challenges-and-ew}
+
+Open challenges include resilience to jamming and spoofing, degraded
+visual texture, dynamic scenes, map uncertainty, calibration drift,
+compute and power limits, and reproducible adversarial benchmarks. EW
+claims should distinguish denial, degradation, jamming, spoofing, and
+general GNSS absence.
+
+\subsubsection{E. Implications}\label{e-implications}
+
+A credible deployment claim should state sensors, environment, baseline,
+metrics, and failure modes together. The quality rubric and audit fields
+make those reporting gaps visible, but they do not establish causal
+superiority between method families.
+
+\subsection{VI. Limitations}\label{vi-limitations}
+
+First, V1 covers 171/636 included records (26.9\%); 465 records were not
+retrieved. Second, extraction was machine-assisted and
+keyword/regex-oriented, so categorical labels require human validation.
+Third, one audit row required a documented PASS\_EXCEPTION. Fourth,
+searches were limited to IEEE Xplore and Scopus and the English-language
+window. Fifth, multi-label categories inflate marginal totals and do not
+represent independent studies. Sixth, NOT\_REPORTED metrics were not
+imputed, and no ATE or accuracy value is invented.
+
+\subsection{VII. Conclusion}\label{vii-conclusion}
+
+The V1 evidence base shows a broad, evolving field of GPS-denied UAV
+navigation, with visual--inertial, SLAM, LiDAR--inertial, cooperative,
+radio, and learning-assisted families. Validation remains split between
+simulation and mixed studies, with fewer real-world records. The V1
+findings are suitable as a traceable working manuscript, but coverage
+and human validation gates must be addressed before submission.
+
+\subsection{Data Availability}\label{data-availability}
+
+The analysis artifacts use relative repository paths. The authoritative
+extracted data are
+\texttt{02\_data\_processed/extracted\_master\_v2.csv}; audit evidence
+is \texttt{06\_analysis/audit/V1\_audit\_20260917T124255Z.json} and
+\texttt{06\_analysis/audit/MANUAL\_REVIEW.md}.
+
+\subsection{Conflicts and Funding}\label{conflicts-and-funding}
+
+No funding or competing-interest statement was provided in the governing
+files; these fields require author completion before submission.
+
+\subsection{References}\label{references}
+
+{[}1{]} Page MJ et al., ``The PRISMA 2020 statement,'' \emph{BMJ}, 2021,
+Art. no. n71.\\
+{[}2{]} Rethlefsen ML et al., ``PRISMA-S,'' \emph{Syst. Rev.}, 2021,
+Art. no. 39.\\
+{[}3{]} Source papers are listed in the repository CSV and reference
+package; DOI-level bibliography formatting is a submission gate.
+
+\subsection{Appendix A. PRISMA 2020 checklist (27
+items)}\label{appendix-a-prisma-2020-checklist-27-items}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{tabular}{rlll}
+\toprule
+Item & Requirement & Location/evidence & Status \\
+\midrule
+
+\bottomrule
+
+1 & Title identifies systematic review & Title & PASS \\
+2 & Structured abstract & Abstract & PASS \\
+3 & Rationale & I--II & PASS \\
+4 & Objectives/RQs & III-A & PASS \\
+5 & Eligibility criteria & III-C & PASS \\
+6 & Information sources & III-B & PASS \\
+7 & Search strategy & Supplement S2 & PASS \\
+8 & Selection process & III-C & PASS \\
+9 & Data collection process & III-E & PASS \\
+10 & Data items & III-E & PASS \\
+11 & Study risk-of-bias/appraisal & III-E & PASS \\
+12 & Effect measures & III-E/IV-D & PASS \\
+13 & Synthesis methods & IV and tables & PASS \\
+14 & Reporting-bias assessment & Supplement S8; author completion &
+PENDING \\
+15 & Certainty assessment & Supplement S8; author completion &
+PENDING \\
+16 & Study selection results & IV-A & PASS \\
+17 & Study characteristics & Tables II--VII & PASS \\
+18 & Risk-of-bias results & IV-B & PASS \\
+19 & Results of individual studies & Quality table & PASS \\
+20 & Results of syntheses & IV & PASS \\
+21 & Reporting biases & Supplement S8 & PENDING \\
+22 & Certainty of evidence & Supplement S8 & PENDING \\
+23 & Discussion interpretation & V & PASS \\
+24 & Limitations & VI & PASS \\
+25 & Conclusions & VII & PASS \\
+26 & Registration/protocol & Data availability and protocol files &
+PASS \\
+27 & Support/funding/conflicts & Conflicts and Funding & PENDING \\
+\end{tabular}
+}
+
+\subsection{Appendix B. Search strings}\label{appendix-b-search-strings}
+
+Use the preserved IEEE Xplore and Scopus query exports in
+\texttt{08\_docs/SUPPLEMENTARY\_V1.md} S2. Any final database-specific
+syntax, date, and last-search timestamp must be completed by the
+authors.
+
+\subsection{Appendix C. Quality-control
+audit}\label{appendix-c-quality-control-audit}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{tabular}{ll}
+\toprule
+Check & Status \\
+\midrule
+
+\bottomrule
+
+V1 counts reconciled to CSV/audit & PASS \\
+Coverage 171/636 = 26.9\% & PASS \\
+Legacy values absent from new artifacts & PASS \\
+Multi-label captions identify non-mutual exclusivity & PASS \\
+ATE/accuracy not invented & PASS \\
+Audit disposition 170 PASS + 1 PASS\_EXCEPTION & PASS \\
+Manual review exception documented & PASS \\
+20-paper human validation & PENDING \\
+Figures 1--9 listed & PASS \\
+PRISMA 27-item checklist present & PASS \\
+PRISMA-S fields present & PASS \\
+V1/V2 separation & PASS \\
+\end{tabular}
+}
+
+\subsection{Appendix D. Version log}\label{appendix-d-version-log}
+
+V1 uses the 171 full-text records available in the current working
+corpus. The target expansion is documented separately and is not used in
+V1 results.
+
+\end{document}
+

@@ -279,6 +279,14 @@ the repo and was checked separately against `dedup_log.csv`:
 - QA Tiers: Q-high=38, Q-medium=84, Q-low=49
 - Citation Tiers: Core=35, Important=87, Peripheral=49
 
+## V1 Submission Package — 2026-09-17
+- Frozen corpus tag: `v1-corpus-171`
+- Generated nine figures under `06_analysis/output/figures_v1/`
+- Generated V1 synthesis matrices under `06_analysis/output/synthesis_v1/`
+- Rewrote the V1 manuscript and generated the S1–S10 supplementary package.
+- Compiled the IEEEtran manuscript PDF with MiKTeX; no fatal LaTeX errors or undefined references.
+- Human spot-check worksheet remains open; V2 expansion is deferred.
+
 ## [Unreleased] - 2026-09-17
 
 ### Added
@@ -305,3 +313,9 @@ the repo and was checked separately against `dedup_log.csv`:
 - Phase 3: run audit on V1, 171 PDFs.
 - Phase 5-6: download 159 more PDFs to reach 330.
 - Phase 7+: re-extract, update manuscript V2, submit.
+
+## Phase 7 Extraction Run — 2026-09-16
+- Inputs: 636 screened papers, 171 PDFs on disk in 05_papers_fulltext/
+- Outputs: extracted_master_v2.csv (171 rows), screened_included_v2_fulltext.csv (171 rows)
+- QA Tiers: Q-high=38, Q-medium=84, Q-low=49
+- Citation Tiers: Core=35, Important=87, Peripheral=49
