@@ -23,7 +23,9 @@ from __future__ import annotations
 
 import argparse
 import csv
+import re
 import sys
+import unicodedata
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -69,78 +71,134 @@ def split_workbook(text: str) -> dict[str, str]:
     return parts
 
 
+def ascii_safe(text: str) -> str:
+    """Make PDF text printable on a cp1252 console.
+
+    PDFs carry fi/fl ligatures (U+FB01/U+FB02), Greek letters and math symbols.
+    Printing them raw yields mojibake such as `∩¼éight`, which is unreadable and
+    can hide a real word. Map the common ligatures first, then transliterate.
+    """
+    for src, dst in (
+        ("\ufb00", "ff"), ("\ufb01", "fi"), ("\ufb02", "fl"),
+        ("\ufb03", "ffi"), ("\ufb04", "ffl"), ("\u2013", "-"),
+        ("\u2014", "-"), ("\u2212", "-"), ("\u00d7", "x"),
+    ):
+        text = text.replace(src, dst)
+    return unicodedata.normalize("NFKD", text).encode(
+        "ascii", "replace"
+    ).decode("ascii")
+
+
+def emit(text: str) -> None:
+    print(ascii_safe(text))
+
+
 def main() -> int:
+    # Windows consoles default to cp1252; PDF text carries ligatures and Greek
+    # letters, so force UTF-8 on stdout and transliterate before printing.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
     ap = argparse.ArgumentParser()
-    ap.add_argument("id")
+    ap.add_argument("ids", nargs="+", help="one or more paper ids")
     ap.add_argument("--opening", type=int, default=4000)
     ap.add_argument("--closing", type=int, default=3500)
     ap.add_argument("--max-metrics", type=int, default=45)
+    ap.add_argument("--max-captions", type=int, default=40)
+    ap.add_argument("--slim", action="store_true",
+                    help="batch mode: 700/500 windows, 12 metrics, 10 captions")
     args = ap.parse_args()
+    if args.slim:
+        args.opening, args.closing = 700, 500
+        args.max_metrics, args.max_captions = 12, 10
 
-    wb = WORKBOOKS / f"{args.id}.md"
+    rc = 0
+    for pid in args.ids:
+        rc |= digest(pid, args)
+    return rc
+
+
+def digest(pid: str, args: argparse.Namespace) -> int:
+    wb = WORKBOOKS / f"{pid}.md"
     if not wb.exists():
-        print(f"no workbook for {args.id}")
+        emit(f"no workbook for {pid}")
         return 2
     text = wb.read_text(encoding="utf-8")
     parts = split_workbook(text)
-    rec = master_row(args.id) or {}
+    rec = master_row(pid) or {}
 
-    print(f"===== DIGEST {args.id} =====")
-    print(f"source PDF       : 05_papers_fulltext/{args.id}.pdf")
-    print(f"title (master)   : {rec.get('title', 'NOT_REPORTED')}")
-    print(f"year (master)    : {rec.get('year', 'NOT_REPORTED')}")
-    print(f"venue (master)   : {rec.get('venue', 'NOT_REPORTED')}")
-    print(f"doi (master)     : {rec.get('doi', 'NOT_REPORTED')}")
-    print(f"qa_* (master)    : rigor={rec.get('qa_rigor')} "
-          f"reporting={rec.get('qa_reporting')} baseline={rec.get('qa_baseline')} "
-          f"repro={rec.get('qa_repro')} total={rec.get('qa_total')} "
-          f"tier={rec.get('qa_tier')} citation={rec.get('citation_tier')}")
-    print(f"master method    : {rec.get('primary_method')} / "
-          f"{rec.get('method_category')}")
-    print(f"master sensors   : {rec.get('sensor_list')}")
-    print(f"master environ   : {rec.get('environment')} / "
-          f"{rec.get('experiment_type')} / {rec.get('real_or_sim')}")
-    print(f"master ate_rmse_m: {rec.get('ate_rmse_m')}")
-    print(f"master metrics   : {rec.get('metrics_reported')}")
-    print(f"platform         : {rec.get('platform_type')}")
+    emit(f"===== DIGEST {pid} =====")
+    emit(f"title            : {rec.get('title') or 'NOT_REPORTED'}")
+    emit(f"authors          : {rec.get('authors') or 'NOT_REPORTED'}")
+    emit(f"year/venue/doi   : {rec.get('year')} | {rec.get('venue')} | "
+         f"{rec.get('doi')}")
+    emit(f"qa (master)      : rigor={rec.get('qa_rigor')} "
+         f"reporting={rec.get('qa_reporting')} baseline={rec.get('qa_baseline')} "
+         f"repro={rec.get('qa_repro')} total={rec.get('qa_total')} "
+         f"tier={rec.get('qa_tier')} citation={rec.get('citation_tier')}")
+    emit(f"master method    : {rec.get('primary_method')} / "
+         f"{rec.get('method_category')}")
+    emit(f"master sensors   : {rec.get('sensor_list')}")
+    emit(f"master environ   : {rec.get('environment')} / "
+         f"{rec.get('experiment_type')} / {rec.get('real_or_sim')}")
+    emit(f"master ate_rmse_m: {rec.get('ate_rmse_m')}")
+    emit(f"master metrics   : {rec.get('metrics_reported')}")
+    emit(f"platform/app     : {rec.get('platform_type')} / "
+         f"{rec.get('application_domain')} / multi_agent={rec.get('multi_agent')}")
+    emit(f"pdf pages        : {rec.get('pdf_pages')}")
 
-    for key, label in (
-        ("sections", "SECTIONS"),
-        ("captions", "CAPTIONS"),
-        ("metrics", "METRIC LINES"),
-        ("numbered", "NUMBERED LINES"),
+    for key, label, cap in (
+        ("sections", "SECTIONS", 30),
+        ("captions", "CAPTIONS", args.max_captions),
+        ("metrics", "METRIC LINES", args.max_metrics),
+        ("numbered", "NUMBERED LINES", 20),
     ):
         block = parts.get(key, "")
         lines = [ln for ln in block.splitlines()[2:] if ln.strip()]
-        print(f"\n----- {label} ({len(lines)}) -----")
-        if key == "metrics" and len(lines) > args.max_metrics:
-            head = lines[: args.max_metrics // 2]
-            tail = lines[-(args.max_metrics // 2):]
-            print("\n".join(head))
-            print(f"... [{len(lines) - args.max_metrics} lines elided] ...")
-            print("\n".join(tail))
+        emit(f"\n----- {label} ({len(lines)}) -----")
+        if len(lines) > cap:
+            head = lines[: cap // 2]
+            tail = lines[-(cap // 2):]
+            emit("\n".join(head))
+            emit(f"... [{len(lines) - cap} lines elided] ...")
+            emit("\n".join(tail))
         else:
-            print("\n".join(lines))
+            emit("\n".join(lines))
 
     body_start = parts.get("body", "").find("### [[page 1]]")
     body = parts.get("body", "")[body_start:] if body_start >= 0 else ""
-    print("\n----- OPENING -----")
-    print(body[: args.opening])
-    print("\n----- CLOSING -----")
-    print(body[-args.closing:])
 
-    print("\n----- STATEMENT LINES -----")
+    # Limitations / future work live BEFORE the reference list. Cut the
+    # bibliography out of the closing window and out of the statement scan,
+    # otherwise the digest's most useful sections are buried in citations.
+    refs = None
+    for m in re.finditer(r"(?mi)^\s*(references|bibliography|reference list)\s*$",
+                         body):
+        refs = m.start()
+    main_body = body[:refs] if refs is not None else body
+
+    emit("\n----- OPENING -----")
+    emit(body[: args.opening])
+    emit("\n----- CLOSING (references excluded) -----")
+    emit(main_body[-args.closing:])
+
+    emit("\n----- STATEMENT LINES -----")
     seen = set()
-    for line in body.splitlines():
+    for line in main_body.splitlines():
+        line = " ".join(line.split())
         low = line.lower()
-        if len(line) < 40 or len(line) > 400 or not any(h in low for h in STATEMENT_HINTS):
+        if len(line) < 40 or len(line) > 400 or not any(
+            h in low for h in STATEMENT_HINTS
+        ):
             continue
         key = line[:80]
         if key in seen:
             continue
         seen.add(key)
-        print(f"- {line}")
-    print(f"===== END {args.id} =====")
+        emit(f"- {line}")
+        if len(seen) >= 6:
+            break
+    emit(f"===== END {pid} =====")
     return 0
 
 
