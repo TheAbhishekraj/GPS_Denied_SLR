@@ -48,9 +48,22 @@ PER_PAPER = REPO / "03_extraction" / "per_paper"
 FAILURES = REPO / "08_docs" / "EXTRACTION_FAILURES.md"
 
 VERBATIM_FROM_MASTER = (
+    # Quality appraisal - prompt Step 2.5 mandates verbatim copy (gate G6), and
+    # these also carry the canonical vectors checked by gate V7.
     "qa_rigor", "qa_reporting", "qa_baseline", "qa_reproducibility",
     "qa_total", "qa_tier", "citation_tier",
+    # Canonical vector (Real_World 22 | Simulation 78 | Both 71), gate V7.
+    "real_or_sim",
+    # Audited, fully populated, 171/171 distinct: safe and objective to inherit.
+    "authors", "title", "year", "doi",
 )
+# NOTE `venue` is deliberately NOT inherited from the master CSV. Measured with
+# 06_analysis/scripts/00_inspect_master.py, `venue` holds the single constant
+# string "IEEE Conference/Journal" in all 171 rows, so it carries no information
+# and venue/venue_type must be read off each PDF's first page instead.
+# `metrics_reported` is likewise NOT inherited: 170/171 rows claim ATE_RMSE while
+# only 3 rows carry a numeric ate_rmse_m and only 6 papers mention ATE anywhere in
+# the full text. It is a templated stub, not extracted evidence.
 NUMERIC_FIELDS = (
     "sensor_fusion_count", "number_of_runs", "best_ate_rmse", "best_rpe",
     "drift_rate_pct", "success_rate_pct", "improvement_vs_baseline_pct",

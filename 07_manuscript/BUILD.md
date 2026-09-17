@@ -27,16 +27,16 @@ From the `07_manuscript/` directory or project root:
 cd E:\GPS_Denied_SLR\07_manuscript
 
 # Pass 1: Generate initial .aux file and citations
-pdflatex -interaction=nonstopmode GPS_Denied_SLR_IEEE.tex
+pdflatex -interaction=nonstopmode GPS_Denied_SLR_Manuscript_V1_171_COMPLETE.tex
 
 # Pass 2: Process BibTeX bibliography
-bibtex GPS_Denied_SLR_IEEE
+bibtex GPS_Denied_SLR_Manuscript_V1_171_COMPLETE
 
 # Pass 3: Resolve cross-references and citation labels
-pdflatex -interaction=nonstopmode GPS_Denied_SLR_IEEE.tex
+pdflatex -interaction=nonstopmode GPS_Denied_SLR_Manuscript_V1_171_COMPLETE.tex
 
 # Pass 4: Finalize layout, hyperlinks, and cross-references
-pdflatex -interaction=nonstopmode GPS_Denied_SLR_IEEE.tex
+pdflatex -interaction=nonstopmode GPS_Denied_SLR_Manuscript_V1_171_COMPLETE.tex
 ```
 
 ---
@@ -47,13 +47,13 @@ Run the following commands in terminal to audit for warnings and errors:
 
 ```bash
 # Check for undefined citations (must be 0)
-grep -i "undefined.*citation" GPS_Denied_SLR_IEEE.log
+grep -i "undefined.*citation" GPS_Denied_SLR_Manuscript_V1_171_COMPLETE.log
 
 # Check for undefined references (must be 0)
-grep -i "undefined.*reference" GPS_Denied_SLR_IEEE.log
+grep -i "undefined.*reference" GPS_Denied_SLR_Manuscript_V1_171_COMPLETE.log
 
 # Check for overfull horizontal boxes (must be < 5)
-grep -c "Overfull \\hbox" GPS_Denied_SLR_IEEE.log
+grep -c "Overfull \\hbox" GPS_Denied_SLR_Manuscript_V1_171_COMPLETE.log
 ```
 
 ---

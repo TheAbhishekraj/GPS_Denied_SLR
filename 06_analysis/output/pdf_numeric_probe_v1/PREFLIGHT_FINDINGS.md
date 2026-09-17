@@ -101,7 +101,55 @@ values.** `NOT_REPORTED` is the correct value wherever a paper is silent.
   the extraction agent must read the tables rather than trust proximity. The
   probe is a floor for ATE papers (6) and a ceiling for nothing.
 
-## 6. Status
+## 7. Addendum — three defects found in `extracted_master_v2.csv` itself
+
+Measured with `06_analysis/scripts/00_inspect_master.py` (read-only; the audited
+file was not modified). These matter because the master CSV is the join key and
+had been treated as a safe source of priors.
+
+**A. `venue` carries no information.** It holds the single constant string
+`"IEEE Conference/Journal"` in all **171 / 171** rows. 122 rows come from
+IEEE_Xplore and 49 from Scopus, so the real venue is recoverable only from each
+PDF's first page. Consequence: `venue` and `venue_type` in
+`MASTER_EVIDENCE_V1.csv` are read from the PDF, not inherited. Nothing else in
+the master CSV is inherited except the audited columns listed in
+`10_commit_extraction.py`.
+
+**B. `metrics_reported` is a templated stub, not extracted evidence.**
+**170 / 171** rows claim `ATE_RMSE`. But:
+
+| Test | Result |
+|---|---|
+| rows claiming `ATE_RMSE` | 170 / 171 |
+| …of those, rows where the full text contains no `ATE` token at all | **164** |
+| …of those, rows carrying any real `ate_rmse_m` value | 3 |
+| probe-non-numeric papers (127) whose master row claims `ATE_RMSE` | **126 / 127** |
+
+So 126 of the 127 papers that report no unit-anchored accuracy metric
+nonetheless have a master row asserting `ATE_RMSE`. The column contradicts both
+the full texts and the sibling `ate_rmse_m` column in the same file. It is
+therefore **not** used as a prior for numeric extraction.
+
+This is almost certainly the root cause of the missing numbers in the current
+3-page manuscript: the upstream categorical extraction asserted metrics the
+papers never report, so no numeric column could ever be filled.
+
+Consequence for the manuscript: once `MASTER_EVIDENCE_V1.csv` is built, its
+numeric columns will be `NOT_REPORTED` for roughly 127 papers, which directly
+contradicts the master CSV's own `metrics_reported` column. **That
+contradiction is the finding, not a defect** — the new column is read from the
+full text and the old one was not. Any reader comparing the two files must be
+told this explicitly, and the master CSV stays untouched (audited, tagged
+`v1-extracted-master-audited`).
+
+**C. One duplicated DOI.** `10.1109/access.2019.2909530` appears in **2** rows
+(170 distinct DOIs across 171 rows). Possible duplicate record in the corpus;
+worth a manual check but not fatal — the join key is `id`, not `doi`.
+
+Also noted: `ate_rmse_m` holds values with units glued on (e.g. `5.6859m`),
+which the new schema forbids — hence the separate `best_ate_rmse_unit` column.
+
+## 8. Status
 
 Extraction agent **not started** — the confirmation checklist requires the probe
 result first, and it is now back. Awaiting the A / B / C decision in section 3
