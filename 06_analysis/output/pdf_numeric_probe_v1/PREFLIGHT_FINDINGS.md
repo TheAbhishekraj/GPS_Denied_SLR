@@ -188,3 +188,32 @@ reproduces the canonical vectors exactly.
    control.
 4. The untracked `07_manuscript/MASTER_PROMPT_AI_FULL_PAPER_V1_171.md` was left
    untracked and untouched, per the instruction not to touch the stale drafts.
+
+## 9. Commits landed for steps 1–5
+
+| Commit | Message |
+|---|---|
+| `dd55d4f4` | docs: master extraction schema and verification protocol |
+| `73845689` | analysis: preflight numeric-accuracy probe with false-positive diagnostic |
+| `257aae52` | data: freeze audited post-correction extracted_master_v2.csv as file of record |
+| `3da172e1` | analysis: master-CSV integrity check; preflight decision memo |
+
+Tag at session start: `v1-submission-ready` = `b794ba6e`.
+
+## 10. Pre-flight checklist status
+
+| Step | Status |
+|---|---|
+| 1 Save `01_corpus/MASTER_PAPER_TEMPLATE.md` | done, committed `dd55d4f4`, 16 sections (0–15) verbatim |
+| 2 Save `08_docs/MASTER_EXTRACTION_PROMPT.md` | done, committed `dd55d4f4`, STEP 1–7 present verbatim |
+| 3 Save `08_docs/MASTER_VERIFICATION_PROTOCOL.md` | done, committed `dd55d4f4`, Check V1–V9 present verbatim |
+| 4 PDF probe | done, committed `73845689` — see sections 1–3 above |
+| 5 Commit steps 1–3 | done (`dd55d4f4`) plus two follow-up commits |
+| 6 Run the extraction agent | **blocked** — needs the A / B / C decision in section 3 |
+| 7–13 | not started |
+
+Additional defect found and fixed without changing intent:
+`02_data_processed/MASTER_EVIDENCE_V1.csv` was written without a trailing
+newline, so an append-based extraction would have welded the first data row onto
+the header line. A single trailing `\n` was added (932 → 933 bytes; the header
+and its 63 columns are otherwise byte-identical to the specification).
