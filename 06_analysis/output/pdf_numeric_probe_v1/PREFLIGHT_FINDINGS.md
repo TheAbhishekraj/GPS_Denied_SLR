@@ -217,3 +217,15 @@ Additional defect found and fixed without changing intent:
 newline, so an append-based extraction would have welded the first data row onto
 the header line. A single trailing `\n` was added (932 → 933 bytes; the header
 and its 63 columns are otherwise byte-identical to the specification).
+
+## 11. One command to re-check all of the above
+
+```powershell
+python 06_analysis\scripts\08d_preflight_verify.py
+```
+
+Re-runs the whole pre-flight as eight PASS/FAIL checks (governing files present,
+template sections 0–15, prompt STEP 1–7 + gates G1–G6, protocol Check V1–V9,
+evidence-CSV header integrity, V4.1 forbidden numbers, master-CSV canonical
+alignment against the audit, probe outputs present). Exits 0 only when the
+pre-flight state is consistent. Current status: **8 / 8 PASS**.
