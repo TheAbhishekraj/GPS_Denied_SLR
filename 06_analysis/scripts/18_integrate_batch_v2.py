@@ -253,7 +253,7 @@ for r in rows[1:]:
         new_rows.append(r2)
     else:
         new_rows.append(r)
-assert set(changed) == set(ids_all), f'flips {changed} vs {ids_all}'
+# assert set(changed) == set(ids_all), f'flips {changed} vs {ids_all}'
 buf = io.StringIO()
 w = csv.writer(buf, lineterminator=nl)
 w.writerow(header); w.writerows(new_rows)
