@@ -100,9 +100,10 @@ def sha256(p):
 # --- match every staging pdf ----------------------------------------------
 decisions = []
 for p in sorted(ST.glob('*.pdf')):
-    d = pymupdf.open(p)
-    text = ' '.join((pg.get_text() or '') for pg in d)
-    head = ' '.join(d[0].get_text()[:1500].split())
+    with pymupdf.open(p) as d:
+        text = ' '.join((pg.get_text() or '') for pg in d)
+        head = ' '.join(d[0].get_text()[:1500].split())
+        page1_text = d[0].get_text()
     doi = extract_doi(text)
     ids = {r['id'] for r in doi_map.get(doi, [])} if doi else set()
     how = 'doi'
@@ -125,7 +126,7 @@ for p in sorted(ST.glob('*.pdf')):
     if not ids:
         # fallback: record title appears verbatim on page 1 (references are
         # excluded so cited titles cannot produce false hits)
-        page1key = tkey(d[0].get_text())
+        page1key = tkey(page1_text)
         hits = [r for r in records
                 if len(r['tkey']) >= 40 and r['tkey'] in page1key]
         if len(hits) == 1:
@@ -142,12 +143,12 @@ ft_dois = {}
 ft_text_cache = {}
 for p in sorted(FT.glob('REC_*.pdf')):
     try:
-        d = pymupdf.open(p)
-        t = ''
-        for pg in d:
-            t += (pg.get_text() or '') + ' '
-            if len(t) > 9000:
-                break
+        with pymupdf.open(p) as d:
+            t = ''
+            for pg in d:
+                t += (pg.get_text() or '') + ' '
+                if len(t) > 9000:
+                    break
     except Exception:
         continue
     ft_text_cache[p.name] = t
@@ -155,13 +156,15 @@ for p in sorted(FT.glob('REC_*.pdf')):
     if doi:
         ft_dois[p.name] = doi
 
+seen_target_ids = set()
 for dec in decisions:
     if dec['status'] not in ('match',):
         continue
     rid = dec['ids'][0]
-    if (FT / f'{rid}.pdf').exists():
+    if (FT / f'{rid}.pdf').exists() or rid in seen_target_ids:
         dec['status'] = 'duplicate'
         continue
+    seen_target_ids.add(rid)
     dup = None
     for name, fdoi in ft_dois.items():
         if dec['doi'] and fdoi == dec['doi']:
@@ -221,7 +224,10 @@ for dec in to_move:
     print(f'{src.name[:60]:<60} -> {rid}.pdf')
 for dec in to_drop:
     hashes[dec['ids'][0]] = sha256(dec['file'])
-    dec['file'].unlink()
+    try:
+        dec['file'].unlink()
+    except Exception as e:
+        print(f"could not unlink {dec['file'].name}: {e}")
     print(f'dropped staging duplicate: {dec["file"].name} ({dec["status"]})')
 
 # priority CSV: set done_Y_N=Y for all resolved ids (moved + dropped)
