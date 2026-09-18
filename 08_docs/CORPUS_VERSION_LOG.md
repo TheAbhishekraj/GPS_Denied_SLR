@@ -88,3 +88,10 @@ Before writing abstract, PRISMA diagram, results tables, or response letters:
 - Confirm all counts sum correctly.
 - Confirm no deprecated pre-fix counts are present.
 - Confirm V2 manuscript uses 330-corpus audited counts.
+
+## V1 freeze — 2026-09-18 (N = 291)
+- PDFs on disk: 291
+- Priority done: 252 / 300
+- Priority pending: 48 / 300
+- Orphans: 39
+- Pending extraction: 120
