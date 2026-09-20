@@ -1,0 +1,706 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0426.pdf
+sha256: 52CCA8A76D2E13492DC2041FA759208FBFF69251E16BCE45C83D5E7B3CD41142
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+Leonardo Drone Contest 2021: Politecnico di Milano team architecture
+Gabriele Roggi1, Salvatore Meraglia1, Marco Lovera1
+Abstract— In this paper, the winning solution of the second
+edition of the Leonardo Drone Contest (LDC), an autonomous
+drone competition, is presented. The participating teams were
+asked to design and build an autonomous system, capable of
+accomplishing complex tasks in an indoor urban-like environ-
+ment. To reach this goal, the designed system should be capable
+of navigating in a Global Navigation Satellite System (GNSS)-
+denied environment with autonomous decision making, online
+planning and collision avoidance capabilities. In this light, the
+authors describe the competition, its rules and objectives, as
+well as the proposed solution in terms of hardware, software
+and algorithms.
+I. INTRODUCTION
+In recent years, the research on autonomous Unmanned
+Aerial Vehicles (UAVs) has seen great interest. Autonomous
+systems can play an important role in many applications,
+e.g., search-and-rescue [1], inspection [2], surveillance [3]
+and mapping [4]. In the robotics community, as in many
+other scientific and technological domains, there has been
+a significant growth in the number of challenge prizes
+and competitions launched in recent years. The aim is to
+stimulate innovation more effectively, to meet a defined
+challenge, and to provide solutions to the problems that
+matter to roboticists and society [5].
+In particular, drone racing has seen autonomous systems
+catching up fast with human performance. In this frame-
+work, while the first drone racing competition has been
+organized during the IROS conference in 2016 [6], the
+most important event has been the 2019 Lockheed Martin
+AlphaPilot challenge [7]. This challenge led to the first
+season of Artificial Intelligence Robotic Racing (AIRR), co-
+organized with the Drone Racing League (DRL) for human
+pilots [8]. In the literature, some of the approaches taken
+by the teams during this competition are available, e.g., [9],
+[10] and [11]. Other than drone racing, autonomous UAVs
+have been object of competitions in the MBZ International
+Robotic Challenge (MBZIRC) [12]. In this context, a variety
+of autonomous drone operations has been explored ranging
+from wall building [13] to ground fires extinguishing [14].
+With similar objectives, namely to encourage the de-
+velopment of Artificial Intelligence (AI) applied to Un-
+manned Aerial Systems (UAS), Leonardo S.p.A. designed
+and launched the Leonardo Drone Contest (LDC) [15] in
+collaboration with six Italian universities. The LDC is a
+drone competition designed to push the capabilities and
+1G. Roggi, S. Meraglia and M. Lovera are with Dipartimento di Scienze
+e Tecnologie Aerospaziali, Politecnico di Milano, Via La Masa 34, 20156
+Milano,
+Italy
+{gabriele.roggi,salvatore.meraglia,
+marco.lovera}@polimi.it
+performance of autonomous UAVs for what concerns navi-
+gation, planning and decision making. While the first edition
+of the Leonardo Drone Contest (held in 2020) was devoted
+to the exploration of a totally unknown environment, the
+second one focused on the interaction with the operators
+and other agents moving on the field. In this paper, we
+present the solution proposed in the second edition of the
+Leonardo Drone Contest. In particular, we firstly introduce
+the competition format and rules and, then, we describe
+the proposed solution in terms of hardware, software and
+algorithms. In the final part of the paper, experimental results
+obtained during the contest are shown.
+II. LDC COMPETITION FORMAT
+The aim of the Leonardo Drone Contest is to encourage
+the creation of a national ecosystem that involves and brings
+together the capabilities of large companies, universities,
+small and medium enterprises, and national spin-offs and
+start-ups. In particular, Leonardo is supporting the activities
+of six PhD students (one per university) of the Politecnico di
+Milano, Politecnico di Torino, Universit`a di Bologna, Scuola
+Superiore Sant’Anna di Pisa, Universit`a degli Studi di Roma
+Tor Vergata and Universit`a degli Studi Federico II di Napoli.
+The students are engaged for three years, in the development
+of an autonomous drone system, sharing university and busi-
+ness resources and knowledge. The designed system should
+be capable of navigating in a GNSS-denied environment with
+autonomous decision making, online planning and collision
+avoidance capabilities.
+The second edition took place in Turin on 28-30 Septem-
+ber 2021. The competition was held in the indoor urban-like
+environment shown in Figure 1. The contest was composed
+Fig. 1. The real competition field in Turin consisting of cardboard buildings
+with glued textures (From [15])
+of four rounds over three days. In each round the drone had to
+autonomously take off and explore the environment searching
+for a specific ground robot, which in turn carried information
+about the task the drone had to perform. It is worth pointing
+2022 International Conference on Unmanned Aircraft Systems (ICUAS)
+Dubrovnik, Croatia. June 21-24, 2022
+978-1-6654-0593-5/22/$31.00 ©2022 IEEE
+191
+2022 International Conference on Unmanned Aircraft Systems (ICUAS) | 978-1-6654-0593-5/22/$31.00 ©2022 IEEE | DOI: 10.1109/ICUAS54217.2022.9836103
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:25 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+out that some initial knowledge of the field was given to
+the teams in the form of a map, with associated East-North
+reference frame, as shown in Figure 2.
+Fig. 2.
+Initial knowledge of the environment
+The field dimensions were 20 m×10 m, with a maximum
+available height of 3 m (due to a net on top of the field).
+The height of the obstacles in the map were also known.
+The numbered squares on the map represented the landing
+pads, which were 1 m×1 m cyan squares each containing a
+50 cm×50 cm ArUco marker.
+Three ground robots (in the form of vacuum cleaners),
+each identified by a unique 19 cm×19 cm ArUco marker,
+were moving randomly in unknown confined regions on the
+field. The information provided by the robots were given in
+the form of a string of 10 digits from 0 to 9. The i-th number
+indicated the reward associated to a valid landing on the
+landing pad identified by ArUco number i. The ground robot
+with the available information and an example of landing pad
+are shown in Figure 3.
+Fig. 3.
+The ground robot and landing pad
+Two ground robots, whose identification ArUco code
+numbers were communicated to the team before starting
+the round, were collaborative agents. The remaining one
+was the intruder that carried the exact rewards associated
+to each landing. The drone exploration was assisted by a
+fixed pan–tilt–zoom (PTZ) camera placed in correspondence
+of the cross icon in Figure 2, which could be controlled by
+the teams. After having found the intruder robot, the drone
+had to send a visible picture of the rewards to the team’s
+ground control station. This action had to be executed within
+30 minutes from the start of the round. At this point, the
+sequence of landing spots to maximize the reward had to be
+selected. This task could be either carried out autonomously
+on the drone computing hardware or the sequence could be
+chosen by the team based on their judgment. After having
+determined the sequence, the drone had to reach and land on
+top of the pads in the given order. The landing was consid-
+ered valid if all the UAV contact points with the ground were
+inside the 1 m×1 m square. The points corresponding to valid
+landings were summed up for obtaining the round result. The
+team obtaining the highest amount of points in the three (out
+of four) best rounds was proclaimed the winner. It is worth
+pointing out that, in each round, the UAV takeoff position
+was represented by a different landing pad, communicated to
+the teams before the start of the run. The reward string and
+the ground robots’ region of motion varied across rounds.
+III. SYSTEM OVERVIEW
+Before introducing the system hardware, we define frames
+and notations that are used throughout the paper. We indicate
+the map frame with {M}, i.e., an East-North-Up (ENU)
+fixed frame; {O} represents the odom frame, i.e., an ENU
+frame which drifts over time with respect to {M}; {B}
+is a Forward-Left-Up (FLU) body fixed frame; {C} is the
+camera fixed frame and {T} is the ArUco marker fixed
+frame. RA/B ∈SO(3) is the rotation matrix describing the
+attitude of the {A} frame with respect to the {B} frame,
+while pA/B ∈R3 is the position of the frame {A} with respect
+to frame {B}, resolved in {B}.
+The drone, specifically designed for the competition and
+developed in collaboration with the Politecnico di Milano
+spin-off company ANT-X1, is a coaxial octocopter (see
+Figure 4). Its dimensions are 430×300×200 mm for a takeoff
+weight of 2.85 kg. The drone is equipped with a Pixhawk 4
+Flight Control Unit (FCU) and an NVIDIA Jetson Xavier
+NX companion computer. The sensor suite is composed by
+a forward-looking Stereolabs ZED stereo camera inclined
+slightly downward (15 degrees with respect to the horizontal
+plane), a Lidar-lite v3 laser range finder and two OpenMV
+H7 Plus monocular cameras, one forward-looking and one
+downward-looking. The Robot Operating System (ROS) was
+employed as middleware on the UAV and the ground control
+station.
+It is worth noting that laser scanners were explicitly
+banned by the rules and, thus, only vision-based sensors
+were allowed for navigation in the indoor GNSS-denied
+environment of the competition. In particular, the stereo
+camera is used for visual odometry computation and its
+output is fused with the Inertial Measurement Unit (IMU)
+information (available on the Pixhawk 4) for obtaining an
+estimate of drone pose in the odom frame. In order to
+enhance the accuracy of the altitude estimation, the range
+finder was employed as an altimeter. The downward-looking
+monocular camera was exploited for localization purposes
+1https://antx.it/
+192
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:25 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+Fig. 4.
+The UAV platform
+in the map frame. Finally, the additional forward-looking
+monocular camera was used to search for ground robots with
+different image resolutions with respect to the stereo camera
+used for navigation.
+IV. DETAILED SOLUTION
+In this section, the proposed solution for the contest is
+presented in detail. The overall architecture is composed by
+three main subsystems:
+• Navigation. It takes as inputs the sensor measurements
+and returns as outputs the drone pose in the map frame
+and a global map.
+• Decision-making. It manages the high-level objectives
+of the mission. It takes as inputs preliminary informa-
+tion on the environment and outputs the desired goal
+positions.
+• Planning and control. The global map and the goal
+positions are used for planning collision free paths and
+trajectories to be fed to the drone controller.
+A. Navigation
+The visual odometry algorithm employed is provided in
+the ZED stereo camera SDK2. This choice has been driven
+by the fact that, considering the available hardware, i.e., with
+GPU acceleration, this algorithm outperforms other open-
+source algorithms with CPU implementations. The position
+and yaw output of the visual odometry are fused in the
+PX43 firmware estimator, i.e., an Extended Kalman Filter
+called EKF2. The EKF2 returns the position and attitude of
+the UAV in the odom frame, pB/O = [px, py, pz]⊤and RB/O
+respectively, which will be used for feedback control.
+For what concerns the localization, a Kalman Filter (KF),
+which fuses information coming from drone’s odometry,
+monocular cameras images and laser altimeter, has been
+implemented. The state of the filter is the bias term bM/O =
+[bx,by,bz]⊤that is the difference between the position of the
+robot in the odom reference frame and the position in the
+map reference frame. Assuming the evolution of the bias as
+2https://www.stereolabs.com/developers/release/
+3https://px4.io/
+a random walk process, the motion model results:
+˙bM/O = ηw,
+(1)
+where ηw is a white Gaussian noise with PSD W. The
+monocular cameras images are analyzed through an ArUco
+marker detector based on the OpenCV4 library. Once a
+marker related to a landing pad has been detected, its position
+with respect to the camera, written in the camera frame, is
+computed. The measurement model has been written as:
+ycam = pT/C =
+(2)
+= RB/C(R⊤
+B/M(pT/M −(pB/O +bM/O)))+ pB/C +ηvc,
+where ηvc is a white Gaussian noise with PSD Vc. This
+operation is possible by knowing the ArUco marker position
+pT/M in the approximate world map and assuming RB/M =
+RB/O. This was justified by the fact that the attitude RB/O
+showed a very slow drift during the preliminary experimental
+campaign carried out inside the Flying Arena for Rotorcraft
+Technologies (FlyART) of Politecnico di Milano.
+In order to increase the altitude estimation accuracy, the
+laser altimeter measurements are also used. They have been
+modeled as:
+yl = bz + pz +ηvl,
+(3)
+where ηvl is a white Gaussian noise with PSD Vl. However,
+this model does not take into account the presence of
+obstacles on the field. Thus, when flying over obstacles,
+the measured distance does not correspond to the UAV
+altitude. To overcome this issue, a measurement outliers
+detector has been applied to interrupt the fusion process
+whenever the drone flies over an obstacle. This has been
+done by performing a χ2-test based on the Mahalanobis
+distance of the altimeter measurement innovation [16]. Inliers
+are validated by checking the Normalized Estimation Error
+Squared (NEES), namely ε⊤S−1ε ≤χ2
+th, where ε indicates
+the innovation, S the corresponding covariance and with χ2
+th
+equal to the 0.95 probability quantile of the χ2 distribution.
+Finally, knowing the drone pose in the map frame given
+by the localization module, the ZED point cloud is used
+for producing a 3D map useful for planning purposes. In
+particular, the Octomap server [17] has been employed for
+this task. The overall architecture is depicted in Figure 5.
+B. Decision-making
+The decision-making module is responsible for assigning
+the waypoints to the planning and control module. In particu-
+lar, the waypoints are computed through different approaches
+based on the output of a state machine, which manages the
+different phases of the competition. The workflow of the
+state machine and associated inputs are shown in Figure 6
+and described in the following.
+When the operator sends the starting signal, the decision-
+making module provides a takeoff setpoint. After having
+completed the takeoff operation, a probabilistic exploration
+algorithm is used for steering the UAV towards the area of the
+4https://opencv.org/
+193
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:25 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+Fig. 5.
+Navigation architecture
+Fig. 6.
+Decision making architecture
+field where the probability of finding a ground robot is larger.
+Namely, a discrete map of initial probability is produced
+based on the number of free (with no obstacles) contiguous
+cells. A graphical representation is shown in Figure 7, where
+each 1 m×1 m cell is characterised by a certain probability
+in percentage.
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+0
+0.2
+0.4
+0.6
+0.8
+1
+1.2
+1.4
+1.6
+1.8
+Fig. 7.
+Initial probability map
+The probabilities are updated based on ground regions
+seen by the three cameras (the forward monocular camera,
+the downward-looking camera and the fixed surveillance
+camera). If no ArUco corresponding to the ground robots
+is found in the images, the cells are labelled as already
+explored and their probability is decreased, while if an
+ArUco corresponding to a collaborative robot is detected, the
+probabilities associated with the adjacent cells are decreased
+(based on the assumption that the robots will not be one next
+to the other). Once the intruder robot has been found (either
+by the drone cameras or the PTZ camera) the tracking phase
+starts. In this state, the output waypoint will correspond to
+the position of the ground robot at a pre-defined altitude,
+adjusted to allow to read the reward string with the available
+downward-looking monocular camera. At this point, two
+alternatives exist:
+1) the robot has been lost, i.e., it is outside the field of
+view of the cameras. In this condition the state machine
+will resort to a probabilistic exploration phase in the
+neighbourhood of the drone position.
+2) the robot is in the field of view and a readable picture
+of the reward string has been taken. In this case, the
+operator will decide the landing sequence to follow in
+order to maximize the reward considering remaining
+drone endurance and the probability of success of
+each landing (this could be also computed through an
+optimization process on the drone hardware). The output
+is a sequence of waypoints in the initial approximate
+world map of the considered landing pad.
+C. Planning and control
+The planning module is meant for generating collision-
+free paths and trajectories to be followed by the UAV. This
+module takes as inputs the waypoints p0
+B/M generated by
+the high-level decision making module. An overview of the
+architecture is shown in Figure 8.
+Fig. 8.
+Planning architecture
+First, a global planner generates a path from the current
+position of the drone to the given waypoint. To this aim, it
+exploits the knowledge of the world approximated map with
+a coarse resolution (1 m). The planner is a 2D implementa-
+tion of the Djikstra shortest path algorithm. Successively, the
+generated path is pruned for removing the collinear points.
+194
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:25 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+The remaining points are, one at a time, used as goal into a
+local planner. The local planner, based on the A∗algorithm,
+is responsible for computing a collision-free 3D path using
+a local version of the produced Octomap.
+The planner is also provided with re-planning capabilities,
+which are triggered if the current path collides with newly
+emergent obstacles. Note that the collision checking is con-
+ducted inflating the robot dimensions by a safety radius. The
+resulting path from the local planner is, then, turned into
+a smooth trajectory (degree 2 polynomial function of time
+pt
+B/M(t)) before sending it to the drone controller. It is worth
+noting that the generated trajectory is written in the map
+frame, while the UAV state estimate is in the odom frame.
+Consequently, the trajectory is transformed into the correct
+frame by exploiting the state of the localization filter bO/M.
+Finally, the generated position set-points are sent to the
+UAV controller. Namely, the available implementation in the
+PX4 firmware is used.
+V. RESULTS
+In this section, last round results of the Leonardo Drone
+Contest competition are presented. The video of this round
+is available online5.
+For what concerns the navigation, the East and North
+localization position components are shown in Figure 9 and
+Figure 10 respectively. In these plots, the localization is
+compared with the visual odometry output, which is in turn
+affected by drift. In order to be in the same reference of the
+localization position, the odometry curve has been shifted
+by an offset, namely the drone initial position in the map
+frame corresponding to the ArUco marker 3 in Figure 2,
+i.e., x =2.5 m, y =−4.5 m. Furthermore, in the same figures,
+the drone position obtained from the measurements coming
+from the forward and downward-looking monocular cameras
+are plotted and considered as the best approximation of the
+ground truth6. Namely, the ArUco marker detection outputs
+are used to retrieve the drone position in the map frame as:
+pB/M = pT/M −RB/MR⊤
+B/C(ycam −pB/C) .
+(4)
+It is worth noting that, immediately after takeoff from the
+starting pad, the localization algorithm estimates the initial
+position correctly.
+Passing to the navigation in the Up direction, the altitude
+estimation results are plotted in Figure 11. The visual odom-
+etry shows a remarkable drift, which justifies the additional
+use of the laser altimeter. On the other hand, the localization
+algorithm shows good performance. In fact, it has correctly
+rejected the laser measurements corresponding to obstacles
+(as shown by the patches in the plot). In this figure, also the
+sequence of the six executed landings can be appreciated.
+Note that the third and the last one have been executed
+respectively on ArUco 7 and 10, which are placed over
+obstacles of height 0.7 m and 2 m.
+5Visit https://www.youtube.com/watch?v=zfQVKgepwNE or
+the ASCL group website http://ascl.daer.polimi.it.
+6The field was not equipped with a motion capture system to be used as
+ground truth.
+0
+200
+400
+600
+800
+1000
+1200
+Time [s]
+-10
+-8
+-6
+-4
+-2
+0
+2
+4
+6
+8
+10
+East [m]
+Explore
+Track
+Landing sequence
+Localization
+Odometry
+Meas camera down
+Meas camera forw
+Fig. 9.
+Comparison between odometry and localization (East axis)
+0
+200
+400
+600
+800
+1000
+1200
+Time [s]
+-6
+-5
+-4
+-3
+-2
+-1
+0
+1
+2
+3
+4
+North [m]
+Explore
+Track
+Landing sequence
+Localization
+Odometry
+Meas camera down
+Meas camera forw
+Fig. 10.
+Comparison between odometry and localization (North axis)
+0
+200
+400
+600
+800
+1000
+1200
+Time [s]
+-3
+-2
+-1
+0
+1
+2
+3
+Up [m]
+Explore
+Track
+Landing sequence
+Lidar altimeter
+Odometry
+Localization
+Discarded lidar meas
+Landings
+Fig. 11.
+Comparison between odometry and localization (Up axis). Added
+patches in which the range finder measurements are rejected.
+195
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:25 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+As for the decision making module, we can see how
+the mission has been executed. For the first 200 s the UAV
+has conducted an exploration phase for finding the intruder
+robot. Having found it with the forward-looking camera, the
+tracking phase begun at about 400 s. The UAV is driven
+towards the robot and takes pictures of it. After that, we
+can see the drone holding the position while the team was
+selecting the landing sequence to be performed in the last
+phase. Finally, the drone reached and landed on the selected
+pads in the given sequence.
+The overall mission lasted 20 minutes and the drone
+travelled about 100 m. In Figure 12 we can see the point
+cloud generated by the drone during the mission and the
+localization position, which represents the most reliable
+estimate of the UAV state we have.
+Fig. 12.
+Final point cloud with path performed during the landing phase
+Finally the points accumulated by the teams during the
+various rounds are shown in Table I, where each column
+represents a single round. The Politecnico di Milano team
+reached the first place, followed by the Universit`a degli Studi
+di Roma Tor Vergata and the Politecnico di Torino.
+TABLE I
+FINAL RESULTS
+University
+I
+II
+III
+IV
+Total
+Politecnico di Milano
+0
+5
+7
+23
+35
+Roma Tor Vergata
+0
+0
+6
+22
+28
+Politecnico di Torino
+2
+5
+0
+0
+7
+Universit`a di Bologna
+0
+0
+2
+4
+6
+Sant’Anna di Pisa
+0
+0
+0
+0
+0
+Napoli Federico II
+0
+0
+0
+0
+0
+VI. CONCLUSION
+In this paper, the winning solution of the second edition of
+the Leonardo Drone Contest, an autonomous drone competi-
+tion, has been presented. In particular, the aim of the contest,
+its rules and objectives have been described. Successively, the
+authors presented the platform specifically designed for the
+competition, with particular focus on the equipped sensors
+and software architecture. Then, the modular architecture,
+comprising navigation, planning and decision making mod-
+ules has been discussed in details. Finally, the performance
+achieved during the last round of the competition have been
+reported along with the contest results.
+REFERENCES
+[1] D. C. Schedl, I. Kurmi, and O. Bimber, “An autonomous drone for
+search and rescue in forests using airborne optical sectioning,” Science
+Robotics, vol. 6, no. 55, 2021.
+[2] G. Roggi, A. Niccolai, F. Grimaccia, and M. Lovera, “A computer
+vision line-tracking algorithm for automatic UAV photovoltaic plants
+monitoring applications,” Energies, vol. 13, no. 4, p. 838, 2020.
+[3] L. Doitsidis, S. Weiss, A. Renzaglia, M. Achtelik, E. Kosmatopoulos,
+R. Siegwart, and D. Scaramuzza, “Optimal surveillance coverage for
+teams of micro aerial vehicles in GPS-denied environments using
+onboard vision,” Autonomous Robots, vol. 33, pp. 173–188, 2012.
+[4] M. Faessler, F. Fontana, C. Forster, E. Mueggler, M. Pizzoli, and
+D. Scaramuzza, “Autonomous, vision-based flight and live dense 3D
+mapping with a quadrotor micro aerial vehicle,” Journal of Field
+Robotics, vol. 33, no. 4, pp. 431–450, 2016.
+[5] J. Dias, K. Althoefer, and P. U. Lima, “Robot competitions: What did
+we learn?” IEEE Robotics & Automation Magazine, vol. 23, no. 1,
+pp. 16–18, 2016.
+[6] H.
+Moon,
+J.
+Mart´ınez-Carranza,
+T.
+Cieslewski,
+M.
+Faessler,
+D. Falanga, A. Simovic, D. Scaramuzza, S. Li, M. M. O. I. Ozo,
+C. de Wagter, G. C. de Croon, S. Hwang, S. Jung, H. Shim, H. Kim,
+M. Park, T.-C. Au, and S. J. Kim, “Challenges and implemented
+technologies used in autonomous drone racing,” Intelligent Service
+Robotics, vol. 12, pp. 137–148, 2019.
+[7] “Alphapilot
+AI
+Drone
+Innovation
+Challenge,”
+https://www.
+lockheedmartin.com/en-us/news/events/ai-innovation-challenge.html,
+Access date: 17/01/2022.
+[8] C. De Wagter, F. Paredes-Vall´es, N. Sheth, and G. de Croon, “Learning
+fast in autonomous drone racing,” Nature Machine Intelligence, vol. 3,
+no. 10, pp. 923–923, 2021.
+[9] ——, “The artificial intelligence behind the winning entry to the
+2019 AI robotic racing competition,” arXiv preprint arXiv:2109.14985,
+2021.
+[10] P. Foehn, D. Brescianini, E. Kaufmann, T. Cieslewski, M. Gehrig,
+M. Muglikar, and D. Scaramuzza, “Alphapilot: Autonomous drone
+racing,” Autonomous Robots, pp. 1–14, 2021.
+[11] A. Rezende, V. R. Miranda, P. A. Rezeck, H. Azp´urua, E. R. Santos,
+V. M. Gonc¸alves, D. G. Macharet, and G. M. Freitas, “An integrated
+solution for an autonomous drone racing in indoor environments,”
+Intelligent Service Robotics, vol. 14, no. 5, pp. 641–661, 2021.
+[12] “Mohamed Bin Zayed International Robotics Challenge (MBZIRC),”
+https://www.mbzirc.com/, Access date: 17/01/2022.
+[13] C. Lenz, M. Schwarz, A. Rochow, J. Razlaw, A. S. Periyasamy,
+M. Schreiber, and S. Behnke, “Autonomous wall building with a UGV-
+UAV team at MBZIRC 2020,” 2020 IEEE International Symposium
+on Safety, Security, and Rescue Robotics (SSRR), pp. 189–196, 2020.
+[14] V. Walter, V. Spurn´y, M. Petrl´ık, T. B´aˇca, D. ˇZaitl´ık, and M. Saska,
+“Extinguishing of ground fires by fully autonomous UAVs motivated
+by the MBZIRC 2020 competition,” 2021 International Conference
+on Unmanned Aircraft Systems (ICUAS), pp. 787–793, 2021.
+[15] “Leonardo
+Drone
+Contest
+autonomous
+drone
+competition,”
+https://www.leonardo.com/it/innovation-technology/open-innovation/
+drone-contest, Access date: 17/01/2022.
+[16] A.
+Santamaria-Navarro,
+G.
+Loianno,
+J.
+Sol`a,
+V.
+Kumar,
+and
+J. Andrade-Cetto, “Autonomous navigation of micro aerial vehicles
+using high-rate and low-cost sensors,” Autonomous Robots, vol. 42,
+no. 6, pp. 1263–1280, 2018.
+[17] A. Hornung, K. M. Wurm, M. Bennewitz, C. Stachniss, and W. Bur-
+gard, “OctoMap: An efficient probabilistic 3D mapping framework
+based on octrees,” Autonomous Robots, 2013.
+196
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:25 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

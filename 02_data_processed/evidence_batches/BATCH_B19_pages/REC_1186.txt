@@ -1,0 +1,678 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1186.pdf
+sha256: 6427729DF4AB8E3234DF025C419C74AEB4E35DC0BC1E9202028AD98F69C9CBBA
+library: pymupdf (fitz) v1.28.2
+pages: 5
+=== BEGIN ===
+[p.1]
+IFAC-PapersOnLine 49-1 (2016) 396–400
+ScienceDirect
+Available online at www.sciencedirect.com
+2405-8963 © 2016, IFAC (International Federation of Automatic Control) Hosting by Elsevier Ltd. All rights reserved.
+Peer review under responsibility of International Federation of Automatic Control.
+10.1016/j.ifacol.2016.03.086
+© 2016, IFAC (International Federation of Automatic Control) Hosting by Elsevier Ltd. All rights reserved.
+Keywords: Path planning, UAV, GPS-denied areas, navigation
+1. INTRODUCTION
+Unmanned aerial vehicle (UAV) applications are growing
+rapidly with the availability of low cost UAVs and cheap sen-
+sors and computational units in the market. A recent applica-
+tion being anytime delivery of essential supplies like medicines
+from one location to another [Agha-mohammadi et al. (2014);
+Mathew et al. (2015)]. In order to perform this task, the
+UAV needs to navigate from a source location (S) to a goal
+(G). For navigation, usually GPS with inertial measurement
+is used. However, there are many situations where GPS may
+not available- primarily due to interference [Trinkle and Gray
+(2001)] or lack of required number of available satellites at
+the desired location/region. Although a high precision inertial
+measurement unit (IMU) [Hanse (2004)] can be used, it costs
+several tens of thousands of dollars which is not a viable op-
+tion for these applications. Under such circumstances, the UAV
+needs to navigate using an affordable IMU with the help of
+other external aids for localization.
+Over recent years, several advances have been made in devel-
+oping path planning algorithms that localize with the help of
+camera/lidar [Kim and Sukkarieh (2004); Blosch et al. (2010);
+Bryson and Sukkarieh (2014); Yun et al. (2013)] and existing
+communication systems [Stachura and Frew (2011); Suo et al.
+(2012); Kurth et al. (2003)] that estimate the range and bearing
+of the vehicle with respect to a feature or landmark. Most of the
+effort has been dedicated towards developing path planners that
+minimize pose errors using different types of Kalman ﬁlters.
+Since this requires features or landmarks to localize, thus place-
+ment of landmarks or feature selection becomes an essential
+problem for navigation. There have seen several efforts in this
+direction to determine optimal placement of landmarks/features
+1 This work is partially funded by FCT grant SFRH/BPD/103962/2014.
+for localization [Peter Lommel and Roy (2000); Vitus and Tom-
+lin (2010); Rathinam and Sharma (2015)].
+In this paper, we consider an emergency scenario at night
+where a UAV located at S needs to travel to G for delivering
+some emergency material. In addition, we assume that sufﬁcient
+amount of GPS satellites are not available to carry out a GPS
+based navigation. As the operation is at night, several SLAM
+based techniques that depend on vision cannot be utilized.
+However, there may be several cellular towers available along
+the way from S to G. For example, S and G can be two
+distant towns and the supplies must be delivered from one
+town to another. There may exist several villages along the
+way that have cellular towers providing ﬁnite coverage area
+in the villages but the area between the villages may not
+have any coverage. This implies that the available localization
+areas are sparse. This scenario is relevant and quite common
+in most developing countries like India which is depicted in
+Figure 1. Under this scenario, the UAV may need to use range
+and bearing information within the cellular tower coverage
+area for localization. The above algorithms that depend on
+the availability of a landmark to move from one location to
+another are not directly applicable, as most of them focus on
+determining accurate estimate of the vehicle pose using several
+types of Kalman ﬁlters for a given path.
+In this context, we develop a multi-objective path planner that
+determines a path from S to G while minimizing the time
+to reach G as well as the coviarance of the estimator for the
+complete path. A similar problem was addressed in [Bopardikar
+et al. (2014)], where the authors are interested in generating
+a path that minimizes the path length while keeping the co-
+variance within bounds. However, their approach uses nodes
+and they create a graph with costs as a combination of path
+length and covariance. It is well known that the discretized path
+gives lower performance than the continuous path. Also they
+Abstract: In this paper, we propose a UAV path planner travelling from a given source to goal
+location in GPS-denied areas. The environment consists of a set of cellular towers which are treated
+as landmarks having ﬁnite communication range. The vehicle has to perform dead reckoning in regions
+where landmarks are not available. Therefore, the objective is to determine a time optimal path taking
+the presence of landmarks into account while ensuring the covariance due to dead-reckoning is within
+a given bound. Solving the stochastic optimal control problem to determine a path in the continuous
+domain is very difﬁcult and hence we discrete the path as a set of way points and optimize the location
+of these way points to obtain a time optimal path satisfying the covariance bounds. We use a particle
+swarm optimization technique coupled with a rabbit-carrot based path following technique to determine
+a near-optimal path. Numerical results are presented to show that our approach produces feasible paths
+that are near-optimal and satisfy the covariance bounds.
+∗IIIT-Delhi, New Delhi 110020, India (e-mail: shreya12160@iiitd.ac.in).
+∗∗IIIT-Delhi, New Delhi 110020, India and FEUP – Portugal (e-mail:
+sujit@iiitd.ac.in, sujit@fe.up.pt).
+Shreya Singh ∗P.B. Sujit ∗∗
+Landmarks based path planning for UAVs in
+GPS-denied areas
+[p.2]
+	
+Shreya Singh et al. / IFAC-PapersOnLine 49-1 (2016) 396–400	
+397
+assume the vehicle is holonomic. In this paper, we determine a
+continuous path for a UAV which is non-holonomic.
+The rest of the paper is organized as follows: in Section 2,
+we state the mathematical optimization problem statement and
+solve this using particle swarm optimizer in Section 3. Numer-
+ical results of this approach are presented in Section 4 and we
+conclude in Section 5
+2. PROBLEM FORMULATION
+In this section, we describe how we model the vehicle motion,
+the environment and present the problem formulation.
+2.1 Motion and Sensing Model
+We consider a general model of an agent whose state evolves as
+per a non-linear discreet time dynamical system
+x(t + 1) = f(x(t), η(t)),
+(1)
+where x ∈Rn is the state at time t, f : Rn × Rn →Rn
+describes the state transition map of the system and η ∈Rn is
+the process noise. The agent is equipped with range and bearing
+sensors in order to estimate the state x. We assume that the
+vehicle will be ﬂying at constant altitude and can be modelled
+as a Dubin’s car with kinematics as,
+˙xa = v cos ψ,
+˙ya = v sin ψ,
+˙ψ = u,
+(2)
+where (xa, ya) is the vehicle geographical local coordinates and
+ψ is the vehicle heading angle. The control u is determined
+using any path following algorithms described in [Sujit et al.
+(2014)]. In this paper, we use the basic path following algorithm
+– the rabbit-carrot based path following.
+The sensor output is modelled as
+yj(t) = hj(x(t), ν(t)), ∀j ∈{1, ..., m},
+(3)
+where νj ∈Rn is the process noise of the jth sensor and
+h : Rn × Rn →Rn describes the relation between state and
+Goal
+Communication tower
+Fig. 1. Scenario showing the presence of communicating radio
+towers through which the UAV needs to ﬂy to reach the
+goal from the start location. The vehicle localizes through
+the radio towers.
+measurement. We assume that the noise vectors η and v are
+independently generated zero mean Gaussian random vectors.
+Given the sensor and motion of the vehicle, we use Extended
+Kalman Filter (EKF) to predict the state of the vehicle when
+there are no measurements available from the cellular towers
+for localization. We assume that the EKF provides a consistent
+estimate ˆxt and the estimation error covariance Pt of the ﬁlter.
+The EKF estimator of the state x is given as
+P−1
+t+1 = (FtPtF
+′
+tQ)−1 +
+m
+
+j=1
+γj,t+1H
+′
+jR−1
+j Hj
+(4)
+ˆxt+1 = Pt+1((FtPtFt
+t + Q)−1f(ˆxt, 0+
+m
+
+j=1
+βj,t+1H
+′
+jR−1
+j (yj(t + 1) −hj(f(ˆxt), 0)))
+(5)
+where ˆxt represents state estimator, Pt denotes the expected
+error covariance with respect to (η, ν), Ft is the linearisation
+of f around (ˆxt, 0) and Hj is the linearisation of h around
+(f(ˆx(t),0)). The matrix Q and Rj represent the process noise
+and the measurement noise covariance associated to the j-th
+sensor respectively. The variable βj,t+1 ∈{0, 1} is a binary
+variable that models the presence or absence of measurement
+update from the jth sensor.
+In order to take the covariance error into account, we will con-
+sider the maximum eigenvalue of the error covariance matrix,
+ˆΛ(Pt) as the scalar metric for capturing state estimate uncer-
+tainty. We denote Γ(·) and Γ(·) the minimum and maximum
+eigenvalue of a matrix- which is a positive deﬁnite matrix or a
+positive semi-deﬁnite matrix.
+2.2 Objectives
+We want to ﬁnd the shortest path from S to G that minimizes
+Γ(·). If there was no constraint on Γ(·) then, the objective
+function is
+min
+
+s
+ds
+˙s
+(6)
+such that x(t0) = (xs, ys) = S
+(7)
+x(tf) = Br(G)
+(8)
+where Br(G) is a ball of radius r around the goal G. The
+constraints x(t0) states that the vehicle are located at the start
+location (xs, ys) at time t0. Since the vehicle carries out dead
+reckoning when there is no measurement updates, the vehicle
+may not accurately reach G at time tf(x(tf)̸ = G) but it may
+reach r distance from G (Br(G)) which is acceptable as it can
+get localized with respect to G and hence land at G. In this case,
+path 1 in Figure 1 will be selected.
+On the other hand, if we are interested in optimizing the path
+with respect to the covariance error then,
+min
+
+s
+ds
+˙s
+(9)
+subject to equation (7, 8) and min Γ(Pt).
+(10)
+In this objective, we are interested in ﬁnding a path that has
+very low covariance. This system/metric is useful when the
+UAVs have too high gyro drift- that is, the IMU is of a cheaper
+version. Using a cheaper IMU implies that the drift can grow
+[p.3]
+398	
+Shreya Singh et al. / IFAC-PapersOnLine 49-1 (2016) 396–400
+very quickly. In this case, Path 2 in Figure 1 is selected that will
+have more landmarks but at the same time minimizes the path
+length.
+In this paper, we are interested in a combination of both the
+above objectives. The objective is
+min
+
+s
+ds
+˙s
+(11)
+subject to equations (7, 8) and ˆΛ(Pt) ≤ˆΓ(Pt)
+(12)
+where, ˆΓ(Pt) is a threshold given by the operator. This objec-
+tive function determines a shortest path that satisﬁes the desired
+maximum covariance of the path.
+Furthermore, we can constrain that during the ﬁnal segment the
+vehicle must have a covariance less than P t ≤Br. In the next
+section, we will ﬁnd solutions to solve the objectives deﬁned in
+equation 11 along the with the constraints.
+3. PATH OPTIMIZATION
+Determining an optimal path in the continuous space for the
+stochastic optimal control problem given in equation (11) is
+difﬁcult. Hence, we use particle swarm optimization (PSO)
+technique to determine the optimal path. We discritize the path
+into a set of waypoints. The PSO updates the locations of these
+waypoints such that the resultant path is minimal satisfying the
+ˆΓ(Pt) constraint. We will now describe how to determine the
+solution using PSO.
+3.1 Particle swarm optimization (PSO) description
+PSO is an iterative optimization technique inspired by the
+movement of bird ﬂocks [Kennedy (2010)]. Each particle is a
+potential solution representing a path. Each path is considered
+to be a set of way points. The cost associated to each particle
+is stored as its personal best and the lowest cost among all the
+particles is stored as the global best. Every particle updates its
+velocity based on its personal best and the global best in each
+iteration.
+Let the swarm Ωhas n particles and the nth particle is repre-
+sented as Pn = {xn1, . . . , xnD}. The velocity of each particle
+is given as Vn = {vn1, vn2, . . . , vnD)} and their respective best
+position is Bn = (bn1, bn2, . . . , bnD). The global best acquired
+by the swarm is given by Π. In the ith iteration, the velocity and
+the position of the particles are updated as
+vi+1
+nd = wvi
+nd + c1r1(bi
+nd −xi
+nd) + c2r2(bi
+Πd −xi
+nd), (13)
+xi+1
+nd = xi+1
+nd + vi+1
+nd ,
+(14)
+where, d = {1, . . . , D}, r1 and r2 are uniformly distributed
+random numbers between [0,1] that help in maintaining the
+diversity in population, c1 is the ”cognitive parameter” and c2 is
+the ”social parameter”. The parameter w is ”inertia weight” and
+is used to create a balance between local and global exploration.
+All these parameters together deﬁne the convergence properties
+of the algorithm [Parsopoulos and Vrahatis (2002)].
+3.2 Solution description
+The solution approach determines waypoints and the UAV
+needs to travel along the path deﬁned by these waypoints. When
+UAV is within the communication range of any landmark, it can
+localize with respect to that landmark/cellular tower. Assume
+that we have M waypoints, then the dimension of the PSO
+problem is D = 2M. Since, each waypoint is represented by
+(x, y), the PSO needs to solve for 2M variables. The swarm
+is ﬁrst initiated with constants c1, c2 and w. A path from start
+position S to Goal G consists of M number of way points. Each
+waypoint is represented as W k = {xk, yk}, k = 1, . . . , M.
+To obtain an optimal solution, we have to minimize the cost,
+which is the time taken by the UAV to reach the goal position
+from the start location. Each set of waypoints are treated as
+a path following problem and a rabbit-carrot path following
+algorithm Sujit et al. (2014) is used to track the path. As the
+UAV travels the path, it checks for ˆΓ(Pt) condition. If the
+condition is violated then the associated cost for the particle
+is ∞- otherwise its the time taken by the vehicle.
+The lowest cost is stored as the best cost and the corresponding
+particle is stored as the best particle. We then assess the swarm
+with an evaluateSwarm function as given in algorithm 1. First,
+it checks if the ith particle of swarm Ωexists in the deﬁned
+region of interest or not. If it lies outside the region, then we
+make its cost is ∞(line 5). Then we ﬁnd the lowest particle
+cost (ℓ) and compare its cost with the best cost (bg). If ℓ< bg,
+then bg ←ℓand the path associated with ℓis recorded as the
+best path. Finally, the swarm is updated using equations 13 and
+14 and the whole process is repeated until the completion of
+maximum allowed iterations or available time.
+Algorithm 1 evaluateSwarm Function
+1: function EVALUATESWARM(Ω, N)
+2:
+J[1 : N] ←∅, Λ = inf
+3:
+while i < N do
+4:
+if xid /∈B, ∀d then //Checks if particle is in B
+5:
+J[i] ←∞
+6:
+else
+7:
+for k ←0 to M do
+8:
+[ ˆJ, ˆλ, ˆx] = trackPath(Wk, Wk+1, ˆx)
+9:
+J[i] ←J[i] + ˆJ
+10:
+if ˆλ ≤Λ then Λ ←ˆλ
+11:
+end for
+12:
+end if
+13:
+i ←i+1
+14:
+end while
+15: end function
+Algorithm 2 trackPath Function
+1: function TRACKPATH(W0, W1, ˆx, ˆP )
+2:
+inputs: ¯x = [ˆx[1] ˆx[2]], v, ∆t, t = 0
+3:
+while ∥x −W1∥≤v ∗∆t do
+4:
+[ ˆP, ˆx] ←perform prediction update ( ˆP, ˆx)
+5:
+if x is in range of any landmarks then
+6:
+[ ˆP, ˆx] ←perform measurement update using
+the landmarks in range
+7:
+end if
+8:
+t = t + ∆t
+9:
+Update vehicle position (ˆx)
+10:
+if then max λ( ˆP) > ˆλ( ˆP)
+11:
+max λ( ˆP) ←ˆλ( ˆP)
+12:
+end if
+13:
+end while
+14: end function
+[p.4]
+	
+Shreya Singh et al. / IFAC-PapersOnLine 49-1 (2016) 396–400	
+399
+−100
+0
+100
+200
+300
+400
+500
+600
+−100
+0
+100
+200
+300
+400
+500
+600
+X meters
+Y meters
+start
+goal
+T1
+T2
+T3
+T4
+T5
+Fig. 2. Map representing the environment through which the
+UAV needs to navigate.
+The result of the optimizer is obtained after evaluating N itera-
+tions or the optimizer is aborted if the solution does not change
+for a pre-deﬁned number of iterations. Since the approach is
+an iterative, this has an anytime solution ﬂavour and is quite
+useful for online replanning when the plan needs to be changed
+dynamically.
+4. RESULTS
+We evaluate the PSO path planning based approach to deter-
+mined path in presence of landmarks. We consider a scenario
+as shown in Figure 2, where there are 5 landmarks or cellular
+towers having a range of 100m each. The goal is to ﬁnd a path
+for the UAV to reach from start to goal.
+We assume that the number of waypoints are 2 and hence
+the dimension of the PSO to optimize is M = 4. The other
+parameters are c1 = 2, c2 = 2, w = 0.7 and N = 1000.
+The UAV has a speed of 5 m/s and the minimum turning
+radius is 15m. The integration time ∆t = 0.1s. Further,
+the parameters for EKF are R = diag([1.1, 1.1, 5◦]), P =
+diag([0.6, 0.6, 0.09]), σv = 0.2cm, σψ = 3◦.
+Initially, we conducted an experiment with ˆΓ(Pt) = 50. Then
+the obtained path is shown in Figure 3. We can see from the
+ﬁgure that the path obtained by the PSO is minimal while
+ensuring that it touches the landmarks. In this case, the Γ(Pt) <
+ˆΓ(Pt), ∀t as seen in Figure 4 for x, y. The path length is 540
+meters, while the direct path length from start to goal is 518
+meters. The UAV took 108 seconds to complete to travel.
+Next we further reduced ˆΓ(Pt) to 20 to see the effect of
+covariance limit on the path length. The new path is shown in
+Figure 5. We can see that due to lower covariance requirement,
+the path taken by the UAV is completely different. The new path
+length is 594 meters which is much higher than the previous
+case but it satisﬁes the new requirement of ˆΓ(Pt) = 20 as
+shown in ﬁgure 6. Since the PSO may not always determine
+an optimal solution, the determined can be locally optimal and
+sub-optimal in the global sense.
+5. CONCLUSIONS
+In this paper, we have proposed and demonstrated a PSO based
+formulation to determine optimal paths for stochastic optimal
+control problems - especially for path planning. This paper
+−100
+0
+100
+200
+300
+400
+500
+600
+−100
+0
+100
+200
+300
+400
+500
+600
+X meters
+Y meters
+ 
+ 
+start
+goal
+Fig. 3. Path taken by the UAV with two waypoints between
+Source and Goal.
+0
+100
+200
+300
+400
+500
+600
+700
+800
+900
+1000
+−50
+0
+50
+Time in seconds
+x error meters
+0
+100
+200
+300
+400
+500
+600
+700
+800
+900
+1000
+−20
+0
+20
+Time in seconds
+y error meters
+0
+100
+200
+300
+400
+500
+600
+700
+800
+900
+1000
+−0.5
+0
+0.5
+Time in seconds
+ψ error
+Fig. 4. The error and their 3 −σ plots for x, y and ψ when
+ˆΓ(Pt) = 50. The ψ error is in radians.
+−100
+0
+100
+200
+300
+400
+500
+600
+−100
+0
+100
+200
+300
+400
+500
+600
+X meters
+Y meters
+start
+goal
+Fig. 5. Path taken by the UAV with two waypoints between
+Source and Goal when ˆΓ(Pt) = 20.
+[p.5]
+400	
+Shreya Singh et al. / IFAC-PapersOnLine 49-1 (2016) 396–400
+0
+200
+400
+600
+800
+1000
+1200
+−20
+0
+20
+40
+Time in seconds
+x error meters
+0
+200
+400
+600
+800
+1000
+1200
+−20
+0
+20
+Time in seconds
+y error meters
+0
+200
+400
+600
+800
+1000
+1200
+−0.5
+0
+0.5
+Time in seconds
+ψ error
+Fig. 6. The error and their 3 −σ plots for x, y and ψ when
+ˆΓ(Pt) = 20. The ψ error is in radians.
+provides the initial formulation for this problem which has high
+practical implementation value and further investigation needs
+to be carried out in various fronts. Some possible extensions
+include comparison with an optimal solver, including obstacle
+avoidance/risk zones, extending to 3D and ﬁnally experimental
+validation.
+REFERENCES
+Agha-mohammadi, A.a., Ure, N.K., How, J.P., and Vian, J.
+(2014).
+Health aware stochastic planning for persistent
+package delivery missions using quadrotors. In Intelligent
+Robots and Systems (IROS 2014), 2014 IEEE/RSJ Interna-
+tional Conference on, 3389–3396. IEEE.
+Blosch, M., Weiss, S., Scaramuzza, D., and Siegwart, R.
+(2010).
+Vision based mav navigation in unknown and
+unstructured environments.
+In Robotics and Automation
+(ICRA), 2010 IEEE International Conference on, 21–28. doi:
+10.1109/ROBOT.2010.5509920.
+Bopardikar, S.D., Englot, B., and Speranzon, A. (2014). Multi-
+objective path planning in gps denied environments under
+localization constraints. In American Control Conference,
+1872–1879. IEEE.
+Bryson, M. and Sukkarieh, S. (2014). Inertial sensor-based si-
+multaneous localization and mapping for uavs. In Handbook
+of Unmanned Aerial Vehicles, 401–431. Springer.
+Hanse, J.G. (2004).
+Honeywell mems inertial technology
+& product status.
+In Position Location and Navigation
+Symposium, 2004. PLANS 2004, 43–48. IEEE.
+Kennedy, J. (2010). Particle swarm optimization. In Encyclo-
+pedia of Machine Learning, 760–766. Springer.
+Kim, J. and Sukkarieh, S. (2004). Slam aided gps/ins navigation
+in gps denied and unknown environments.
+In The 2004
+International Symposium on GNSS/GPS, volume 4.
+Kurth, D., Kantor, G., and Singh, S. (2003).
+Experimental
+results in range-only localization with radio. In Intelligent
+Robots and Systems, 2003.(IROS 2003). Proceedings. 2003
+IEEE/RSJ International Conference on, volume 1, 974–979.
+IEEE.
+Mathew, N., Smith, S., and Waslander, S. (2015).
+Plan-
+ning paths for package delivery in heterogeneous multirobot
+teams. Automation Science and Engineering, IEEE Transac-
+tions on, PP(99), 1–11. doi:10.1109/TASE.2015.2461213.
+Parsopoulos, K.E. and Vrahatis, M.N. (2002).
+Recent ap-
+proaches to global optimization problems through particle
+swarm optimization. Natural computing, 1(2-3), 235–306.
+Peter Lommel, M.W.M. and Roy, N. (2000).
+Robust path
+planning in gps-denied environments using the gaussian aug-
+mented markov decision process.
+IEEE Transactions on
+Robotics.
+Rathinam, S. and Sharma, R. (2015). A multiple vehicle path
+covering problem with localization constraints: Formulation
+and algorithms.
+In American Control Conference, 2015,
+3746–3751. IEEE.
+Stachura, M. and Frew, E.W. (2011).
+Cooperative target lo-
+calization with a communication-aware unmanned aircraft
+system. Journal of Guidance, Control, and Dynamics, 34(5),
+1352–1362.
+Sujit, P., Saripalli, S., and Borges Sousa, J. (2014). Unmanned
+aerial vehicle path following: A survey and analysis of al-
+gorithms for ﬁxed-wing unmanned aerial vehicless. Control
+Systems, IEEE, 34(1), 42–59.
+Suo, H., Wan, J., Huang, L., and Zou, C. (2012).
+Issues
+and challenges of wireless sensor networks localization in
+emerging applications. In Computer Science and Electronics
+Engineering (ICCSEE), 2012 International Conference on,
+volume 3, 447–451. IEEE.
+Trinkle, M. and Gray, D. (2001). Gps interference mitigation;
+overview and experimental results. In Proceedings of the 5th
+International Symposium on Satellite Navigation Technology
+& Applications, 1–14.
+Vitus, M.P. and Tomlin, C.J. (2010).
+Sensor placement for
+improved robotic navigation.
+In Robotics: Science and
+Systems.
+Yun, S., Lee, Y.J., and Sung, S. (2013).
+Imu/vision/lidar
+integrated navigation system in gnss denied environments.
+In Aerospace Conference, 2013 IEEE, 1–10. IEEE.
+=== END ===

@@ -1,0 +1,910 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0960.pdf
+sha256: FF46213E042302208F8460B28B64022DE651E3AA49B1882D06F37A58C59BCA2E
+library: pymupdf (fitz) v1.28.2
+pages: 8
+=== BEGIN ===
+[p.1]
+Cooperative Visual Inertial Odometry for
+Heterogeneous Swarm of Drones Navigating in
+Noisy Environments
+Kamil Canberk Atik1∗, Enes Erdogan1∗, Ahmet Yusuf Yahsi2, Feyzullah Kara3,
+Baris Yalcin4, G¨urkan Cetin4 and Nazim Kemal Ure1
+Abstract—This paper presents a methodology for enhancing
+the localization performance of drone swarms by collaborative
+propagation of the estimates of drones equipped with higher cost
+sensors to the drones with lower-cost sensors. Although recent
+advances in visual-inertial odometry (VIO) enabled good perfor-
+mance in GPS denied environments, the localization performance
+is still highly dependent on the accuracy of inertial sensors.
+Moreover, environmental effects that corrupt visual inputs also
+contribute to the error rate of VIO estimates thus localization
+in noisy environments with low-grade sensors is still widely an
+open problem. We show that this problem can be alleviated
+when drones are navigating in the form of a swarm, and the
+relative distance measurements between drones are available
+through ultra-wideband (UWB) signals. In particular, we develop
+a collaborative Kalman filtering and optimization framework,
+where the drones with lower grade sensors receive updates from
+drones that have access to higher-quality measurements. We
+validate our approach in a simulation environment with realistic
+visual representations and show that the proposed methodology
+can significantly improve the localization performance, especially
+for the scenarios where the camera measurements are corrupted
+with high noise. We further present results in simplistic flight
+tests to demonstrate the applicability of our approach to real
+hardware.
+Index Terms—optimization, swarm drone, localization, VIO
+I. INTRODUCTION
+Unmanned Aerial Vehicles (UAVs) are a key autonomous
+systems technology that found a wide range of applications,
+ranging from warfare [1] to transportation, agriculture, and
+healthcare [2]. As the scale and complexity of missions
+increase, single UAV operations become ineffective and as
+a result multi-UAV metholodogies are gaining popularity in
+most recent applications [3], [4]. For instance, in surveillance
+missions, multiple drones can cover a much larger area in a
+limited amount of time.
+*These authors contributed equally to this work.
+1Faculty of Aeronautics and Astronautics, ITU Artificial Intelligence and
+Data Science Application and Research Center, Istanbul Technical University,
+Istanbul, Turkey, atik20, erdoganen17, ure@itu.edu.tr
+2Faculty of Computer and Informatics Engineering, ITU Artificial Intelli-
+gence and Data Science Application and Research Center, Istanbul Technical
+University, Istanbul, Turkey, yahsi18@itu.edu.tr
+3Faculty of Electrical and Electronics, ITU Artificial Intelligence and
+Data Science Application and Research Center, Istanbul Technical University,
+Istanbul, Turkey, karaf17@itu.edu.tr
+4Havelsan,
+Ankara,
+Turkey,
+barisyalcin,
+gcetin@havelsan.com.tr
+Localization accuracy is an important aspect of the success
+of autonomous multi-drone missions. High accuracy local-
+ization prevents UAVs from colliding with each other and
+improves the overall mission efficiency. In such missions,
+every drone can either localize itself independent of the other
+UAVs or improve its localization accuracy by extracting state
+estimates of their teammates through communicating with
+each other. The concept of fusing information from multiple
+vehicles is known as cooperative localization, which is a
+research topic that gained popularity with the emergence
+of multi-drone missions [5], [6]. Multi-drone localization
+poses several challenges, such as handling communication
+constraints and improving robustness [7]. One of the central
+issues in building multi-drone perception systems is addressing
+the trade-off between the cost of sensors and localization
+accuracy. Due to the high cost of advanced sensors, it is often
+infeasible to equip all drones with high quality sensors in a
+large-scale swarm. On the other hand, equipping all drones
+with low-cost sensors usually result in sub-par performance.
+The central research question we are concerned about in this
+paper is, whether it is possible to only equip a few drones in
+the team with high-quality sensors and leverage cooperative
+localization algorithms to compensate for the errors that low-
+quality perception of drones equipped with low-cost sensors.
+Our main contribution is a cooperative localization method-
+ology, which fuses the estimates of high-cost and low-cost
+drones with ultra-wideband (UWB) signal measurements [8]
+using a sequential Kalman filtering algorithm coupled with
+an optimization-based localization algorithm. We demonstrate
+the potential of the proposed approach through extensive sim-
+ulations conducted in the AirSim [9] environment. Although
+the high-cost drones are equipped with high-quality inertial
+measurements units (IMUs) and cameras, low-priced drones
+are only armed with low-quality cameras and IMUs. Results
+show that, especially under noisy visual inputs, even using
+advanced VIO algorithms (such as VINS-Fusion [10]) cannot
+obtain a sufficient level of localization accuracy for the low-
+cost drones without the aid of cooperative localization. On the
+other hand, using cooperative localization significantly boosts
+the accuracy of low-cost drone estimates. The overall results
+show that it is possible to obtain high accuracy localization for
+the team of drones equipped with varying levels of sensors
+through UWB signals. We conclude the study with results
+727
+978-1-6654-8240-0/22/$31.00 ©2022 IEEE
+2022 IEEE 31st International Symposium on Industrial Electronics (ISIE) | 978-1-6654-8240-0/22/$31.00 ©2022 IEEE | DOI: 10.1109/ISIE51582.2022.9831647
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+obtained from a simplified hardware setup that demonstrates
+applicability of our approach on real-life experiments.
+II. RELATED WORK
+Drone navigation algorithms frequently use the Global
+Navigational Satellite System (GNSS) to improve their local-
+ization accuracy. However, many drone applications involve
+operations in GNNS-denied environments (for instance see
+DARPA Subterranean Challenge [11]). For example, Kalman
+Filter Inertial Navigation Systems (INS/KF) [12] presents the
+methodology for tracking position of moving objects without
+multi-sensor data fusion. In such applications, visual-inertial
+odometry (VIO) based methods [13] are widely utilized for
+UAV navigation. The baseline VIO methods considered in
+this work are ROVIO [14], OKVIS [15], VINS-MONO [16],
+and VINS-Fusion. ROVIO is an algorithm that can track
+three-dimensional landmarks and recognize characteristics on
+images using multiple cameras and an Extended Kalman
+filter. Despite employing a monocular camera, VINS-Mono
+has a smaller root mean square error than OKVIS, which is
+optimized for stereo VIO algorithms. In Section III, we briefly
+review VINS-Fusion, which is an extension of VINS-Mono
+[16]. Meanwhile, compared to the other baselines, VINS-
+Fusion has the lowest root mean square error value, which
+results in superior performance.
+The motivation for this research is based on the idea that
+by sharing information among swarm members, the accuracy
+of VIO can be improved. UWB allows for the transmission of
+relative distance and position between drones. Swarm control
+and estimation methods can be centralized or decentralized
+[8]. All processes take place on a single computer in a cen-
+tralized manner. Therefore, information is transmitted across
+swarm members. As a result, each vehicle is intensely reliant
+on the central station. As a result, when communication
+between the hub and swarm members [7] becomes unreliable,
+the algorithms fail. We took a decentralized strategy in this
+work; the reasons for this are analyzed in Section III.B.1.
+A decentralized visual-inertial-UWB approach is proposed
+in [17] that they reach the centimeter-level precision, and
+cooperative localization for scene reconstruction is proposed
+that consists of both ground robots and aerial vehicles in [18].
+By combining the VIO and trilateration results in a sequen-
+tial collaborative Kalman filter, the suggested new technique
+improves drone localization accuracy.
+III. BACKGROUND AND METHODOLOGY
+This work focuses on cost reduction for drone swarms,
+where establishing high localization accuracy might be ex-
+pensive due to high-cost associated with equipping all drones
+with advanced sensors. The main idea behind our approach is
+to utilize information gathered from small number of high-
+cost drones to improve the localization accuracy of large
+number of low-cost drones. Our strategy can be explained
+into two parts: i) sharing navigational data between high-
+cost and low-cost drones and ii) fusing these data on low-
+cost drones. First, high-cost drones send relative distance and
+location information generated by UWB sensors to low-cost
+drones. Second, the optimization-based collaborative Kalman
+filter algorithm fuses distance and location data to increase
+low-cost drone navigation accuracy. Our approach requires
+availability of at least four high-cost drones in the swarm.
+A. VINS-Fusion
+VIO methodologies utilize two sensors to estimate the
+ego-motion: i) IMU, which consists of an accelerometer, a
+gyroscope, and a magnetometer and ii) an RGB camera that
+helps with the detection of features, construction of optical
+flow, and estimation of motion. VIO fuses these two sensor
+measurements to compute reliable estimations of position
+and orientation. Therefore, the accuracy of VIO algorithms
+depends directly on sensors and algorithm quality. Hence,
+expensive sensors and complex algorithms are needed to
+achieve high accuracy navigation with VIO methodology.
+VINS-Fusion is an extension of VINS-Mono, which can
+fuse a variety of sensors [19], such as GPS, IMU, and
+stereo cameras. In this work, IMU and the stereo camera
+integration model are integrated and VINS-Fusion is used as
+the baseline VIO algorithm. The algorithm is composed of the
+tightly coupled accurate initialization process and nonlinear
+optimization-based method that uses fused pre-integrated IMU
+measurements and visual features by Kalman filter. VINS-
+Fusion offers a loop-closure algorithm and a 4-DOF pose
+graph optimization to maintain global stability [19].
+B. Collaborative Drones
+1) Swarm Drone Systems: A swarm is a group of drones
+that fly together while ensuring that they avoid colliding
+with one another. A swarm of drones can be homogeneous,
+where each drone has the same sensor configuration and
+capabilities, or heterogeneous, where each drone is equipped
+with different sensing and actuation capabilities. We focus
+on heterogeneous drone swarms in this study, which can be
+further classified into two types: hard heterogeneous [20] and
+soft heterogeneous [21]. Unlike hard heterogeneous systems,
+where swarms consist of drones with varying capabilities and
+goals, soft heterogeneous systems consists of drones with
+varying capabilities cooperating to achieve a common goal.
+In thıs work, we consider a soft homogeneous swarm, where
+drones have varying sensing capabilities and are working
+together to achieve a common goal (such as surveying a
+particular area). Fig. 1 portrays a representation of the swarm
+considered in this work.
+In terms of mode of operation, swarm drone systems
+can be classified as either centralized or decentralized. In
+centralized frameworks, only one station collects, computes
+the information generated from each drone and shares the
+results among all the swarm members. In decentralized
+framework, the computational load is distributed among the
+members of swarm. In this way, a swarm member can operate
+without connecting to a compulsory central station. This is
+an advantage over the centralized swarm system, however it
+comes with the downside of sacrificing accuracy and stability
+728
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+Fig. 1: Heterogeneous Drone Swarm Network: Network computes the location of low-cost
+drones by using the trilateration algorithm, which uses the sensor information obtained
+from at least four high-cost drones.
+Fig. 2: Relative Distance Measurement With UWB Signal: UWB signal transceiver
+measures the travelled time which allows to compute the relative distance between two
+drones by using the Time of Flight method.
+of the algorithmic performance. Our proposed algorithm is
+designed to operate within decentralized framework in wider
+ranges to prevent the signal link distance limitations that
+arises from having only one central station in centralized
+method.
+2) UWB:
+UWB is a short-range radio communication
+method that spans a wide frequency range. UWB uses radio
+waves to communicate between modules by using pulse pat-
+terns, also known as modulation types. UWB’s with low power
+consumption is applicable for 3.1-10.6 GHz frequency range
+in 200 meters distance. Time of Flight algorithm is used to
+compute the relative distance. Let elapsed time of the emitted
+pulse be T1, and let elapsed time of the received signal be T2
+and let c denote the speed of light. Taking the average of these
+periods yields an average time between two UAVs. Multiplying
+these periods with speed of light yields the relative distance
+r, as in (1) (also see Fig. 2).
+r = c ∗(T1 + T2)
+2
+(1)
+Fig. 3: Optimization Algorithm: Positions of high-cost drones and relative distances are
+used to obtain the exact positions of low-cost drones with the optimization algorithm
+that uses measurements from at least four high-cost drones.
+C. Optimization Based Collaborative Kalman Filter
+The optimization algorithm is used for computing three
+degree-of-freedom position of low-cost drones by using po-
+sition and relative distance information obtained from at least
+four high-cost drones as can be seen in the Fig. 3. Positions
+of high-cost drones are represented by xi, yi, zi and position
+of the low-cost drone is represented by x′, y′, z′ in (2). Also,
+ri represents the relative distance between the high-cost and
+low-cost drone. (3) is the function to be set to zero in the
+optimization part of the algorithm.
+p
+(xi −x′)2 + (yi −y′)2 + (zi −z′)2 = ri
+(2)
+N
+X
+i=1
+|(xi −x′)2 + (yi −y′)2 + (zi −z′)2 −r2
+i | = 0
+(3)
+i = 1, 2, 3, 4, ..., N
+Localization information can be improved by applying our
+proposed algorithm, even if high grade sensors are not avail-
+able in all swarm members. Our proposed algorithm makes use
+of the optimization based Kalman filter to correct the position
+of the low-cost drones by using the information obtained
+from high-cost drones. Distance measurements between high-
+cost and low-cost drones and positions of high-cost are fused
+with an optimization method (Simulated Annealing algorithm
+[23]) to yield an estimation regarding the position of the
+low-cost drone. The position estimation obtained from op-
+timization algorithm is then used in Kalman Filter’s update
+phase as measurements, where the reliability of measure-
+ments decreases as the distance increases. We assume that
+estimations obtained from high-cost drones are more accurate
+than estimations of the VINS-Fusion algorithm. Therefore,
+process covariance matrix Q is initialized with higher val-
+ues compared to measurement covariance matrix R. In this
+way, low-cost drones position can be corrected accurately by
+putting more trust to measurements from high-cost drones.
+After initialization of the state error covariance matrix Pt|t−1,
+where t denotes the discrete time, VINS-Fusion outputs are
+utilized as process state estimates ˆxt|t−1. Jacobian of the
+process state is the state transition matrix F, which is used
+for computing a priori state error covariance Pt|t−1, which
+in turn determines the reliability between update and process
+state in Kalman gain calculation. Multiplication of Kalman
+gain K and residual error, which is the difference between
+the measurement states and process states is added to process
+state to compute posterior estimate covariance matrix ˆxt|t−1.
+Process state is initialized as same as the state estimation
+whenever measurement is available.
+In Algorithm 1, the subroutine random() generates a random
+floating number between 0 and 1, highcostDrones is an
+array that contains of the coordinates of high-cost drones.
+In the optimization phase, alpha and gamma are optimization
+parameters and x1, x2, x3 are x, y and z coordinates of low-
+cost drone respectively. Optimization parameter alpha is the
+729
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+most important parameter of this algorithm to estimate the
+low-cost drone position with minimum error due to affecting
+the solution range while the optimization algorithm searches
+for the result. If the alpha value is small enough and large
+enough k value in the algorithm, the result will have small
+error. The minimize() subroutine (Algorithm 2) uses the po-
+sitions of high-cost drones from highcostDrones array and
+the distance calculated by the UWB sensor which is between
+high-cost drones and low-cost drones that is r in array form.
+In short, minimize() gives us the function we want to set to
+zero. Finally, the Simulated Annealing algorithm is executed,
+which yields the high accuracy location of the low-cost drone.
+As a result, the Kalman filter, together with the reliable output
+from optimization algorithm, reduces the error of VINS-Fusion
+allowing us to get results closer to the true position of the
+drone.
+Fig. 4: Optimization-based Kalman Filter Algorithm: The algorithm’s optimization inputs
+are UWB sensor data, VINS-Fuion output, positions of high-cost drones, and optimization
+parameters. The output of the optimization algorithm is the estimated position of the low-
+cost drone. This output feeds the Kalman filter. Thus, low-cost drone position can be
+estimated more reliably.
+IV. EXPERIMENTAL SETUP
+A. Simulation Setup
+The experiments are conducted in an Unreal Engine
+environment with the help of AirSim plugin [9]. The AirSim
+plugin allows the user to use emulated real-life sensors such as
+IMU, magnetometer, GPS, barometer, cameras, LIDAR (Light
+Detection and Ranging) in simulations. In addition, AirSim
+offers a reliable and accurate physics engine, which allows
+simulating accurate flight dynamics. In our experiments, we
+opted to use an IMU and stereo cameras, to work with VINS-
+Fusion. The images taken from stereo cameras are re-sized
+to 640x480 resolution. The sensor information (IMU and
+Stereo) from AirSim are fed into VINS-Fusion by using ROS
+(Robot Operating System) as a bridge. AirSim plugin can be
+integrated to custom environments in Unreal Engine. Custom
+simulation environment is designed as can be seen in Fig. 5
+that does not contain objects (such as buildings, mountain) in
+the environment in order to conduct tests on a large group
+of drones and swarm of drones that represent the high-cost
+and low-cost drones are placed in this simulation environment.
+Q ←−Initialize
+R ←−Initialize
+Pt−1|t−1 ←−Initialize
+t = 0
+offset = 0
+while True do
+current prediction = current prediction - offset
+ˆxt|t−1 = current prediction
+F = current prediction - previous prediction
+Pt|t−1 = (FPt−1|t−1F T ) + Q
+if measurement is available then
+r ←−range measurements from UWB
+gamma = 0.1, alpha = 0.001
+x1 = current prediction[0]
+x2 = current prediction[1]
+x3 = current prediction[2]
+for k=0;k<4000;k++ do
+q1 = x1 + alpha ∗(2 ∗random() −1)
+q2 = x2 + alpha ∗(2 ∗random() −1)
+q3 = x3 + alpha ∗(2 ∗random() −1)
+q result =
+minimize(q1, q2, q3,r,highcostDrones)
+x result =
+minimize(x1, x2, x3,r,highcostDrones)
+if q result < x result then
+x1, x2, x3 = q1, q2, q3
+if q result >= x result then
+cointoss = random()
+temp = gamma/ln(k+2)
+prob = exp(-(q result -
+x result)/temp)
+if cointoss < prob then
+x1, x2, x3 = q1, q2, q3
+end
+end
+zt = [x1, x2, x3]
+K = Pt|t−1 (Pt−1|t−1 + R)−1
+ˆxt|t = ˆxt|t−1 + (zt - ˆxt|t−1)K
+Pt|t = (I - K)Pt|t−1
+offset = current prediction - ˆxt|t +
+offset
+end
+t = t + 1
+end
+end
+end
+Algorithm 1: Collaborative Optimization-Based Kalman
+Filtering Algorithm: Position of the low-cost drone is
+estimated by feeding the information obtained from high-
+cost drones to collaborative optimization-based Kalman
+filter.
+Data collection process is detailed as below:
+• First, a trajectory is defined for each drone. Starting
+positions of the drones slightly differ between 5 and
+10 meters relative to each other. The distance between
+730
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+FunctionInput: x, y, z, r, highcostDrones
+for i=0;i<length(highcostDrones);i++ do
+result = result + abs(x2 - 2*highcostDrones[i][0]*x
++ highcostDrones[i][0]2
++ y2 - 2*highcostDrones[i][1]*y
++ highcostDrones[i][1]2 + z2
+- 2*highcostDrones[i][2]*z
++ highcostDrones[i][2]2 - r[i]2)
+end
+return result
+Algorithm 2: The minimize() Function: The minimize()
+function returns the function we want to set to zero to
+estimate the low cost drone position.
+Fig. 5: Custom Environment: The simulation environment used for simulating the
+localization problem for position output data. Drones are classified as low-cost and high-
+cost drones in simulation environments by adding different noise levels to the sensors of
+the corresponding drones.
+high-cost and low-cost drones gradually increases while
+following the defined path. After that, in our custom
+environment, drones are flown approximately 60 seconds
+through defined trajectories in order to collect data.
+• The outputs from AirSim, which represents the ground-
+truth data, and VINS-Fusion, which is the predicted
+position of low-cost drones, has been recorded to a ROS-
+bag file. We have collected approximately 600 position
+samples from 15 flights, each covers a timespan of 60
+seconds.
+• The ground-truth and the predicted position data of low-
+cost drone collected from VINS-Fusion can be seen in
+Fig. 6.
+• UWB sensor is simulated in two steps. Firstly, the dif-
+ference between ground-truth positions of the high-cost
+drones and low-cost drones is calculated. After that, a
+Gaussian noise with 0 mean and 0.1 standard deviation
+is added to that difference to simulate UWB sensor as in
+(4). The error in our simulated UWB sensor can go up
+to 30 centimeters.
+• The position of low-cost drone is estimated via Eq. (3).
+δB = gtHC −gtLC
+Xnoise ←- N(µ, σ2)
+rUWB = δB + Xnoise
+(4)
+Fig. 6 illustrates that VINS-Fusion’s position error gradually
+increases. Drones with high quality sensors can be utilized to
+eliminate position error, which corresponds to a mean square
+error of 3.4434 m2.
+Fig. 6: 3D Plot of Low-Cost Drone Trajectory: 3D plot shows the ground-truth of the
+low-cost drone labeled with color red and the VINS-Fusion output labeled with color
+green. VINS-Fusion is gradually starting to miscalculate the position of the drone and
+becomes unreliable.
+B. Adversarial Environment Conditions and Simulating Cor-
+rupted Images
+VIO algorithms such as VINS-Fusion become unreliable
+[22] in the presence of environmental factors that reduce the
+visual quality, such as camera distortion, poor lighting, and
+various weather conditions as shown in Fig. 8. The position
+estimates obtained from VINS-Fusion, while suffering from
+adversarial environment conditions or camera damages, is
+illustrated in Fig. 7. Adversarial environment conditions and
+corrupted camera outputs are generated within AirSim in order
+to collect data consisting of ground-truth, output positions
+of VINS-Fusion. Our proposed algorithm is tested whether
+VINS-Fusion results that suffer externally are corrected or not.
+Fig. 7: 3D Plot of Low-Cost Drone Trajectory on Adversarial Environments: The resulting
+behaviour of VINS-Fusion when the received image data is corrupted. The time interval
+when corrupted data is fed into VINS-Fusion is shown with black.
+C. Real Time Experimental Setup
+We use Intel Realsense T265 that consists of fish-eye stereo
+cameras and an IMU. Fish-eye stereo cameras and IMU
+of T265 is calibrated with [24], [25], [26], [27] KALIBR.
+Raspberry Pi 4 is used as the computer for running VINS-
+Fusion online. VIO algorithms such as VINS-Fusion starts to
+accumulate errors after a while, and these errors propagate
+even when the drone is in hover model.To show this, the
+drone is moved for 60 seconds randomly and then kept at
+731
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+(a)
+(b)
+Fig. 8: More Adversarial Simulation Environments: Corrupted images on adversarial
+environments caused by (a) camera distortions and (b) weather conditions.
+Fig. 9: Real time experimental setup to test collected data from a low-cost drone.
+the hovering position. Ground-truth for drone is accepted as
+the origin (0, 0, 0) since drone is kept in hover position. The
+drift error of VINS-Fusion when drone is at hover can be seen
+in Fig. 10.
+Fig. 10: 3D Plot of Low-Cost Drone Trajectory on Real Time Experiments: The original
+point of the drone is represented with blue dot and VINS-Fusion estimation of the drone
+is represented with red line.
+V. RESULTS
+The simulation and real-time tests were performed for
+nominal and adversarial environment conditions. The results
+are presented and discussed in this section.
+A. Improvement of VIO Results on Nominal Environment
+Conditions
+The first set of results confirm that using the optimization-
+based sequential Kalman filter approach with only four high-
+cost drones works efficiently under nominal environment con-
+ditions. In addition to these tests, data correction has been
+conducted with more than four high-cost drones in order to
+get an accurate estimation of low-cost drone’s position. The
+data for all high-cost and low-cost drones has been collected
+with the steps presented in data collection subsection. After
+the data collection process, the optimization-based sequential
+Kalman filter approach is used for fusing the data from high-
+cost drones and UWB signals with the data from VINS-Fusion
+estimation of the low-cost drone to get a better estimate of the
+position.
+Table I represents the mean absolute errors of position
+estimated of a low-cost drone when different number of high-
+cost drones are present in the swarm. Mean absolute error
+of VINS-Fusion obtained from low-cost drone was 0.5880
+meters without correction from high-cost drones. On the
+other hand, fusing information from high-cost drones gives
+better results compared to VINS-Fusion estimations. However,
+using more than six high-cost drones does not improve the
+position estimations of low-cost drones. The results in the
+Table I are visualized in Fig 11 with 3D plots of the outputs
+of ground-truth and optimization-based collaborative Kalman
+filter algorithm.
+TABLE I: Errors on Low-Cost Drones Positions Corrected with High-Cost Drones:
+Changes in error of low-cost VIO based on drone number of high-cost drones. VINS-
+Fusion done 0.5880 m position MAE.
+Number of
+High-Cost
+Drones
+Position MAE’s
+[m]
+Percentage
+improvement
+over VINS
+4
+0.3993
+32.07 %
+5
+0.3349
+43.03 %
+6
+0.2515
+57.22 %
+7
+0.2518
+57.17 %
+8
+0.2498
+57.51 %
+9
+0.2709
+53.92 %
+10
+0.2554
+56.55 %
+11
+0.2797
+52.41 %
+12
+0.2723
+53.67 %
+13
+0.2619
+55.45 %
+14
+0.2457
+58.20 %
+B. Improvement of VIO Results on Adversarial Environment
+Conditions
+The existing images were disrupted by various environ-
+mental conditions. Our proposed method made it possible to
+create correct results despite to corrupted images. Although
+the position MAE of VINS-Fusion was 1.3056 meters, we
+were able to reduce it to 0.4670 meters with the help of four
+high-cost drones. We increased the number of drones up to
+fourteen and we observed a remarkable progress up to six
+drones. A slight improvement was observed when the number
+of drones exceeded six as seen in the Table II. We could
+observe the difference in improvement, which has stopped as
+it is mentioned in Section A.
+C. Improvement of VIO Results on Real World Experiments
+Real world experiment results are represented in Fig 10.
+Table III represents the errors when the number of high-cost
+732
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+(a)
+(b)
+Fig. 11: 3D plots of ground truth and corrected path of low-cost drones by using (a) 4
+high-cost drones, and (b) 6 high-cost drones in the swarm.
+TABLE II: Errors on Low-Cost Drones Positions Corrected With High-Cost Drones:
+Changes in error of low-cost VIO based on drone number of high-cost drone with
+corrupted image. VINS-Fusion done 1.3056 m position MAE.
+Number of
+High-Cost
+Drones
+Position MAE’s
+[m]
+Percentage
+improvement
+over VINS
+4
+0.4670
+64.22 %
+5
+0.3552
+72.79 %
+6
+0.3301
+74.71 %
+7
+0.3244
+75.15 %
+8
+0.3219
+75.34 %
+9
+0.3080
+76.40 %
+10
+0.3165
+75.75 %
+11
+0.3113
+76.15 %
+12
+0.3134
+75.99 %
+13
+0.3020
+76.86 %
+14
+0.3139
+75.95 %
+drones increases in the swarm (note that high-cost drones are
+simulated in AirSim, only the low-cost drone operates in the
+real world.). Furthermore, in Fig 13, it can be easily seen that
+the low-cost drone is nearly at location of (0, 0, 0).
+VI. CONCLUSION
+The growth in the utilization of drone swarms [6] in search
+and rescue, swift and robust mapping, surveillance, recon-
+naissance, and disaster management makes the development
+(a)
+(b)
+Fig. 12: 3D plots of ground truth and corrected path of low-cost drones by using (a) 4
+high-cost drones, and (b) 6 high-cost drones in the swarm.
+Fig. 13: 3D Plot of Low-Cost Drone Trajectory on Real World Experiments: The original
+point of the drone is represented with blue dot and correction of VINS-Fusion estimation
+is represented with red line.
+of navigational systems for various environment conditions
+inevitable. We propose a novel navigation algorithm, providing
+information sharing among swarm members, to improve the
+localization accuracy without increasing the total cost of the
+system. This algorithm has the possibility of working in the
+GPS-denied environments as well as the ability to operate in
+long range. The only constraint for the swarm system is that
+733
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+TABLE III: Errors on Low-Cost Drones Positions Corrected With High-Cost Drones:
+Changes in error of low-cost VIO based on drone number of high-cost drone. VINS-
+Fusion done 2.0259 m position MAE.
+Number of
+High-Cost
+Drones
+Position MAE’s
+[m]
+Percentage
+improvement
+over VINS
+4
+0.4281
+78.86 %
+5
+0.4480
+77.88 %
+6
+0.4013
+80.18 %
+7
+0.3618
+82.13 %
+8
+0.3745
+81.51 %
+9
+0.3650
+81.98 %
+10
+0.3659
+81.93 %
+11
+0.3630
+82.08 %
+12
+0.3517
+82.63 %
+13
+0.3488
+82.77 %
+14
+0.3555
+82.44 %
+there have to be at least four high-cost drones. However, the
+results show that the best choice is working with six high-cost
+drones. In addition to that, this study shows that it is possible
+to reinforce the teamwork among swarm members. Moreover,
+in case the drone has a sensor failure, it is possible to prevent
+the deterioration of position by maintaining more accuracy
+through teamwork according to the other methods that were
+represented in Section I. Number of studies that strengthen the
+teamwork of swarm systems will increase and swarm systems
+with less cost which are more operational and able to navigate
+with higher accuracy will continue to be developed.
+VII. ACKNOWLEDGEMENTS
+This work is supported by Istanbul Technical University
+BAP Grant NO: MOA-2019-42321 and Havelsan.
+REFERENCES
+[1] Custers,
+B.,
+The
+Future
+of
+Drone
+Use:
+Opportunities
+and
+Threats
+from
+Ethical
+and
+Legal
+Perspectives,
+Vol.
+27,
+2016.
+https://doi.org/10.1007/978-94-6265-132-6.
+[2] Thiels, C., Aho, J., Zietlow, S., and Jenkins, D., “Use of Unmanned
+Aerial Vehicles for Medical Product Transport,”AirMedical Journal, Vol.
+34, 2015. https://doi.org/10.1016/j.amj.2014.10.011.
+[3] Erdelj, M., Kr´ol, M., and Natalizio, E., “Wireless sensor networks
+and multi-UAV systems for natural disaster management,”Computer
+Networks, Vol. 124, 2017, pp. 72–86.
+[4] Ure, N. K., Chowdhary, G., Toksoz, T., How, J. P., Vavrina, M. A., and
+Vian, J., “An automated battery management system toenable persistent
+missions with multiple aerial vehicles,”IEEE/ASME transactions on
+mechatronics, Vol. 20, No. 1, 2014, pp.275–286.
+[5] Queralta, J. P., Qingqing, L., Schiano, F., and Westerlund, T.,
+“VIO-UWB-Based Collaborative Localization and Dense SceneRe-
+construction within Heterogeneous Multi-Robot Systems,”CoRR, Vol.
+abs/2011.00830, 2020. URL https://arxiv.org/abs/2011.00830.
+[6] Goel, S., “A Distributed Cooperative UAV Swarm Localization System:
+Development and Analysis,” 2017. https://doi.org/10.33012/2017.15217.
+[7] Chang, Y., Tian, Y., How, J. P., and Carlone, L., “Kimera-Multi:
+a System for Distributed Multi-Robot Metric-SemanticSimultaneous
+Localization and Mapping,”CoRR, Vol. abs/2011.04087, 2020. URL
+https://arxiv.org/abs/2011.04087.
+[8] Goel, S., Kealy, A., Retscher, G., and Lohani, B., “Cooperative P2I
+localization using UWB and Wi-Fi,” 2016.
+[9] Shah, S., Dey, D., Lovett, C., and Kapoor, A., “AirSim: High-Fidelity
+Visual and Physical Simulation for Autonomous Vehicles,”Field and
+Service Robotics, 2017. URL https://arxiv.org/abs/1705.05065.
+[10] Qin, T., Pan, J., Cao, S., and Shen, S., “A General Optimization-based
+Framework for Local Odometry Estimation with MultipleSensors,” ,
+2019.
+[11] Rouˇcek, T., Pecka, M., ˇC´ıˇzek, P., Petˇr´ıˇcek, T., Bayer, J., ˇSalansk´y,
+V., Heˇrt, D., Petrl´ık, M., B´aˇca, T., Spurn´y, V., Pomerleau,F., Kubelka,
+V., Faigl, J., Zimmermann, K., Saska, M., Svoboda, T., and Krajn´ık,
+T., “DARPA Subterranean Challenge:Multi-robotic Exploration of Un-
+derground Environments,”Modelling and Simulation for Autonomous
+Systems, edited byJ. Mazal, A. Fagiolini, and P. Vasik, Springer In-
+ternational Publishing, Cham, 2020, pp. 274–290.
+[12] Castro-Toscano, Moises & Rodr´ıguez-Qui˜nonez, Julio & Hernandez-
+Balbuena, Daniel & Lopez, Moises & Sergiyenko, Oleg & Flores-
+Fuentes, Wendy. (2018). Obtaining Trajectories Using Strapdown
+INS/KF
+Framework:
+Methodological
+Proposal.
+RIAI
+-
+Revista
+Iberoamericana de Automatica e Informatica Industrial. 15. 391-403.
+10.4995/riai.2018.8660.
+[13] Huang, G., “Visual-Inertial Navigation: A Concise Review,”CoRR, Vol.
+abs/1906.02650, 2019. URL http://arxiv.org/abs/1906.02650.
+[14] Bloesch,
+M.,
+Burri,
+M.,
+Omari,
+S.,
+Hutter,
+M.,
+and
+Siegwart,
+R.,
+“Iterated
+extended
+Kalman
+filter
+based
+visual-inertial
+odometryusing
+direct
+photometric
+feedback,”The
+International
+Journal
+of
+Robotics
+Research,
+Vol.
+36,
+No.
+10,
+2017,
+pp.
+1053–1072.https://doi.org/10.1177/0278364917728574,
+URL
+https://doi.org/10.1177/0278364917728574.
+[15] Leutenegger, S., Lynen, S., Bosse, M., Siegwart, R., and Furgale,
+P., “Keyframe-based visual–inertial odometry usingnonlinear optimiza-
+tion,”The International Journal of Robotics Research, Vol. 34, No. 3,
+2015, pp. 314–334. https://doi.org/10.1177/0278364914554813.
+[16] Qin, T., Li, P., and Shen, S., “VINS-Mono: A Robust and Versa-
+tile Monocular Visual-Inertial State Estimator,”IEEETransactions on
+Robotics, Vol. 34, No. 4, 2018, pp. 1004–1020.
+[17] Xu,
+H.,
+Wang,
+L.,
+Zhang,
+Y.,
+Qiu,
+K.,
+and
+Shen,
+S.,
+“De-
+centralized
+Visual-Inertial-UWB
+Fusion
+for
+Relative
+State
+Esti-
+mationof Aerial Swarm,”CoRR, Vol. abs/2003.05138, 2020. URL
+https://arxiv.org/abs/2003.05138.
+[18] Queralta, J. P., Qingqing, L., Schiano, F., and Westerlund, T., “VIO-
+UWB-Based Collaborative Localization and Dense SceneReconstruction
+within Heterogeneous Multi-Robot Systems,” , 2020.
+[19] Qin, T., and Shen, S., “Online Temporal Calibration for Monocular
+Visual-Inertial Systems,”2018 IEEE/RSJ InternationalConference on In-
+telligent Robots and Systems (IROS), IEEE, 2018, pp. 3662–3669.
+[20] Dorigo, M., Floreano, D., Gambardella, L. M., Mondada, F., Nolfi,
+S., Baaboura, T., Birattari, M., Bonani, M., Brambilla, M.,Brutschy,
+A., Burnier, D., Campo, A., Christensen, A. L., Decugniere, A., Di
+Caro, G., Ducatelle, F., Ferrante, E., Forster, A.,Gonzales, J. M., Guzzi,
+J., Longchamp, V., Magnenat, S., Mathews, N., Montes de Oca, M.,
+O’Grady, R., Pinciroli, C., Pini, G.,Retornaz, P., Roberts, J., Sperati, V.,
+Stirling, T., Stranieri, A., Stutzle, T., Trianni, V., Tuci, E., Turgut, A. E.,
+and Vaussard,F., “Swarmanoid: A Novel Concept for the Study of Het-
+erogeneous Robotic Swarms,”IEEE Robotics Automation Magazine,Vol.
+20, No. 4, 2013, pp. 60–71. https://doi.org/10.1109/MRA.2013.2252996.
+[21] Ranjbar-Sahraeia, B., Alersa, S., Stankov´aa, K., Tuylsab, K., and Weissa,
+G., “Toward Soft Heterogeneity in Robotic Swarms,”Proceedings of the
+25th Benelux Conference on Artificial Intelligence (BNAIC), Delft, The
+Netherlands, 2013, pp. 7–8.
+[22] Zhu,
+T.,
+and
+Ma,
+H.,
+“Challenges
+of
+Dynamic
+Environment
+for Visual-Inertial Odometry,”2018 3rd International Conferenceon
+Robotics and Automation Engineering (ICRAE), 2018, pp. 82–86.
+https://doi.org/10.1109/ICRAE.2018.8586679.
+[23] Chong, E. K., & Zak, S. H. (2004). An introduction to optimization.
+John Wiley & Sons.
+[24] Joern Rehder, Janosch Nikolic, Thomas Schneider, Timo Hinzmann,
+Roland Siegwart (2016). Extending kalibr: Calibrating the extrinsics
+of multiple IMUs and of individual axes. In Proceedings of the IEEE
+International Conference on Robotics and Automation (ICRA), pp.
+4304-4311, Stockholm, Sweden.
+[25] Paul Furgale, Joern Rehder, Roland Siegwart (2013). Unified Temporal
+and Spatial Calibration for Multi-Sensor Systems. In Proceedings of the
+IEEE/RSJ International Conference on Intelligent Robots and Systems
+(IROS), Tokyo, Japan.
+[26] J. Maye, P. Furgale, R. Siegwart (2013). Self-supervised Calibration for
+Robotic Systems, In Proc. of the IEEE Intelligent Vehicles Symposium
+(IVS)
+[27] L. Oth, P. Furgale, L. Kneip, R. Siegwart (2013). Rolling Shutter
+Camera Calibration, In Proc. of the IEEE Computer Vision and Pattern
+Recognition (CVPR)
+734
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

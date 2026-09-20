@@ -1,0 +1,368 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1285.pdf
+sha256: 5EE53B08184279FD245E8CBCFC260BFDECF199447576FD6F693935CD4555F310
+library: pymupdf (fitz) v1.28.2
+pages: 4
+=== BEGIN ===
+[p.1]
+18th LACCEI International Multi-Conference for Engineering, Education, and Technology: “Engineering, Integration, and Alliances for a Sustainable 
+Development” “Hemispheric Cooperation for Competitiveness and Prosperity on a Knowledge-Based Economy”, July 27-31, 2020, Virtual Edition. 
+1 
+Unmanned Autonomous Aerial Navigation in GPS-
+Denied Environments 
+Noshin Habib1, Angel Flores-Abad1, Josué Martínez-Martínez2, Diego A. Aponte-Roa2, Albert A. Espinoza2
+1 University of Texas at El Paso, USA, nrhabib@miners.utep.edu, afloresabad@utep.edu 
+2 Universidad Ana G. Méndez – Gurabo, Puerto Rico, jmartinez718@email.uagm.edu, aponted1@uagm.edu, 
+espinozaa1@uagm.edu
+Abstract– This work focuses on enhancing existing technology 
+to support unmanned aerial vehicle navigation for the inspection of 
+power plants. These inspections are a vital component of a power 
+plant’s capability to function but can be costly and dangerous to do 
+by humans. Therefore, it has been proposed to utilize a small, 
+unmanned quadcopter integrated with autonomous navigation by 
+using an alternate signal in place of GPS. The quadcopter can gain 
+the ability to navigate to desired coordinates without the need for 
+GPS, which can often be unavailable within these structures. The 
+UAV uses an optical flow sensor to determine the ground velocity 
+and x-y position, and sonar for measuring the altitude. Using ROS 
+and MAVLink, the communication can be modified to use “fake GPS” 
+data, instead of the actual GPS signal, to be published in the 
+appropriate ROS topics to avoid GPS failures. The optical flow and 
+fake GPS are filtered by an Extended Kalman Filter to get a better 
+position estimation during navigation. Through this process, 
+autonomous flight was successfully achieved without GPS. 
+Keywords— UAV, Fake GPS, Power Plant Inspection, Robotics. 
+I. INTRODUCTION
+To maintain the safety and efficiency of power plant 
+operation, inspection of these facilities is a crucial process. 
+However, these plants have areas that are difficult to inspect by 
+humans due to limited space between structures or harmful 
+chemicals that may negatively affect the inspector [1]. 
+Inspection of industrial systems also involves the risk of 
+damage and high cost due to the outage of the facilities during 
+the inspection procedure [2]. In addition to these risks, human 
+inspection requires increased time and resources, with added 
+risk of human error. External tracking systems such as Vicon 
+and Opti track [3] can provide position and attitude 
+measurements exceeding 100 Hz. However, this work will 
+focus on scenarios where such external system is not available, 
+nor is GPS. 
+Recently, active vision was proposed for autonomous flight 
+in similar environments [4]. A texture on the scene would be 
+carried on-board by a pattern generator. One such example that 
+has been explored is the Iterative Closest Point algorithm (ICP), 
+in which the scene and motion can be recovered on-line. 
+However, this method requires sufficient 3D structure 
+constraining the approximations. Also, the scene needs to be 
+near the sensor and ambient light may reduce the quality of the 
+projected texture. 
+To reduce the risks and consider the limitations, it has been 
+proposed to perform inspections using an Unmanned Aerial 
+Vehicle (UAV) that is autonomous and capable of recognizing 
+any damages that occur within the power plant. 
+ To accomplish this, the UAV uses an optical flow sensor 
+to determine the ground velocity and x-y position, and sonar for 
+measuring the altitude. Additionally, the UAV has the PX4 
+Firmware that uses a uORB Message Bus to communicate with 
+the drivers and flight control topics. Using ROS and MAVLink, 
+the communication can be modified to use “fake GPS” data, 
+rather than the actual GPS signals, to be published in the 
+appropriate topics to avoid GPS failures. The optical flow and 
+fake GPS are filtered by an Extended Kalman Filter to get a 
+better position estimation in the navigation [5]. 
+II. METHODOLOGY
+To begin the process for autonomous flight, different 
+Unmanned Air Vehicle (UAV) setups are considered to see if 
+there is one that has a low-budget yet efficient system that 
+allows for autonomous flight missions in GPS-denied 
+environments. The two setups that were explored were the 
+Qualcomm Snapdragon Flight Starter Kit and the Intel Aero 
+Ready-to-Fly (RTF) Drone. The Intel Aero RTF was chosen 
+due to the fast-tracked SLAM development that the drone 
+would provide straight out of the box. In order to select low-
+budget components, different missions were simulated utilizing 
+different firmware to identify the components that are required 
+when GPS is not available. After analysing the simulations, 
+goals for the mission were established. Then, communication 
+was established with the UAV components using MAVLink 
+and the Robotic Operating System (ROS). This communication 
+and the PX4 Firmware that was chosen allowed the Extended 
+Kalman Filter parameters to be altered for the purposes of 
+filtering the data that is transmitted in substitution of the GPS 
+data. Then, outdoor tests were conducted using this build to 
+validate the GPS-denied system. 
+III. TECHNOLOGICAL COMPONENTS
+A.
+Drone Selection
+The Intel aero Ready-to-Fly drone, shown in Fig. 1, was
+selected, because it offers a low-budget system that is equipped 
+with an Intel-powered computing system. It also offers a full 
+Intel RealSense system with prebuilt setup with an integrated 
+flight controller, co-processor, and field programmable gate 
+array (FPGA) based peripheral bus [6]. Additional components 
+required for the drone were greatly reduced, allowing for an 
+easy setup process. This also meant fast track development on 
+Simultaneous Localization and Mapping (SLAM) with 
+autonomous navigation and flight-testing was capable right out 
+of the box [7]. An important feature that led to the selection of 
+this drone is the secured remote login in case that something 
+Digital Object Identifier (DOI): 
+http://dx.doi.org/10.18687/LACCEI2020.1.1.349 
+ISBN:  978-958-52071-4-1 ISSN: 2414-6390
+[p.2]
+ 
+18th LACCEI International Multi-Conference for Engineering, Education, and Technology: “Engineering, Integration, and Alliances for a Sustainable 
+Development” “Hemispheric Cooperation for Competitiveness and Prosperity on a Knowledge-Based Economy”, 29-31 July 2020, Buenos Aires, Argentina. 
+2 
+must be changed in the computer. It uses OpenSSH, a 
+connectivity tool for remote login, with Secured Socket Shell 
+(SSH) cryptographic network protocol. Additionally, if the IP 
+of the host computer used to send commands to the drone is not 
+saved in the MAVLink router configuration file, the UAV will 
+not allow communication between the two. Furthermore, it 
+generates its own WIFI hotspot with a passphrase to create a 
+more secure environment. These features are important in this 
+modern world in which everything can be hacked. 
+ 
+Fig. 1. Intel Aero Ready-to-Fly Drone 
+ 
+B. PX4Flow 
+The optical flow and sonar setup, as shown in Fig. 2, allows 
+the quadcopter to hover at a given altitude without human input. 
+Although a stable flight height can be reached using the Intel 
+Aero’s built-in downward facing camera, the field of view of 
+the Intel camera is too wide to be suitable for visual odometry 
+[7]. The optical flow ground velocity (meters/second) of the 
+drone computed by the PX4Flow can be directly converted to 
+position units (meters). The sonar also acts as a substitute for 
+the barometer, allowing for more stable flight. This setup allows 
+for enough data to be published in the ROS topics for longitude, 
+latitude and altitude, which would normally be published by the 
+GPS. 
+                  
+ 
+Fig. 2. GPS Substitute Build 
+ 
+C. Propeller Guard 
+Fig. 3 represents a custom propeller guard that was designed 
+using SolidWorks, 3D printed, and mounted on the UAV, as 
+shown in Fig. 4, to protect the propellers from objects such as 
+walls and beams. To create such protection but not add too 
+much weight to the UAV, a MakerBot Replicator 3D printer 
+with polylactic acid (PLA) filament was used. This component 
+proved crucial during the testing process when autonomous 
+flight was being tested numerous times. 
+IV.  SOFTWARE COMPONENTS 
+A. PX4 Firmware 
+This open source flight control software, designed for 
+drones and other unmanned vehicles, will allow for a standard 
+to deliver drone hardware support and software stack at no cost. 
+This was modified throughout the project to enable testing 
+capabilities both indoors and outdoors, as well as allowing 
+flight without GPS. 
+ 
+ 
+ 
+       Fig. 3. Propeller Guard CAD       Fig. 4. Drone with Propellers Installed  
+ 
+B. MAVLink 
+This is the messaging protocol for communicating with 
+drones and between onboard drone components. Data streams 
+are sent and then published as topics, while configuration sub-
+protocols are point-to-point with retransmission. This was 
+required to enable certain features on the drone using the 
+mission planning software, QGroundControl, which provides a 
+graphical interface for the desired mission. 
+C. Robot Operating System (ROS) 
+This is the general-purpose robotics meta-operating system 
+used with PX4 for publishing sensor data into the right topic 
+nodes. It uses a package called MAVROS to enable MAVLink 
+extendable communication between computers running ROS, 
+MAVLink-enabled autopilots, and MAVLink-enabled ground 
+control stations. Additionally, it allows the ability to save the 
+log files of the drone testing data with a feature called 
+“ROSbag.” This feature was advantageous in ensuring the data 
+was being published to the right nodes [8]. 
+V. MODIFYING PX4 FIRMWARE 
+To navigate the UAV, a GPS signal is still needed as a 
+safety protocol [9, 10]. To circumvent this requirement, the 
+PX4 Firmware was modified to send a signal to the GPS driver 
+via MAVLink to simulate GPS without utilizing it, which is 
+referred to as “fake GPS.” With the fake GPS signal, the UAV 
+is going to have the mission coordinates that the user 
+predefines. Fig. 5 shows the modified diagram, which includes 
+the fake GPS driver. 
+To use the fake GPS signal instead of the actual GPS, the 
+change must be indicated within the MAVLink console in 
+QGroundControl. The commands shown in Fig. 6 must be used. 
+The “gps stop” command deactivates the GPS signal. Then, the 
+fake GPS is activated using the “gps start -f” command. Finally, 
+PX4Flow  
+(Optical Flow)  
+Sonar  
+(Range Finder)  
+[p.3]
+ 
+18th LACCEI International Multi-Conference for Engineering, Education, and Technology: “Engineering, Integration, and Alliances for a Sustainable 
+Development” “Hemispheric Cooperation for Competitiveness and Prosperity on a Knowledge-Based Economy”, 29-31 July 2020, Buenos Aires, Argentina. 
+3 
+to ensure that the coordinate given in the source code is being 
+published correctly, a check is done using “gps status.” 
+The firmware checks for the fake GPS and if it is enabled, 
+uses the position data that was given by the user. In this case, 
+the user needs to enter the coordinates manually inside of the 
+GPS source code and compile the firmware and install it again. 
+This allows for flight to be controlled by that information. 
+Otherwise, the drone will use the GPS information that is 
+published in the GPS Driver, then the Extended Kalman Filter 
+(EKF2) is going to filter it and publish it to the corresponding 
+nodes. The difference between the two cases is that in the fake 
+GPS case, the EKF2 only processes this information once, 
+based on the coordinates that were given in the local position 
+node. Then, it is going to continue filtering the PX4Flow data 
+and publish it to the other nodes. However, in the GPS case, the 
+drone will be running in a loop, and every time there is new 
+data, the EKF2 needs to filter the information. It should be 
+noted that if GPS is disabled and fake GPS is also disabled, the 
+drone will end in a failure mode, so it is important that the steps 
+above are followed. Fig. 7 shows a representation of the GPS 
+source code. 
+ 
+ 
+Fig. 5. Modified GPS Driver 
+ 
+ 
+ 
+ 
+Fig. 6. MAVLink Console Command 
+VI. RESULTS 
+A. Simulation 
+Before testing was done using the drone, simulations were 
+created using jMAVsim, a simulator specific for UAVs. This 
+step was to ensure that the fake GPS driver was working 
+properly and to avoid any fatal failures that can result in UAV 
+failures during physical testing. The simulator was connected 
+to QGroundControl via Wi-Fi, just as it would be to the drone 
+via its self-generated hotspot. Then, four waypoints were 
+selected to simulate the points that would be given for the actual 
+drone. 
+ 
+ 
+Fig. 7. GPS Source Code Unified Modelling Language Diagram 
+ 
+The points were followed with minimal error, as can be seen 
+in Fig. 8. The red lines represent the path of the drone going to 
+the assigned waypoints and returning home. On the left is the 
+simulator and on the right is the mission control window 
+showing the trajectory being followed by the drone.  
+ 
+Fig. 8. Simulation Conducted Using jMAVSim and QGroundControl 
+B. Flight Tests 
+The drone was tested outdoors using two waypoints and was 
+commanded to return to the starting location and land once this 
+final waypoint is reached. For reference in future test 
+conductions, it should be noted that the testing environment was 
+a desert climate, with humidity of around 10-20%, and 
+temperatures of 80-95 °F (26.7-30 °C). The trajectory given 
+predefined in QGroundControl can be seen in Fig. 9.  
+The drone successfully navigated to the two waypoints that 
+were assigned, as shown by Fig. 10. The position data was 
+obtained through the data of both the optical flow and the sonar 
+sensors, which were filtered by the EKF and then published in 
+position and velocity nodes after activation of the fake GPS as 
+[p.4]
+ 
+18th LACCEI International Multi-Conference for Engineering, Education, and Technology: “Engineering, Integration, and Alliances for a Sustainable 
+Development” “Hemispheric Cooperation for Competitiveness and Prosperity on a Knowledge-Based Economy”, 29-31 July 2020, Buenos Aires, Argentina. 
+4 
+expected. The data from the drone was recorded with ROS bag 
+and a python script was created to graph the path of the UAV. 
+ 
+ 
+ 
+Fig. 9. Given Drone Trajectory 
+ 
+ 
+Fig. 10. Graph of Actual Trajectory 
+ 
+ 
+VII. CONCLUSION 
+The Intel Aero Ready-to-Fly Drone can be used to perform 
+outdoor missions in GPS-denied environments using the PX4 
+Firmware, optical flow and range finder sensors, and a fake 
+GPS signal commanded through ROS and MAVLink. 
+The fake GPS driver is the first step for inspection because 
+the UAV needs to use simultaneous localization and mapping 
+(SLAM) to know its current position, and to enable the user to 
+assign waypoints and control the drone through a local 
+computer. This setup provides the framework towards the 
+possibility of conducting low-budget inspections without the 
+requirement of human control. 
+ 
+VIII.  FUTURE WORK 
+Since most power plant inspections are to be conducted 
+indoors, the UAV needs to be more stable [11,12]. Thus, the 
+future work plan is to replace the sonar with a lidar sensor 
+capable of measuring up to 14 meters, with an update rate of 
+1000Hz. Additionally, image recognition capabilities are also 
+in the works for the detection of abnormal features within the 
+power plant. 
+ACKNOWLEDGMENTS 
+The authors gratefully acknowledge the support in this 
+work by the Department of Mechanical Engineering at the 
+University of Texas at El Paso, Department of Mechanical 
+Engineering at the University of Texas at El Paso, especially to 
+Julio Reyes, Dr. Ahsan Choudhuri, and Dr. Michael McGee. 
+Additionally, the authors would like to recognize the 
+Consortium for Integrating Energy System in Engineering and 
+Science Education (CIESESE), an initiative funded by the U.S. 
+Department of Energy (DENA0003330) and the Department of 
+Energy (DE-FOA0001842).  
+REFERENCES 
+[1] E. Zwicker, W. Zesch, and R. Moser, “A modular inspection robot 
+platform for power plant applications,” in Applied Robotics for the Power 
+Industry (CARPI), 2010 1st International Conference on, oct. 2010. 
+[2] A. Breitenmoser, G. Caprari, R. Siegwart and R. Moser, "MagneBike - 
+Toward multi climbing robots for power plant inspection", In AAMAS 
+International Conference on Autonomous Agents and Multiagent 
+Systems, Toronto, Canada, 2010, pp. 1713-1720. 
+[3] R. Mautz, “Overview of current indoor positioning systems,” Geodesy 
+and 
+Cartography, 
+2009. 
+[Online]. 
+Available: 
+http://www.igp.ethz.ch/geometh/people/rmautz/mautz estonia08.pdf 
+[4] M. Achtelik, A. Bachrach, R. He, S. Prentice, and N. Roy, “Stereo vision 
+and laser odometry for autonomous helicopters in gps-denied indoor 
+environments,” in Proceedings of the SPIE Unmanned Systems 
+Technology XI, vol. 7332, Orlando, F, 2009. 
+[5] G. Welch and G. Bishop, “An introduction to the kalman filter,” 
+University of North Carolina at Chapel Hill, University of North Carolina 
+at Chapel Hill, 2006. [Online]. Available: http://www.cs.unc. 
+edu/∼welch/media/pdf/kalman intro.pdf 
+[6] Intel-Aero. “Intel-Aero/Meta-Intel-Aero.” github.com, Nov. 13, 2017. 
+[Online]. 
+Available: 
+https://github.com/intel-aero/meta-intel-
+aero/wiki/01-About- Intel-Aero. 
+[7] S.   Luthra,   “Simultaneous  Localization  and  Mapping  on  a  
+Quadcopter”. M.S. Thesis, Cornell University, 2018. 
+[8] C. Fairchild, T. Harman ROS Robotics By Example, 1st Edition, Packt 
+Publishing, 2016. 
+[9] V.M. Sineglazov and F.M. Zakharin, Theoretical bases of designing of 
+integrated navigation systems of unmanned aerial vehicles. Kyiv: Ukraine 
+Osvita. 2015, p. 340. 
+[10] F.M. Zakharin, and S.A. Ponomarenko, “Concept of Desing Navigation 
+Systems of UAV.” IEEE 3-rd International Conference “Actual Problems 
+of Unmanned Aerial Vehicles Developments”, Proceedings. Kyiv. 
+National aviation university. 2015, 13-15 October, pp. 261-264.    
+[11] K. A. Nelson, R. J. Davis, D. R. Lutz, and W. Smith, “Highly Compact 
+Robots for Inspection of Power Plants,” Journal of Field Robotics, vol. 
+29, no. 1, Dec., pp. 47-68, 2012 
+[12] Mohammed, F., Idries, A., Mohamed, N., Al-Jaroodi, J., & Jawhar, I. 
+(2014, May). UAVs for smart cities: Opportunities and challenges. In 
+Unmanned Aircraft Systems (ICUAS), 2014 International Conference on 
+(pp. 267-273). IEEE. 
+=== END ===

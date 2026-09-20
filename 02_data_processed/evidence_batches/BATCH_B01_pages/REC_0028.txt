@@ -1,0 +1,2361 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0028.pdf
+sha256: B6645C9B38B697B8106089C9522EEEBD839593FA20E80A5633AD4A9244D76892
+library: pymupdf (fitz) v1.28.2
+pages: 16
+=== BEGIN ===
+[p.1]
+UAV Waypoint Opportunistic
+Navigation in GNSS-Denied
+Environments
+YANHAO YANG
+, Student Member, IEEE
+Carnegie Mellon University, Pittsburgh, PA USA
+JOE KHALIFE
+, Member, IEEE
+University of California Irvine, CA USA
+JOSHUA J. MORALES, Member, IEEE
+University of California Irvine, CA USA
+ZAHER M. KASSAS
+, Senior Member, IEEE
+University of California Irvine, CA USA
+Navigation of an unmanned aerial vehicle (UAV) to reach a desired
+waypoint with provable guarantees in global navigation satellite sys-
+tem (GNSS)-denied environments is considered. The UAV is assumed
+to have an unknown initial state (position, velocity, and time) and
+the environment is assumed to possess multiple terrestrial signals
+of opportunity (SOPs) transmitters with unknown states (position
+and time) and one anchor SOP whose states are known. The UAV
+makes pseudorange measurements to all SOPs to estimate its own
+states simultaneously with the states of the unknown SOPs. The
+waypoint navigation problem is formulated as a greedy (i.e., one-step
+look-ahead) multiobjective motion planning (MOMP) strategy, which
+guarantees that the UAV gets to within a user-speciﬁed distance of the
+waypoint with a user-speciﬁed conﬁdence. The MOMP strategy bal-
+ances two objectives: i) navigating to the waypoint; and (ii) reducing
+UAV’s position estimate uncertainty. It is demonstrated that in such
+Manuscript received April 7, 2021; revised July 29, 2021; released for
+publication August 2, 2021. Date of publication August 10, 2021; date of
+current version February 10, 2022.
+DOI. No. 10.1109/TAES.2021.3103140
+Refereeing of this contribution was handled by J. Seo.
+This work was supported in part by the National Science Foundation
+(NSF) under Grant 1929571 and Grant 1929965, in part by the Ofﬁce of
+Naval Research (ONR) under Grant N00014-19-1-2613, and in part by the
+University of California, Irvine Multidisciplinary Engineering Research
+Initiative program.
+Authors’ addresses: Yanhao Yang is with the Mechanical Engineering
+Department, Carnegie Mellon University, Pittsburgh, PA 15213 USA,
+E-mail: (yanhaoy@andrew.cmu.edu); Joe Khalife and Zaher M. Kassas
+are with the Department of Mechanical and Aerospace Engineering, Uni-
+versity of California, Irvine, CA 92697 USA E-mail: (khalifej@uci.edu;
+zkassas@ieee.org); Joshua J. Morales is with the Department of Electrical
+Engineering and Computer Science, University of California, Irvine, CA
+92697 USA, E-mail: (joshum9@uci.edu). (Corresponding author: Zaher
+M. Kassas.).
+0018-9251 © 2021 IEEE
+an environment, formulating the waypoint navigation problem in a
+so-called “naive” fashion by heading directly to the waypoint would
+result in failing to reach the waypoint. This is due to poor estimability
+of the environment. In contrast, the MOMP strategy guarantees (in
+a probabilistic sense) reaching the waypoint. Monte Carlo simulation
+results are presented showing that the MOMP strategy achieves the
+desired objective with 95% success rate compared to a 36% success
+rate with the naive approach. Experimental results are presented for
+a UAV navigating to a waypoint in a cellular SOP environment, where
+the MOMP strategy successfully reaches the waypoint, while the naive
+strategy fails to do so.
+I.
+INTRODUCTION
+Unmanned vehicles (UAVs) are increasingly being used
+in a wide range of civilian and military applications, in
+which it is too costly or dangerous to send human-operated
+vehicles. These applications include search and rescue,
+ﬁre ﬁghting, trafﬁc monitoring, agriculture, delivery, and
+surveillance. The majority of missions in these applications
+require the UAV to ﬂy to speciﬁed waypoints efﬁciently and
+reliably in dynamic and uncertain environments. Reach-
+ing these waypoints reliably with no human-in-the-loop
+requires the UAV to continuously maintain its position in
+space and time within the environment using an accurate
+and robust navigation system.
+Today’s UAV navigation systems essentially rely on
+global navigation satellite system (GNSS) signals. How-
+ever, it is well-known that GNSS signals can become un-
+reliable in environments where UAVs conduct missions:
+GNSS signals get highly attenuated in deep urban canyons
+and under canopies [1] and are susceptible to jamming
+and malicious spooﬁng [2]. To alleviate these shortcomings
+during GNSS outages, UAV navigation systems typically
+supplement GNSS receivers with additional sensors (e.g.,
+inertial measurement units (IMUs) [3], cameras [4], and
+lasers [5]). However, after prolonged GNSS unavailability
+periods, the UAV’s position estimation error and estima-
+tion uncertainty could accumulate to unacceptable levels,
+compromising the safety and success of the UAV’s mission.
+While the accumulation rate of UAV positioning error could
+be reduced by incorporating additional sensors into the
+UAV’s sensor-suite, this could violate cost, size, weight,
+and power (CSWaP) constraints.
+A more elegant and CSWaP-efﬁcient approach is to de-
+tect and map existing features in the unknown environment
+and to prescribe the UAV’s trajectory to minimize the UAV’s
+states uncertainty, which is estimated using measurements
+drawn from the mapped features [6]. Fortunately, there is
+plenitude of features in locales of interest, which a UAV
+may exploit in the absence of GNSS signals in order to
+autonomously navigate to the waypoint (e.g., trees, light
+poles, buildings, etc.). This is typically achieved via the
+well-studiedproblemofsimultaneouslocalizationandmap-
+ping (SLAM) [7]–[9] in the robotics literature.
+Another class of features, which could be exploited
+in GNSS-denied environments is signals of opportunity
+(SOPs) [10]–[12]. SOPs are ambient radio signals, which
+are not intended as navigation sources, e.g., cellular sig-
+nals [13]–[17], digital television signals [18], [19], AM/FM
+IEEE TRANSACTIONS ON AEROSPACE AND ELECTRONIC SYSTEMS
+VOL. 58, NO. 1
+FEBRUARY 2022
+663
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+radio signals [20], [21], and low earth orbit satellite (LEO)
+signals [22]–[25]. SOPs have been exploited to produce
+navigation solutions in a standalone fashion or as an aiding
+source for an INS in the absence of GNSS signals [26].
+Meter-level accurate navigation has been demonstrated
+on ground vehicles with terrestrial cellular and television
+SOPs [27]–[29], while submeter-level accurate navigation
+has been demonstrated on UAVs [30].
+The problem of navigating with unknown SOPs is
+termed radio SLAM [26] or variations thereof [31]. While
+the radio SLAM problem shares similarities with the
+robotics SLAM problem, radio SLAM possesses speciﬁc
+complexities due to the dynamic and stochastic nature of
+thespatiotemporalstatespace.Inparticular,unlikethestatic
+features comprising the robotics SLAM environment, SOPs
+are equipped with non-ideal clocks, whose error (bias and
+drift) is dynamic and stochastic. What is more, the number
+of SOPs could be limited compared to the plenitude of
+static features in the robotics SLAM environment, and the
+initialuncertaintyaroundtheSOPstatescouldbelarge.This
+makes the radio SLAM environment poorly estimable, and
+the coupling between the control objective (motion plan-
+ning toward the waypoint) and sensing/estimation objective
+(motion planning to gather the “best” information from
+SOPs) evermore important. Even for the simple objective of
+achieving situational awareness in these environments (i.e.,
+estimating the UAV’s states simultaneously with estimating
+the SOPs’ states) without requiring the UAV to reach a
+desired waypoint, it was shown that moving in a random
+or an open-loop fashion would cause the UAV to get lost
+(exhibited by ﬁlter divergence) [32].
+Initial work on greedy (i.e., one-step look-ahead) mo-
+tion planning for optimal information gathering in radio
+SLAM environments was conducted in [32], and receding
+horizon (i.e., multistep look-ahead) trajectory optimization
+was studied in [33]. While the proposed approaches were
+shown to maintain localization accuracy and map quality
+by prescribing optimal trajectories, they did not take into
+consideration a desired waypoint as part of the UAV’s
+mission. Waypoint navigation brings a second objective that
+could contradict with the objective of maintaining a good
+estimate of the UAV’s states. In contrast to previous work,
+this article considers the problem of UAV greedy motion
+planning in a radio SLAM environment to reach a desired
+waypoint with provable guarantees.
+The contributions of this article are as follow. First, a
+multiobjective motion planning (MOMP) strategy is formu-
+lated. Three cost functions that reﬂect the two objectives—
+namely, mission completion and uncertainty reduction; are
+derived using probabilistic and information theoretic met-
+rics. It is shown that under certain conditions, these cost
+functions are equivalent. Second, the cost function is modi-
+ﬁed by introducing weights for the terms pertaining to each
+objective, and a method to adaptively set the weights online
+is proposed. This adaptation is shown to be essential for
+successful mission completion. Third, the article identiﬁes
+a stopping criterion that guarantees that the UAV is within a
+desired distance to the waypoint with a desired conﬁdence,
+declaring the mission as complete. Fourth, Monte Carlo
+simulations are presented showing that the MOMP strat-
+egy achieves the desired objective with 95% success rate
+compared to a 36% success rate with a naive approach (i.e.,
+one which prescribes the shortest trajectory to the waypoint
+without considering the UAV’s position uncertainty). Fifth,
+experimental results are presented for a UAV navigating to a
+waypoint in a cellular SOP environment, where the MOMP
+strategy successfully reaches the waypoint, while the naive
+strategy fails to do so.
+The rest of this article is organized as follows.
+Section II summarizes relevant work in the literature.
+SectionIIIformulatestheMOMPproblemanddescribesthe
+dynamics model of the UAV and SOPs, the measurement
+model, and the estimator model. Section IV develops the
+proposed MOMP strategy. Section V presents simulation
+results comparing naive and MOMP strategies. Section VI
+presents experimental results of a UAV exploiting signals
+from unknown cellular SOP transmitters to navigate to a
+waypoint using the MOMP strategy. Finally, Section VII
+concludes this article.
+II.
+RELATED WORK
+Waypoint navigation has been widely studied over the
+last decade with the development of autonomous aerial
+vehicles [34] and mobile robots [35]. To achieve better
+performance in waypoint navigation, GPS-based control
+systems were adopted, whether in a stand-alone fashion [36]
+or in a differential fashion with an inertial navigation sys-
+tem (INS) [37]. Other approaches relied on fusing mea-
+surements from an omnidirectional camera and a laser
+rangeﬁnder in a Kalman ﬁlter for outdoor waypoint nav-
+igation [38]. The waypoint navigation problem has been
+formulated as an optimal control problem [39], which could
+be solved by linear quadratic regulator (LQR) [40], ge-
+netic algorithm [41], or a combination of local and global
+planning [42]. When the optimization problem becomes
+multiobjective, particle swarm optimization [43], or Pareto-
+optimality [44] has been adopted. Although the aforemen-
+tioned methods achieved accurate waypoint navigation,
+they did not take into account the effect of motion on the
+estimation performance. The effect of having large esti-
+mation error in waypoint navigation may have detrimental
+consequences.
+Motion planning approaches that optimize the path
+length toward a waypoint, while taking into account sen-
+sor uncertainties have been investigated in recent litera-
+ture. However, sensors can provide either local or global
+information of the vehicle’s position. In the case of the
+former, the motion planning algorithm accounts for the
+sensor uncertainty instead of optimizing for sensor uncer-
+tainty [45], [46]. In the case of the latter, path planning is
+affected by the predicted quality of the navigation solution
+which changes throughout the environment. Ray-tracing
+approaches for path planning were used to improve channel
+characterization and enhance positioning performance for
+autonomous ground vehicles [47]–[50] or UAVs [51]–[53],
+664
+IEEE TRANSACTIONS ON AEROSPACE AND ELECTRONIC SYSTEMS
+VOL. 58, NO. 1
+FEBRUARY 2022
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+navigating with GNSS and/or SOPs. In [54], a method to
+predict the state uncertainty of a UAV in the presence of
+uncertain GNSS positioning biases using stochastic reach-
+ability analysis was proposed. A framework that guarantees
+that the estimation error remains less than the safety thresh-
+old for ground vehicles while navigating toward a waypoint
+was presented in [55]. While effective, these approaches
+rely on known maps to precalculate the cost function and
+perform optimization.
+In robotics, sample-based approaches using the belief
+space of the robot’s states are common for motion planning
+involving uncertainty from localization and motion. One
+of the sample-based methods for waypoint reaching that
+considers state uncertainties is the belief roadmap [56],
+whichbuildsaprobabilisticroadmapinarobot’sstatespace.
+It propagates beliefs over the roadmap using an extended
+Kalman ﬁlter (EKF) and plans a path of minimum goal-state
+uncertainty. A modiﬁcation of the sampling method was
+proposed by [57] in which minimizing the maximum value
+of its uncertainty metric encountered during the traversal of
+a path to make it more efﬁcient, while intermittent sensing
+was considered in [58]. This approach was extended by
+taking visual-inertial sensing and laser scanners into consid-
+erationin[59]and[60],respectively.Arollout-policy-based
+algorithm enabling online replanning in an efﬁcient manner
+in belief space to achieve simultaneous localization and
+planning in dynamic environments with the presence of
+large disturbances was proposed in [61]. However, for these
+sample-based approaches, the sampling method and numer-
+ical burden signiﬁcantly affect efﬁciency and performance,
+as they require the calculation and evaluation of all the
+potential paths between the start point and the destination in
+each round. Several approaches in the literature formulated
+the planning as an optimization problem, constrained by un-
+certainty. For example, the sampled paths were constrained
+by the estimated error covariance in [62]. Similarly, [63]
+applied this constraint in particle swarm optimization to
+ﬁnd the optimal paths satisfying the covariance bound.
+Localizability was also adopted as a constraint to determine
+possible regions and the path length was optimized within
+these regions for a an autonomous vehicle [64]. Although
+this paradigm is formulated as a constrained optimization
+problem, the existence of an optimal solution is not always
+guaranteed, as the constraint may contradict the primary
+goal. In contrast to previous work, this article considers
+opportunistic waypoint navigation in a GNSS-denied via
+radio SLAM. To achieve this objective, the article formu-
+lates a computationally efﬁcient MOMP strategy, which
+guarantees (in a probabilistic sense) reaching the waypoint.
+III.
+PROBLEM FORMULATION AND MODEL
+DESCRIPTION
+This section formulates the MOMP problem, describes
+the control system model of the UAV, presents the dynamics
+and measurement model of the UAV and SOPs, and dis-
+cusses the EKF model for estimating the UAV’s and SOPs’
+states.
+Fig. 1.
+UAV is deployed into an uncertain position in a GNSS-denied
+environment and is tasked with navigating to a waypoint. A naive
+strategy (shown in purple) would have the UAV move directly to the
+waypoint position, risking large position estimation errors, which would
+cause missing the waypoint. A MOMP strategy (shown in blue) would
+have the UAV prescribe a more complex trajectory, which balances two
+objectives to maintain a reliable position estimate: 1) moving to the
+waypoint; and 2) minimizing the UAV position uncertainty. The MOMP
+strategy guarantees (in a probabilistic sense) reaching the waypoint.
+A.
+Problem Formulation
+This article extends previous work on motion planning
+by developing a MOMP strategy for a UAV navigating
+with unknown SOPs, which balances two objectives: 1)
+navigating to a waypoint; and 2) minimizing UAV’s position
+uncertainty. The following problem is considered. A UAV
+has been dropped into a GNSS-denied environment with
+minimal a priori knowledge of its own states. As shown in
+Fig. 1, the environment consists of multiple unknown SOPs,
+from which the UAV draws and fuses pseudoranges in order
+toestimateitsownstatesandthestatesoftheunknownSOPs
+through an EKF. The UAV is tasked with navigating to a
+waypoint position and is required to arrive at the waypoint
+within a speciﬁed distance with a speciﬁed conﬁdence. The
+estimation uncertainty is heavily dependent on the relative
+geometry between the UAV and the SOPs. Therefore, the
+trajectory taken by the UAV to arrive at the waypoint affects
+the uncertainty in its position estimate along the way. When
+the uncertainty is very large, the EKF risks diverging, which
+in turn causes the UAV to move away from the waypoint, as
+illustrated in Fig. 1. To avoid such behavior, a more complex
+trajectory is designed to maintain a small uncertainty along
+the UAV trajectory, which guarantees to reach the waypoint.
+This is also illustrated in Fig. 1. Section IV develops the
+MOMP strategy.
+B.
+UAV Control System Model
+This article considers motion planning for quadrotor
+UAVs. Typical quadrotor controllers require full state feed-
+back, which consists of the UAV’s three-dimensional (3-D)
+pose (3-D position and orientation) and its ﬁrst time deriva-
+tive (3-D linear and angular velocities). UAVs are typically
+equipped with a suite of sensors to perform pose estima-
+tion, mainly a GNSS receiver, IMU, barometric pressure
+sensor or altimeter, magnetometer, etc. It is worth noting
+that UAVs rely mainly on GNSS to produce a position
+estimate in a global frame, e.g., earth-centered earth-ﬁxed
+(ECEF) frame. In GNSS-denied environments, if equipped
+with the right receivers, the UAV may draw pseudorange
+YANG ET AL.: UAV WAYPOINT OPPORTUNISTIC NAVIGATION IN GNSS-DENIED ENVIRONMENTS
+665
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+Fig. 2.
+High-level block diagram of the UAV control system. (a) Inner
+control loop consists of a standard UAV control loop, where the desired
+tracking position and heading angle trajectories are deﬁned by the user. A
+zero dynamics stabilizer block synthesizes the tracking trajectories for
+the remaining states. (b) In the case of GNSS unavailability (note the
+absence of the GNSS receiver), the UAV can rely on SOP measurements
+to maintain a position estimate in a global frame. Moreover, motion
+planning could be performed to efﬁciently navigate to a desired
+waypoint. The additional blocks pertaining to the proposed motion
+planning framework for navigating with SOPs are shown in blue. It is
+important to note that the proposed approach is in a fashion where 1) no
+modiﬁcations are needed for the inner control loop; and 2) the proposed
+motion planning algorithm automatically computes the desired
+trajectories that are input to the inner control loop.
+measurements from ambient SOPs to produce a position
+estimate in the global frame. As mentioned in the Introduc-
+tion, the uncertainty associated with the SOP-based position
+estimate heavily depends on the relative geometry between
+the UAV and the SOPs. Therefore, in order to reduce this
+uncertainty, a motion planning algorithm is developed to
+reach the waypoint with a desired conﬁdence. In addition
+to state feedback, a desired trajectory is required to perform
+UAV pose control. Zero dynamics stabilization methods
+were proposed to synthesize full state desired trajectories
+from desired position and heading trajectories only [65].
+Treating the UAV controller as a black box, the proposed
+framework aims at the following: 1) replacing the GNSS re-
+ceiver with an EKF estimating the UAV position using SOP
+pseudoranges; and 2) perform motion planning to determine
+the desired position and heading trajectories that will be
+passed as an input to the UAV’s control system. A high-level
+block diagram of a typical UAV control system and the
+proposed system are shown in Fig. 2. Since the proposed
+framework uses the UAV’s control system as a black box,
+the EKF estimating the UAV’s state from SOP pseudoranges
+is formulated independently of the UAV’s on-board control
+system. The UAV dynamics model assumed by the EKF is
+discussed next.
+C.
+UAV Dynamics Model
+For simplicity, this article assumes a planar environ-
+ment. Extensions to three-dimensions are straightforward.
+Such extension would yield poor estimability of the UAV’s
+vertical position due to poor geometric diversity of the
+SOPs’ heights. In such case, other sensors (e.g., altimeter)
+could be readily used.
+The state vector of the UAV xr is deﬁned as
+xr ≜
+!
+xT
+pv, xT
+clk,r
+"T
+, xpv ≜
+#
+rT
+r , ˙rT
+r
+$T , xclk,r ≜
+#
+δtr, ˙δtr
+$T
+where rr ∈R2 and ˙rr ∈R2 are the UAV’s 2-D position
+and velocity, respectively; and δtr ∈R and ˙δtr ∈R are the
+UAV-mounted receiver’s clock bias and drift, respectively.
+The UAV’s position and velocity states xpv will be assumed
+to evolve according to a 2-D planar motion model [66]. Tak-
+ing the omnidirectional ﬂying ability of the multirotor into
+consideration, the UAV’s nominal continuous-time control
+input vector ur, is given by
+urc ≜[ac, θc]T
+where ac ∈R+ and θc ∈[−π, π) are the continuous-time
+absolute acceleration and corresponding heading angle,
+respectively. Note that urc is not the actual control input
+applied to the UAV, but is the control input computed by
+the motion planning algorithm from which the desired 2-D
+position and heading can be computed and input to the UAV
+controller, as shown in Fig. 2(b). The desired altitude is set
+to be constant. Due to actuation errors and process noise,
+the actual continuous-time control input vector will be
+¯urc = urc + ˜urc ≜
+#
+¯ac, ¯θc
+$T
+where ˜urc ≜[˜ac, ˜θc]T, and ˜ac and ˜θc are uncorrelated, zero-
+mean, white random processes with power spectra ˜qa and
+˜qθ, respectively. The continuous-time state-space model of
+the UAV’s position and velocity is formulated as
+˙xpv(t) = Apvxpv(t) + Bpvgr[¯urc(t)]
+Apv ≜
+%
+02×2
+I2×2
+02×2
+02×2
+&
+,
+Bpv ≜
+%
+02×2
+I2×2
+&
+(1)
+gr[¯urc(t)] ≜
+#
+¯ac(t) cos[¯θc(t)], ¯ac(t) sin[¯θc(t)]
+$T
+where 02×2 ∈R2×2 is a matrix zeros and I2×2 ∈R2×2 is the
+identity matrix. Since the actual control input is unknown,
+the function gr[¯ur(t)] in (1) is linearized around the nominal
+input ur(t), yielding
+gr[¯urc(t)] ≈gr[urc(t)] + ˜Dr(t)˜urc(t)
+˜Dr(t) ≜
+%
+cos[θc(t)]
+−ac(t) sin[θc(t)]
+sin[θc(t)]
+ac(t) cos[θc(t)]
+&
+(2)
+where ˜Dr(t) is the Jacobian matrix of gr[¯urc(t)] with respect
+to ¯urc(t). Combining (1) and (2) and discretizing at a sam-
+pling interval T assuming zero-order hold of the control in-
+put (i.e., {urc(t) = urc(kT ) ≜ur(k), kT ≤t < (k + 1)T }),
+the discrete-time UAV’s position and velocity states can be
+modeled as
+xpv(k + 1) = Fpvxpv(k)+!pvgr [ur(k)]+wpv(k), k = 0, 1, . . .
+666
+IEEE TRANSACTIONS ON AEROSPACE AND ELECTRONIC SYSTEMS
+VOL. 58, NO. 1
+FEBRUARY 2022
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+Fpv ≜
+%
+I2×2 T I2×2
+02×2
+I2×2
+&
+, !pv ≜
+%
+T 2
+2 I2×2
+T I2×2
+&
+, ur(k)
+≜
+%
+a(k)
+θ(k)
+&
+(3)
+where a(k) ≜ac(kT ) and θ(k) ≜θc(kT ), and wpv(k) is the
+discretized process noise vector, which is a zero-mean white
+sequence with covariance Qpv(k) given by
+Qpv(k) =
+%
+T 3
+3 Qc(k)
+T 2
+2 Qc(k)
+T 2
+2 Qc(k)
+T Qc(k)
+&
+(4)
+Qc(k) ≜Da,θ(k)Qa,θDT
+a,θ(k),
+Qa,θ = diag
+#
+˜qa, ˜qθ
+$
+(5)
+Da,θ(k) ≜˜Da,θ(kT ) =
+%
+cos[θ(k)]
+−a(k) sin[θ(k)]
+sin[θ(k)]
+a(k) cos[θ(k)]
+&
+.
+(6)
+Furthermore, as in all practical systems, the UAV’s accel-
+eration and velocity are constrained according to
+'
+a(k) ≤ar,max
+∥˙rr(k)∥2 ≤vr,max
+(7)
+which, for e ≜[1 0]T, can also be expressed as
+()
+eTur(k)
+*2 ≤a2
+r,max
+++gr [ur(k)] + 1
+T ˙rr(k)
+++2
+2 ≤
+) 1
+T vr,max
+*2 .
+(8)
+The UAV-mounted receiver’s clock state xclk,r is mod-
+eled according to the standard double integrator model
+driven by process noise, whose discrete-time dynamics are
+given by
+xclk,r(k + 1) = Fclkxclk,r(k) + wclk,r(k), k = 0, 1, 2, . . .
+(9)
+where wclk,r is a zero-mean white noise sequence with
+covariance Qclk,r given by
+Fclk =
+%
+1
+T
+0
+1
+&
+,
+Qclk,r =
+%
+S ˜wδtr T + S ˜w˙δtr
+T 3
+3
+S ˜w˙δtr
+T 2
+2
+S ˜w˙δtr
+T 2
+2
+S ˜w˙δtr T
+&
+where S ˜wδtr and S ˜w˙δtr are the power spectra of the continuous-
+time white process noise driving the evolution of the clock
+bias and drift, which are approximated with the frequency
+random walk coefﬁcient h−2,r and the white frequency
+coefﬁcient h0,r, leading to S ˜wδtr ≈h0,r
+2 and S ˜w˙δtr ≈2π2h−2,r.
+Combining(3)and(9)yieldsthediscrete-timedynamics
+of the UAV’s state vector xr, which is given by
+xr(k + 1)=Frxr(k) + !rgr[ur(k)]+wr(k), k = 0, 1, 2, . . .
+Fr ≜diag
+#
+Fpv, Fr
+$
+,
+!r ≜
+!
+!T
+pv, 02×2
+"T
+(10)
+and wr ≜[wT
+pv, wT
+clk,r]T is the overall process noise covari-
+ance, which is a zero-mean white sequence with covariance
+Qr = diag
+!
+Qpv, Qclk,r
+"
+.
+D.
+SOP Dynamics Model
+The environment consists of one fully known anchor
+SOP, denoted with a subscript a, and m unknown SOPs.
+To satisfy the observability condition established in [33]
+and [67], the knowledge of the state vector of the anchor
+SOP, denoted xsa, is assumed. Note that the UAV’s control
+inputs ur are with respect to a global coordinate frame in
+which the SOPs are expressed. This requires the UAV to
+have a priori knowledge about its orientation with respect
+to this global coordinate frame through some sensor (e.g., a
+magnetometer). Note, however, that the UAV has no a priori
+knowledge about its initial position, velocity, or clock errors
+(bias and drift). The jth SOP is modeled as a stationary
+transmitter with state vector
+xsj ≜
+!
+rT
+sj, xT
+clk,s j
+"T
+,
+xclk,s j ≜
+#
+δtsj, ˙δtsj
+$T
+where rsj ∈R2 is the SOP’s planar position and δtsj ∈R and
+˙δtsj ∈R are the SOP’s clock bias and drift, respectively. The
+SOP’s states are assumed to evolve according to
+xsj (k + 1) = Fsxsj (k) + Gswclk,s j (k)
+(11)
+Fs ≜diag
+!
+I2×2, Fclk
+"
+,
+Gs ≜
+#
+02×2
+I2×2
+$T
+where wclk,s j ∈R2 is the process noise vector driving the
+jth SOP’s clock states and is modeled as a zero-mean white
+noise sequence with covariance Qclk,s j, which has the same
+form as Qclk,r, except that S ˜wδtr and S ˜w˙δtr are replaced with
+SOP clock-speciﬁc spectra, S ˜wδts, j and S ˜w˙δts, j , respectively.
+E.
+Observation Model
+The UAV-mounted receiver makes pseudorange mea-
+surements on the jth SOPs, which after mild approxima-
+tions discussed in [68], can be modeled according to
+zj(k) = h
+#
+xr(k), xsj (k)
+$
++ vj(k)
+= ∥rr(k) −rsj (k)∥2 + c · [δtr(k) −δtsj (k)] + vj(k)
+(12)
+wherec isthespeedoflightand vj isthemeasurementnoise,
+which is modeled as a discrete-time zero-mean white Gaus-
+sian sequence with variance σ 2
+j . The measurement noise of
+all SOPs is assumed to be uncorrelated. Subsequently, the
+covariance matrix R of the measurement noise vector v ≜
+[va, v1, . . . , vm]T is given by R ≜diag[σ 2
+a , σ 2
+1 , . . . , σ 2
+m].
+F.
+EKF Model
+The anchor SOP state xsa is assumed to be known at all
+time. Hence, the EKF estimates the state vector deﬁned by
+x(k) ≜
+#
+xT
+r (k), xT
+s1(k), . . . , xT
+sm(k)
+$T
+using the set of measurements given by {z(l)}k
+l=0, where
+z(l) ≜[za(l), z1(l), . . . , zm(l)]T. From (10)–(12), the over-
+all system equations are given by
+x(k + 1) = Fx(k) + !gr [ur(k)] + Gw(k)
+(13)
+z(k) = h [x(k)] + v(k)
+(14)
+YANG ET AL.: UAV WAYPOINT OPPORTUNISTIC NAVIGATION IN GNSS-DENIED ENVIRONMENTS
+667
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+F ≜diag [Fr, Fs, Fs, . . . , Fs] ,
+! ≜
+#
+!T
+r 0T
+4m×2
+$T
+G ≜diag
+#
+I6×6, Gs, Gs, . . . , Gs
+$
+h [x(k)] ≜
+#
+h
+#
+xr(k), xsa(k)
+$
+, h
+#
+xr(k), xs1(k)
+$
+, . . .
+h
+#
+xr(k), xsm(k)
+$$T
+and w(k), deﬁned as
+w(k) ≜
+#
+wT
+r (k), wT
+clk,s1(k), . . . , wT
+clk,sm(k)
+$T
+is a zero-mean white Gaussian vector with covariance
+Q ≜diag
+#
+Qr, Qclk,s1, . . . , Qclk,sm
+$
+.
+A standard EKF is implemented based on (13) and (14) to
+produce an estimate ˆx(k|i) ≜E[x(k)|{z(l)}i
+l=0], for i ≤k,
+and an associated error covariance "(k|i).
+IV.
+MULTIOBJECTIVE MOTION PLANNING STRATEGY
+This section deﬁnes the motion planning problem and
+formulates it as a multiobjective optimization problem.
+A.
+Multiobjective Motion Planning Problem Deﬁnition
+Consider a UAV that has been deployed into a GNSS-
+denied environment with no a priori knowledge of its own
+states xr. The environment consists of one anchor SOP
+whose states xsa are fully known for all time and m SOPs
+whose states {xsj}m
+j=1 are unknown. In order to navigate, the
+UAV fuses pseudoranges drawn to the SOPs (12) through
+an EKF to estimate its own states while simultaneously
+estimating the states of the unknown SOPs, as discussed in
+Section III. The UAV is tasked with navigating to within
+a distance d of a waypoint position rt with probability
+(1 −α), given its EKF-produced UAV position estimate,
+denoted ˆrr(k|k), and the associated block of the estimation
+error covariance, denoted "rr(k|k). Formally, this task is
+achieved when the following is satisﬁed:
+Pr
+#∥rr(k) −rt∥2
+2 ≥d2 | ˆrr(k|k), "rr(k|k)
+$
+≤α.
+(15)
+To navigate to the waypoint and satisfy (15), the UAV
+selectsasequenceofaccelerationinputsur(k),k = 0, 1, . . ..
+A naive strategy is to select these inputs so that the UAV
+navigates directly toward the waypoint as fast as possible
+without violating velocity and acceleration constraints 7.
+However, ﬂying in a straight line in the GNSS-denied en-
+vironment considered herein, could cause the UAV to miss
+the waypoint or cause ﬁlter divergence altogether. This is
+due to poor estimability of the UAV’s and environment’s
+states.
+In this article, a more sophisticated MOMP strategy
+is developed, where the UAV prescribes its trajectory by
+balancing two objectives: 1) navigating toward the way-
+point; and 2) making strategic maneuvers, which do not
+necessarily move the UAV toward the waypoint, in order to
+reducetheUAV’spositionuncertainty.Theseobjectiveswill
+be achieved by formulating a multiobjective optimization
+problem, which is discussed next.
+B.
+Cost Function Derivation
+To formulate the MOMP strategy as an optimization
+problem, three quantities must be deﬁned: 1) a cost func-
+tion; 2) an optimization variable; and 3) constraints on the
+optimization variable. The optimization variable is deﬁned
+as the input vector ur of the UAV’s acceleration and heading
+(cf., 3), and the constraints are readily obtained from the
+UAV’s maximum speed and acceleration ratings (cf., 7). In
+what follows, three cost functions reﬂecting the multiple
+objectives are deﬁned via two approaches: 1) probabilistic;
+and 2) information theoretic.
+1) Probabilistic Approach: One possible cost function
+that reﬂects the desired objective to reach the waypoint
+can be readily derived from the probability inequality in
+(15). After dropping the time argument for compactness of
+notation, applying Markov’s inequality to (15) yields
+Pr
+#∥rr −rt∥2
+2 ≥d2 | ˆrr, "rr
+$
+≤E
+#∥rr −rt∥2
+2
+$
+d2
+= tr("rr ) + ∥ˆrr −rt∥2
+2
+d2
+(16)
+where tr(·) denotes the trace of a matrix. Note that the above
+inequality assumes that the EKF is unbiased, i.e., E[rr −
+ˆrr] = 0. In this case, to satisfy the mission in (15), one needs
+to minimize the cost function
+JMarkov ≜tr("rr ) + ∥ˆrr −rt∥2
+2
+(17)
+in the hopes that the right-hand side of (16) becomes less
+than the desired probability α. The cost function JMarkov
+explicitly shows the two objectives the UAV is trying to
+balance: 1) mission completion, captured by the term ∥ˆrr −
+rt∥2
+2, which is minimized when the UAV’s position estimate
+is at the target; and 2) uncertainty reduction, captured by
+the term tr("rr ), which when minimized, ensures that the
+UAV’s true position is as close as possible to the UAV’s
+position estimate when the estimate is at the target.
+2) Information Theoretic Approaches: Another way to
+derive a cost function for the MOMP strategy is using infor-
+mation theoretic measures. The EKF produces the estimate
+ˆrr, which, ignoring the effect of nonlinearities and assuming
+Gaussian noise, is the conditional mean of rr with the
+associated estimation error covariance "rr. Let Nr denote
+the probability density function (pdf) of rr conditioned on
+all the measurements, which is given by
+Nr :
+rr ∼N
+)
+ˆrr, "rr
+*
+(18)
+where N (µ, ") denotes the multivariate Gaussian pdf with
+mean µ and covariance matrix ". Another way to deﬁne the
+objectives is through a target probability density Nt deﬁned
+as
+Nt :
+rr ∼N
+)
+rt, ϵ2I
+*
+(19)
+where ϵ is a small positive number. Equation (19) is saying
+that it is desired that the UAV’s position to be centered
+at the target with a small uncertainty. A natural approach
+to achieve this is to minimize the distance between the
+668
+IEEE TRANSACTIONS ON AEROSPACE AND ELECTRONIC SYSTEMS
+VOL. 58, NO. 1
+FEBRUARY 2022
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+currentandtargetpdfs.Suchdistancemetricsarecommonly
+used in information theory, such as the Kullback–Leibler
+(KL) divergence DKL or the 2-Wasserstein metric W2. For
+GaussiandistributionssuchasNr andNt,theKLdivergence
+can be expressed as
+DKL (Nr∥Nt) =
+1
+2ϵ2
+#
+tr
+)
+"rr
+*
++ ∥ˆrr −rt∥2
+2
+$
+−1
+2
+#
+ln det
+)
+"rr
+*
++ 2 −4 ln ϵ
+$
+(20)
+and the 2-Wasserstein metric becomes
+W2 (Nr, Nt) =
+#
+tr
+)
+"rr
+*
++ ∥ˆrr −rt∥2
+2
+$
++ 2ϵ
+!
+ϵ −tr
+,
+"
+1
+2rr
+-"
+.
+(21)
+Next, deﬁne the cost functions
+JKL ≜2ϵ2DKL (Nr∥Nt)
+= JMarkov −ϵ2 #
+ln det
+)
+"rr
+*
++ 2 −4 ln ϵ
+$
+(22)
+and
+JW ≜W2 (Nr, Nt)
+= JMarkov + 2ϵ
+!
+ϵ −tr
+,
+"
+1
+2rr
+-"
+.
+(23)
+Minimizing JKL is equivalent to minimizing DKL(Nr∥Nt)
+for any value of ϵ > 0, since ϵ is independent of the
+optimization variable ur. Both JKL and JW are explicitly
+expressed as JMarkov with the addition of constants and terms
+penalizing the difference between the current and target
+pdfs. However, it is shown next that for small enough ϵ,
+all three cost functions are equal up to a small difference δ.
+3) Equivalence of Probabilistic and Information Theo-
+retic Approaches: It is assumed the mission time is upper
+bounded by κ time-steps. Next, let Ppv(k) denote the covari-
+ance matrix of xpv(k), which can be expressed as
+Ppv(k) =
+. Prr(k) Prr˙rr(k)
+PT
+rr˙rr(k) P˙rr(k)
+/
+where Prr(k) and P˙rr(k) are the covariance matrices of rr(k)
+and ˙rr(k), respectively, and Prr˙rr(k) is the cross-covariance.
+Moreover, using (5)–(7), and the property A ⪯tr(A)I for
+any matrix A ⪰0, Qc(k) may be upper bounded as
+Qc(k) ⪯
+)
+˜qa + a2
+r,max˜qθ
+*
+I2×2
+(24)
+where the right-hand side of the inequality is independent
+of time. It follows from (4) and (24) that
+Qpv(k) ⪯
+)
+˜qa + a2
+r,max˜qθ
+*
+%
+T 3
+3 I2×2
+T 2
+2 I2×2
+T 2
+2 I2×2
+T I2×2
+&
+≜¯Qpv.
+(25)
+The following lemma establishes an upper bound on Prr(k)
+for k = 0, 1, . . . , κ.
+LEMMA IV.1 Consider the system in (3) with Ppv(0) ≜
+diag[Prr(0), P˙rr(0)] ≻0, then, for k = 0, 1, . . . , κ, the follow-
+ing holds:
+Prr(k) ⪯¯Prr(k)
+(26)
+¯Prr(k) ≜Prr(0) + k2T 2P˙rr(0) + k3T 3
+3
+)
+˜qa + a2
+r,max˜qθ
+*
+I2×2.
+(27)
+PROOF From (3), the time-evolution of Ppv is obtained to
+be
+Ppv(k) = Fk
+pvPpv(0)
+,
+Fk
+pv
+-T
++
+k−1
+0
+j=0
+Fk−j−1
+pv
+Qpv( j)
+,
+Fk−j−1
+pv
+-T
+.
+(28)
+By expanding (28), using (25), using the following proper-
+ties:
+k−1
+0
+j=0
+j = k(k −1)
+2
+,
+k−1
+0
+j=0
+j2 = k(k −1)(2k −1)
+6
+and looking at the upper diagonal block of the left- and
+right-hand sides of (28), (26) is deduced.
+■
+Now the following theorem establishes equivalence be-
+tween the three cost functions JMarkov, JKL, and JW.
+THEOREM IV.1 Consider the system (13), (14), with initial
+UAV position and velocity prior covariance Ppv(0), and
+assume there exists a positive scalar p > 0 such that
+"rr ≥pI2×2.
+(29)
+Then, over a ﬁnite number of time-steps κ, for any δ > 0,
+there exists an ϵ⋆> 0 such that for 0 < ϵ < ϵ⋆, the follow-
+ing holds:
+|JKL −JMarkov| < δ,
+|JW −JMarkov| < δ.
+(30)
+PROOF The EKF is estimating the posterior estimation error
+covariance, denoted by "rr(k|k). Given the properties of
+Kalman ﬁlters, the following inequality holds:
+"rr(k|k) ⪯Prr(k).
+(31)
+Moreover, from (27), one can see that ¯Prr(k) ⪯¯Prr(k + 1),
+which implies
+¯Prr(k) ⪯¯Prr(κ).
+(32)
+Let ζ (κ) ≜tr[¯Prr(κ)]. Using the property “A ⪯tr(A)I,” for
+a matrix A ⪰0, and dropping the time argument k for
+compactness of notation, the following can be deduced:
+"rr ⪯ζ (κ)I2×2.
+(33)
+The following inequalities can be derived from (33):
+11ln det "rr
+11 ≤ϕ
+(34)
+tr
+,
+"
+1
+2rr
+-
+≤2
+2
+ζ (κ)
+(35)
+where ϕ ≜max{2| ln ζ (κ)|, 2| ln p|}. Subsequently, com-
+bining (22) and (34), using the property of the absolute
+value, the following is deduced:
+|JKL −JMarkov| ≤δ1(ϵ)
+(36)
+where δ1(ϵ) ≜ϵ2(ϕ + 2 + 4| ln ϵ|). Similarly, combining
+(23) and (35), another inequality is obtained
+|JW −JMarkov| ≤δ2(ϵ)
+(37)
+YANG ET AL.: UAV WAYPOINT OPPORTUNISTIC NAVIGATION IN GNSS-DENIED ENVIRONMENTS
+669
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+TABLE I
+Simulation Settings
+Fig. 3.
+Cost functions equivalence based on the Markov inequality, KL
+divergence, and Wasserstein metric over time. Illustrated are the
+difference between (a) the KL divergence and Markov cost functions and
+(b) Wasserstein and Markov cost functions calculated from the randomly
+sampled covariance matrix and the established bounds.
+where δ2(ϵ) ≜2ϵ(ϵ + 2√ζ (κ)). One can straightforwardly
+see that δ1(ϵ) and δ2(ϵ) are strictly increasing functions of
+ϵ > 0. Consequently, for some δ > 0, one can calculate
+ϵ1 = δ−1
+1 (δ),
+ϵ2 = δ−1
+2 (δ)
+and deﬁne ϵ⋆≜min{ϵ1, ϵ2}. Therefore, for any 0 < ϵ < ϵ⋆,
+one can guarantee (30).
+■
+In order to illustrate Theorem IV.1, Monte Carlo simula-
+tions were performed to demonstrate the established bounds
+(36) and (37). A total of 20 Monte Carlo realizations were
+generated for each time-step using the simulation settings
+tabulated in Table I and ϵ ≡1 × 10−4 and p ≡1 × 10−4.
+The covariance matrix used to calculate JKL, JW, and JMarkov
+were generated based on conditions (26) and (29). At each
+time-step, the cost function difference was calculated and
+is plotted in Fig. 3. The covariance matrix had a constant
+lower bound according to Theorem IV.1 and a time-varying
+upper bound according to Lemma IV.1. It can be seen that
+the derived bounds correctly limit the difference between
+JKL and JMarkov and between JW and JMarkov.
+C.
+MOMP Optimization Problem
+Theorem IV.1 implies that for a small enough target
+covariance uncertainty, the three cost functions JMarkov, JKL,
+and JW are practically equivalent. Consequently, the MOMP
+strategy will adopt the cost function ¯J(ur) ≜JMarkov, con-
+strained to the UAV dynamics, namely
+minimize
+ur
+¯J (ur)
+Subject to:
+(8), (13), (14).
+(38)
+The optimization problem (38) does not specify when the
+mission is completed. A stopping criterion is deﬁned in
+Section IV-D.
+It is desired that the UAV be able to solve the optimiza-
+tion online on its on-board processor. In order to meet this
+requirement, a greedy approach is adopted, i.e., the optimal
+control input is computed one step at a time. However, the
+optimizer could get stuck at a local optimum in which one of
+thetwotermsinthecostfunctiondominates.Itwasobserved
+in simulations that the distance term usually dominates
+at the beginning, causing the UAV to ﬂy directly toward
+the waypoint. Once close to the waypoint, the trace of the
+estimation error covariance starts to dominate, causing the
+UAV to get stuck ﬂying around the waypoint to minimize
+its position estimate’s uncertainty but to no avail. To avoid
+such behaviors, the cost function ¯J(ur) is reformulated to
+become a weighted sum given by
+J(ur) ≜wJ1[ur(k)] + (1 −w)J2[ur(k)]
+(39)
+where
+J1[ur(k)] ≜∥ˆrr(k + 1|k) −rt∥2
+2,
+J2[ur(k)] ≜
+tr["rr(k + 1|k + 1)],
+and
+the
+weight
+w
+is
+changed
+adaptively. More speciﬁcally, J1 is the Euclidean distance
+between the UAV’s position estimate and the waypoint,
+which corresponds to the objective of navigating toward
+the waypoint. Furthermore, J2 is the A-optimality criterion
+applied to the UAV’s position estimation covariance [32],
+which corresponds to the objective of minimizing the
+UAV’s position uncertainty. Note that "rr(k + 1|k + 1) can
+be computed at time-step k since it is independent of the
+measurements at k + 1. The MOMP problem is then cast
+as a greedy motion planning problem to ﬁnd the optimal
+input u∗
+r (k), that minimizes J subject to the dynamics and
+vr,max and ar,max, formally expressed as
+minimize
+ur(k)
+J(ur) = wJ1[ur(k)] + (1 −w)J2[ur(k)]
+Subject to:
+(8), (13), (14)
+(40)
+where the weight is deﬁned as
+w ≜1("rr, d, α)
+where 1("rr, d, α) is an indicator function used to switch
+between each objective and is discussed in Subsection IV-E.
+670
+IEEE TRANSACTIONS ON AEROSPACE AND ELECTRONIC SYSTEMS
+VOL. 58, NO. 1
+FEBRUARY 2022
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+In the next two sections, a test is developed as a stopping cri-
+terion for task (15), and the indicator function 1("rr, d, α)
+is speciﬁed.
+Note that in practice, a vehicle has constraints on its
+acceleration and velocity which will also constrain the
+turning radius of the vehicle. Therefore, as the vehicle
+approaches the waypoint, it should reduce its velocity in
+order to make “tighter” turns to successfully reach the
+waypoint. To this end, an adaptive velocity constraint v′
+r,max
+is proposed, which is deﬁned as
+v′
+r,max = min
+32
+∥ˆrr −rt∥2 ar,max, vr,max
+4
+(41)
+which is based on the centripetal acceleration. Adjusting
+the maximum velocity according to (41) will decrease the
+velocity of the UAV, to ensure that the UAV does not get
+stuck traversing an inﬁnite loop around the waypoint. Ad-
+ditionally, (41) is effectively a proportional controller, with
+proportionality constant √ar,max, which has a realistic effect
+of slowing the UAV down as it approaches the waypoint.
+Since the cost function is generally nonconvex, it was
+solved by an exhaustive search-type algorithm, in order
+to avoid converging to a local optimum. To this end, the
+feasible set of maneuvers at time-step tj was gridded to nj
+possible maneuvers. The complexity of evaluating the cost
+function at a particular input is O(1) since it is independent
+of the value of the input. Consequently, the computational
+complexity at a time-step tj will be O(nj). Of course,
+advanced numerical optimization solvers can be invoked,
+which would impact the corresponding computational com-
+plexity.
+D.
+Stopping Criterion
+SincetheUAVdoesnothaveaccesstoitstruepositionrr,
+a test to determine if task (15) is satisﬁed must be formulated
+in terms of values the UAV has access to. Speciﬁcally, a
+test is formulated using the UAV’s EKF-produced position
+estimation error covariance "rr.
+THEOREM IV.2 Consider an environment consisting of a
+UAV that has been deployed into a GNSS-denied environ-
+ment with no a priori knowledge of its own states, one
+anchor SOP whose states are fully known, m unknown
+SOPs, and a desired waypoint position rt. Given the distance
+tolerance from the waypoint d, and the speciﬁed conﬁdence
+probability 1 −α. Then, if
+1 −F
+5
+d2
+λmax
+; n,
+n
+0
+i=1
+b2
+i
+6
+≤α
+(42)
+holds, then task (15) is satisﬁed; where F( d2
+λmax ; n, 7n
+i=1 b2
+i )
+is the cumulative density function (CDF) of a non-central
+χ2-distributed random variable with n degrees-of-freedom
+and noncentrality parameter 7n
+i=1 b2
+i , evaluated at
+d2
+λmax ,
+λmax ≜maxi λi("rr ) is the maximum eigenvalue of "rr,
+n is the dimension of the UAV position states, and b =
+[b1 . . . bn]⊺is given by
+"rr = U#U⊺
+b ≜#−1
+2 U(ˆrr −rt).
+PROOF The proof will show that (42) is sufﬁcient to satisfy
+(15). The Euclidean distance term ∥rr −rt∥2
+2 in (15) can be
+expressed as
+∥rr −rt∥2
+2 = (ˆrr + ˜rr −rt)⊺(ˆrr + ˜rr −rt)
+= (ˆrr + ˜rr −rt)⊺U⊺#−1
+2 ##−1
+2 U(ˆrr + ˜rr −rt)
+= (y + b)⊺#(y + b)
+=
+n
+0
+i=1
+λi(yi + bi)2
+(43)
+where λi is the ith eigenvalue of "rr, y ≜#−1
+2 U˜rr =
+[y1 . . . yn]⊺is the estimation error aligned to the coordinates
+deﬁned by the eigenvectors and eigenvalues of the estima-
+tion error covariance matrix; therefore, y ∼N (0n×1, I2×2).
+Equation (43) may be upper bounded by replacing all λi
+with λmax, which gives
+∥rr −rt∥2
+2 =
+n
+0
+i=1
+λi(yi + bi)2 ≤λmax
+n
+0
+i=1
+(yi + bi)2.
+(44)
+Therefore, an upper bound for the probability in (15) may
+be established by replacing the Euclidean distance term in
+(15) by the right-hand side of (44), which gives
+Pr
+)∥rr −rt∥2
+2 ≥d2*
+≤Pr
+5
+λmax
+n
+0
+i=1
+(yi + bi)2 ≥d2
+6
+.
+(45)
+Note that λmax
+7n
+i=1(yi + bi)2 is noncentral χ2-distributed
+with n degrees-of-freedom and noncentrality parameter
+7n
+i=1 b2
+i , yielding the probability
+Pr
+5
+λmax
+n
+0
+i=1
+(yi + bi)2 ≥d2
+6
+=1 −F
+5
+d2
+λmax
+; n,
+n
+0
+i=1
+b2
+i
+6
+.
+(46)
+Substituting the right-hand side of (46) into (45) yields
+Pr
+)∥rr −rt∥2
+2 ≥d2*
+≤1 −F
+5
+d2
+λmax
+; n,
+n
+0
+i=1
+b2
+i
+6
+. (47)
+If (42) holds, substituting it into (47) yields (15).
+■
+E.
+Indicator Function Selection
+The MOMP strategy needs a mechanism to balance the
+objective functions J1 and J2. One way to balance these
+objectives is to use a function of the uncertainty of the
+UAV’s position estimate as an indicator. If the uncertainty
+becomes too large, the UAV should focus on decreasing the
+uncertainty until it becomes small enough so that satisfying
+task (15) is feasible. Then, the UAV may switch back to
+navigating toward the waypoint. To make this happen, the
+indicatorfunction1("rr, d, α)issetasanecessarycondition
+for (42) to be satisﬁed. This condition is established in the
+following lemma.
+YANG ET AL.: UAV WAYPOINT OPPORTUNISTIC NAVIGATION IN GNSS-DENIED ENVIRONMENTS
+671
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.10]
+LEMMA IV.2 A necessary condition for criterion (42) to be
+satisﬁed is
+ηαλmax −d2 ≤0
+(48)
+where ηα ≜F −1(1 −α; n, 0) is the value of the inverse
+CDF of a χ2-distributed random variable with n degrees-
+of-freedom, evaluated at 1 −α, and n is the dimension of
+the UAV position states.
+PROOF The proof will proceed by contradiction. Assume
+that (48) is not satisﬁed, i.e., ηαλmax −d2 > 0. Then, from
+the deﬁnition of ηα, the following holds:
+d2
+λmax
+< F −1(1 −α; n, 0).
+(49)
+Since χ2 CDFs are monotonically increasing, evaluating
+a n degrees-of-freedom χ2 CDF at both sides of (49) and
+moving some terms yields
+1 −F
+8 d2
+λmax
+; n, 0
+9
+> α.
+(50)
+Note that the CDF of a n degrees-of-freedom noncentral
+χ2-distribution decreases as the noncentral parameter in-
+creases [69], i.e.,
+F
+8 d2
+λmax
+; n, c1
+9
+≥F
+8 d2
+λmax
+; n, c2
+9
+, 0 ≤c1 < c2 (51)
+where c1 and c2 are the noncentral parameters. By setting
+c1 = 0 and c2 = 7n
+i=1 b2
+i ≥0, where bi are deﬁned accord-
+ing to Theorem IV.2, then (51) implies that
+1 −F
+8 d2
+λmax
+; n, 0
+9
+≤1 −F
+5
+d2
+λmax
+; n,
+n
+0
+i=1
+b2
+i
+6
+. (52)
+Combining (50) and (52) yields
+1 −F
+5
+d2
+λmax
+; n,
+n
+0
+i=1
+b2
+i
+6
+> α
+which is in contradiction with (42).
+■
+According to Lemma IV.2, the indicator function
+1("rr, d, α) is selected to be
+1("rr, d, α) ≜
+(
+1,
+if ηαλmax −d2 ≤0
+0,
+else
+.
+(53)
+The MOMP strategy is summarized in Fig. 4.
+V.
+SIMULATION RESULTS
+This section presents simulation results of a UAV tasked
+with reaching a waypoint in a GNSS-denied environment,
+but pseudorange measurements made to unknown SOPs.
+Three greedy motion planning strategies to prescribe the
+UAV’s trajectory are compared: (i) naive approach, where
+the UAV moves directly to the waypoint without consid-
+ering the quality of its position estimate or knowledge of
+the environment; (ii) MOMP (38), which balances two
+objectives—minimizing the distance to the waypoint and
+minimizing UAV position uncertainty; and (iii) adaptive
+Fig. 4.
+UAV multiobjective motion planning loop.
+MOMP (40), which is similar to (ii) with the addition of
+weights to the objectives so that neither one dominates. A
+Monte Carlo study is conducted using 500 runs to compare
+each strategy by evaluating the average time to reach the
+waypoint, ﬁnal root-mean-squared error (FRMSE) of the
+UAV’s estimated position, ﬁnal root mean squared distance
+(FRMSD)towardthewaypointattheendofthemission,and
+success rate of reaching the waypoint. If the UAV did not
+reach the waypoint within 200 s, the mission was stopped
+and recorded as failure.
+A.
+Simulation Settings
+Consider an environment comprising four SOPs and
+a speciﬁed waypoint. The UAV is deployed into an un-
+certain position, has minimal knowledge of the SOPs in
+the environment, and is tasked with reaching the known
+waypoint position rt. The UAV’s uncertain deployment
+position is captured by initializing the EKF with a state
+estimate, denoted ˆxr(0| −1), with a large estimation error
+covariance "r(0| −1). One anchor SOP is available, and
+the remaining three SOPs are unknown, i.e., their initial
+state estimates ˆxsj (0| −1) have initial estimation error co-
+variances "sj (0| −1) ≻04×4, j = 1, 2, 3.
+The Monte Carlo analysis was conducted over 500 runs.
+For each run, the EKF was initialized with different initial
+estimates and used different realizations of process and
+measurement noise. The EKF and the simulation settings
+are tabulated in Table I. For each Monte Carlo, run the naive,
+MOMP, and adaptive MOMP strategies were employed to
+prescribe the UAV’s trajectory according to the closed-loop
+procedure illustrated in Fig. 4. For each run using the naive
+strategy, the mission was declared complete by the UAV by
+checking if ∥ˆrr −rt∥≤5 m, using d from Table I. For each
+run using the MOMP strategies, the mission was declared
+complete according to the stopping criterion described in 4.
+It is important to note that the nonadaptive MOMP strategy
+did not declare mission success for any of the runs.
+B.
+Naive and MOMP Strategies Comparison Results
+The true and EKF-estimated UAV trajectories, the cor-
+responding ﬁnal 95th-percentile estimation uncertainty el-
+lipse, the circle around the waypoint with distance d, and
+the true and estimated SOP positions for an example run is
+672
+IEEE TRANSACTIONS ON AEROSPACE AND ELECTRONIC SYSTEMS
+VOL. 58, NO. 1
+FEBRUARY 2022
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.11]
+Fig. 5.
+Results for the naive motion planning strategy. Illustrated are the
+true and estimated UAV trajectories, true and estimated SOP positions,
+the waypoint position, the corresponding uncertainty ellipse, and the
+target perimeter (speciﬁed distance d to the waypoint). It can be seen that
+while the UAV actually fails to reach the target perimeter (ground truth
+trajectory) despite its estimate indicating otherwise.
+Fig. 6.
+Results for the MOMP strategy. Illustrated are the true and
+estimated UAV trajectories, true and estimated SOP positions, the
+waypoint position, the corresponding uncertainty ellipse, and the target
+perimeter. The zoomed box in the bottom right illustrates the scenario
+mentioned in Section IV-C, where the distance term in the cost function
+dominates at the beginning, causing the UAV to ﬂy directly toward the
+waypoint. Once close to the waypoint, the trace of the estimation error
+covariance starts to dominate, causing the UAV to get stuck ﬂying around
+the waypoint to minimize its position estimate’s uncertainty but to no
+avail.
+TABLE II
+Motion Planning Performance
+illustrated in Figs. 5 –7 for the naive, MOMP, and adaptive
+MOMP strategies, respectively. Table II tabulates the aver-
+age time-duration to reach the waypoint, the UAV’s position
+FRMSE, the UAV’s FRMSD, and the mission completion
+success rate for the 500 Monte Carlo runs for each strategy.
+Fig. 7.
+Results for the adaptive MOMP strategy. Illustrated are the true
+and estimated UAV trajectories, true and estimated SOP positions, the
+waypoint position, the corresponding uncertainty ellipse, and the target
+perimeter. The zoomed box in the bottom right illustrates that the ﬁnal
+position uncertainty of the UAV is contained within the target perimeter
+(i.e., within speciﬁed distance d to the waypoint).
+If the UAV did not reach the waypoint within 200 s, the
+mission was stopped and recorded as failure. The time
+duration to reach the waypoint is computed by recording
+the elapsed time from mission start to the time the UAV
+declares the mission complete. The UAV’s position FRMSE
+is computed by averaging the ﬁnal position estimation error
+squared over all runs, and the UAV’s FRMSD is computed
+by averaging the square of the ﬁnal distance to the waypoint
+over all the runs. The success rate is computed by dividing
+the number of runs the UAV’s true position was within a
+distance of d from the waypoint by the total number of
+runs.
+The following conclusions can be drawn from these
+results. First, the nonadaptive MOMP strategy performed
+the worst in all metrics. The mean time to completion is
+nearly 200 s, the entire simulation run. The distance term
+dominates initially causing the UAV to go straight to the
+target. Once close to the target, the trace term becomes more
+dominant, causing the UAV to ﬂy around in order to reduce
+its position uncertainty before heading back to the target.
+However, because of the poor estimability around the target,
+the UAV cannot bring its position uncertainty down in the
+allotted time. In fact, it was observed that the covariance
+matrix in the EKF tends to grow as the UAV is ﬂying around
+due to the poor SOP geometry around the target. This causes
+the UAV to not complete the mission, and explains the large
+FRMSE and FRMSD values. The FRMSD and the FRMSE
+of the proposed adaptive MOMP strategy was signiﬁcantly
+lower than the naive and nonadaptive MOMP approaches,
+even if the timeout runs are removed. Second, the naive
+approach declared an average mission complete time that
+was about 60 s sooner than the adaptive MOMP strategy.
+YANG ET AL.: UAV WAYPOINT OPPORTUNISTIC NAVIGATION IN GNSS-DENIED ENVIRONMENTS
+673
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.12]
+Fig. 8.
+Indicator function condition (48) for the three strategies: Naive,
+MOMP, and adaptive MOMP. Illustrated are the values of the indicator
+function condition over time and the dotted line is the threshold of the
+switching cost function.
+However, only about 30% of these missions were actually
+successful.
+Note that in some runs that used the naive strategy, the
+ﬁlter diverged and the UAV never reached the waypoint,
+but the ﬁlter reported mission completed. This is due to
+the naive approach failing to consider the uncertainty in
+the UAV’s position estimate, causing the UAV to declare
+mission complete when the actual position is unacceptably
+far from the waypoint. This can be seen in Fig. 5, where the
+UAV position estimate had reached the waypoint, whereas
+the true UAV position was further than a distance d. In
+contrast, the UAV spent more time in the adaptive MOMP
+strategy performing maneuvers around the SOPs before
+moving to the waypoint, as is illustrated in Fig. 5. The
+zoomed box of Fig. 7 shows how the MOMP strategy
+ensures that the uncertainty ellipse corresponding to 1 −α
+is contained within the speciﬁed distance d from waypoint
+before the mission is declared complete. Moreover, this pa-
+per does not assume prior knowledge of the UAV’s position,
+velocity, or clock error (bias and drift). Therefore, the initial
+errors may be very large. This is accounted for by selecting
+a large initial uncertainty. As the UAV starts moving, its
+state becomes observable, allowing the EKF to correct some
+of the large initial errors. As a result, the estimate rapidly
+converges to the true trajectory’s neighborhood, as apparent
+from Figs. 5–7.
+Fig. 8 shows, on one hand, how the indicator function
+condition (48) indicates adaptive MOMP switching costs to
+balance information gathering and reaching the waypoint.
+On the other hand, without the indicator function, the naive
+andnonadaptiveMOMPnevermeetcondition(48),whichis
+necessary for (42), leading to poor performance. These ﬁnd-
+ings demonstrate the tradeoff between mission duration and
+missionsuccessandstresstheimportanceofconsideringthe
+UAV’s position estimation uncertainty when prescribing the
+UAV’s trajectory.
+VI.
+EXPERIMENTAL RESULTS
+This section presents a ﬁeld experiment demonstrat-
+ing a UAV navigating to a waypoint using pseudoranges
+measurements from cellular SOPs. The naive and adaptive
+MOMP strategies are employed and the resulting perfor-
+mance of each strategy is compared.
+Fig. 9.
+Experimental setup.
+A.
+Scenario Description
+In order to conduct a safe experiment, a postprocessing
+approach was adopted. To this end, an environment was
+ﬁrst built in simulation based on the real ﬁeld experimental
+environment. Two simulations were run in this created
+environment, which corresponded to naive and adaptive
+MOMP. For each strategy, the UAV was initialized in the
+same location and was tasked with reaching the same way-
+point position. One cellular transmitter was allocated as
+an anchor SOP and two SOPs were set to be unknown.
+Next, the produced trajectories for each motion planning
+strategy were ﬂown manually by a piloted UAV. The SOPs
+had comparable height, at which the UAV was ﬂown. The
+piloted UAV true trajectories will serve as the ground truth
+prescribed trajectories for each strategy. To perform data
+association, an ofﬂine technique was performed, in which
+theproﬁlesofthepseudorangeswerecomparedwiththedis-
+tance proﬁles to each SOP. Finally, the pseudoranges were
+fused through an EKF for each motion planning strategy and
+the resulting mission performance was compared in terms
+of mission duration, UAV position rmse, and ﬁnal distance
+to the waypoint position.
+B.
+Experimental Setup
+An Autel X-Star Premium UAV was equipped with an
+Ettus universal software radio peripheral (USRP)-E312R
+to sample cellular CDMA signals. The USRP was tuned to
+a carrier frequency of 882.75 MHz, which is commonly
+used by the cellular provided Verizon Wireless. Signals
+from three cellular SOPs were acquired and tracked via the
+Multichannel Adaptive Transceiver Information eXtractor
+(MATRIX) software-deﬁned received (SDR) [70], produc-
+ing pseudoranges to all SOPs for the entire duration of the
+ﬂight. A ground truth trajectory for the UAV was parsed
+from the UAV’s onboard navigation system log ﬁle, which
+records position from its integrated GNSS-aided inertial
+navigation system (INS). The anchor SOP’s clock was
+solved for off-line by subtracting the true distance from
+the SOP’s pseudoranges. The experiment was conducted in
+Colton, California, USA. The experimental EKF settings
+are tabulated in Table III, and the experimental setup is
+shown in Fig. 9.
+674
+IEEE TRANSACTIONS ON AEROSPACE AND ELECTRONIC SYSTEMS
+VOL. 58, NO. 1
+FEBRUARY 2022
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.13]
+TABLE III
+Experiment Settings
+Fig. 10.
+Experimental environment and UAV trajectories. Prescribed
+(cyan and blue) and estimated (pink and red) for the naive strategy and
+the adaptive MOMP strategy. Map data: Google Earth.
+TABLE IV
+Solutions Performance
+C.
+Results
+The prescribed and estimated UAV trajectories for the
+naive and adaptive MOMP strategies are illustrated in
+Fig. 10. The resulting mission performance is tabulated in
+Table IV. From this table, it can be concluded that using the
+adaptive MOMP strategy to prescribe the UAV trajectory
+to navigate to a waypoint resulted in a smaller rmse and
+ﬁnal distance to the waypoint compared to using the naive
+strategy. Note that on one hand, although the naive strat-
+egy prescribed the shortest path and declared the mission
+successful, the UAV’s position estimate had large errors,
+causing the UAV to be unacceptably far from the waypoint,
+which in turn translates to mission failure. The large errors
+are attributed to poor prior knowledge of the SOPs in the en-
+vironment. On the other hand, the adaptive MOMP strategy
+prescribedatrajectorythatperformedmaneuversaroundthe
+environment, which reduced the uncertainty of the SOPs in
+the environment. The reduction of the uncertainty of the
+SOP’s states simultaneously reduces the uncertainty of the
+UAV’s position states through correlation. Eventually, when
+the UAV’s position estimation error and error covariance are
+small enough, the UAV switches its objective to navigating
+toward the waypoint, which is successfully achieved since
+the ﬁlter errors are small.
+VII.
+CONCLUSION
+This article developed a MOMP strategy for a UAV
+navigating to a speciﬁed waypoint in a GNSS-denied en-
+vironment. The UAV was required to reach the waypoint
+within a speciﬁed distance with a speciﬁed probability. The
+UAV only had access to pseudoranges from unknown SOPs,
+which were used to simultaneously estimate the UAV’s
+states along with the unknown SOPs’ states while the UAV
+navigated to the speciﬁed waypoint. The MOMP cost func-
+tions were derived in three different approaches—using the
+Markov inequality, the KL-divergence, and the Wasserstein
+metric. It was shown that all cost functions are equivalent
+under certain conditions, and the resulting cost function
+balanced two objectives: 1) navigate to the waypoint; and
+2) reduce UAV position estimation uncertainty. Adaptive
+weights were introduced to the MOMP cost function to
+avoid the algorithm getting stuck at local minima. An indi-
+catorfunctionwasselected,whichswitchesbetweenthetwo
+objectives using a function of the UAV’s position estimation
+error covariance. A simple test was derived using the UAV’s
+positionestimationerrorcovariancetodetermineiftheUAV
+had reached the waypoint within the speciﬁed distance and a
+speciﬁed conﬁdence probability. Monte Carlo simulations
+and experimental results demonstrated that the proposed
+MOMP strategy signiﬁcantly reduces the UAV’s position
+rmse and the ﬁnal distance to the waypoint compared to a
+naive approach, in which the UAV moves directly to the
+waypoint. The adaptive MOMP strategy also outperformed
+the naive strategy in terms of mission success rate.
+The MOMP strategy studied in this article requires an
+indicator function to switch between the two components in
+the cost function, when using greedy motion planning. Fu-
+ture work can extend this framework to adaptive weighting
+of the two components of the cost function or adopt a re-
+ceding horizon trajectory optimization strategy to consider
+both components at the same time. In addition, the cost
+function of MOMP is generally nonconvex, which upon
+employing numerical optimization solvers, could result in
+convergence to local optima, in addition to requiring in-
+volved computations which could be infeasible for real-time
+implementations. Applying a convex information gathering
+cost (e.g., innovation-based metrics [32]) to MOMP could
+be the subject of future work.
+YANG ET AL.: UAV WAYPOINT OPPORTUNISTIC NAVIGATION IN GNSS-DENIED ENVIRONMENTS
+675
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.14]
+REFERENCES
+[1]
+T. Ren and M. Petovello
+A stand-alone approach for high-sensitivity GNSS receivers in
+signal-challenged environment
+IEEE
+Trans.
+Aerosp.
+Electron.
+Syst.,
+vol.
+53,
+no.
+5,
+pp. 2438–2448, Oct. 2017.
+[2]
+R. Ioannides, T. Pany, and G. Gibbons
+Known vulnerabilities of global navigation satellite systems,
+status, and potential mitigation techniques
+Proc. IEEE, vol. 104, no. 6, pp. 1174–1194, Feb. 2016.
+[3]
+J. Gross, Y. Gu, and M. Rhudy
+Robust UAV relative navigation with DGPS, INS, and peer-to-
+peer radio ranging
+IEEE Trans. Aerosp. Electron. Syst., vol. 12, no. 3, pp. 935–944,
+Jul. 2015.
+[4]
+M. Li and A. Mourikis
+High-precision, consistent EKF-based visual-inertial odometry
+Int. J. Robot. Res., vol. 32, no. 6, pp. 690–711, May 2013.
+[5]
+A. Soloviev
+Tight coupling of GPS, INS, and laser for urban navigation
+IEEE
+Trans.
+Aerosp.
+Electron.
+Syst.,
+vol.
+46,
+no.
+4,
+pp. 1731–1746, Oct. 2010.
+[6]
+H. Feder, J. Leonard, and C. Smith
+Adaptive mobile robot navigation and mapping
+Int. J. Robot. Res., vol. 18, no. 7, pp. 650–668, Jul. 1999.
+[7]
+H. Durrant-Whyte and T. Bailey
+Simultaneous localization and mapping: Part I
+IEEE Robot. Autom. Mag., vol. 13, no. 2, pp. 99–110, Jun. 2006.
+[8]
+T. Bailey and H. Durrant-Whyte
+Simultaneous localization and mapping: Part II
+IEEE Robot. Autom. Mag., vol. 13, no. 3, pp. 108–117,
+Sep. 2006.
+[9]
+C. Cadena et al.
+Past, present, and future of simultaneous localization and map-
+ping: Toward the robust-perception age
+IEEE Trans. Robot., vol. 32, no. 6, pp. 1309–1332, Dec. 2016.
+[10]
+J. Raquet and R. Martin
+Non-GNSS radio frequency navigation
+In Proc. IEEE Int. Conf. Acoust., Speech, Signal Process., 2008,
+pp. 5308–5311.
+[11]
+L. Merry, R. Faragher, and S. Schedin
+Comparison of opportunistic signals for localisation
+In Proc. IFAC Symp. Intell. Auton. Veh., 2010, pp. 109–114.
+[12]
+Z. Kassas, J. Khalife, A. Abdallah, and C. Lee
+I am not afraid of the jammer: Navigating with signals of
+opportunity in GPS-denied environments
+In Proc. 33rd Int. Tech. Meeting Satell. Division Inst. Naviga-
+tion, 2020, pp. 1566–1585.
+[13]
+C. Gentner, T. Jost, W. Wang, S. Zhang, A. Dammann, and
+U. Fiebig
+Multipath assisted positioning with simultaneous localization
+and mapping
+IEEE Trans. Wireless Commun., vol. 15, no. 9, pp. 6104–6117,
+Sep. 2016.
+[14]
+K. Shamaei, J. Khalife, and Z. Kassas
+Exploiting LTE signals for navigation: Theory to implementa-
+tion
+IEEE Trans. Wireless Commun., vol. 17, no. 4, pp. 2173–2189,
+Apr. 2018.
+[15]
+J. del Peral-Rosado, J. López-Salcedo, F. Zanier, and G. Seco-
+Granados
+Position accuracy of joint time-delay and channel estimators in
+LTE networks
+IEEE Access, vol. 6, pp. 25185–25199, Apr., 2018.
+[16]
+J. Khalife and Z. Kassas
+Opportunistic UAV navigation with carrier phase measurements
+from asynchronous cellular signals
+IEEE
+Trans.
+Aerosp.
+Electron.
+Syst.,
+vol.
+56,
+no.
+4,
+pp. 3285–3301, Aug. 2020.
+[17]
+Z. Kassas, A. Abdallah, and M. Orabi
+Carpe signum: Seize the signal – opportunistic navigation with
+5G
+Inside GNSS Mag., vol. 16, no. 1, pp. 52–57, 2021.
+[18]
+C. Yang, T. Nguyen, and E. Blasch
+Mobile positioning via fusion of mixed signals of opportunity
+IEEE Aerosp. Electron. Syst. Mag., vol. 29, no. 4, pp. 34–46,
+Apr. 2014.
+[19]
+L. Chen, O. Julien, P. Thevenon, D. Serant, A. Pena, and H.
+Kuusniemi
+TOA estimation for positioning with DVB-T signals in outdoor
+static tests
+IEEE Trans. Broadcast., vol. 61, no. 4, pp. 625–638, Dec. 2015.
+[20]
+S. Fang, J. Chen, H. Huang, and T. Lin
+Is FM a RF-based positioning solution in a metropolitan-scale
+environment? A probabilistic approach with radio measure-
+ments
+IEEE Trans. Broadcast., vol. 55, no. 3, pp. 577–588, Sep. 2009.
+[21]
+V. Moghtadaiee and A. Dempster
+Indoor location ﬁngerprinting using FM radio signals
+IEEE
+Trans.
+Broadcast.,
+vol.
+60,
+no.
+2,
+pp. 336–346,
+Jun. 2014.
+[22]
+R. Landry, A. Nguyen, H. Rasaee, A. Amrhar, X. Fang, and H.
+Benzerrouk
+Iridium next LEO satellites as an alternative PNT in GNSS
+denied environments–Part 1
+Inside GNSS Mag., vol. 4, no. 3, pp. 56–64, May 2019.
+[23]
+Z. Kassas, J. Morales, and J. Khalife
+New-age satellite-based navigation – STAN: Simultaneous
+tracking and navigation with LEO satellite signals
+Inside
+GNSS
+Mag.,
+vol.
+14,
+no.
+4,
+pp. 56–65,
+2019.
+[24]
+F. Farhangian and R. Landry
+Multi-constellation software-deﬁned receiver for doppler posi-
+tioning with LEO satellites
+Sensors, vol. 20, no. 20, pp. 5866–5883, Oct. 2020.
+[25]
+M. Orabi, J. Khalife, and Z. Kassas
+Opportunistic navigation with doppler measurements from irid-
+ium next and orbcomm LEO satellites
+In Proc. IEEE Aerosp. Conf., 2021, pp. 1–9.
+[26]
+J. Morales and Z. Kassas
+Tightly-coupled inertial navigation system with signals of op-
+portunity aiding
+IEEE
+Trans.
+Aerosp.
+Electron.
+Syst.,
+vol.
+57,
+no.
+3,
+pp. 1930–1948, Jun. 2021.
+[27]
+M. Driusso, C. Marshall, M. Sabathy, F. Knutti, H. Mathis, and F.
+Babich
+Vehicular position tracking using LTE signals
+IEEE Trans. Veh. Technol., vol. 66, no. 4, pp. 3376–3391,
+Apr. 2017.
+[28]
+K. Shamaei and Z. Kassas
+LTE receiver design and multipath analysis for navigation in
+urban environments
+Navigation J. Inst. Navigation, vol. 65, no. 4, pp. 655–675,
+Dec. 2018.
+[29]
+C. Yang and A. Soloviev
+Mobile positioning with signals of opportunity in urban and
+urban canyon environments
+In Proc. IEEE/ION Position, Location, Navigation Symp., 2020,
+pp. 1043–1059.
+[30]
+J. Khalife and Z. Kassas
+Precise UAV navigation with cellular carrier phase measure-
+ments
+Proc. IEEE/ION Position, Location, Navigation Symposium,
+Apr. 2018, pp. 978–989.
+[31]
+C. Yang and A. Soloviev
+Simultaneous localization and mapping of emitting radio
+sources-SLAMERS
+In Proc. ION GNSS Conf., 2015, pp. 2343–2354.
+676
+IEEE TRANSACTIONS ON AEROSPACE AND ELECTRONIC SYSTEMS
+VOL. 58, NO. 1
+FEBRUARY 2022
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.15]
+[32]
+Z. Kassas, A. Arapostathis, and T. Humphreys
+Greedy motion planning for simultaneous signal landscape
+mapping and receiver localization
+IEEE J. Sel. Topics Signal Process., vol. 9, no. 2, pp. 247–258,
+Mar. 2015.
+[33]
+Z. Kassas and T. Humphreys
+Receding horizon trajectory optimization in opportunistic nav-
+igation environments
+IEEE Trans. Aerosp. Electron. Syst., vol. 51, no. 2, pp. 866–877,
+Apr. 2015.
+[34]
+G. Qian, D. Pebrianti, Y. Chun, Y. Hao, and L. Bayuaji
+Waypoint navigation of quad-rotor MAV
+In Proc. IEEE Int. Conf. Syst. Eng. Technol., 2017, pp. 38–42.
+[35]
+Y. Saidi, M. Tadjine, and A. Nemra
+Robust waypoints navigation using fuzzy type 2 controller
+In Proc. Int. Conf. Adv. Elect. Eng., 2019, pp. 1–6.
+[36]
+T. Puls, M. Kemper, R. Küke, and A. Hein
+GPS-based position control and waypoint navigation system for
+quadrocopters
+In Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst., 2009,
+pp. 3374–3379.
+[37]
+M. Imamura, R. Tomitaka, Y. Miyazaki, K. Kobayashi, and K.
+Watanabe
+Outdoorwaypointnavigationforanintelligentwheelchairusing
+differential GPS and INS
+In Proc. SICE Annu. Conf., vol. 3, 2004, pp. 2193–2196.
+[38]
+R. Tomitaka, K. Kobayashi, and K. Watanabe
+Development of intelligent vehicle for waypoints navigation
+In Proc. SICE Annu. Conf., vol. 1, 2003, pp. 1094–1097.
+[39]
+S. He, H. Shin, A. Tsourdos, and C. Lee
+Energy-optimal waypoint-following guidance considering au-
+topilot dynamics
+IEEE
+Trans.
+Aerosp.
+Electron.
+Syst.,
+vol.
+56,
+no.
+4,
+pp. 2701–2717, Aug. 2020.
+[40]
+I. Whang and T. Hwang
+Horizontal waypoint guidance design using optimal control
+IEEE
+Trans.
+Aerosp.
+Electron.
+Syst.,
+vol.
+38,
+no.
+3,
+pp. 1116–1120, Jul. 2002.
+[41]
+T. Davies and A. Jnifene
+Multiple waypoint path planning for a mobile robot using
+genetic algorithms
+In Proc. IEEE Int. Conf. Comput. Intell. Meas. Syst. Appl., 2006,
+pp. 21–26.
+[42]
+J. Petereit, T. Emter, and C. Frey
+Safe mobile robot motion planning for waypoint sequences in
+a dynamic environment
+In Proc. IEEE Int. Conf. Ind. Technol., 2013, pp. 181–186.
+[43]
+Z. Yan, J. Li, Y. Wu, and G. Zhang
+A real-time path planning algorithm for AUV in unknown un-
+derwater environment based on combining PSO and waypoint
+guidance
+Sensors, vol. 19, no. 1, pp. 20–33, Dec. 2018.
+[44]
+M. Ataei and A. Youseﬁ-Koma
+Three-dimensional optimal path planning for waypoint guid-
+ance of an autonomous underwater vehicle
+Robot. Auton. Syst., vol. 67, pp. 23–32, 2015.
+[45]
+C. Hubmann, J. Schulz, M. Becker, D. Althoff, and C. Stiller
+Automated driving in uncertain environments: Planning with
+interaction and uncertain maneuver prediction
+IEEE Trans. Intell. Veh., vol. 3, no. 1, pp. 5–17, Mar. 2018.
+[46]
+K. Berntorp, T. Hoang, and S. Di Cairano
+Motion planning of autonomous road vehicles by particle ﬁlter-
+ing
+IEEE Trans. Intell. Veh., vol. 4, no. 2, pp. 197–210, Jun. 2019.
+[47]
+H. Karimi and D. Asavasuthirakul
+A novel optimal routing for navigation systems-services based
+on global navigation satellite system quality of service
+J. Intell. Transp. Syst., vol. 18, no. 3, pp. 286–298, May 2014.
+[48]
+A. Nowak
+Dynamic GNSS mission planning using DTM for precise
+navigation of autonomous vehicles
+J.
+Navigation,
+vol.
+70,
+no.
+3,
+pp. 483–504,
+May 2017.
+[49]
+S. Ragothaman, M. Maaref, and Z. Kassas
+Autonomous ground vehicle path planning in urban environ-
+ments using GNSS and cellular signals reliability maps: Models
+and algorithms
+IEEE
+Trans.
+Aerosp.
+Electron.
+Syst.,
+vol.
+57,
+no.
+2,
+pp. 1562–1580, Jun. 2021.
+[50]
+S. Ragothaman, M. Maaref, and Z. Kassas
+Autonomous ground vehicle path planning in urban environ-
+ments using GNSS and cellular signals reliability maps: Simu-
+lation and experimental results
+IEEE Trans. Aerosp. Electron. Syst., vol. 57, no. 4, pp. 2575–
+2586, Aug. 2021.
+[51]
+J. Isaacs et al.
+GPS-optimal micro air vehicle navigation in degraded environ-
+ments
+In Proc. Amer. Control Conf., 2014, pp. 1864–1871.
+[52]
+S. Ragothaman, M. Maaref, and Z. Kassas
+Multipath-optimal UAV trajectory planning for urban UAV
+navigation with cellular signals
+In Proc. IEEE Veh. Technol. Conf., 2019, pp. 1–6.
+[53]
+G. Zhang and L. Hsu
+A new path planning algorithm using a GNSS localization error
+map for UAVs in an urban area
+J. Intell. Robotic Syst., vol. 94, pp. 219–235, 2019.
+[54]
+A. Shetty and G. Gao
+Trajectory planning under stochastic and bounded sensing un-
+certainties using reachability analysis
+In Proc. ION GNSS Conf., 2020, pp. 1637–1648.
+[55]
+M. Maaref and Z. Kassas
+Optimal GPS integrity-constrained path planning for ground
+vehicles
+In Proc. IEEE/ION Position, Location, Navigation Symp., 2020,
+pp. 655–660.
+[56]
+S. Prentice and N. Roy
+The belief roadmap: Efﬁcient planning in linear POMDPs by
+factoring the covariance
+Robot. Res., vol. 66, pp. 293–305, 2011.
+[57]
+B. Englot, T. Shan, S. Bopardikar, and A. Speranzon
+Sampling-based min-max uncertainty path planning
+In Proc. Conf. Decis. Control, 2016, pp. 6863–6870.
+[58]
+S. Bopardikar, B. Englot, A. Speranzon, and J. Berg
+Robust belief space planning under intermittent sensing via a
+maximum eigenvalue-based bound
+Int. J. Robot. Res., vol. 28, pp. 1609–1626, Jul. 2016.
+[59]
+Y. Elisha and V. Indelman
+Active online visual-inertial navigation and sensor calibration
+via belief space planning and factor graph based incremental
+smoothing
+In Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst., 2017,
+pp. 2616–2622.
+[60]
+R. Schirmer, P. Biber, and C. Stachniss
+Efﬁcient path planning in belief space for safe navigation
+In Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst., 2017,
+pp. 2857–2863.
+[61]
+A. Agha-Mohammadi, S. Agarwal, S. Kim, S. Chakravorty, and
+N. Amato
+SLAP: Simultaneous localization and planning under uncer-
+tainty via dynamic replanning in belief space
+IEEE Trans. Robot., vol. 34, no. 5, pp. 1195–1214, Oct. 2018.
+[62]
+S. Bopardikar, B. Englot, and A. Speranzon
+Multiobjective path planning: Localization constraints and col-
+lision probability
+IEEE Trans. Robot., vol. 31, no. 3, pp. 562–577, Jun. 2015.
+YANG ET AL.: UAV WAYPOINT OPPORTUNISTIC NAVIGATION IN GNSS-DENIED ENVIRONMENTS
+677
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.16]
+[63]
+S. Singh and P. Sujit
+Landmarks based path planning for UAVs in GPS-denied areas
+IFAC-PapersOnLine, vol. 49, no. 1, pp. 396–400, 2016.
+[64]
+B. Irani, J. Wang, and W. Chen
+A localizability constraint-based path planning method for au-
+tonomous vehicles
+IEEE Trans. Intell. Transp. Syst., vol. 20, no. 7, pp. 2593–2604,
+Jul. 2018.
+[65]
+A. Das, K. Subbarao, and F. Lewis
+Dynamicinversionwithzero-dynamicsstabilisationforquadro-
+tor control
+IET Control Theory Appl., vol. 3, no. 3, pp. 303–314, 2008.
+[66]
+X. Li and V. Jilkov
+Survey of maneuvering target tracking. Part I: Dynamic models
+IEEE
+Trans.
+Aerosp.
+Electron.
+Syst.,
+vol.
+39,
+no.
+4,
+pp. 1333–1364, Oct. 2003.
+[67]
+J. Morales and Z. Kassas
+Stochastic observability and uncertainty characterization in si-
+multaneous receiver and transmitter localization
+IEEE
+Trans.
+Aerosp.
+Electron.
+Syst.,
+vol.
+55,
+no.
+2,
+pp. 1021–1031, Apr. 2019.
+[68]
+Z. Kassas and T. Humphreys
+Observability analysis of collaborative opportunistic navigation
+with pseudorange measurements
+IEEE Trans. Intell. Transp. Syst., vol. 15, no. 1, pp. 260–273,
+Feb. 2014.
+[69]
+Y. Sun, Á. Baricz, and S. Zhou
+On the monotonicity, Log-Concavity, and tight bounds of the
+generalized Marcum and Nuttall q-Functions
+IEEE Trans. Inf. Theory, vol. 56, no. 3, pp. 1166–1186,
+Mar. 2010.
+[70]
+J. Khalife, K. Shamaei, and Z. Kassas
+Navigation with cellular CDMA signals – Part I: Signal mod-
+eling and software-deﬁned receiver design
+IEEE Trans. Signal Process., vol. 66, no. 8, pp. 2191–2203,
+Apr. 2018.
+Yanhao
+Yang
+(Student
+Member,
+IEEE)
+received
+the
+B.E.
+degree
+in
+mechanical
+engineering from the South China University
+of Technology, Guangzhou, China. He is
+currently working toward the M.S. degree with
+the Department of Mechanical Engineering,
+Carnegie Mellon University, Pittsburgh, PA,
+USA.
+He was an Exchange Student with the
+University of California Irvine, Irvine, CA,
+USA, and a member of the Autonomous
+Systems Perception, Intelligence, and Navigation (ASPIN) Laboratory.
+His research interests include motion planning and unmanned aerial
+vehicles.
+Joe Khalife (Member, IEEE) received the B.E.
+degree in electrical engineering, the M.S. de-
+gree in computer engineering from the Lebanese
+American University (LAU), Beirut, Lebanon,
+and the Ph.D. degree in electrical engineering
+and computer science from the University of
+California Irvine, Irvine, CA, USA.
+He is a Postdoctoral Fellow with the Univer-
+sity of California Irvine and member of the Au-
+tonomous Systems Perception, Intelligence, and
+Navigation (ASPIN) Laboratory. From 2012 to
+2015, he was a Research Assistant with LAU, and has been a member of the
+ASPIN Laboratory since 2015. His research interests include opportunistic
+navigation, autonomous vehicles, and software-deﬁned radio.
+Dr. Khalife was the recipient of the 2016 IEEE/ION Position, Location,
+and Navigation Symposium (PLANS) Best Student Paper Award and the
+2018 IEEE Walter Fried Award.
+Joshua J. Morales (Member, IEEE) received
+the B.S. degree in electrical engineering from
+the University of California, Riverside, River-
+side, CA, USA, and the Ph.D. degree in
+electrical engineering and computer science
+from the University of California Irvine, CA,
+USA.
+He is a Principal with StarNav LLC, River-
+side, CA, USA. Previously, he was a member
+of the Autonomous Systems Perception, Intel-
+ligence, and Navigation (ASPIN) Laboratory,
+University of California Irvine. His research interests include estima-
+tion theory, navigation systems, autonomous vehicles, and cyber-physical
+systems.
+Dr. Morales was the recipient of 2016 Honorable Mention from the
+National Science Foundation (NSF), and 2018 National Center for Sus-
+tainable Transportation (NCST) Outstanding Graduate Student of the Year
+award.
+Zaher(Zak)M.Kassas(SeniorMember,IEEE)
+received the B.E. degree in electrical engineer-
+ing from the Lebanese American University,
+Beirut, Lebanon, the M.S. degree in electrical
+and computer engineering from The Ohio State
+University, Columbus, OH, USA, the M.S.E.
+degree in aerospace engineering, and the Ph.D.
+degree in electrical and computer engineering
+from The University of Texas at Austin, TX,
+USA.
+He is an Associate Professor with the Univer-
+sity of California Irvine, CA, USA, and the Director of the Autonomous
+Systems Perception, Intelligence, and Navigation (ASPIN) Laboratory. He
+is also the Director of the U.S. Department of Transportation Center: CAR-
+MEN (Center for Automated Vehicle Research with Multimodal AssurEd
+Navigation), focusing on navigation resiliency and security of highly auto-
+matedtransportationsystems.Hisresearchinterestsincludecyber-physical
+systems, estimation theory, navigation systems, autonomous vehicles, and
+intelligent transportation systems.
+Dr. Kassas was the recipient of the 2018 National Science Foundation
+(NSF) Faculty Early Career Development Program (CAREER) award,
+2019 Ofﬁce of Naval Research (ONR) Young Investigator Program (YIP)
+award, 2018 IEEE Walter Fried Award, 2018 Institute of Navigation (ION)
+Samuel Burka Award, and 2019 ION Col. Thomas Thurlow Award. He is
+a Senior Editor for the IEEE TRANSACTIONS ON INTELLIGENT VEHICLES
+and an Associate Editor for the IEEE TRANSACTIONS ON AEROSPACE AND
+ELECTRONIC SYSTEMS and the IEEE TRANSACTIONS ON INTELLIGENT
+TRANSPORTATION SYSTEMS.
+678
+IEEE TRANSACTIONS ON AEROSPACE AND ELECTRONIC SYSTEMS
+VOL. 58, NO. 1
+FEBRUARY 2022
+Authorized licensed use limited to: The Ohio State University. Downloaded on October 12,2022 at 17:33:34 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

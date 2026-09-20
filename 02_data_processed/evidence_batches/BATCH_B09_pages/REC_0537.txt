@@ -1,0 +1,779 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0537.pdf
+sha256: 9667BC4DF66FA3EF269424F293DF97D88F30DD659A4F27168B01F724DD62B23D
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+Indoor Navigation and Attitude Estimation for UAS 
+using Inertial Sensors and Extended Kalman 
+Filtering 
+Salvatore Ponte 
+Department of Science and Technology 
+University of Campania “L. Vanvitelli” 
+81031 Aversa (CE), Italy 
+salvatore.ponte@unicampania.it 
+Vittorio Di Vito 
+Italian Aerospace Research Center (CIRA) 
+Via Maiorise, snc 
+81043 Capua (CE), Italy 
+v.devito@cira.it 
+ Gennaro Ariante 
+Department of Science and Technology  
+University of Naples “Parthenope” 
+80133 Naples, Italy 
+gennaro.ariante@studenti.uniparthenope.it 
+Giuseppe Del Core 
+Department of Science and Technology  
+University of Naples “Parthenope” 
+80133 Naples, Italy 
+giuseppe.delcore@uniparthenope.it
+Aniello Menichino 
+Italian Aerospace Research Center (CIRA) 
+Via Maiorise, snc 
+81043 Capua (CE), Italy 
+a.menichino@cira.it 
+ 
+ 
+Abstract — Accurate position estimation during navigation 
+is essential for missions conducted using Unmanned Aerial 
+Systems (UASs), particularly in fully autonomous operations or 
+missions performed in Beyond Visual Line of Sight (BVLOS) 
+conditions. In outdoor environments, conventional positioning 
+solutions primarily rely on Global Navigation Satellite Systems 
+(GNSS). However, GNSS-based approaches are not suitable for 
+indoor navigation scenarios or GPS-denied environments, 
+where satellite signals are unavailable or severely degraded. As 
+a result, alternative positioning and navigation technologies are 
+required to ensure reliable and accurate UAS operation in such 
+conditions. Inertial Navigation Systems (INS) are becoming 
+essential components of UAS navigation architectures. By 
+integrating low-cost Inertial Measurement Units (IMU), INS 
+provide reliable navigation and attitude estimation capabilities, 
+particularly 
+in 
+GNSS-denied 
+environments. 
+However, 
+uncompensated bias and drift errors lead to the accumulation of 
+position and velocity errors, resulting in significant navigation 
+inaccuracies. This work investigates the impact of IMU bias and 
+drift errors on UAS navigation and attitude estimation and 
+introduces an estimation technique based on the Extended 
+Kalman Filter (EKF) to jointly estimate and compensate these 
+error sources. The proposed EKF-based approach estimates 
+both bias and drift terms affecting the UAS position and 
+attitude, thereby mitigating the accumulation of velocity and 
+position errors over time. The effectiveness of the proposed 
+method is validated through simulation tests conducted in 
+MATLAB® and Simulink® environments, reproducing realistic 
+operational scenarios. Simulation results demonstrate that the 
+proposed approach significantly enhances UAS navigation 
+performance by improving estimation accuracy and reducing 
+overall navigation errors. 
+Keywords—Indoor Navigation, UAS, IMU, INS, Indoor 
+Positioning, Attitude Estimation, EKF. 
+I. INTRODUCTION  
+During missions conducted using Unmanned Aerial 
+Vehicles (UAVs), localization refers to the determination of a 
+vehicle’s position and attitude in two or three-dimensional 
+space. The use of small and micro UAVs has significantly 
+increased in recent years, driven by higher levels of autonomy 
+and the rapid development of low-cost electronic components, 
+such as microcontrollers and onboard sensors [1] [2]. 
+In particular, multirotor platforms (e.g., quadcopters, 
+hexacopters, etc.) offer vertical take-off and landing (VTOL) 
+capabilities, omnidirectional motion, and the ability to hover 
+at a fixed position. These characteristics make them well 
+suited for reconnaissance and monitoring operations in hostile 
+or hazardous environments, where human intervention is 
+impractical or unsafe. Nowadays, the most widely adopted 
+navigation architectures for UASs rely on the integration of 
+Global Navigation Satellite Systems (GNSS) and Inertial 
+Navigation Systems (INS), which include an Inertial 
+Measurement Unit (IMU) composed of magnetometers, 
+gyroscopes, and accelerometers. While GNSS provides 
+absolute position information by processing signals from 
+satellite constellations, it becomes unreliable or unavailable in 
+indoor environments due to signal attenuation and loss [3]. 
+MARG (Magnetic, Angular Rate and Gravity) sensors are 
+typically based on Micro-Electro-Mechanical Systems 
+(MEMS) 
+technology 
+and 
+integrate 
+gyroscopes, 
+accelerometers, and magnetometers. These sensors enable the 
+estimation of the orientation of a rigid body with respect to a 
+fixed reference frame. Unlike GNSS-based positioning 
+systems, MARG sensors can provide attitude information in 
+indoor environments, since they do not rely on signals from 
+external sources. Moreover, the widespread adoption of these 
+sensors in many applications is mainly due to their low weight, 
+low cost, low power consumption, and relatively high real-
+time performance [4]. 
+MEMS-based IMUs, are commonly used to estimate 
+position by double integration of acceleration measurements 
+[5]. However, IMU sensor readings inherently contain errors 
+such as random noise and sensor biases, which degrade 
+navigation performance. In addition, numerical integration 
+introduces further inaccuracies due to time discretization, 
+which exacerbates the accumulation of drift over time [6] [7]. 
+Over the years, several approaches have been developed 
+to address the problem of attitude and position estimation, and 
+various sensor fusion algorithms have been implemented and 
+tested for onboard applications. Among the available 
+estimation techniques, the Extended Kalman Filter (EKF) is 
+commonly employed for nonlinear state estimation problems, 
+enabling the fusion of inertial and external sensor 
+measurements to improve the accuracy and robustness of 
+navigation solutions. 
+In this context, this paper proposes a navigation 
+framework for UAS operating in indoor and GNSS-denied 
+217
+2026 IEEE 13th International Workshop on Metrology for AeroSpace (MetroAeroSpace) | 979-8-3315-5125-4/26/$31.00 ©2026 IEEE | DOI: 10.1109/METROAEROSPACE69299.2026.11646697
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:23 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+ 
+\r 
+environments. 
+The 
+proposed 
+approach 
+integrates 
+measurements from an INS. An EKF is employed to fuse the 
+available sensor measurements and to estimate the UAV state, 
+while compensating for IMU bias and drift errors. 
+The effectiveness of the proposed approach is evaluated 
+through simulation experiments carried out in MATLAB® and 
+Simulink® environments, designed to reproduce realistic 
+operational scenarios. The results demonstrate that the 
+proposed method improves the accuracy of position and 
+attitude estimation while reducing the accumulation of 
+navigation errors. 
+In the next section, the hardware (electronic components) 
+and methodologies used for system preliminary setup are 
+discussed in detail. Successively, the first data collection and 
+results are presented. 
+II. HARDWARE AND METHODOLOGIES 
+A. Architecture 
+This section describes the architecture of the position and 
+attitude estimation system. A block diagram of the proposed 
+system architecture is shown in Figure 1. As illustrated in the 
+figure, the onboard IMU includes three-axis accelerometers, 
+gyroscopes, and magnetometers. 
+ 
+Figure 1. Block diagram of the position and attitude estimation system 
+architecture. 
+B. Sensors 
+To perform the simulation tests, an Arduino Nano 33 BLE 
+was used as a Single Board Computer (SBC). This platform 
+integrates an onboard IMU sensor, specifically the LSM9DS1 
+9-DOF inertial sensor [8]. The device incorporates three 
+sensing elements: a three-axis accelerometer configured with 
+a measurement range of ±2 g, a three-axis gyroscope with a 
+range of ±245 degrees per second, and a three-axis 
+magnetometer with a range of ± 0.4 mT. 
+Figure 2 shows the microcontroller board, highlighting the 
+position of the integrated sensor. 
+ 
+Figure 2. SBC with integrated IMU. 
+Arduino Nano 33 BLE is a multiprotocol microcontroller 
+board supporting 3.3 V input/output logic levels. The 5-V pin 
+is connected to the USB power input through a jumper. The 
+board features two 15-pin connectors, one on each side, which 
+are pin-to-pin compatible with the original Arduino Nano 
+form factor. 
+The 
+main 
+processor is the nRF52840 (Nordic 
+Semiconductors), a 32-bit ARM Cortex-M4 microcontroller 
+operating at a clock frequency of up to 64 MHz. Most of the 
+processor pins are connected to the external headers; however, 
+some are reserved for internal communication with the 
+wireless module and with the onboard I²C peripherals, 
+including the IMU and the cryptographic module [9]. The 
+main characteristics are summarized in Table 1.  
+TABLE 1. ARDUINO NANO 33 BLE MAIN CHARACTERISTICS. 
+Type Characteristics 
+Nano 33 BLE 
+Clock speed 
+64 MHz 
+Flash 
+1 MB 
+RAM 
+256 KB 
+Connectivity 
+BLE 
+Sensors 
+9-axis IMU 
+ 
+C. Applied Methodologies  
+During 
+the 
+simulation 
+campaign, 
+a 
+strapdown 
+configuration was adopted, in which the INS sensors are 
+rigidly attached to the aircraft body. In this configuration, the 
+accelerometers measure the aircraft’s linear acceleration along 
+the three body axes, while the gyroscopes provide angular rate 
+measurements used to determine the vehicle’s orientation 
+(Figure 3). The magnetometer is used to provide a reference 
+to the Earth's magnetic north.  
+ 
+Figure 3. Block diagram of position and attitude estimation in INS strapdown 
+configuration. 
+Attitude describes the orientation of a rigid body in three-
+dimensional space. More generally, it represents the relative 
+orientation 
+between 
+two 
+coordinate 
+frames. 
+In 
+vehicleguidance, navigation and control (GNC) applications 
+near the Earth’s surface, the two coordinate frames of primary 
+interest are typically referred to as the body frame and the 
+navigation frame (NED, North, East, Down). Euler angles Ψ, 
+Θ, and Φ describe the aircraft attitude. These angles are also 
+used to convert coordinates from the body reference frame to 
+the NED reference frame using the Direction Cosine Matrix 
+(DCM) [10]. The DCM (Eq(1)) plays a critical role in the 
+implementation of strapdown navigation systems and is 
+assumed, in this study, to be provided by an Attitude and 
+Heading Reference System (AHRS) [11]: 
+𝑅𝐵𝐸= [
+c(𝛹) c(𝛳)
+𝑐(𝛹)𝑠(𝛳)𝑠(𝜙) −𝑠(𝛹)𝑐(Ф)
+c(𝛹)𝑠(𝛳)𝑐(Ф) + 𝑠(𝛹)𝑠(Ф)
+s(𝛹)c(𝛳)
+𝑠(𝛹)𝑠(𝛳)𝑠(𝜙)+ 𝑐(𝛹)𝑐(Ф)
+𝑠(𝛹)𝑠(𝛳)𝑐(Ф) −𝑐(𝛹)𝑠(Ф)
+−s(𝛳)
+𝑐(𝛳)𝑠(Ф)
+𝑐(𝛳)𝑐(Ф)
+](1) 
+where c and s indicate cosine and sine respectively. Euler 
+angles are obtained by integrating the angular velocity vector 
+𝜔= [𝑝′,𝑞′,𝑟′]𝑇, measured in body frame, from a known 
+initial condition.  
+Rate Gyro
+Accelerometer
+Magnetometer
+IMU
+p, q, r
+ax ,  ay , az
+hx , hy , hz
+Signal Process 
+Module
+Data 
+Conversion
+Position and 
+Attitude 
+Estimation
+Visualization
+IMU - LSM9DS1
+Accelerometer
+Gyroscope
+Model of 
+Gravitational 
+Field
+Gravity 
+Correction
+Attitude 
+Computation
+Resolution
+Integration
+Integration
+Position
+Velocity
+Attitude
+Vehicle 
+specific force 
+Acceleration
+Vehicle 
+rotation
+218
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:23 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+ 
+\r 
+ 
+[
+𝑝′
+𝑞′
+𝑟′
+] = [
+−𝑠𝑖𝑛𝛩
+𝑠𝑖𝑛𝛷𝑐𝑜𝑠𝛩
+𝑐𝑜𝑠𝛷𝑐𝑜𝑠𝛩
+  
+0
+𝑐𝑜𝑠𝛷
+−𝑠𝑖𝑛𝛷
+  
+1
+0
+0
+] [
+𝛹̇
+𝛩̇
+𝛷̇
+] 
+(2) 
+Following Eq. (2), and denoting by 𝐴 the matrix, the 
+variation of the Euler angles can be obtained from the 
+following equation: 
+ 
+𝐴−1[
+𝑝′
+𝑞′
+𝑟′
+] = [
+𝛹̇
+𝛩̇
+𝛷̇
+]  
+ 
+(3) 
+The following equation represents the numerical 
+integration of the state variables starting from a known initial 
+condition, performed using the trapezoidal method. 
+ 
+𝛹(𝑡) = 𝛹0 + 𝛹̇ ∗ 𝛥𝑡 
+  𝛩(𝑡) = 𝛩0 + 𝛩 ̇∗𝛥t 
+ 𝛷(t) = 𝛷0 + 𝛷̇ ∗ 𝛥𝑡  
+(4) 
+D. Filtering Process 
+To enhance position and attitude estimation accuracy, 
+filtering techniques are applied to refine proximity 
+measurements. In this study, an Extended Kalman Filter 
+(EKF) is implemented to mitigate measurement noise, 
+compensate for bias, and improve the overall precision of the 
+data estimation. EKF is a widely used technique for state 
+estimation in nonlinear systems, making it particularly 
+suitable for drone navigation, where both the process and 
+measurement models are often nonlinear [12]. The EKF 
+operates by linearizing the nonlinear system model around the 
+current state estimate and subsequently applying the standard 
+Kalman Filter update equations [13]. 
+The measurement process model is: 
+ 
+𝑥𝑘+1 = 𝑓(𝑥𝑘,𝑢𝑘,𝜐𝑘) 
+(5) 
+ 
+𝑧𝑘 = 𝑔(𝑥𝑘,𝑢𝑘,𝑣𝑘) 
+(6) 
+where 𝑥 is the state, 𝑢 is the input, 𝑧 is the measured 
+output, 𝜐 and 𝑣 are the process and measurement noise, 
+respectively. Zero-mean Gaussian distributions are assumed 
+for the noises 𝜐𝑘 and  𝑣𝑘, with known covariance matrices 𝑄𝑘 
+and  𝑅𝑘: 
+ 
+𝜐𝑘 ∼𝒩(0,𝑄𝑘)   
+𝑣𝑘 ∼𝒩(0,𝑅𝑘) 
+(7) 
+The algorithm is divided into two phases, prediction and 
+correction. At each time step, the prediction phase provides 
+the a priori state estimation 𝑥̂𝑘+1
+−
+ and the state covariance 
+matrix 𝑃𝑘+1
+−
+, whereas, during the correction phase (update 
+phase), the a posteriori state estimation 𝑥̂𝑘+1
++
+ and the state 
+covariance matrix 𝑃𝑘+1
++ are calculated. 
+The a priori estimation of the state 𝑥̂𝑘+1
+− is expressed by 
+Equation (5), considering null process noise (𝜐𝑘= 0): 
+ 
+𝑥̂𝑘+1
+−
+ = 𝑓(𝑥̂𝑘
++,𝑢𝑘,0) 
+(8) 
+The a priori state covariance matrix 𝑃𝑘+1
+− is obtained as 
+follows: 
+ 
+𝑃𝑘+1
+−
+= 𝐴𝑘 𝑃𝑘
++ 𝐴𝑘
+𝑇+ 𝑊𝑘 𝑄𝑘 𝑊𝑘
+𝑇 
+(9) 
+where: 
+ 
+𝐴𝑘= (𝜕𝑓
+𝜕𝑥)𝑥̂𝑘
++,𝑢𝑘,0
+1
+   𝑊𝑘= (𝜕𝑓
+𝜕𝜐)𝑥̂𝑘
++,𝑢𝑘,0
+1
+ 
+(10) 
+are the Jacobian matrices of the function f, and 𝑃𝑘
++ is the a 
+posteriori state covariance matrix at time 𝑘. Once a new 
+measurement has been acquired, the a posteriori state 
+estimation can be computed by updating the a priori state 
+estimation, as: 
+ 
+𝑥̂𝑘
++ = 𝑥̂𝑘
+−+ 𝐾𝑘(𝑧𝑘−ℎ(𝑥̂𝑘
+−)) 
+(11) 
+where the Kalman gain (𝐾𝑘) is given by: 
+ 
+𝐾𝑘= 𝑃𝑘
+− 𝐻𝑘
+𝑇(𝐻𝑘𝑃𝑘
+−𝐻𝑘
+𝑇+ 𝑉𝑘𝑅𝑘𝑉𝑘
+𝑇)−1 
+(12) 
+Finally, the a posteriori state matrix is updated as follows:  
+ 
+𝑃𝑘
++ = (𝐼−𝐾𝑘𝐻𝑘)𝑃𝑘
+− 
+(13) 
+where I is the identity matrix. 
+III. SIMULATIONS AND RESULTS 
+Tests were conducted in a controlled indoor environment 
+designed to simulate UAV navigation conditions in the 
+absence of GNSS signals. During the data acquisition 
+campaign, a set of predefined motion profiles was performed, 
+including take-off and landing sequences, as well as 
+controlled roll, pitch, and yaw maneuvers. These trajectories 
+were designed to sufficiently excite the system dynamics 
+across all degrees of freedom. 
+The IMU sensor was rigidly mounted on a rotary platform, 
+allowing repeatable and well-defined angular excitations. 
+This configuration enabled the assessment of the system’s 
+response to both vertical accelerations and rotational 
+dynamics. Sensor data were acquired at a frequency of 10 Hz. 
+Prior to the experiments, an initial calibration procedure 
+was performed to compensate for sensor biases and scale 
+factor errors. In particular, magnetometer calibration was 
+carried out to correct for hard-iron and soft-iron distortions, 
+enabling reliable heading estimation. The calibrated 
+measurements were used to initialize the state vector of the 
+EKF. A static alignment phase was conducted at the 
+beginning of each experiment, during which the system was 
+assumed to be at rest. This phase allowed for the estimation 
+of initial roll and pitch angles from accelerometer 
+measurements, whereas the yaw angle was initialized using 
+magnetometer data. Gyroscope biases were estimated during 
+this stationary interval and included in the initial state. The 
+data acquired during each measurement session were 
+transmitted via USB cable to a laptop and stored for 
+subsequent post-processing, during which the proposed 
+methodology was applied. 
+The initial state covariance matrix was defined to reflect the 
+uncertainty associated with the initial conditions, with higher 
+variance assigned to position and velocity states and lower 
+variance to attitude components after alignment. Process 
+noise was modeled as zero-mean white Gaussian noise, 
+accounting for accelerometer and gyroscope measurement 
+noise as well as bias instability. Measurement noise 
+covariance was defined based on sensor specifications and 
+empirical tuning. This setup provided a consistent and 
+repeatable framework for evaluating the performance of the 
+EKF-based state estimation algorithm under controlled 
+conditions. In particular, both the process noise covariance 
+matrix Q and the measurement noise covariance matrix R 
+were initialized, as shown in Table 2. 
+219
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:23 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+ 
+\r 
+TABLE 2. PARAMETERS VALUE FOR EKF INITIALIZATION PHASE. 
+Parameter 
+Value 
+Initial State x [p, v, q, bA, bG, bM] 
+[0, 0, 0, 0, 0, 0] 
+σA
+2  
+0.01 
+σG
+2  
+0.08 
+σM
+2  
+0.04 
+σQ
+2  
+0.001 
+P 
+I(6) 
+RA   (m2/s4) 
+σA
+2 ∙ I(3) 
+RG (rad2/s2) 
+σG
+2 ∙ I(3) 
+RM (G2) 
+σM
+2 ∙ I(3) 
+Q 
+σQ
+2 ∙ I(6) 
+ 
+𝜎𝐴
+2, 𝜎𝐺
+2 and 𝜎𝑀
+2 indicate noise covariance for accelerometer, 
+gyroscope and magnetometer, respectively, used for 𝑅𝐴, 
+𝑅𝐺and 𝑅𝑀, which are measurements covariance matrices for 
+accelerometer, gyroscope and magnetometer, respectively; 
+𝜎𝑄
+2 is covariance noise used to process covariance matrix Q. 
+The matrix P (covariance of the initial state) was initially set 
+to I (identity matrix), as usually done for the Kalman filter. 
+The process noise covariance matrix was defined according 
+to the IMU stochastic error model, accounting for 
+accelerometer and gyroscope noise as well as bias instability. 
+Instead of using a simple scaled identity matrix, Q was 
+structured in block-diagonal form to reflect the physical 
+contribution of each noise source to the system dynamics. 
+In particular, the velocity and position noise components 
+were derived from accelerometer noise, whereas the attitude 
+component was driven by gyroscope noise. Bias terms for 
+both accelerometer and gyroscope were modeled as random 
+walk processes. The resulting covariance matrix was defined 
+as: 
+ 
+position noise proportional to 𝜎𝐴
+2𝛥𝑡2 
+ 
+velocity noise propotional to 𝜎𝐴
+2 
+ 
+attitude noise propotional to 𝜎𝐺
+2 (yaw to 𝜎𝑀
+2) 
+ 
+bias noise propotional to 𝜎𝑏𝐴
+2 and 𝜎𝑏𝐺
+2 
+where 𝛥𝑡 is the acquisition interval. 
+First, static tests were conducted to evaluate drift and bias 
+errors affecting the IMU measurements. During these  indoor 
+experiments, the system was rigidly fixed to the test structure 
+positioned on the ground, ensuring the absence of intentional 
+motion and allowing the characterization of sensor noise and 
+bias stability under stationary conditions. Figure 4 depicts 
+IMU raw data during the calibration procedure.  
+The local magnetic field magnitude was assumed 
+approximately 
+constant throughout 
+the experimental 
+campaign. In particular, the magnetic field norm was 
+approximated as 0.1 mT, corresponding to the average 
+magnetic intensity measured within the indoor test 
+environment and accounting for local magnetic disturbances. 
+ 
+Figure 4. Inertial sensors data during calibration phase. 
+Figure 5 illustrates the acceleration, velocity, and position 
+obtained from the raw sensor data during a three-minute 
+acquisition session. 
+ 
+Figure 5. Acceleration, velocity and position from raw data, in static 
+conditions. 
+220
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:23 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+ 
+\r 
+To estimate velocity and position, the gravitational 
+acceleration component along the z-axis was compensated 
+for before numerical integration. 
+Figure 6 shows comparison between raw and filtered data 
+along x-axis, wherease Figure 7 present the acceleration, 
+velocity, and position estimates obtained through the EKF-
+based estimation process. 
+ 
+Figure 6. Comparison between raw and Kalman filtered data. 
+ 
+Figure 7. Acceleration, velocity and position from filtered data, during static 
+conditions. 
+The following Figure 8  and Figure 9 present the estimated 
+attitude, expressed in terms of Euler angles, during the static 
+test conducted throughout the raw and filtered data. Table 3 
+reports the standard deviation of the estimation errors for both 
+raw and Kalman-filtered data. 
+ 
+Figure 8. Attitude estimation from raw data in static data session. 
+ 
+Figure 9. Filtered attitude estimation during static data session. 
+TABLE 3. COMPARISON OF STANDARD DEVIATION OF ERRORS FOR RAW AND 
+FILTERED DATA. 
+Sensor 
+Axis 
+STD 
+Raw  Data 
+STD  
+EKF 
+ 
+ax (m/s2) 
+0.098 
+0.006 
+Accelerometer 
+ay (m/s2) 
+0.099 
+0.008 
+ 
+az (m/s2) 
+0.674 
+0.157 
+ 
+p (rad/s) 
+0.014 
+0.007 
+Gyroscope 
+q (rad/s) 
+0.014 
+0.006 
+ 
+r (rad/s) 
+0.016 
+0.009 
+ 
+Bx (mT) 
+0.018 
+0.003 
+Magnetometer 
+By (mT) 
+0.020 
+0.004 
+ 
+Bz (mT) 
+0.026 
+0.005 
+ 
+During the second phase of the experimental campaign, a 
+take-off maneuver was simulated by vertically displacing the 
+entire platform by approximately two meters above the 
+ground. Once the maximum elevation was reached, 
+controlled pitch and roll maneuvers (about ten degrees) were 
+performed to evaluate the response of the estimation 
+algorithm under combined translational and rotational motion 
+conditions. The 
+dynamic 
+acquisition session lasted 
+approximately two minutes and terminated once the platform 
+completed the landing phase and returning to the ground 
+position. Figure 10 presents the attitude and sensor bias error 
+221
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:23 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+ 
+\r 
+estimation results provided by the EKF during the dynamic 
+experimental session. 
+ 
+Figure 10. Attitude and bias error estimation from filtered data, during 
+dynamic test. 
+IV. CONCLUSIONS AND FURTHER WORK 
+This paper presents an attitude and position estimation 
+framework for indoor UAV navigation systems operating in 
+GNSS-denied environments. In particular, the study 
+investigates the impact of IMU bias and drift errors on UAV 
+navigation and attitude estimation and proposes an estimation 
+approach based on the Extended Kalman Filter (EKF) to 
+jointly estimate and compensate for these error sources. 
+Experimental tests were conducted in a controlled 
+environment, where both static and dynamic sessions were 
+performed. Static tests were used for IMU characterization 
+and EKF calibration, while dynamic experiments reproduced 
+translational and rotational motion conditions representative 
+of typical UAV maneuvers. The application of the EKF 
+significantly improved the quality of the estimated navigation 
+states by reducing the effects of sensor noise, drift, and bias 
+accumulation. In particular, the proposed filtering approach 
+achieved a position error reduction of 68.2% along the y-axis 
+and 89.3% along the x-axis with respect to the raw 
+measurements, while simultaneously improving attitude 
+estimation through the mitigation of drift errors in the 
+estimated Euler angles. 
+This preliminary work represents part of the development 
+of an indoor navigation system for UAV applications in 
+GNSS-denied environments. Future developments will focus 
+on the integration of the proposed EKF-based estimation 
+framework with a Bluetooth Low Energy (BLE) indoor 
+navigation system previously developed by the authors [14], 
+[15]. 
+REFERENCES 
+[1] 
+Ariante, G., & Del Core, G. (2025). Unmanned aircraft systems 
+(UASs): Current state, emerging technologies, and future trends. 
+Drones, 9(1), 59. 
+[2] 
+Bauranov, A., & Rakas, J. (2021). Designing airspace for urban air 
+mobility: A review of concepts and approaches. Progress in Aerospace 
+Sciences, 125, 100726. 
+[3] 
+Lachapelle, 
+G. 
+(2004). 
+GNSS 
+indoor location technologies. 
+Positioning, 1(08). 
+[4] 
+Barbour, N., & Schmidt, G. (2001). Inertial sensor technology trends. 
+IEEE Sensors journal, 1(4), 332-339. 
+[5] 
+Thong, Y. K., Woolfson, M. S., Crowe, J. A., Hayes-Gill, B. R., & 
+Jones, D. A. (2004). Numerical double integration of acceleration 
+measurements in noise. Measurement, 36(1), 73-92. 
+[6] 
+Joshi, S. M. (2012). Adaptive control in the presence of simultaneous 
+sensor bias and actuator failures (No. L-20104). 
+[7] 
+Wang, B. (2023). Reduced integration time improves accuracy in dead 
+reckoning navigation systems. 
+[8] 
+LSM9DS1 
+Datasheet 
+Available 
+on-line: 
+https://www.st.com/resource/en/datasheet/lsm9ds1.pdf 
+[9] 
+Al-Mimi, H.; Al-Dahoud, A.; Fezari, M.; Daoud, M.S. A Study on New 
+Arduino NANO Board for WSN and IoT Applica-tions. Int. J. Adv. 
+Sci. Technol. 2020, 29, 10223–10230. 
+[10] Aggarwal, P., Syed, Z., & El-Sheimy, N. (2010). MEMS-based 
+integrated navigation. Artech House. 
+[11] Titterton, D., & Weston, J. L. (2004). Strapdown inertial navigation 
+technology (Vol. 17). IET. 
+[12] Zhang, L., Yang, H., Zhang, S., Cai, H., & Qian, S. (2014). Kalman 
+filtering for relative spacecraft attitude and position estimation: a 
+revisit. Journal of Guidance, Control, and Dynamics, 37(5), 1706-1711. 
+[13] Madyastha, V., Ravindra, V., Mallikarjunan, S., & Goyal, A. (2011, 
+August). Extended Kalman filter vs. error state Kalman filter for 
+aircraft attitude estimation. In AIAA Guidance, Navigation, and 
+Control Conference (p. 6615). 
+[14] Ponte, S., Ariante, G., Greco, A., & Del Core, G. (2024). Differential 
+positioning with bluetooth low energy (BLE) beacons for UAS indoor 
+operations: Analysis and results. Sensors, 24(22), 7170. 
+[15] Ariante, G., Ponte, S., & Del Core, G. (2022, June). Bluetooth low 
+energy based technology for small UAS indoor positioning. In 2022 
+IEEE 9th international workshop on metrology for AeroSpace 
+(MetroAeroSpace) (pp. 113-118). IEEE. 
+ 
+ 
+222
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:23 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

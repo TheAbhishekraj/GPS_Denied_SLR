@@ -1,0 +1,547 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0255.pdf
+sha256: BB4D13AA3A97B9928DF6137EA4EDA78726431C925085E870F0899935CE492648
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+A Stereo and Rotating Laser Framework for UAV Navigation 
+in GPS Denied Environment 
+Hailong Qin§, Yingcai Bit, Kevin Z. Y. Ang*, Kangli Wang+, Jiaxin Lit, Menglu Lant, Mo Shan*, F. Lin* 
+*Temasek Laboratories, National University of Singapore 
+tNUS Graduate School for Integrative Sciences & Engineering, National University of Singapore 
+:Department of Electrical & Computer Engineering, National University of Singapore 
+§Department of Mechanical Engineering, National University of Singapore 
+Abstract-Recent developments in robotics sensing 
+using either the active sensor-laser range finder (LRF) 
+or passive sensors-camera systems have shown that the 
+existing approaches are able to estimate the motion and 
+reconstruct the environment in a typical GPS-denied 
+environment such as indoor environments. However, 
+for a 2D LRF, it can only provide a planar measurement 
+due to the hardware limitations and the cost for 3D 
+LRF is still too high for robotic systems. For camera 
+systems, the 3D perception capability and lightweight 
+are promising while it is not effective in long range, 
+low illumination and low textured environment com­
+pared to the LRF. In the proposed framework, our 
+first contribution is a senor integration system that 
+combines a stereo camera with a rotating LRF. The 
+stereo camera can achieve a fast and smooth motion 
+estimation and the rotating LRF could construct a 
+dense 3D environment. Our second contribution is an 
+integration of a fast feature-based motion estimation 
+with an accurate shape matching refinement. The pro­
+posed approaches have been built in our customized 
+unmanned aerial vehicle (UAV) platform. 
+We have 
+verified our proposed approach through a series of 
+extensive evaluations in clustered indoor environments 
+and open outdoor environments. 
+I. INTRODUCTION 
+Robotics navigation in GPS-denied has been ex­
+tensively studied in the past decades and shown 
+promising results. Consider the LRF based ap­
+proaches, Diosi et al.[I] achieves a point to point 
+matching in polar coordinates to obtain a fast pla­
+nar motion estimation for mobile robots. Apparent­
+ly, the proposed similar approaches are not the first 
+choice for UAV applications since it is not a full 
+degree of freedom (DoF) motion estimation. To solve 
+this issue, Kohlbrecher et al.[2] proposes a sensor 
+integration framework that combines the motion 
+estimation result from a LRF using scan to map 
+matching together with a height sensor and inertial 
+measurement unit (IMU). The proposed framework 
+has been widely adopted [3], yet the constructed 
+2D map further limits the UAV's mobility in 3D 
+space. This space limitation leads to the study of 
+3D LRF based approaches [4] while the weight and 
+cost prevent the further application on UAVs. 
+Compared with LRF-based approaches, camera 
+systems are competitive alternatives owing to its 
+978-1-5090-3474-1/16/$31.00 ©2016 IEEE 
+6061 
+light-weight and low-cost. More importantly, the 
+camera systems naturally contains more informa­
+tion than the 2D LRF system. Klein's milestone 
+framework [5] successfully estimates the 6DoF mo­
+tion of a monocular camera and reconstructs a 
+sparse feature map. The usage of monocular camera 
+can only provide an up-to-scale motion estimation. 
+Therefore, it can not be directly applied it on the 
+UAV. To extend this work, Weiss et al. [6] integrates 
+the monocular camera system with an onboard 
+IMU in an Extend Kalman filter (EKF) framework 
+to recover the absolute scale. This work has been 
+demonstrated on UAV platform for outdoor flight. 
+However, for clustered environment such as an 
+indoor office and outdoor forest, a precise map 
+is critical to the motion planning of UAVs. Be­
+sides the monocular camera, stereo camera-based 
+navigation can provide an absolute scale with a 
+known baseline. The difference in baseline leads 
+to either long time correspondence searching or 
+long distance depth estimation error [7]. The recent 
+achievements in stereo camera based simultaneous 
+localization and mapping (stereo-SLAM) are stereo 
+LSD-SLAM [8] and stereo ORB-SLAM [9]. The stereo 
+LSD-SLAM applies direct approach [10] to align 
+images and estimate motion. Different from the 
+stereo LSD SLAM, the stereo ORB-SLAM adopt the 
+sparse feature alignment approach. However, all of 
+these two are based on the parallel tracking and 
+mapping framework [5] so that the relocalization 
+[11] is required once the tracking is lost. 
+To address the above challenges, a robust and ef­
+ficient stereo-rotating laser framework is developed 
+with the following contributions. 
+• A keyframe based stereo depth initialization and 
+odometry. 
+• A customized rotating laser device that can 
+project the 2D LRF into a 3D point cloud. 
+• A stereo-rotating laser framework which can 
+provide a coarse to fine motion estimation; 
+• A rotating laser mapping system to create a 
+consistent 3D map for UAV motion plannning; 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:00:30 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+II. PLATFORM 
+A. Hardware setup 
+The quadrotor is customized to have a 128 cm 
+from tip to tip and a maximum 5 kg takeoff weight 
+with 2 kg payload. The customized flight control 
+algorithm is built in the Pixhawk flight controller 
+[12]. The stereo camera has a baseline of 120 mm 
+and is mounted in front of the UAV platform to 
+estimate the motion and the customized rotating 
+laser device is mounted on top of the stereo camera 
+to refine the motion estimation and reconstruct the 
+environment. Fig. 1. shows the full configuration of 
+the platform. 
+" 
+/. 
+Fig. 1: The quadrotor. 
+B. Terminology and notation 
+In the proposed framework, the body frame of UAV 
+platform is defined as U, the stereo coordinate as 
+S and local laser coordinate as L. For the rotating 
+laser device, one rotation of the laser range finder 
+is from -900 to 900 in CW or 900 to -900 in CCW 
+as denoted (8) in Fig. 2 while the x-y plane is the 
+00 planar plane. Thus for kth rotation, the laser 
+coordinate is expressed as Lk• The world coordinate 
+is w as described in Fig. 
+3. For a 3D point X in 
+kth keyframe, the coordinate is expressed as Xr, 
+Xf and Xp correspondingly. 
+' 
+z 
+()
+..... 
+... 
+x 
+Fig. 2: Rotating angle illustration in front view. 
+6062 
+z 
+Jv.y 
+X 
+Fig. 3: The coordinates illustration. 
+III. OVERVIEW OF METHOD 
+The proposed stereo and rotating laser framework 
+starts with an automatic initialization which tri­
+angulates the matched feature points from static 
+stereo image pair into an empty 3D map. After 
+initialization, the UAV pose is estimated by mini­
+mizing the reprojection error between the current 
+feature points and the initialized map. Different 
+from current state-of-the-art tracking and mapping 
+framework [5] [9], the initialized sparse feature map 
+will only be used for a short period without adding 
+new points until there are not enough inliers in the 
+initialized map. We propose this approach since a 
+smooth initialization is critical to the rotating laser's 
+mapping thread. Once the initialization is complet­
+ed, instead of spending extra effort to maintain a 
+sparse feature based mapping thread, the rotating 
+laser is utilized to create dense 3D map and refine 
+the motion estimation from pure stereo odometry 
+based motion estimation. To summarize, we can 
+separate the proposed approach into two threads: 
+motion estimation and mapping. The details for the 
+proposed method are listed below. 
+A. Motion estimation 
+The motion estimation thread contains the follow­
+ing four steps sequentially. The proposed motion 
+estimation thread can be summarized as follOwing 
+Fig. 4. 
+1) Feature extraction: Select feasible feature de­
+tector and deSCriptor for feature matching and 
+sparse map initialization is a fundamental 
+step in our framework. The famous feature 
+like SIFT and SURF are scale invariant [13] 
+[14]. However, the extraction time for those 
+features are around 300m3 which cannot meet 
+our realtime requirement. Other potential fea­
+tures such as BRIEF [IS] are not rotation 
+invariant. The ORB (Oriented FAST and Ro­
+tated BRIEF)feature [16] is a fusion of FAST 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:00:30 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+ORB feature 
+Left image 
+extraction 
+______ _ 
+Minimize 
+&matching Initialized sparse 
+feature map 
+reprojection 
+Right 
+image 
+error (BA) 
+1-----+1 Camera pose 
+Keyframe 
+Fig. 4: Motion estimation framework. 
+and BRIEF which uses pyramid to generate 
+multiscale representations. The computational 
+speed and scale invariant capability(to some 
+extent) have been demonstrated in several 
+works [17] [9]. Here, we select the ORB fea­
+ture for sparse feature point representation in 
+stereo image pairs. A feature detection for typ­
+ical indoor environment is shown in follOwing 
+Fig. 5 
+Fig. 5: ORB feature detection in indoor environment 
+2) Automatic map initialization: The sparse fea­
+ture map is initialized by searching correspon­
+dence in static stereo image pair and triangu­
+lating the matched feature points with known 
+baseline. Owing to the pre-rectity process, the 
+images are undistorted with known intrinsic 
+parameters. During this process, each input 
+frame is separated into a grid format at each 
+pyramid scale for the purpose of a homoge­
+neous feature distribution. The matching score 
+is computed based on the obtained ORB de­
+scriptor. The input frame is selected as the 
+initial keyframe once a good initialization is 
+achieved. The initialized sparse map is denoted 
+6063 
+as Mw. 
+3) Existing map tracking: Once the initialization 
+is completed, the initial map will be keep u­
+tilized for motion estimation in a short peri­
+od(depends on the view variation). This step 
+seems to be redundant, yet it can guarantee 
+a smooth initialization of the rotating laser 
+mapping thread. The tracking is based on 
+minimization of the reprojection error, for a 3D 
+point XW,j in Mw the reprojection error for the 
+point in the keyframe Ki can be represented as 
+follOwing equation [18]: 
+e· . = x· . - Jr·(Tw Xw·) 
+'[ ,J 
+'[ ,) 
+1, 
+,[
+,
+ 
+,J 
+(1) 
+where TiWESE(3) is the current stereo cam­
+era pose with respect to the world coordinate 
+and Jri is the projection function with known 
+parameters. Therefore, the cost function to be 
+minimized is 
+E(TiW) = L eAijeij 
+ij 
+(2) 
+where Aij is the inverse covariance of the 
+feature measurement. Here, only the stereo 
+camera pose is optimized. To solve this equa­
+tion, we adopt the Levenberg-Marquardt (LM) 
+method in g20 framework [19]. 
+4) Keyframe selection: The keyframe-based ap­
+proach can help to reject redundant frames 
+so that the framework is more compact and 
+reduce the matching errors [20] [5] [9]. The 
+selection of keyframe Ki should meet the fol­
+lowing requirements: 
+a) In the existing map tracking phase, the 
+selected frame Ki should have enough 
+inliers for motion estimation in 1V1w. 
+b) The selected frame Ki should have less in 
+common compared with Ki-1• 
+c) Between Ki and Ki-1, there should be 
+certain number of frames. 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:00:30 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+5) Model based motion estimation: If there are 
+not enough inliers for the current keyframe Ki 
+in Mw then the existing map tracking stop­
+s. For the upcoming selected keyframes, the 
+motion estimation is a standard PnP problem 
+instead of a map tracking [21]. We apply a 
+constant velocity model for the stereo camera 
+motion to increase the speed of convergence 
+[22]. The motion estimation calculated from 
+this step cannot be consistent and accurate 
+compare with the existing map tracking. How­
+ever, it is fast and smooth enough for the 
+rotating mapping thread to refine the motion 
+and construct the map. 
+B. Rotating laser mapping 
+Using a rotating laser to create a dense 3D map 
+instead of the stereo camera alone has the follOwing 
+advantages: (1) the laser itself can provide a precise 
+measurement about the surrounding environment. 
+(2) the laser has a long sensing range which can 
+be helpful to the path planning. Several works have 
+been established using the rotating laser approach, 
+Zhang et al. [23] uses a single rotating laser to 
+achieve motion estimation and mapping. However, 
+the motion speed is limited since the correspon­
+dence between laser scan should be established 
+through a time sequence matching. To improve 
+the result, a monocular camera together a single 
+rotating laser is established [24]. Different from 
+our framework, the scale of camera needs to be 
+recovered from the laser. Kaul et al. [25] develops 
+a passive rotating mechanism for laser, yet a initial 
+motion guess is needed from GPS. In our proposed 
+framework the initial motion is obtained from the 
+above motion estimation part which is faster and 
+more consistent when compared with GPS measure­
+ment and the proposed framework is still effective in 
+indoor GPS-denied environment. The rotating laser 
+mapping thread has the follOwing conditions: 
+1) Static UAV with rotating laser mapping: The 
+20 LRF measurement will be projected into 3D 
+space with the known rotating angle e. The 
+point cloud set accumulated in ith rotation 
+is defined as V; L in the laser coordinate as 
+illustrate by Fig. 6 
+Fig. 6: Static UAV with rotating laser mapping. 
+6064 
+Fig. 7: Motion estimation update topology. 
+2) Moving UAV with rotating laser mapping: Once 
+the UAV moves, a coarse motion estimation 
+can be obtained from above motion estima­
+tion thread. If only the coarse estimation is 
+applied, the rotating laser mapping can on­
+ly generate an inconsistent map. To refine 
+the motion estimation result and obtain an 
+complete point cloud-based map, we adopt a 
+3D Iep approach. The existing problem with 
+traditional Iep is that a good initial motion 
+estimation should be given for a fast and ac­
+curate convergence. Otherwise, the Iep based 
+motion estimation process will diverge. Since 
+we already obtain a fast and smooth mo­
+tion estimation through stereo camera based­
+motion estimation, we can further update the 
+motion estimation result and incrementally 
+build the map using the Iep approach and the 
+coarse estimation will be used as initial guess 
+of Iep. Here we adopted the libpointmatcher 
+[26] developed by ASL-ETH, which is an open 
+source library for Iep algorithm. The topology 
+is shown in Fig. 
+7 to illustrate the update 
+process. 
+Where the Tii-1 and TZ+1 are the updated trans­
+formation relationship. Based on the above 
+method, an accumulated point cloud is shown 
+in Fig. 8 for a typical indoor environment. 
+IV. PRELIMINARY EXPERIMENTS 
+To verifY the proposed methodology, a series of 
+experiments have been conducted. Since the open 
+dataset is not available which contains the stereo 
+image pairs together with rotating 20 LRF, two 
+experiments have been designed to compare the 
+accuracy between the coarse estimation from stereo 
+vision with the refined result from rotating laser 
+mapping. 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:00:30 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+( a) 
+(b) 
+Fig. 8: Front view of point cloud for indoor environment. 
+A. Clustered indoor environment test 
+The clustered indoor environment is a typical 
+GPS-denied environment which requires a sensing 
+approach to estimate the ego motion of the UAV 
+and a mapping approach for path planning. In our 
+proposed framework, the coarse to fine step esti­
+mates the motion of the UAV in indoor environment 
+and reconstructed a dense point cloud map using 
+rotating laser. A reconstructed indoor environment 
+is shown in Fig. 9. 
+( a) 
+(b) 
+Fig. 9: Reconstructed indoor environment. 
+B. Outdoor environment test 
+One of the advantages for our system is that it 
+can work both in indoor and outdoor environment. 
+We demonstrate our framework in a typical outdoor 
+scenario, which is a lobby in front of our lab. 
+The images in Fig. 10 show the environment and 
+reconstructed result. Since we use the rotating laser 
+scanner, the reconstructed range is up to 30 meters. 
+C. Comparison 
+A comparison of stereo camera based motion 
+estimation between stereo-laser combined motion 
+estimation is shown in Fig. 11. According to the 
+reconstructed environment, the rotating laser based 
+mapping thread optimize the motion estimation in­
+put from the stereo camera based motion estima­
+tion. We further test our system by walking through 
+a long distance corridor and building a consistent 
+3D map of the corridor (shown in Fig. 12). The 
+6065 
+( a) 
+(b) 
+Fig. 10: Reconstructed outdoor environment. 
+-stereoase!bawdnl<llooeslmatJ::.n 
+-stereobasedmotrnsrnallJl 
+Fig. 11: Comparison of motion estimation result 
+distance of the reconstructed corridor is more than 
+40 meters with a 90 degree turning. We can see from 
+the mapping result that the turning angle is strictly 
+around 90 degree and the wall is straight enough, 
+meaning there is no obvious drift in our system. 
+Furthermore, the system gives many details for the 
+environment. We can see the cubic and desks beside 
+the wall. Comparing to the vision only mapping 
+system, our system contains less noise point thanks 
+to the accuracy of laser scanner. 
+V. CONCLUSION 
+In this paper, we propose a stereo and rotating 
+laser system for the navigation purpose in GPS 
+denied environment. Comparing to the vision only 
+system, we take advantage of the accuracy of laser 
+scanner. Comparing to the laser only system, we 
+design the rotating mechanism to build 3D map 
+with the help of high frequency vision tracking 
+method. The proposed system is fast, accurate and 
+robust. We will apply this system to accomplish the 
+autonomous flight in cluttered environment in the 
+further work. 
+REFERENCES 
+III A. Diosi and L. Kleeman. "Laser scan matching in polar co­
+ordinates with application to slam. " in InteUigent Robots and 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:00:30 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+Fig. 12: Reconstructed dense map of long distance corridor 
+Systems. 2005.(IROS 2005). 2005 IEEEIRSJ International 
+Conference on. 
+IEEE. 2005, pp. 3317-3322. 
+[2[ S. Kohlbrecher, O. Von Stryk, J. Meyer, and U. Klingauf, 
+"A flexible and scalable slam system with full 3d motion 
+estimation," in Safety, Security, and Rescue Robotics (SSRR), 
+2011 IEEE International Symposium on. 
+IEEE, 2011, pp. 
+155-160. 
+[3[ J. Fossel, D. Hennes, D. Claes, S. Alers, and K. Tuyls, "Oc­
+to slam: A 3d mapping approach to situational awareness of 
+unmanned aerial vehicles," in Unmanned Aircrajt Systems 
+(ICUAS), 2013 International Conference on. 
+IEEE, 2013, pp. 
+179-188. 
+[4[ D. M. Cole and P. M. Newman, "Using laser range data for 
+3d slam in outdoor environments," in Robotics and Automa­
+tion, 2006. ICRA 2006. Proceedings 2006 IEEE International 
+Conjerence on. 
+IEEE, 2006, pp. 1556-1563. 
+[5[ G. Klein and D. Murray, "Parallel tracking and mapping 
+for small ar workspaces," in Mixed and Augmented ReaUty, 
+2007. ISMAR 2007. 6th IEEE and ACM International Sympo­
+sium on. 
+IEEE, 2007, pp. 225-234. 
+[6[ S. Weiss, M. W. Achtelik, S. Lynen, M. Chli, and R. Siegwart, 
+"Real-time onboard visual-inertial state estimation and self­
+calibration of mavs in unknown environments," in Robotics 
+and Automation (ICRA), 2012 IEEE International Conference 
+on. 
+IEEE, 2012, pp. 957-964. 
+[7] H. Herath, S. Kodagoda, and G. Dissanayake, Stereo vision 
+based SLAM: Issues and solutions. 
+ITECH, 2007. 
+[8] J. Engel, J. Stuckler, and D. Cremers, "Large-scale direct 
+slam with stereo cameras," in Intettigent Robots and Systems 
+(IROS), 2015 IEEEIRSJ International Conference on. 
+IEEE, 
+2015, pp. 1935-1942. 
+[9] R. Mur-Artal, J. Montiel, and J. D. Tardos, "Orb-slam: a 
+versatile and accurate monocular slam system," Robotics, 
+IEEE Transactions on, vol. 31, no. 5, pp. 1147-1163,2015. 
+[10] J. Engel, T. Schops, and D. Cremers, "Lsd-slam: Large-scale 
+direct monocular slam," in Computer Vision-ECCV 2014. 
+Springer, 2014, pp. 834-849. 
+[11] B. Williams, G. Klein, and I. Reid, "Real-time slam relocal­
+isation," in Computer Vision, 2007. ICCV 2007. IEEE 11th 
+International Conference on. 
+IEEE, 2007, pp. 1-8. 
+[12] L. Meier, P. Tanskanen, L. Heng, G. H. Lee, F. Fraundorfer, 
+and M. Pollefeys, "Pixhawk: A micro aerial vehicle design 
+for autonomous flight using onboard computer viSion," 
+Autonomous Robots, vol. 33, no. 1-2, pp. 21-39, 2012. 
+[13] D. G. Lowe, "Distinctive image features from scale-invariant 
+keypoints," Internationa[journal of computer vision, vol. 60, 
+no. 2,pp. 91-110, 2004. 
+[14] H. Bay, T. Tuytelaars, and L. Van Gool, "Surf: Speeded up 
+robust features," in Computer vision-ECCV 2006. 
+Springer, 
+2006, pp. 404-417. 
+[15] M. Calonder, V. Lepetit, C. Strecha, and P. Fua, "Brief: 
+Binary robust independent elementary features," Computer 
+Vision-ECCV 2010, pp. 778-792, 2010. 
+[16] E. Rublee, V. Rabaud, K. Konolige, and G. Bradski, "Orb: 
+an efficient alternative to sift or surf," in Computer Vision 
+6066 
+(ICCV), 2011 IEEE International Conference on. IEEE, 2011, 
+pp. 2564-2571. 
+[17] J. Xu, H. -w. Chang, S. Yang, and M. Wang, "Fast feature­
+based video stabilization without accumulative global mo­
+tion estimation," Consumer Electronics, IEEE Transactions 
+on, vol. 58, no. 3, pp. 993-999, 2012. 
+[18] K. Konolige and W. Garage, "Sparse sparse bundle adjust­
+ment. " 
+Citeseer. 
+[19] R. Kummerle, G. Grisetti, H. Strasdat, K. Konolige, and 
+W. Burgard, "g 2 0: A general framework for graph opti­
+mization," in Robotics and Automation (ICRA), 2011 IEEE 
+International Conference on. 
+IEEE, 2011. pp. 3607-3613. 
+[20] S. Leutenegger, S. Lynen, M. Bosse, R. Siegwart, and P. Fur­
+gale, "Keyframe-based visual-inertial odometry using non­
+linear optimization," The International Journal Qf Robotics 
+Research. vol. 34, no. 3, pp. 314-334, 2015. 
+[21] V. Lepetit, F. Moreno-Noguer, and P. Fua, "Epnp: An accu­
+rate 0 (nl solution to the pnp problem," Internationatjournal 
+of computer vision, vol. 81, no. 2, pp. 155-166,2009. 
+[22] T. Pire, T. Fischer, J. Civera, P. De Crist6foris, and J. Ja­
+cobo berlles, "Stereo Parallel Tracking and Mapping for 
+robot localization," in Proc. QfThe International Conference 
+on InteWgent Robots and Systems (IROS) (Accepted), 2015. 
+[23] J. Zhang and S. Singh, "Loam: Lidar odometry and mapping 
+in real-time. " 
+[24] 
+--, "Visual-lidar odometry and mapping: Low-drift, ro­
+bust, and fast," in Robotics and Automation aCRA), 2015 
+IEEE International Conference on. 
+IEEE, 2015, pp. 2174-
+2181. 
+[25] L. Kaul, R. Zlot, and M. Bosse, "Continuous-time three­
+dimensional mapping for micro aerial vehicles with a pas­
+sively actuated rotating laser scanner," Journal of Field 
+Robotics, vol. 33, no. I, pp. 103-132,2016. 
+[26] F. 
+Pomerleau, F. 
+Colas, R. 
+Siegwart, and S. Magnenat, 
+"Comparing icp variants on real-world data sets," Au­
+tonomous Robots, vol. 34, no. 3, pp. 133-148,2013. 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:00:30 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

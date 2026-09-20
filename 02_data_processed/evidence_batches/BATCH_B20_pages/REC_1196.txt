@@ -1,0 +1,782 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1196.pdf
+sha256: 217E46CB240EE97CEF98678BB4EDD5836579FE9D77BA7212048C94C06E901BA0
+library: pymupdf (fitz) v1.28.2
+pages: 17
+=== BEGIN ===
+[p.1]
+Citation: Bautista, N.; Gutierrez, H.;
+Inness, J.; Rakoczy, J. Precision
+Landing of a Quadcopter Drone by
+Smartphone Video Guidance Sensor
+in a GPS-Denied Environment.
+Sensors 2023, 23, 1934. https://
+doi.org/10.3390/s23041934
+Academic Editors: Shuanggen Jin
+and Rong Wang
+Received: 28 December 2022
+Revised: 4 February 2023
+Accepted: 6 February 2023
+Published: 9 February 2023
+Copyright:
+© 2023 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed
+under
+the
+terms
+and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).
+sensors
+Article
+Precision Landing of a Quadcopter Drone by Smartphone Video
+Guidance Sensor in a GPS-Denied Environment
+Nicolas Bautista 1, Hector Gutierrez 1,*
+, John Inness 2 and John Rakoczy 2
+1
+Department of Mechanical and Aerospace Engineering, Florida Institute of Technology,
+Melbourne, FL 32901, USA
+2
+Control Systems Design and Analysis Branch, NASA Marshall Space Flight Center, Huntsville, AL 35812, USA
+*
+Correspondence: hgutier@ﬁt.edu; Tel.: +1-(321)-674-7321
+Abstract: This paper describes the deployment, integration, and demonstration of a Smartphone
+Video Guidance Sensor (SVGS) as a novel technology for autonomous 6-DOF proximity maneuvers
+and precision landing of a quadcopter drone. The proposed approach uses a vision-based photogram-
+metric position and attitude sensor (SVGS) to estimate the position of a landing target after video
+capture. A visual inertial odometry sensor (VIO) is used to provide position estimates of the UAV
+in a ground coordinate system during ﬂight on a GPS-denied environment. The integration of both
+SVGS and VIO sensors enables the accurate updating of position setpoints during landing, providing
+improved performance compared with VIO-only landing, as shown in landing experiments. The
+proposed technique also shows signiﬁcant operational advantages compared with state-of-the-art
+sensors for indoor landing, such as those based on augmented reality (AR) markers.
+Keywords: unmanned aerial vehicle; autonomous landing; smartphone video guidance sensor;
+visual inertial odometry; GPS-denied environment
+1. Introduction
+The use of automated unmanned aerial vehicles (UAVs) has signiﬁcantly increased
+in recent years due to their portability, low cost, and high performance. Multi-copters
+have become a leading platform for research and development in automated ﬂight due to
+their versatility and ease of development. The navigation of UAVs is signiﬁcantly different
+in outdoor scenarios, where the ﬂight controller relies on GPS to estimate position, from
+indoor missions, where position estimates need to be based on other sensors because GPS
+signal is not available.
+A leading approach for indoor automated precision landing has been based on the
+image capture of AR (augmented reality) markers, where images captured during ﬂight
+are processed using image recognition algorithms, such as those available in OpenCV. A
+second important approach in the state of the art is based on the use of an infrared landing
+beacon to estimate the distance to the landing target and provide guidance commands, but
+in practical terms, this approach is restricted to outdoor landing scenarios.
+Zhao and Jiang [1], Tanaka and Matsumoto [2], Sani and Karimian [3], and Wang
+et al. [4] have presented algorithms to generate unique black and white AR markers.
+Tanaka [2] also replaced a square of their AR marker with a lenticular angle gauge to
+improve attitude estimates. Putra et al. [5], Respall et al. [6], and Tran et al. [7] used color
+detection algorithms to estimate the position of the center of a solid color shape on a
+contrasting background. Sudevan et al. [8] and Demirhan and Permachandra [9] used a
+letter “H” stamped on their ground target for their system to detect the contours of the letter
+and estimate landing position. Rao et al. [10] used a circle with a different color in each
+half, and concentric rectangles inside the circle as markers. The studies mentioned above
+used image detection algorithms to determine the position of the landing marker relative to
+the drone during ﬂight, and the estimate was then used to send velocity commands to the
+Sensors 2023, 23, 1934. https://doi.org/10.3390/s23041934
+https://www.mdpi.com/journal/sensors
+[p.2]
+Sensors 2023, 23, 1934
+2 of 17
+ﬂight controller of the UAV. One of the main drawbacks of these methods is that a well-lit
+target is needed to properly estimate position and attitude: such methods cannot work
+well in dusty or poorly lit environments, such as in planetary landing. There are also range
+limitations in the use of AR targets imposed by target size and camera resolution.
+Xuan-Mung et al. [11] and Janousek and Marcon [12] described the use of infrared (IR)
+beacons to estimate distance to a landing target, using a camera with an infrared ﬁlter. This
+method can be advantageous in applications with poor or no lighting, because the camera
+is able to detect the beacon regardless of lighting conditions. The main drawback of this
+method is given by false readings that can be generated by the reﬂection of sun rays on
+certain surfaces, and possibly certain heat sources, and the fact that it generally requires a
+detection distance of more than 10 m.
+In all references mentioned above, the vehicles included a sensor to detect the landing
+target. Kim et al. [13] used a 3D lidar sensor mounted on the landing platform. Their
+landing method approaches the target using known GPS coordinates, and once the lidar
+is able to detect the position of the UAV, velocity commands are sent to the drone’s ﬂight
+controller wirelessly. This method lowers the payload weight of the UAV, because hardware
+components needed for position estimation of the landing target are no longer needed in
+the ﬂight platform. The approach also requires a heavier, complex landing platform, which
+might not be possible in certain missions.
+Several approaches for automated landing have been based on camera-based feedback,
+such as studies by Ho and Chu [14], Demirhan [9], and Sikdar [15]. These approaches all
+share the limitations of requiring favorable light conditions, and are therefore not well
+suited for poorly lit or dusty environments. Other vision-based approaches address these
+issues using LED landing strips (Bastiaens et. al. [16]), or by the combined use of AR
+markers and infrared sensing (Badakis et. al. [17]), which improves performance at the
+expense of added complexity.
+This paper proposes a solution to achieve precise autonomous landing in a GPS-denied
+environment using the Smartphone Video Guidance Sensor (SVGS) [18,19], a software
+sensor developed by NASA that uses a smartphone’s CPU and camera to detect the
+position and orientation of a landing target. In the proposed solution, SVGS is integrated
+with a Visual Inertial Odometry (VIO) sensor to estimate the UAV’s position and attitude
+during ﬂight in a GPS-denied environment.
+2. Materials and Methods
+SVGS [18,19] uses an illuminated target and an Android smartphone running the SVGS
+application. SVGS uses the smartphone’s camera to capture images of the illuminated
+target and estimates the 6-DOF position and attitude of the target relative to the phone’s
+coordinate system using a photogrammetric algorithm.
+The approach described in this paper uses a visual inertial odometry (VIO) tracking
+camera to estimate the 6-DOF state of the drone relative to a ﬁxed coordinate system
+attached to the ground. The use of VIO is required in indoor missions because the usual
+source of position estimates to the drone’s FCU is the onboard GPS sensor, and GPS signals
+are not available in indoor environments. Using the VIO sensor in combination with
+SVGS, it is possible to achieve accurate estimation of the position of the landing target in a
+coordinate system ﬁxed to the ground. This enables the use of updated position setpoints
+during the landing mission, which works even if the SVGS device loses line of sight with
+the target during the landing maneuver. The performance of SVGS as a landing sensor will
+be compared with that obtained using AR markers for automated landing [20,21]. ARuCo
+deﬁnes a modiﬁed AR target based on an OpenCV approach, and was used as a special
+case of AR landing target.
+2.1. Smartphone Video Guidance Sensor
+The Smartphone Video Guidance Sensor (SVGS) is a low-cost, low-mass, vision-based
+sensor developed by NASA Marshall Space Flight Center [18,19] that computes the six-
+[p.3]
+Sensors 2023, 23, 1934
+3 of 17
+state position and orientation vector of a target relative to a coordinate system attached
+to the camera of an Android-based smartphone, by capturing images and implementing
+photogrammetric techniques. Figure 1 outlines the operational concept of a drone landing
+mission using SVGS. SVGS operation starts with image capture of the illuminated target,
+which is then converted to a binary image, so that the four bright spots on the target
+can be identiﬁed as blobs. Estimation of the six-degrees-of-freedom position and attitude
+state vector is then performed using a photogrammetric algorithm [18]. The smartphone’s
+CPU is used to perform both image processing and state estimation, thus alleviating the
+computational load on the ﬂight or companion computer [18].
+ 
+Figure 1. Drone landing mission using the Smartphone Video Guidance Sensor (SVGS). The mission
+sequence numbers correspond to the landing logic shown in Figure 2. The SVGS can be deployed
+in many other applications as position/attitude sensor by use of a similar 4-point illuminated
+beacon [22].
+ 
+Figure 2. SVGS landing mission—functional ﬂow diagram.
+SVGS Theory of Operation
+The SVGS algorithm as shown in [18] is based on an adaption of the collinearity
+equations developed by Rakoczy [23]. In Figure 3, consider L as the perspective center of
+[p.4]
+Sensors 2023, 23, 1934
+4 of 17
+the host platform camera (thin lens), and the target as A. An image of A on the image plane
+is represented as “a”; the image plane is located a distance, f, from the perspective center,
+where f is the focal length of the lens. Two coordinate frames are deﬁned: the target frame
+<X, Y, Z>, and the image frame <x, y, z>. A vector from the perspective center to point “A”
+can be deﬁned in the object frame as VA, while a vector to point “a” from the perspective
+center is vA:
+vA =
+
+
+XA −XL
+YA −YL
+ZA −ZL
+
+
+;
+va =
+
+
+xa −x0
+ya −y0
+−f
+
+
+(1)
+ 
+Figure 3. Object and camera frame geometry of SVGS. The image plane is shown in blue.
+Both vectors are related by va = kMvA, where k is a scaling factor and M is a rotation
+matrix representing an x, y, z rotation sequence transforming the object frame to the image
+frame. Dropping the “a” and “A” subscripts and solving for the image frame coordinates x,
+y, and z of point “a”, followed by dividing by “z” to eliminate the scaling factor k, yields the
+following two equations for Fx and Fy, where the mij values are elements of the direction
+cosine matrix M:
+x = f m11(X −XL) + m12(Y −YL) + m13(Z −ZL)
+m31(X −XL) + m32(Y −YL) + m33(Z −ZL) + x0 = Fx
+(2)
+y = f m21(X −XL) + m22(Y −YL) + m23(Z −ZL)
+m31(X −XL) + m32(Y −YL) + m33(Z −ZL) + y0 = Fy
+(3)
+The relative 6-DOF state vector that needs to be solved for is V is deﬁned below, where
+ϕ, θ, and ψ represent the x, y, and z rotation angles, respectively:
+V =
+
+XL
+YL
+ZL
+φ
+θ
+ψ
+T
+(4)
+Linearizing Fx and Fy by Taylor series truncated after the second term yields:
+x = Fx(V0) + ∂Fx
+∂V ∆V + εx, y = Fy(V0) + ∂Fy
+∂V ∆V + εy
+(5)
+where V0 is an initial guess for the state vector, ∆V is the difference between this guess and
+the actual state vector ∆V = V −V0, and εx and εy are the x and y error from the Taylor
+series approximation, respectively. Each of the four targets in the SVGS target pattern has a
+[p.5]
+Sensors 2023, 23, 1934
+5 of 17
+corresponding set of these two equations; the resulting eight equations can be represented
+in matrix form as Y = Y0 + HV + ε:
+Y =
+
+
+x1
+y1
+..
+..
+x4
+y4
+
+
+; Y0 =
+
+
+Fx1
+Fy1
+..
+..
+Fx4
+Fy4
+
+
+;
+H =
+h
+∂Fx1
+∂V
+∂Fy1
+∂V
+..
+..
+∂Fx4
+∂V
+∂Fy4
+∂V
+iT
+(6)
+This equation is solved for the V that minimizes the square of the residuals, ε. This
+value is then added to the initial estimate of V to obtain the updated state vector. The
+process is iterated until the residuals are sufﬁciently small, yielding the ﬁnal estimate of the
+6-DOF state vector V.
+In SVGS, the general form of the collinearity equations described above is narrowed
+down to reﬂect the state vector formulation used by AVGS [19]. AVGS sensor measurements
+used angle pairs, azimuth, and elevation, measured in the image frame to deﬁne the location
+of each target in the image. Azimuth and elevation are measured with respect to a vector to
+the perspective center and the target locations in the captured image. Azimuth, Az, and
+elevation, El (Equation (7)), replace Equations (2) and (3) to yield:
+Az = tan−1
+ x −x0
+f
+
+; El = sin−1
+
+
+y −y0
+q
+(x −x0)2 + (y −y0)2 + f 2
+
+
+(7)
+The SVGS calculation begins with the capture of the illuminated pattern on the target.
+The image is then converted to a binary image using a speciﬁed brightness threshold value.
+Blob extraction is performed on the binary image to ﬁnd all bright spot locations. Location,
+size, and shape characteristics of the blobs are captured. Depending on whether there are
+any other objects in the ﬁeld of view that may generate bright background-noise spots,
+the number of blobs may exceed the number of targets. To account for noise and properly
+identify which target is which, a subset of four blobs is selected from among all that are
+identiﬁed, and geometric alignment checks derived from the known orientation of the
+targets are applied. The process is iterated until the four targets have been identiﬁed and
+properly labeled. The target centroids are then fed into the state determination algorithms.
+Using the collinearity formulation (Equation (7)), the relative state is determined using a
+least-squares procedure. The SVGS algorithm ﬂow is shown in Figure 4 [18,19].
+Figure 4. SVGS algorithm ﬂow [18,19], and example output vector.
+2.2. Description of the Flight Platform
+The landing experiments used a quadcopter based on the Holybro X500 frame (Holy-
+bro Ltd., Shen Zhen, China) (Figure 5); Figure 6 shows the corresponding interconnection
+diagram.
+[p.6]
+Sensors 2023, 23, 1934
+6 of 17
+ 
+ 
+Figure 5. Flight platform used in the development and testing of landing experiments.
+ 
+Figure 6. Interconnection diagram of the quadcopter ﬂight platform.
+The drone system included: (i) a Pixhawk-4 ﬂight controller (FCU) running PX4
+ﬁrmware; (ii) a LattePanda Alpha 864 companion computer (64-bit Intel m3-8100Y CPU
+with 8 GB LPDDR3 RAM) running Ubuntu, as companion computer; (iii) a Samsung
+[p.7]
+Sensors 2023, 23, 1934
+7 of 17
+Galaxy S8, used as the SVGS device; (iv) an Intel T265 tracking camera, used as Visual
+Inertial Odometry (VIO) sensor; (v) a IOIO board, for serial communication between the
+SVGS smartphone and companion computer, and a four-cell lithium-ion polymer battery to
+power the system. The quadcopter included four DC brushless motors and four electronic
+speed controllers (ESCs) powered from a power distribution board connected to the battery.
+The ESCs receive signal from a PWM splitter connected to the FCU, which communicates
+with a ground station through a telemetry radio link, and with the companion computer
+through a second serial telemetry port using MAVLink (FCU communication protocol).
+The companion computer receives timestamped odometry data from the Intel T265
+Visual Inertial Odometry sensor (VIO) through a 3.0 USB connection, and serial SVGS
+data via a USB to UART connector from the IOIO board, connected to the SVGS device
+(Samsung Galaxy 8, Samsung, Suwon-Si, Korea) via Bluetooth. In the experiments using
+ArUco, the SVGS device and the IOIO board are removed, and are replaced with a webcam
+connected to the companion computer via USB. The landing targets for SVGS and ArUco
+are shown in Figure 7. For SVGS, an illuminated LED target was used; for the AR landing,
+an ArUco marker was used in combination with a USB webcam.
+ 
+Figure 7. SVGS landing target (left), and ArUco landing target (right) [20,21].
+2.3. Overview of Landing Mission
+Landing missions start with a preﬂight safety check, as shown in Figure 2. Take-off and
+approach to the landing target are controlled manually; the pilot can switch to autonomous
+mode at any time using a manual switch integrated with the joystick controller. After a
+hovering period to stabilize the drone trajectory, the drone acquires the landing target and
+estimates its position and attitude in the coordinate frame ﬁxed to the ground using SVGS
+readings and the VIO sensor estimate. After the target is acquired, the automated landing
+portion of the mission is shown in block 4.1.2. The software for automated landing was
+developed in the companion computer in ROS/Python, as described in Section 2.4.
+The autonomous landing logic is shown in Figure 8. The target position is saved in
+the memory and updated every time a reading is captured: if the target is lost from the
+camera view during landing, the latest valid target position estimate saved in the memory
+is used. After target lock in SVGS is achieved, (X,Y) position setpoints are sent to the
+FCU based on the current SVGS reading, directing it to the estimated landing target while
+maintaining a constant altitude. Once the drone is within an acceptable radius of the target
+location (in the horizontal plane) a timer counts to a speciﬁed number of seconds, and if the
+UAV location leaves the acceptable radius, the timer starts over. This ensures that a stable
+position above the target is achieved before descent. When the timer reaches the speciﬁed
+value (i.e., the vehicle has remained within tolerance above the landing target for sufﬁcient
+time), the drone descends at constant vertical speed. Figure 8 shows the ﬂowchart for the
+autonomous portion of the mission.
+[p.8]
+Sensors 2023, 23, 1934
+8 of 17
+ 
+Figure 8. Autonomous landing loop ﬂowchart.
+2.4. Software Development and Filtering
+Flight software in the companion computer was developed in a robot operating
+system (ROS). ROS consists of a set of communication and scheduling interfaces that
+use a publisher/subscriber communications architecture and are widely used in robotics
+applications. They enable to discretization of the required software functionality into
+software packages called nodes, which are easily modiﬁed and reused to support different
+tasks. The PX4 ﬂight stack has extensive integration with ROSs, particularly through
+the MAVROS package. This enables the straightforward integration of several sensors,
+enabling the development of complex systems.
+ROS works based on packages; a package is a set of programs called nodes. Nodes pass
+data, called topics, over speciﬁed ports to each other; ROS Kinetic with Ubuntu 16.04 was
+used in the companion computer. ROSs allow communication between packages; therefore,
+two open-source ROS packages were used: MAVROS, to support communication with the
+FCU using MAVLink via UART connection over USB (FCU communication protocol and
+serial interpreter), and px4_realsense_bridge, to fuse the Intel VIO sensor estimate with
+the vehicle’s IMU readings. To communicate SVGS data to the FCU, a new ROS package
+called “DR1” was created using Python nodes that communicate with the MAVROS and
+px4_realsense_bridge packages. Figure 9 illustrates how ROS nodes communicate.
+ 
+Figure 9. ROS nodes and topics for implementation of the automated landing maneuvers.
+The nodes created for DR1 are:
+“svgs_deserializer”: converts serial data packets from SVGS and publishes the output
+as a stamped twist message on the topic “target”, with a data type of twist (a data structure
+used by ROSs that includes a timestamped translational and angular coordinates).
+“aruco_state_estimator”: performs the same task as svgs_deserializer, except it uses a
+Logitech C920 webcam and the ArUco target to generate the estimates.
+“landing_commander”: checks that the current drone position relative to target and
+magnitude of the drone velocity are within their acceptable threshold values. If they are,
+the node starts the landing counter. Once the counter hits a threshold value, the node ﬂips
+the landing ﬂag to true, which commands the drone to start its descent.
+[p.9]
+Sensors 2023, 23, 1934
+9 of 17
+“motion_control”: this node depends on the landing flag from the “landing_commander”
+node. If the landing ﬂag is false, the node updates the setpoint to be the position of the
+target (from the “svgs_deserializer” node) while maintaining its current altitude. Once the
+landing ﬂag is true (landing criteria is met), it updates the setpoint to be the position of the
+landing target.
+“px4_control”: this node subscribes to the “motion_control” node. It obtains setpoint
+data and sends the setpoint data to the FCU at 30 updates/sec.
+“data_recording”: subscribes to variables and records them in a CSV ﬁle at 25 Hz.
+The SVGS is not a real-time sensor and has a high degree of variability on its update
+rate [14]. SVGS data are non-deterministic for two reasons: the SVGS runs on an Android-
+based system, and SVGS data are processed in the Ubuntu-based companion computer.
+Due to non-deterministic timing inherent to any operating system, SVGS samples are not
+available at constant sampling rates, but instead follow a certain statistical distribution [14].
+For this reason, attempting to estimate velocity using the ﬁltered ﬁnite-differences of the
+SVGS position estimate leads to highly noisy and inaccurate estimates. The proposed
+solution for SVGS velocity estimation is based on a second-order kinematic Kalman ﬁlter:
+xk+1 = xk +
+.xk∆t + 1
+2
+..x∆t2
+(8)
+.
+xk+1 =
+.xk + a∆t
+(9)
+→
+Xk+1 =
+
+
+1
+∆t
+∆t2
+2
+0
+1
+∆t
+0
+0
+1
+
+
+→
+Xk
+;
+→
+X =
+h
+→x
+→.x
+→..x
+i
+(10)
+where ∆t represents the average sampling time of the SVGS.
+PX4 Flight Controller. The PX4 ﬁrmware provides a ﬂight mode called “Offboard
+Mode”, where commands and setpoints can be sent to the FCU via the MAVLink protocol.
+This is used in the landing mission to send position setpoints via the MAVROS ROS package.
+In the Pixhawk-4′s offboard mode, the ﬁrmware provides a cascaded control architecture
+for the ﬂight vehicle, with a combination of P controller for position, and a PID controller
+for velocity [24], as shown in Figure 10. In our experiments, the target’s position, velocity,
+and yaw estimates relative to the ground were obtained from the VIO sensor fusion with
+the Pixhawk internal IMU readings.
+Figure 10. PX4 offboard multi-copter controller diagram [24].
+2.5. Coordinate Frames and Data Conversion
+Two sources of position estimates are used: SVGS readings, which give the position of
+the target relative to the drone in a coordinate system attached to the camera; and the VIO
+sensor, which gives the position of the drone relative to a frame ﬁxed to the ground. The
+VIO estimate is used by the FCU proprietary sensor fusion algorithm to generate a position
+estimate of the vehicle during ﬂight relative to the ground. An outline of the PX4 VIO/IMU
+fusion logic to calculate position/attitude estimates is presented in Appendix A. The VIO
+sensor enables automatic ﬂight in a GPS-denied environment: in the absence of a position
+[p.10]
+Sensors 2023, 23, 1934
+10 of 17
+estimate, the PX4 FCU will not enter automatic mode. The Intel T265 VIO sensor is more
+accurate than GPS, but would not be suitable for long-range or high-altitude maneuvers.
+When using position estimates from the VIO sensor, the PX4 FCU operates in the
+FLU frame (Front–Left–Up). The origin of this frame is deﬁned as the boot position of the
+vehicle, with the positive Front axis pointing to the front of the drone, and the positive
+Left axis pointing to the left of the drone. The orientation of the FLU frame is constant,
+regardless of the yaw angle of the drone: the FLU frame is always ﬁxed to the ground and
+does not rotate with the drone.
+SVGS position estimates from the Kalman ﬁlter (Equation (10)) need to be converted
+to the FLU frame, as shown in Figure 11. Since the FLU frame orientation remains the same
+regardless of the drone’s heading, the yaw angle from the VIO quaternion estimate is used
+in the SVGS frame rotation to convert SVGS readings to the drone’s FLU frame.
+Figure 11. Estimation of the landing target position in the FLU coordinate frame.
+Once ﬂight mode is switched to autonomous, SVGS readings are ignored if the ve-
+hicle’s velocity exceeds a maximum threshold, because SVGS sends void data packets if
+the target velocity exceeds the threshold (typically 7.5 cm/sec). When an SVGS reading
+that meets the velocity requirement is captured, it is vectorially added to the local position
+of the drone in the FLU frame at that moment, as shown in Figure 11. This becomes the
+target’s position estimate in the FLU frame, and is updated every time an acceptable SVGS
+reading is captured.
+3. Results
+The objectives are the demonstration and assessment of precision landing using SVGS.
+This includes: (i) precision landing to a static target using SVGS in a laboratory environment;
+(ii) precision landing with other state-of-the-art landing technology, such as augmented
+reality (AR) markers; and (iii) experimental comparisons to assess landing performance,
+using the Intel T265 VIO sensor as metrology framework. This required both software
+and hardware integration of the SVGS device with the ﬂight vehicle (both the companion
+computer and FCU).
+[p.11]
+Sensors 2023, 23, 1934
+11 of 17
+3.1. Speed Estimation from SVGS Measurements
+A computer-controlled linear stage was used to assess the accuracy and performance
+of this estimator by providing known motion trajectories that can accurately be measured
+via the optical encoder in real time, and used to tune the corresponding Kalman ﬁlter
+parameters (Equations (8)–(10)). Using sinusoidal motion, position measurements from the
+linear stage and SVGS were recorded simultaneously while aligning the motion of the linear
+stage to the Z axis of SVGS, and the captured measurements were used to generate target
+velocity estimates. The results are shown in Figure 12, where the blue trace represents the
+true target velocity (from encoder measurements) and the orange trace represents the SVGS
+velocity estimate, obtained with the Kalman ﬁlter.
+ 
+Figure 12. Kalman-based velocity estimation using the SVGS in sinusoidal motion experiments using
+ground-based linear stage. Orange: SVGS EKF velocity estimate; blue: linear stage true velocity.
+3.2. Results from Automated Landing Experiments
+Automated landing experiments followed the steps detailed in Section 2.3. For SVGS
+testing, the SVGS landing target was placed on the ground, powered by a four-cell battery
+connected to a voltage regulator to power the LEDs. For AR landing, a 10 × 10 cm marker
+(Figure 7) was placed on the ground. In both sets of experiments, the drone was piloted
+manually to the vicinity of the target; once a target was acquired in the camera ﬁeld of view,
+autonomous mode was engaged. The functional ﬂow diagram of the landing sequence is
+shown in Figure 8.
+Figures 13 and 14 show the response of the quadcopter (position of the ﬂight vehicle
+in the F and L axes) during two automated landing maneuvers using SVGS as a landing
+sensor with different PID settings. The plots show the part of the mission where the target
+is within the ﬁeld of view of the sensor, and include two red vertical lines: a solid line to
+indicate transition to OFFBOARD mode when approaching the target, and a dash–dot line
+to indicate transition to manual control after landing.
+[p.12]
+Sensors 2023, 23, 1934
+12 of 17
+Figure 13. SVGS automated landing experiment 1: position vs. time for F and L axes.
+Figure 14. SVGS automated landing experiment 2: position vs. time for F and L axes.
+The plots have four traces each: the VIO estimate of the drone’s position (blue), the
+target location estimated by SVGS (black), the landing position set point (green), and the
+estimated target location, updated only if drone velocity conditions are met (light blue). The
+black traces (SVGS estimate of target location) have spikes that reﬂect the fact that SVGS
+readings are discarded when the SVGS algorithm fails to converge. The position setpoint
+commands (green trace) are updated only after the hover period has concluded, the FCU
+operating mode is set to “OFFBOARD” mode, and a valid SVGS reading is taken within
+[p.13]
+Sensors 2023, 23, 1934
+13 of 17
+the maximum allowable velocity. Successful landing is demonstrated by the blue traces in
+both F and L axes converging to the position setpoint command, calculated based on SVGS
+readings. Figures 13 and 14 show the results of two successful landing experiments for the
+same set of PID control parameters of the FCU’s OFFBOARD mode, for different approach
+velocities (0.15 m/s for Figure 13, and 0.25 m/s for Figure 14).
+Figure 15 shows the position response of the vehicle in both F and L axes when
+landing using an ArUCo marker as the landing target. The color code of traces is the
+same as in Figures 13 and 14. The target location is estimated with the Logitech webcam
+detecting the position and orientation of the ArUCo marker using OpenCV functions, and
+the position setpoint (green trace) is updated by the same logic as in the SVGS landing
+mission. Successful landing is again demonstrated by the blue traces in both F and L axes
+converging to the position setpoint command.
+ 
+Figure 15. ArUCo automated landing experiment: position vs. time for F and L axes.
+In the landing experiments, the prerequisite to start automatic landing was to reach
+target acquire of the landing beacon with SVGS before automatic motion control was
+engaged in the drone. This is caused by the narrow ﬁeld of view of the smartphone camera
+at the approach altitude, and is therefore a common limitation in camera-based systems.
+4. Discussion and Conclusions
+Results from the landing experiments demonstrate the ability of SVGS to achieve
+successful automated landings by providing setpoint commands to the FCU in Offboard
+mode. The setpoint commands correspond to the target position estimated via the SVGS,
+converted to the FLU frame, and updated only if the vehicle’s magnitude of velocity vector
+is less than the acceptable threshold (7.5 cm/s).
+Automated landing using SVGS and AR are similar techniques: both use the image
+processing of camera information to estimate the position and attitude of a landing target.
+In our experiments, the SVGS was able to capture target position from a farther distance
+during the approach compared with AR (1.34 m vs. 0.56 m). Landing performance for
+both SVGS and AR was similar (in terms of both accuracy and response time): for both
+[p.14]
+Sensors 2023, 23, 1934
+14 of 17
+technologies, the drone achieved automatic landing within the error margin assigned. AR
+requires good illumination conditions and a clear view of the landing target to succeed.
+SVGS has signiﬁcant advantages in environments that are dusty, or when the illumination
+conditions are poor, because the landing beacon is self-illuminated (by four bright LEDs)
+and the intensity can be adjusted to better suit the local conditions. Furthermore, the
+dimensions of the SVGS beacon can be scaled to accommodate different operating ranges.
+The computational load of the proposed method on the drone ﬂight computer is
+minimal, since the SVGS algorithm runs on a separate unit (Android smartphone), and the
+landing logic is simple and runs in a powerful companion computer (Latte Panda Delta).
+Assessment under various landing scenarios is needed to further demonstrate the
+performance of the proposed approach (e.g., robustness to noise) under different opera-
+tional conditions. This can be implemented and tested by future users when adapting the
+proposed technique to the conditions of speciﬁc landing missions.
+The use of an Android-based guidance system is a trade-off between added weight
+(and its effect on mission time and ﬂight dynamics), versus the advantage of having the
+smartphone CPU handling the image processing. Vision-based guidance systems that use
+the onboard CPU for image processing are signiﬁcantly affected by the weight and power
+consumption of the hardware required to handle image processing on board. The use
+of a smartphone represents a highly compact and lightweight solution to manage image
+processing, and does not affect the drone power or battery usage because it runs on its own
+battery. Other solutions that use different resources (CPUs and camera) to support SVGS
+deployment could be used, such as single-board Android development boards (e.g., by
+Inforce Computing) of GPU-based systems such as nVidia’s Jetson.
+The SVGS app runs on Android, which introduces time uncertainty typical of any
+operating system (OS); this is a disadvantage when compared with a real-time sensor. The
+variability introduced by the OS in SVGS has been quantiﬁed and discussed in [14]. The
+update rate of MAVLink setpoints is 2 Hz, whereas the update rate of the SVGS is 10 Hz.
+The effect of the operating system time jitter in SVGS performance is negligible for update
+rates below 20 Hz. Therefore, in the operational conditions described in this paper, the
+effect of Android-induced time jitter can be ignored. In precision landing, the update rate
+of the vision system does not need to be high because the vehicle moves at low speed as it
+approaches the landing beacon—the use of a non-deterministic sensor therefore has a small
+impact on performance. Furthermore, the effect of the OS-induced time jitter on SVGS can
+be further compensated by the use of a Kalman ﬁlter, as shown in Section 3.1.
+Author Contributions: N.B. and H.G. developed and implemented the automated landing mission
+and the corresponding hardware and software integration used in the experiments presented in this
+paper. J.R. at NASA MSFC was one of the original developers of the SVGS algorithm, as a modiﬁcation
+of AVGS for deployment on a smartphone. J.I. at NASA MSFC provided technical support throughout
+this effort. All authors have read and agreed to the published version of the manuscript.
+Funding: This study was supported by NASA Marshall Space Flight Center, Cooperative Agreements
+80NSSC20M0169, Dual Use Technology Development CAN 20-109, 2020–2021.
+Institutional Review Board Statement: Not applicable.
+Informed Consent Statement: Not applicable.
+Data Availability Statement: Not applicable.
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+Appendix A
+This section presents an outline of the Kalman ﬁlter fusion algorithm of VIO and IMU
+measurements in the PX4 autopilot. First, the position estimate is corrected for the offset of
+the VIO sensor relative to the IMU. This is performed by subtracting the xyz position of the
+[p.15]
+Sensors 2023, 23, 1934
+15 of 17
+IMU in the body frame (imu_pos_body) from the xyz position of the VIO focal point in the
+body frame (ev_pos_body):
+pos_offset_body = ev_pos_body −imu_pos_body
+(A1)
+The offset is then converted into Earth coordinates using a transformation matrix from
+body to earth, R_to_earth:
+Pos_offset_earth = R_to_earth * pos_offset_body
+(A2)
+Position is then calculated by subtracting this offset from the position sample of the VIO:
+pos = position_sample_VIO −pos_offset_earth
+(A3)
+Position covariance is taken from the VIO (pos_cov). If GPS is used, pos_cov is the
+maximum between the VIO position covariance and the GPS position covariance:
+pos_cov = max
+
+pos_cov_vio,
+p
+GPS position noise
+
+(A4)
+Measurement is set to position:
+measurement = pos
+(A5)
+The measurement variance is set to the max between pos_cov, the position covariance
+of VIO, and √0.01 (the multiplier for a 99% conﬁdence level):
+measurement_var = max
+
+pos_cov,
+p
+VIO position noise ,
+√
+0.01
+
+(A6)
+The observation is deﬁned as:
+observation = measurement −bias
+(A7)
+The observation variance is set to the maximum between the addition of the measure-
+ment variance plus the bias variance, and √0.01:
+obs_var = max
+
+measurement_var + bias_var,
+√
+0.01
+
+(A8)
+The innovation is deﬁned as the state minus the observation:
+innovation = pos −observation
+(A9)
+The variance in the innovation is set to the state covariance matrix, P, plus the observa-
+tion variance:
+innovation_variance = P + obs_var
+(A10)
+The Kalman gain is then calculated as:
+K = P/innovation_variance
+(A11)
+The covariance corrections are applied, which leads to the updated position estimate:
+KHP = K * P
+(A12)
+P = P −KHP
+(A13)
+pos = pos −K * innovation
+(A14)
+[p.16]
+Sensors 2023, 23, 1934
+16 of 17
+References
+1.
+Zhao, T.; Jiang, H. Landing system for AR Drone 2.0 using onboard camera and ROS. In Proceedings of the 2016 IEEE Chinese
+Guidance, Navigation and Control Conference, Nanjing, China, 12–14 August 2016.
+2.
+Tanaka, H.; Matsumoto, Y. Autonomous Drone Guidance and Landing System Using AR/high-accuracy Hybrid Markers. In
+Proceedings of the 2019 IEEE 8th Global Conference on Consumer Electronics, Osaka, Japan, 15–18 October 2019.
+3.
+Sani, M.F.; Karimian, G. Automatic navigation and landing of an indoor AR drone quadrotor using ArUco marker and inertial
+sensors. In Proceedings of the 2017 International Conference on Computer and Drone Applications, Kuching, Malaysia, 9–11
+November 2017.
+4.
+Wang, J.; McKiver, D.; Pandit, S.; Abdelzaher, A.F.; Washington, J.; Chen, W. Precision UAV Landing Control Based on Visual
+Detection. In Proceedings of the 2020 IEEE Conference on Multimedia Information Processing and Retrieval, Shenzhen, China,
+6–8 August 2020.
+5.
+Putra, K.T.; Wiyagi, R.O.; Mustar, M.Y. Precision Landing System on H-Octocopter Drone Using Complementary Filter. In
+Proceedings of the 2018 International Conference on Audio, Language and Image Processing, Shanghai, China, 16–17 July 2018.
+6.
+Respall, V.M.; Sellami, S.; Afanasyev, I. Implementation of Autonomous Visual Detection, Tracking and Landing for AR Drone 2.
+In 0 Quadcopter. In Proceedings of the 2019 12th International Conference on Developments in Systems Engineering, Kazan,
+Russia, 7–10 October 2019.
+7.
+Tran, L.A.; Le, N.P.; Do, T.D.; Le, M.H. A Vision-based Method for Autonomous Landing on a Target with a Quadcopter. In
+Proceedings of the 2018 4th International Conference on Green Technology and Sustainable Development, Ho Chi Minh City,
+Vietnam, 23–24 November 2018.
+8.
+Sudevan, V.; Shukla, A.; Karki, H. Vision based autonomous landing of an Unmanned Aerial Vehicle on a stationary tar-
+get. In Proceedings of the 2017 17th International Conference on Control, Automation and Systems, Jeju, Republic of Korea,
+18–21 October 2017.
+9.
+Demirhan, M.; Premachandra, C. Development of an Automated Camera-Based Drone Landing System. IEEE Access 2020, 8,
+202111–202121. [CrossRef]
+10.
+Rao, Y.; Ma, S.; Xing, J.; Zhang, H.; Ma, X. Real time vision-based autonomous precision landing system for UAV airborne
+processor. In Proceedings of the 2020 Chinese Automation Congress, Shanghai, China, 6–8 November 2020.
+11.
+Xuan-Mung, N.; Hong, S.K.; Nguyen, N.P.; Ha, L.N.; Le, T.L. Autonomous Quadcopter Precision Landing onto a heaving
+platform: New method and experiment. IEEE Access 2020, 8, 167192–167202. [CrossRef]
+12.
+Janousek, J.; Marcon, P. Precision landing options in unmanned aerial vehicles. In Proceedings of the 2018 International
+Interdisciplinary PhD Workshop, Swinoujscie, Poland, 9–12 May 2018.
+13.
+Kim, J.; Woo, S.; Kim, J. Lidar-guided autonomous landing of an aerial vehicle on a ground vehicle. In Proceedings of the 2017 14th
+International Conference on Ubiquitous Robots and Ambient Intelligence (URAI), Jeju, Republic of Korea, 28 June–1 July 2017.
+14.
+Ho, H.W.; Chu, Q.P. Automatic Landing System of a Quadrotor UAV Using Visual Servoing. In Proceedings of the Euro GNC
+2013, 2nd CEAS Specialist Conference on Guidance, Navigation & Control, Delft University of Technology, Delft, The Netherlands,
+10–12 April 2013.
+15.
+Sikdar, A.; Sahu, A.; Sen, D.; Mahajan, R.; Chowdhury, A. Unconstrained Vision Guided UAV Based Safe Helicopter Landing.
+In Proceedings of the 25th International Conference on Pattern Recognition, Milan, Italy, 10–15 January 2021; pp. 8328–8335.
+[CrossRef]
+16.
+Bastiaens, S.; Mommerency, J.; Deprez, K.; Joseph, W.; Plets, D. Received Signal Strength Visible Light Positioning-based Precision
+Drone Landing System. In Proceedings of the 2021 International Conference on Indoor Positioning and Indoor Navigation,
+Lloret de Mar, Spain, 29 November–2 December 2021; pp. 1–8. [CrossRef]
+17.
+Badakis, G.; Koutsoubelias, M.; Lalis, S. Robust Precision Landing for Autonomous Drones Combining Vision-based and Infrared
+Sensors. In Proceedings of the 2021 IEEE Sensors Applications Symposium, Sundsvall, Sweden, 23–25 August 2021; pp. 1–6.
+[CrossRef]
+18.
+Hariri, N.; Gutierrez, H.; Rakoczy, J.; Howard, R.; Bertaska, I. Performance characterization of the smartphone Video Guidance
+sensor as vision-based positioning system. Sensors 2020, 20, 5299. [CrossRef] [PubMed]
+19.
+Becker, C.; Howard, R.; Rakoczy, J. Smartphone Video Guidance Sensor for Small Satellites. In Proceedings of the 27th AIAA/USU
+Conference on Small Satellites, Paper SSC13-I-7, Logan, Utah, 2–7 August 2013.
+20.
+Garrido-Jurado, S.; Muñoz-Salinas, R.; Madrid-Cuevas, F.J.; Medina-Carnicer, R. Generation of ﬁducial marker dictionaries using
+mixed integer linear programming. Pattern Recognit. 2016, 51, 481–491. [CrossRef]
+21.
+Romero-Ramirez, F.J.; Muñoz-Salinas, R.; Medina-Carnicer, R. Speeded up detection of squared ﬁducial markers. Image Vis.
+Comput. 2018, 76, 38–47. [CrossRef]
+22.
+Hariri, N.; Gutierrez, H.; Rakoczy, J.; Howard, R.; Bertaska, I. Proximity Operations and Three Degree-of-Freedom Maneuvers
+Using the Smartphone Video Guidance Sensor. Robotics 2020, 9, 70. [CrossRef]
+[p.17]
+Sensors 2023, 23, 1934
+17 of 17
+23.
+Rakoczy, J. Application of the Photogrammetric Collinearity Equations to the Orbital Express Advanced Video Guidance Sensor Six
+Degree-of-Freedom Solution; Technical Memorandum, Marshall Space Flight Center: Huntsville, AL, USA, 2003.
+24.
+Docs.px4.io. 2021. PX4 Controller Diagrams, PX4 User Guide. Available online: https://docs.px4.io/master/en/ﬂight_stack/
+controller_diagrams.html (accessed on 1 December 2022).
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+=== END ===

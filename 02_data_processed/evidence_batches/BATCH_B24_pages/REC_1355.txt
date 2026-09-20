@@ -1,0 +1,1425 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1355.pdf
+sha256: D071703A7E58556C76FD4D105F0F52B19BA3C7DD77A707566BB02BB668BB0846
+library: pymupdf (fitz) v1.28.2
+pages: 11
+=== BEGIN ===
+[p.1]
+A distributed approach for lidar-based relative state
+estimation of multi-UAV in GPS-denied
+environments
+Hongming SHEN a, Qun ZONG a, Hanchen LU a,*, Xuewei ZHANG a,
+Bailing TIAN a, Lei HE b
+a School of Electrical and Information Engineering, Tianjin University, Tianjin 300072, China
+b Institute of Field Engineering, Army Engineering University of PLA, Nanjing 210007, China
+Received 17 November 2020; revised 29 December 2020; accepted 5 March 2021
+Available online 27 May 2021
+KEYWORDS
+Distributed relative state
+estimation;
+GPS-denied environments;
+Lidar-based perception;
+Multi-UAV system;
+Pose-graph optimization
+Abstract
+In this paper, we present a distributed framework for the lidar-based relative state esti-
+mator which achieves highly accurate, real-time trajectory estimation of multiple Unmanned Aerial
+Vehicles (UAVs) in GPS-denied environments. The system builds atop a factor graph, and only on-
+board sensors and computing power are utilized. Beneﬁting from the keyframe strategy, each UAV
+performs relative state estimation individually and broadcasts very partial information without
+exchanging raw data. The complete system runs in real-time and is evaluated with three experiments
+in different environments. Experimental results show that the proposed distributed approach offers
+comparable performance with a centralized method in terms of accuracy and real-time perfor-
+mance. The ﬂight test demonstrates that the proposed relative state estimation framework is able
+to be used for aggressive ﬂights over 5 m/s.
+ 2021 Chinese Society of Aeronautics and Astronautics. Production and hosting by Elsevier Ltd. This is
+an open access article under the CC BY-NC-ND license (http://creativecommons.org/licenses/by-nc-nd/4.0/).
+1. Introduction
+The deployment of the collaboration of UAVs has the poten-
+tial to enable surveillance, search, information gathering, and
+more efﬁcient coverage and monitoring of vast areas.1–6 Both
+of these works rely on the availability of ground truth mea-
+surements. But external sensors, such as GPS,7,8 motion cap-
+ture system,9,10 Ultra-Wideband (UWB),11,12 is unreliable in
+dynamic, partially-known environments. Therefore, it is neces-
+sary to develop a state estimation system that only relies on
+onboard sensing and computation, which is able to provide
+both state estimation and relative state estimation of a multi-
+UAV system. This paper provides a detailed description of a
+distributed approach for lidar-based relative state estimation
+which can be adopted by the multi-UAV systems in GPS-
+denied environments.
+Robust state estimation is one of the key requirements for
+safe ﬂight. For real-world ﬂight, it is common to encounter
+* Corresponding author.
+E-mail address: luhanchen_1993@tju.edu.cn (H. LU).
+Peer review under responsibility of Editorial Committee of CJA.
+Production and hosting by Elsevier
+Chinese Journal of Aeronautics, (2022), 35(1): 59–69
+Chinese Society of Aeronautics and Astronautics
+& Beihang University
+Chinese Journal of Aeronautics
+cja@buaa.edu.cn
+www.sciencedirect.com
+https://doi.org/10.1016/j.cja.2021.04.021
+1000-9361  2021 Chinese Society of Aeronautics and Astronautics. Production and hosting by Elsevier Ltd.
+This is an open access article under the CC BY-NC-ND license (http://creativecommons.org/licenses/by-nc-nd/4.0/).
+[p.2]
+complete darkness and low-texture environment, which may
+lead to the degradation of vision-based methods. Beneﬁt from
+direct depth measurements, which is not affected by scene illu-
+mination
+and
+texture
+changes,
+lidar-based
+methods13,14
+become a viable state estimator. However, lidar-based state
+estimator may also degrade in some geometric self-similarity
+environments. The fusion with an Inertial Measurement Unit
+(IMU) provides robustness and viable solution. Nevertheless,
+lidar-inertial odometry15,16 is only capable of providing the
+state estimations in local frames. Together with the drift issue,
+it is apparent that a simple one-time alignment of the coordi-
+nate systems of the individual UAVs before take-off is not suf-
+ﬁcient during formation ﬂying. It is intuitive to perform
+detection for other UAVs from the point cloud captured by
+the on-board lidar so as to obtain relative state estimations.
+Our goal is to design a distributed framework that allows each
+UAV to perform relative state estimation individually with
+minimal knowledge of the information of the teammates and
+sharing information with others.
+1.1. Related work
+Multi-robot Simultaneous Localization and Mapping (SLAM)
+has gained recent attention for the increased viability and
+accessibility of multi-UAV systems. In recent years, it is shown
+that researches on multi-UAV systems are more likely to focus
+on planning and control,17–20 and the relative state estimation
+is always leaped by adopting external positioning systems.
+Related work of relative state estimation investigates different
+sensing modalities, including vision,21 UWB,11 and lidar.22
+Several works have adopted the vision-based methods for
+relative localization. In Ref.23, a pattern detection-based visual
+relative localization approach is proposed. In the system, each
+UAV is equipped with a circle marker for detection purpose,
+which can be quite redundant. In Ref.24, an ultraviolet light-
+based onboard relative localization method is presented, this
+method relies on additional UltraViolet Direction and Rang-
+ing (UVDAR) sensor and active marker for tracking purpose.
+However, due to the limitation of sensor Field-of-View (FOV),
+this method can only be applied to directed leader–follower-for
+mation control. In Ref.25, an inter-robot loop closures based
+collaborative localization method is running on a centralized
+ground station. The authors of Ref. 21 extend the method in
+Ref.25 to the distributed system with an outlier rejection mech-
+anism. Nonetheless, all the systems may encounter potential
+failure or drift when the points of interest are out of the
+FOV of the cameras, which limits the application in leader–fol-
+lower formation.
+UWB based ranging measurements can assist in relative
+state estimation. In Ref. 11, an onboard UWB ranging and
+communication network is adopted to sense the inter-UAV
+distance and exchange information for relative localization
+estimation in 2D spaces. In Ref.26, a state estimator for both
+single and multi-robot systems is presented. However, this esti-
+mator requires a UWB anchor, which limits the application
+scenario. The method proposed in Ref.27 represents a good
+solution for decentralized relative state estimation of the aerial
+swarm. However, solely relying on the vision for localization
+and mapping can be challenging as cameras are directional
+and sensitive to illumination changes and environmental
+conditions.
+3D lidar is a viable sensing choice to map complex unstruc-
+tured environments, which provides a 360 horizontal FOV
+and high sampling rate, and does not rely on external light
+sources. The authors of Ref.28 present a strategy for collabora-
+tive mapping of an earthquake-damaged building via ground
+and aerial robots. In Ref.29, an integrated autonomous 3D
+mapping system for multi-robot exploration is proposed.
+However, the map-merging strategies proposed in Ref.28 and
+Ref.29 are both performed ofﬂine. In Ref. 30 and Ref. 31,
+the authors present an online localization and mapping system
+for multiple ground robots equipped with 3D lidars, which is
+available open-source and easy to compare. In Ref.
+22, a
+lidar-based multi-robot SLAM system is presented, which
+developed in the context of the DARPA Subterranean
+Challenge. Nonetheless, both methods proposed in Ref. 30,
+Ref. 31, and Ref. 22 are centralized systems, all of them rely
+on a central server with potentially big computational capac-
+ity. The method proposed in Ref.32 represents a good solution
+for lidar-based decentralized relative state estimation for
+ground robots. To the best of our knowledge, most of the
+works related to lidar-based relative state estimation technol-
+ogy are centralized system or demonstrated with ground
+robots. This is the ﬁrst time a distributed lidar-based relative
+state estimation framework is demonstrated on a multi-UAV
+system during a real-world aggressive ﬂight.
+1.2. Contribution
+A lidar-based on-board real-time relative state estimation sys-
+tem is proposed in this paper, which can be adopted by multi-
+UAV systems. The main contributions are as follows:
+(1) A distributed relative state estimation framework is
+developed to build atop a factor graph, that is suitable
+for the multi-UAV systems. Only onboard sensors and
+computing power, including lidars, inertial measurement
+units, as well as Intel NUC, are utilized. No external off-
+board sensors or computing power are required;
+(2) A keyframe-based lidar-inertial odometry and inter-
+UAV loop closures detection method is proposed with
+an outlier rejection mechanism. Each UAV performs rel-
+ative state estimation individually and broadcasts very
+partial information, including keyframes and odometry
+information, without exchanging raw data;
+(3) The proposed framework is validated with an extensive
+experimental evaluation including indoor test, outdoor
+test, and aggressive ﬂight test in the real world.
+2. System overview
+Fig. 1 shows the architecture of our lidar-based relative state
+estimation framework. The goal of each UAV is to estimate
+its own trajectory and relative pose of the observed UAV.
+The modules of each UAV can be categorized into 6 main
+parts: on-board sensor, lidar-inertial odometry, keyframe
+selection, distributed place recognition, relative pose-graph
+optimization, map management unit. The on-board sensor
+consists of 3D lidar and IMU, which is a popular choice as
+a sensing payload since they provide point clouds, accelera-
+tion, and angular velocity to enable UAV state estimation in
+60
+H. SHEN et al.
+[p.3]
+darkness and low-texture environments. Lidar-inertial odome-
+try unit seeks to estimate the state of UAV and its trajectory
+using the observation of these sensor data. As done in other
+lidar odometry pipelines,15 we also use a scan-to-map match-
+ing
+step,
+where
+the
+latest
+scan
+is
+matched
+against
+a
+keyframe-based map. The maps are maintained on each
+UAV using a local inertial frame, while information between
+the UAVs is exchanged in relative coordinates from one local
+inertial frame to the other. Note that, map management mod-
+ule maintains a keyframe-based map by forwarding newly
+arrived keyframes to the map. Maintaining the keyframe-
+based map not only achieves a balance between map density
+and memory consumption but also reduces communication
+bandwidth requirement. The distributed place recognition
+module collects keyframes of other UAVs and establishes rel-
+ative poses between the UAVs trajectories using the Iterative
+Closest Point (ICP) algorithm. The relative pose-graph opti-
+mization module computes relative poses using keyframes
+and poses that are observed at other UAVs by incremental rel-
+ative pose-graph optimization.
+2.1. Notations
+To help the understanding of system framework, nomencla-
+tures are deﬁned in Table 1.
+Fig. 1
+Overview of the proposed relative state estimation architecture.
+Table 1
+Nomenclature.
+cð Þ
+The estimated state
+Fg
+tk
+All planar features extracted at time tk
+ð Þ
+
+The initial state
+IiMtk
+Keyframe based map maintained on UAVi at time tk
+Ii ð Þ
+State in UAVi’s inertial frame
+de
+tk
+The distance between a feature and its edge patch correspondence at time tk
+Bi ð Þ
+State in UAVi’s body frame
+dg
+tk
+The distance between a feature and its planar patch correspondence at time tk
+IiTj;tk
+The relative pose of UAVj in UAVi’s
+inertial frame at time tk
+ztk
+The odometry measurement at time tk
+Ftk
+All features extracted at time tk
+Iizj;tk
+The place recognition measurement describes a measurement of the relative pose
+between the UAVj and UAVi’s inertial frame at time tk
+Fe
+tk
+All edge features extracted at time tk
+r
+Gaussian noise in the estimation process
+A distributed approach for lidar-based relative state estimation of multi-UAV in GPS-denied environments
+61
+[p.4]
+2.2. Problem formulation
+We consider a multi-UAV system that contains n UAVs (la-
+beled consecutively from 1 to n), that each UAVi has an iner-
+tial frame Ii and a body-ﬁxed frame Bi, for i ¼ 1; 2;:::; n. Each
+UAV is equipped with a 3D lidar and an IMU in order to run
+lidar-inertial
+odometry,
+in
+which
+the
+ego-motion
+state
+T 2 SEð3Þ is able to be estimated in its own inertial frame.
+Meanwhile, each UAV will broadcast certain information,
+including pose, and keyframes, to other UAVs. The relative
+state estimation problem can be represented as: For an arbi-
+trary UAVi, estimate the pose of each UAVj in UAVi’s inertial
+frame Ii. This relative state estimation problem can be formu-
+lated as a Maximum a Posteriori (MAP) problem. With the
+assumption of a Gaussian noise model, the MAP inference
+for our problem is equivalent to solving a nonlinear least-
+squares problem.
+Ii bTj;tk ¼ argmin
+IibTj;tk
+IiTj;tk
+
+1
+Ii bTj;tk
+
+
+ð1Þ
+where Ii bTj;tk is solved using a versatile relative pose-graph opti-
+mization and implemented in Georgia Tech Smoothing and
+Mapping (GTSAM) library.33
+3. Relative state estimation framework
+In this section, a lidar-based relative state estimation frame-
+work is presented in a distributed fashion. The functionalities
+of the individual modules shown in Fig. 1 are described in the
+following.
+3.1. Lidar-inertial odometry
+The lidar-inertial odometry is in charge of using the raw sensor
+data to obtain pose measurements of a single UAV. Inspired
+by Ref.15, a keyframe strategy is proposed to reduce memory
+consumption. Compare to traditional two-stage odometry esti-
+mation, we use IMU prediction instead of scan-to-scan to
+reduce the computational cost, without reducing localization
+precision. As done in other lidar odometry pipelines,15 a
+scan-to-map matching step is utilized to produce an accurate
+pose estimate.
+When a new lidar scan arrives, features are extracted by the
+algorithm proposed in Ref.13. The feature extraction unit
+extracts points on edge or plane by calculating the curvature
+of each point. Points with a large curvature value are classiﬁed
+as edge features. Similarly, a planar feature is categorized by a
+small curvature value. All feature points extracted at time tk
+compose a feature point set BFtk which consists of a subset
+of edge points BFe
+tk and planar points BFg
+tk. Considering the
+sparsity of point cloud in a single lidar scan, we store point
+cloud on map IMtk, this can be done using the map manage-
+ment unit described in Section 3.5. For each edge point
+Ife
+q;tk 2I Fe
+tk, its correspondence in IMtk –1 is a line represented
+by two edge points Ife
+u;tk –1 and Ife
+v;tk –1. The distance between
+an edge feature and its correspondence can be deﬁned as
+de
+odom in Eq. (2). For each planar point Ifg
+q;tk 2I Fg
+tk, its corre-
+spondence in IMtk –1 is a plane represented by planar points
+Ifg
+u;tk –1, Ifg
+v;tk –1 –and Ifg
+w;tk –1. The point-to-plane distance dg
+odom
+can be deﬁned as Eq. (3).
+de
+odom;tk ¼
+Ife
+q;tk 
+I fe
+u;tk –1
+
+
+
+Ife
+q;tk 
+I fe
+v;tk –1
+
+
+
+
+Ife
+u;tk –1 
+I fe
+v;tk –1
+
+
+
+
+ð2Þ
+dg
+odom;tk ¼
+Ifg
+q;tk 
+I fg
+u;tk –1
+
+
+Ifg
+u;tk –1 
+I fg
+v;tk –1
+
+
+
+Ifg
+u;tk –1 
+I fg
+w;tk –1
+
+
+
+
+Ifg
+u;tk –1 
+I fg
+v;tk –1
+
+
+
+Ifg
+u;tk –1 
+I fg
+w;tk –1
+
+
+
+
+ð3Þ
+where If e
+tk and If g
+tk are the edge and planar feature points in the
+inertial frame I that transformed by Ttk. Therefore, both
+d e
+Odom;tk and d g
+Odom;tk can be expressed as functions of transfor-
+mation ^Ttk.
+f ^Ttk
+
+
+¼
+de
+odom;tk
+dg
+odom;tk
+"
+#
+ð4Þ
+then ^Ttk can be solved through nonlinear iterations by minimiz-
+ing de
+odom;tk and d g
+odom;tk toward zero.
+^Ttk ¼ argmin
+^Ttk
+f ^Ttk
+
+
+ð5Þ
+Note that, the initial transformation of Eq. (5) is obtained by
+using the predicted UAV motion from IMU, rather than using
+scan-to-scan matching like LOAM.13 Meanwhile, IMU mea-
+surements are exploited to provide a prediction at a higher
+rate.3.2. Keyframe selection
+To improve the real-time performance of the lidar odometry,
+we adopt the concept of keyframe selection.15 The keyframe
+selection criteria can be represented as: If the change in
+UAV pose between the current frame and the latest keyframe
+is beyond a certain threshold, the current frame is treated as a
+new keyframe. The keyframe strategy provides a trade-off
+between map density and memory consumption that makes
+the global map maintained in the map management unit suit-
+able for scan-to-map matching.
+3.3. Distributed place recognition
+The distributed place recognition unit produces noisy relative
+pose measurements of UAVs. For instance, the relative pose
+IiTj describes a measurement of the relative pose between the
+UAVj and UAVi’s own inertial frame Ii. The distributed place
+recognition unit of UAVi targets to match the current place of
+UAVj with the previously visited places of UAVi from the sub-
+keyframes
+IiFtknm;    ;Ii Ftkn;    ;Ii Ftknþm
+
+
+2Ii Mtk –1, where
+IiFtkn is one of the candidate target keyframe feature sets for
+place recognition. For UAVj, features are extracted by the
+algorithm proposed in Section 3.1. When BjFtk is a keyframe,
+UAVj will broadcast it to all the other UAVs. For a newly
+obtained
+feature
+point
+set
+BjFtk,
+UAVi
+ﬁrst
+transform
+Bjftk 2Bj Ftk from UAVj’s body ﬁxed frame Bj to UAVi’s iner-
+tial frame Ii.
+62
+H. SHEN et al.
+[p.5]
+Iifj;tk ¼Ii T
+Bj
+j;tkftk
+ð6Þ
+Then found the closest neighbor of
+Iifj;tk in the sub-
+keyframes
+IiFtknm;    ;Ii Ftkn;    ;Ii Ftknþm
+
+
+as the correspon-
+dence features. As described in Section 3.1, the distance
+between an edge feature Iife
+j;q;tk 2Ii Fe
+j;tk and its correspondence
+Iife
+u;tk –1;Ii fe
+v;tk –1 2Ii Me
+tk –1 can be deﬁned as de
+RelPose in Eq. (7).
+The distance between a planar feature Iifg
+j;q;tk 2Ii Fg
+j;tk and its
+correspondence Iifg
+u;tk –1;Ii fg
+v;tk –1;Ii fg
+w;tk –1 2Ii Mg
+tk –1 can be deﬁned
+as dg
+RelPose in Eq. (8).
+d e
+RelPose;tk ¼
+Iif e
+j;q;tk 
+Ii f e
+u;tk –1
+
+
+
+Iif e
+j;q;tk 
+Ii f e
+v;tk –1
+
+
+
+
+Iif e
+u;tk –1 
+Ii f e
+v;tk –1
+
+
+
+
+ð7Þ
+d g
+RelPose;tk ¼
+Iif g
+j;q;tk 
+Ii f g
+u;tk –1
+
+
+Iif g
+u;tk –1 
+Ii f g
+v;tk –1
+
+
+
+Iif g
+u;tk –1 
+Ii f g
+w;tk –1
+
+
+
+
+Iif g
+u;tk –1 
+Ii f g
+v;tk –1
+
+
+
+Iif g
+u;tk –1 
+Ii f g
+w;tk –1
+
+
+
+
+ð8Þ
+Substituting Eq. (6) into Eqs. (7) and (8), both d e
+RelPose;tk and
+d g
+RelPose;tk can be expressed as functions of transformation Ii^Tj;tk.
+f
+Ii ^Tj;tk
+
+
+¼
+de
+RelPose;tk
+dg
+RelPose;tk
+"
+#
+de
+RelPose;tk ¼
+Ii ^T
+Bj
+j;tk
+fe
+q;tk 
+Ii fe
+u;tk –1
+
+
+
+Ii ^T
+Bj
+j;tk
+fe
+q;tk 
+Ii fe
+v;tk –1
+
+
+
+
+Ii fe
+u;tk –1 
+Ii fe
+v;tk –1
+ð
+Þ
+
+
+dg
+RelPose;tk ¼
+Ii ^T
+Bj
+j;tk fg
+q;tk 
+Ii fg
+u;tk –1
+
+
+Iifg
+u;tk –1 
+Ii fg
+v;tk –1
+
+
+
+Iifg
+u;tk –1 
+Ii fg
+w;tk –1
+
+
+
+
+Ii fg
+u;tk –1 
+Ii fg
+v;tk –1
+
+
+
+Ii fg
+u;tk –1 
+Ii fg
+w;tk –1
+
+
+
+
+8
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+<
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+:
+ð9Þ
+then Ii ^Tj;tk can be solved through nonlinear iterations by min-
+imizing de
+RelPose;tk and dg
+RelPose;tk toward zero.
+Ii ^Tj;tk ¼ argmin
+Ii ^Tj;tk
+f
+Ii ^Tj;tk
+
+
+ð10Þ
+3.4. Relative pose-graph optimization
+This module is in charge of estimating the UAVs’ relative state
+given the odometry measurements from the lidar-inertial
+odometry unit and the relative pose measurements from the
+distributed place recognition unit. We use a factor graph to
+model the relative state estimation problem. The factor graph
+implements 2 different types of factors, i.e., odometry factor,
+and place recognition factor which include both inter-UAV
+associations and intra-UAV loop-closures.
+For instance,
+Fig. 2 shows the factor graph of the UAVi’s relative state esti-
+mator in a multi-UAV system with 2 UAVs (labeled with
+i; j; i–j).
+3.4.1. Odometry factor
+The lidar-inertial odometry data is used to compute the odom-
+etry factor between adjacent nodes in the graph. For a multi-
+UAV system, each UAV locally estimates its own pose and
+broadcasts it to other UAVs. The odometry measurement
+can be obtained and formulated as follow.
+ztk ¼ ztk1 DTtk þ rodom
+
+
+ð11Þ
+where DTtk is the transformation from time tk1 to tk, which
+are deﬁned as follow.
+DTtk,T1
+tk1Ttk
+ð12Þ
+Note that, Eq. (12) does not contain frame transformations
+because DTtk is frame invariant. Eq. (12) can be rewritten as
+follow.
+Fig. 2
+Factor graph representation of relative state estimator.
+A distributed approach for lidar-based relative state estimation of multi-UAV in GPS-denied environments
+63
+[p.6]
+DTtk ,
+IiT1
+j;tk1
+IiTj;tk
+ð13Þ
+Substituting Eq. (13) into Eq. (11), the odometry measure-
+ments can be obtained and formulated by the displacements
+between consecutive keyframes with a Gaussian model.
+Dztk ,z1
+tk1ztk ¼Ii T1
+j;tk1IiTj;tk þ rodom
+ð14Þ
+This intra-UAV measurements involves the poses of a sin-
+gle UAV at different time instants. Given the observation in
+Eq. (14), the residual from odometry can be deﬁned as follow.
+rodom
+Ii ^Tj;tk1;Ii ^Tj;tk; Dztk
+
+
+¼ DzIi
+tk ^T1
+j;tkIi^Tj;tk1
+ð15Þ
+3.4.2. Place recognition factor
+To implement place recognition, loop closures detection takes
+a source keyframe point cloud set and a target sub-keyframes
+point cloud set as input. We compare the current keyframe
+with scans in the target point cloud within a given radius. Since
+compact lidars, such as the Velodyne Puck, have a relatively
+narrow vertical FOV (30) and low vertical angular resolution
+(2.0, 16 scanning channels), the points cloud is sparsity out of
+a certain range. In our tests, we choose this search distance for
+loop closures to be 15 m. The current keyframe is then regis-
+tered against each of the nearby scans using ICP to obtain a
+transformation. For example, IiFj;tk is the current feature point
+set of UAVj in UAVi’s inertial frame. We try to match IiFj;tk to
+the sub-keyframes
+IiFtknm;    ;Ii Ftkn;    ;Ii Ftknþm
+
+
+, using the
+scan-matching method discussed in Section 3.3. We obtain the
+relative transformation DIiTj;tk and add it as a correction to
+IiT
+
+j;tk.
+Ii ^Tj;tk ¼ D
+Ii ^T
+Ii
+j;tk T
+
+j;tk
+ð16Þ
+where the initial transformation IiT
+
+j;tk is obtained by adding
+the odometry factor to the graph. The place recognition result
+is also formulated with a Gaussian model.
+Iizj;tk ¼
+Ii Tj;tk þ rRelPose
+ð17Þ
+Given the observation in Eq. (17), the residual from place
+recognition can be deﬁned as follow.
+rRelPose
+Ii ^Tj;tk;Ii zj;tk
+
+
+¼Ii zIi
+j;tk ^T1
+j;tk
+ð18Þ
+Before executing optimization, the distributed outlier rejec-
+tion mechanism is adopted to check the quality of loop clo-
+sures and remove outliers. This is done by checking the
+ﬁtness score of each loop closure and reject loop closures with
+a score larger than a threshold (2.0 in our experiments), and
+then checking pairwise consistency between pairs of loop clo-
+sures. Inspired by Ref.34, the following metric is used to deter-
+mine if two inter-robot loop closures
+Iizj;tk and
+Iizj;tkn are
+pairwise consistent.
+Iizj;tkn
+Y
+t2 tkn;tk
+ð
+Þ
+Dztz1
+j;tk
+					
+					
+R
+6 c
+ð19Þ
+The threshold c can be determined from the quantile of the
+chi-squared distribution for a given probability level. Place
+recognition measurements that satisfy Eq. (19) are considered
+inlier and added to the factor graph.
+3.4.3. Optimization
+The factor graph of the relative state estimator is shown in
+Fig. 2. This relative state estimation problem can be formu-
+lated as a MAP problem. With the assumption of a Gaussian
+noise model in Eqs. (14) and (17), the MAP problem inference
+for our problem is equivalent to solving a nonlinear least-
+squares problem. For example, the optimization for relative
+pose estimation of UAVj in the UAVi’s inertial frame is
+expressed as the following formulation.
+min
+Ii ^Tj;tk
+k rodom
+Ii ^Tj;tk1;Ii ^Ttk; Dzk
+
+
+k
+2 þ k rRelPose
+Ii ^Tj;tk;Ii zj;tk
+
+
+k
+2
+n
+o
+ð20Þ
+This nonlinear least-squares problem considers 2 factors,
+corresponding to the odometry factor (Section 3.4.1), and
+the place recognition factor (Section 3.4.2). Simply solving
+Eq. (20) can directly provide the result of the relative state
+estimation.
+3.5. Map management
+Each UAVi (i ¼ 1; 2;:::; n) in the system is in charge of main-
+taining a target map, IiMtk, in its own inertial frame and gen-
+erating its current keyframe feature point set BiFtk, which is,
+along with odometry factor, the only information communi-
+cated to other UAVs. Converting the raw point cloud into
+BiFtk induces a high level of compression which is a key advan-
+tage for reducing the required communication bandwidth in
+multi-UAV systems. For a newly obtained keyframe feature
+point set BjFj;tk of UAVj, the map management unit of UAVi
+ﬁrst transforms BjFj;tk into the UAVi’s inertial frame by using
+Eq. (6). Then merges transformed keyframe feature point set
+IiFj;tk together into the target map IiMtk. Finally, IiMtkis down-
+sampled to eliminate the duplicated features that fall in the
+same voxel cell, the downsample resolutions for
+IiMg
+tk and
+IMe
+tk are 0.2 m and 0.4 m in our experiments, where
+IiMg
+tk
+and IiMe
+tk are edge feature voxel map and planar feature voxel
+map, respectively.
+4. Experiments
+We now describe three experiments to analyze the relative state
+estimation framework stated in Section 3. The performance of
+the proposed method in different scenarios is compared with
+SegMap30,31 which successfully integrates different state-of-
+the-art modules that are advantageous for multi-robot systems
+with regards to closing loops, computational complexity, and
+communication bandwidth requirements. During experiments,
+the interconnection topology of the multi-UAV system is
+strong connectedness (every UAV is reachable from other
+UAVs) based on the multi-master network of Robot Operat-
+ing System (ROS). In the ﬁrst experiment, an indoor test is
+introduced to evaluate the accuracy of the proposed method
+in 2 UAVs scenario by it comparing with ground truth data
+obtained from the OptiTrack motion capture system. Consid-
+ering that the limited working area (2:5 m  7 m) of the
+motion capture system prevents the real ﬂight experiments of
+multi-UAV, a full functional experiment with manual move-
+64
+H. SHEN et al.
+[p.7]
+ment of 2 UAVs is presented in Section 4.2 to evaluate the
+accuracy of the proposed method. Furthermore, the proposed
+method is also implemented on a real platform as shown in
+Fig. 3 for the outdoor experiments in Section 4.3 and Sec-
+tion 4.4. In the second experiment, a campus is chosen as the
+experiment area to evaluate the performance of the proposed
+method in a large-scale environment by checking the consis-
+tency with the Google Earth imagery. In the third experiment,
+a ﬂight test is introduced to verify the validity and effectiveness
+of the proposed distributed relative state estimation method
+during aggressive ﬂight.
+4.1. Aerial platform
+For the multi-UAV system, each UAV uses an identical hard-
+ware conﬁguration. As shown in Fig. 3, one of the aerial plat-
+forms of the multi-UAV system is equipped with a Pixhawk4
+ﬂight controller, a Velodyne VLP-16 lidar, a MicroStrain
+3DM-GX5-25 IMU, and an onboard computer (Intel i7-
+8550U CPU, 32 GB RAM). The raw data from the IMU at
+1000 Hz and point clouds from the lidar at 10 Hz are fused
+together for the lidar-inertial odometry of individual UAVs,
+while the keyframes of lidar odometry are also utilized for rel-
+ative state estimation. The attitude controller is performed by
+a widely used off-the-shelf Pixhawk4 attitude controller, while
+all other algorithms, including state estimation, trajectory
+planning, and position control, are running on the onboard
+computer. All algorithms are implemented in C++, and the
+ROS in Ubuntu 16.04 is used for communication between
+UAVs over a network bridge.
+4.2. Indoor test
+In this test, we focus on evaluating the accuracy of our relative
+state estimation framework in 2 UAV scenario (UAV1 and
+UAV2). During the data gathering, the user holds the UAV
+shown in Fig. 3 and walks quickly under the OptiTrack motion
+capture system. The relative trajectories from the proposed
+method and SegMap are shown in Fig. 4 and compared with
+Fig. 3
+One of the aerial platforms in the multi-UAV system.
+Fig. 4
+Comparison of relative trajectories between different methods and ground truth in 2 UAV scenario.
+A distributed approach for lidar-based relative state estimation of multi-UAV in GPS-denied environments
+65
+[p.8]
+the motion capture system introduced as ground truth. Due to
+the lack of typical semantic classes, such as vehicles and trees,
+in indoor environments, SegMap fails to initialize properly and
+produce meaningful results. The results of the developed
+method, shown in Fig. 4(a) and (b), are consistent with the
+ground truth. Table 2 shows the Root Mean Square Error
+(RMSE) results of the proposed method and SegMap. The
+results show that the proposed method outperforms SegMap
+and
+RMSE
+can
+reach
+20 cm
+level
+in
+the
+indoor
+test
+environment.
+4.3. Outdoor test
+To evaluate the performance of the proposed method in a
+large-scale environment (275 m  160 m), outdoor tests are
+performed with 3 UAVs running the proposed relative state
+estimation method. The 3 UAVs start at different locations,
+traverse different paths, and return to their starting points.
+Fig. 5 shows the mapping results of the developed distributed
+method and the centralized SegMap method. The map of the
+proposed distributed method and a centralized method, Seg-
+Map, are shown in Fig. 5(b) and (c), respectively. From the
+results, it can be observed that the map of SegMap shows
+numerous blurry structures due to the poor relative state esti-
+mation results, and the map obtained by the developed method
+is well-aligned with Google Earth imagery. The keyframes of
+UAV1, UAV2, and UAV3 are colored in blue, green, and
+red, respectively. The map management unit of UAV1 uses
+I1Ttk from its lidar-inertial odometry andI1T2;tk, I1T3;tk from
+its relative state estimator to transform keyframes into UAV0
+1s
+inertial frame I1, and the mapping result is shown in Fig. 5(b).
+The relative translational error of relative state estimation
+when each UAV returns to its start location is shown in
+Table 3. From the results, it can be concluded that the pro-
+posed relative state estimator can achieve better performance
+when compared with SegMap.
+Table 2
+Comparison of relative state estimation with ground truth.
+RMSE
+I2T1
+I1T2
+Proposed method
+SegMap
+Proposed method
+SegMap
+x(m)
+0.22
+0.36
+0.11
+0.81
+y(m)
+0.18
+2.26
+0.13
+2.30
+z(m)
+0.24
+0.71
+0.23
+0.43
+w()
+1.02
+1.23
+3.26
+5.35
+Fig. 5
+Mapping result of proposed method and SegMap.
+66
+H. SHEN et al.
+[p.9]
+4.4. Flight test
+In this test, the system consisting of 3 UAVs performs simulta-
+neous ﬂights in a cluttered scenario to attest to the practicality
+of the proposed relative state estimation framework. In the
+ﬂight test, UAVs track the reference trajectories for achieving
+high speed while avoiding the obstacles, and the results are
+illustrated in Fig. 6 (the estimated trajectories of UAV1,
+UAV2, and UAV3 are shown in blue, green, and red, respec-
+tively). During this trial, the multi-UAV system reaches a max-
+imum speed of over 5 m/s. This experiment is carried out in a
+forest of approximately 45 m  20 m, shown in Fig. 6(a). The
+mapping and trajectories estimation results of the proposed
+method and SegMap are shown in Fig. 6(b) and (c), where
+the mapping results are merged by keyframes from 3 UAVs.
+Due to the inaccurate relative state estimation, the map from
+SegMap consists of numerous blurry structures (the 2 tree
+trunks that are highlighted by the red circle in Fig. 6(c) repre-
+sent the same tree in reality). As shown in Fig. 6(b), the pro-
+posed method produces a map that is consistent with the
+real scene. To quantitatively analyze the performance of the
+proposed relative state estimation method, the translational
+error of relative state estimation when each UAV reaches its
+landing point is shown in Table 4. For more details, a video
+Table 3
+Translational error of relative state estimator when returning to start location.
+Error
+I1T2
+I1T3
+I2T1
+I2T3
+I3T1
+I3T2
+Proposed
+method
+SegMap
+Proposed
+method
+SegMap
+Proposed
+method
+SegMap
+Proposed
+method
+SegMap
+Proposed
+method
+SegMap
+Proposed
+method
+SegMap
+x(m)
+0.09
+0.54
+0.22
+0.15
+0.01
+0.72
+0.10
+0.65
+0.02
+0.38
+0.22
+2.41
+y(m)
+0.10
+1.28
+0.11
+1.24
+0.01
+1.19
+0.22
+1.06
+0.06
+1.49
+0.09
+0.78
+z(m)
+0.05
+2.50
+0.39
+2.83
+0.07
+0.02
+0.08
+2.96
+0.48
+0.33
+0.08
+2.68
+Fig. 6
+Real-world ﬂight test with 3 UAVs, the multi-UAV system reaches a maximum speed of over 5 m/s.
+A distributed approach for lidar-based relative state estimation of multi-UAV in GPS-denied environments
+67
+[p.10]
+demonstration is available at https://www.bilibili.com/video/
+BV1ef4y1q7nJ/ .
+The main challenge of performing a live ﬂight test with only
+the onboard computing power and communication module is
+to run relative state estimation in real-time with the additional
+workload, such as the sensor driver and the connection to the
+ﬂight controller. Table 5 shows the average runtime to register
+one keyframe and the communication bandwidth requirements
+for each UAV during the ﬂight test. As SegMap relies on exter-
+nal odometry measurement, a state-of-the-art lidar odometry,
+LOAM,13 is adopted during the experiment to provide odom-
+etry information. From the results, the proposed relative state
+estimation framework uses less runtime than SegMap, the run-
+time of the relative state estimator is reduced by 25%, which
+makes it more suitable to be deployed on a low-power onboard
+computer in real-time. Table 5 also compares the average com-
+munication requirements of the proposed method and Seg-
+Map. Beneﬁt by segment approach,35 SegMap provides an
+advantage in terms of communication burden. However, due
+to the segment approach provide a trade-off between commu-
+nication bandwidth requirements and relative state estimation
+accuracy, the SegMap is less accurate than the proposed
+method. As shown in Table 5 the communication bandwidth
+requirement of the proposed method is less than 0.1 MB (the
+maximum communication bandwidth of the network bridge
+is 496 MB) during multi-UAV system aggressive ﬂight with a
+maximum speed over 5 m/s.
+5. Conclusions
+This paper presents a distributed framework for the lidar-
+based relative state estimator for performing real-time trajec-
+tory estimation of the multi-UAV system in GPS-denied envi-
+ronments.
+The
+proposed
+method
+combines
+lidar-inertial
+odometry and loop closures together and provides a highly
+accurate relative state estimation result based on a factor
+graph. Beneﬁting from the keyframe strategy, each UAV per-
+forms relative state estimation individually and broadcasts
+very partial information, including keyframes and odometry
+information, without exchanging raw data. The proposed
+framework is validated with three experiments to demonstrate
+the feasibility and effectiveness. The experiment results show
+that the relative estimation results reaching a precision of
+centimeter-level, and the proposed distributed method outper-
+forms the centralized method SegMap, which is not limited by
+GPS and can be prevalently adopted for aerial swarm aggres-
+sive ﬂight over 5 m/s.
+Though the proposed method is demonstrated during a
+real-world simultaneous ﬂight test with three UAVs, the 3D
+lidar with 360 FOV limits the take-off weight (5 kg) and
+wheelbase (650 mm) of our aerial platform, which makes the
+proposed aerial platform difﬁcult to through a narrow ﬂight
+corridor. In future work, we would like to extend the proposed
+method to lightweight solid-state lidar with small FOV and
+testing
+the
+proposed
+approach
+on
+different
+platform
+modalities.
+Declaration of Competing Interest
+The authors declare that they have no known competing
+ﬁnancial interests or personal relationships that could have
+appeared to inﬂuence the work reported in this paper.
+Acknowledgements
+This study was supported by the National Key Research and
+Development Program of China (No. 2018AAA0102401)
+and the National Natural Science Foundation of China
+(Nos. 62022060, 61773278, 61873340).
+References
+1. Miller ID, Cladera F, Cowley A, et al. Mine tunnel exploration
+using multiple quadrupedal robots. IEEE Robotics Autom Lett
+2020;5(2):2840–7.
+2. Zhao Z, Niu Y, Shen L. Adaptive level of autonomy for human-
+UAVs collaborative surveillance using situated fuzzy cognitive
+maps. Chin J Aeronaut 2020;33(11):2835–50.
+3. Saikin DA, Baca T, Gurtner M, et al. Wildﬁre ﬁghting by
+unmanned aerial system exploiting its time-varying mass. IEEE
+Robotics Autom Lett 2020;5(2):2674–81.
+4. Liu S, Watterson M, Mohta K, et al. Planning dynamically
+feasible trajectories for quadrotors using safe ﬂight corridors in 3-
+D complex environments. IEEE Robot Autom Lett 2017;2
+(3):1688–95.
+Table 5
+Average runtime for process one keyframe and communication bandwidth requirements.
+Method
+Average runtime for process one keyframe (ms)
+Average communication bandwidth (MB)
+Odometry
+Relative state estimator
+Odometry information
+Keyframes
+Proposed
+103.58
+225.13
+0.004
+0.093
+SegMap
+113.42
+300.73
+0.015
+0.017
+Table 4
+Translational error of relative state estimator when reaching to landing location.
+Error
+I1T2
+I1T3
+I2T1
+I2T3
+I3T1
+I3T2
+Proposed
+method
+SegMap
+Proposed
+method
+SegMap
+Proposed
+method
+SegMap
+Proposed
+method
+SegMap
+Proposed
+method
+SegMap
+Proposed
+method
+SegMap
+x(m)
+0.12
+0.20
+0.27
+0.19
+0.13
+0.18
+0.03
+0.37
+0.23
+0.51
+0.08
+0.71
+y(m)
+0.17
+1.38
+0.15
+1.60
+0.16
+1.93
+0.27
+1.63
+0.13
+1.75
+0.07
+1.23
+z(m)
+0.04
+0.34
+0.11
+1.28
+0.03
+1.82
+0.12
+1.30
+0.09
+1.83
+0.06
+1.74
+68
+H. SHEN et al.
+[p.11]
+5. Augugliaro F, Lupashin S, Hamer M, et al. The ﬂight assembled
+architecture installation: Cooperative construction with ﬂying
+machines. IEEE Control Syst Mag 2014;34(4):46–64.
+6. Mohta K, Watterson Y, Mulgaonkar Y, et al. Fast, autonomous
+ﬂight in GPS-denied and cluttered environments J Field Robotics
+35 1 2018 101 20
+7. Spurny´
+V, Ba´ cˇ a T, Saska M, et al. Cooperative autonomous
+search, grasping, and delivering in a treasure hunt scenario by a
+team of unmanned aerial vehicles. J Field Robotics 2019;36
+(1):125–48.
+8. Zhao J, Yang S, Xiong F. Cooperative guidance of seeker-less
+missile considering localization error. Chin J Aeronaut 2019;32
+(8):1933–45.
+9. Turpin M, Michael N, Kumar V. Decentralized formation control
+with variable shapes for aerial robots. 2012 IEEE international
+conference on robotics and automation; 2012 May 14-18;Saint Paul,
+MN, USA. Piscataway :IEEE Press; 2012.p.23–30.
+10. Turpin M, Michael N, Kumar V. Trajectory design and control
+for aggressive formation ﬂight with quadrotors. Auton Robots
+2012;33(1-2):143–56.
+11. Guo K, Li X, Xie L. Ultra-wideband and odometry-based
+cooperative relative localization with application to multi-UAV
+formation control. IEEE Trans Cybern 2020;50(6):2590–603.
+12. Han Z, Guo K, Xie L, et al. Integrated relative localization and
+leader–follower formation control. IEEE Trans Autom Control
+2019;64(1):20–34.
+13. Zhang J, Singh S. Low-drift and real-time lidar odometry and
+mapping. Auton Robots 2017;41(2):401–16.
+14. Shan TX, Englot BLeGO-LOAM: lightweight and ground-opti-
+mized lidar odometry and mapping on variable terrain, 2018 IEEE/
+RSJ international conference on intelligent robots and systems
+(IROS). Madrid, Spain. Piscataway: IEEE Press; 2018. p. 4758–65.
+15. Shan TX, Englot B, Meyers D, et al. LIO-SAM: Tightly-coupled
+lidar inertial odometry via smoothing and mapping. 2020 IEEE/
+RSJ international conference on intelligent robots and systems
+(IROS); 2021 October 24-January 24; Las Vegas, NV, USA.
+Piscataway: IEEE Press; 2021.p.5135–42.
+16. Qin C, Ye HY, Pranata CE, et alLINS: a lidar-inertial state
+estimator for robust and efﬁcient navigation, 2020 IEEE interna-
+tional conference on robotics and automation (ICRA). Paris,
+France. Piscataway: IEEE Press; 2020. p. 8899–906.
+17. Zhen Z, Zhu P, Xue Y, et al. Distributed intelligent self-organized
+mission planning of multi-UAV for dynamic targets cooperative
+search-attack. Chin J Aeronaut 2019;32(12):2706–16.
+18. Wang C, Wu L, Yan C, et al. Coactive design of explainable agent-
+based task planning and deep reinforcement learning for human-
+UAVs teamwork. Chin J Aeronaut 2020;33(11):2930–45.
+19. Honig W, Preiss JA, Kumar TKS, Sukhatme GS, Ayanian N.
+Trajectory planning for quadrotor swarms. IEEE Trans Robotics
+2018;34(4):856–69.
+20. Wang Y, Zhang T, Cai Z, et al. Multi-UAV coordination control
+by chaotic grey wolf optimization based distributed MPC with
+event-triggered strategy. Chin J Aeronaut 2020;33(11):2877–97.
+21. Lajoie P-Y, Ramtoula B, Chang Y, et al. DOOR-SLAM:
+Distributed, online, and outlier resilient SLAM for robotic teams.
+IEEE Robot. Autom Lett 2020;5(2):1656–63.
+22. Ebadi K, Chang Y, Palieri M, et alLAMP: large-scale autonomous
+mapping and positioning for exploration of perceptually-degraded
+subterranean environments, 2020 IEEE international conference on
+robotics
+and
+au-tomation
+(ICRA).
+Paris,
+France.
+Piscat-
+away: IEEE Press; 2020. p. 80–6.
+23. Saska M, Baca T, Thomas J, et al. System for deployment of
+groups of unmanned micro aerial vehicles in GPS-denied envi-
+ronments using onboard visual relative localization. Auton Robots
+2017;41(4):919–44.
+24. Walter V, Staub N, Franchi A, Saska M. UVDAR system for
+visual relative localization with application to leader–follower
+formations of multirotor UAVs. IEEE Robotics Autom Lett 2019;4
+(3):2637–44.
+25. Schmuck P, Chli M. CCM-SLAM: Robust and efﬁcient central-
+ized collaborative monocular simultaneous localization and map-
+ping for robotic teams. J Field Robot 2019;36(4):763–81.
+26. Cao YJ, Beltrame G. VIR-SLAM: Visual, Inertial, and Ranging
+SLAM for single and multi-robot systems. 2020; Available form:
+https://arxiv.org/abs/2006.00420
+27. Xu H, Wang LQ, Zhang YC, et alDecentralized visual-inertial-
+UWB fusion for relative state estimation of aerial swarm, 2020
+IEEE international conference on robotics and automation
+(ICRA). Paris, France: Piscataway :IEEE Press; 2020. p. 8776–82.
+28. Michael N, Shen SJ, Mohta K, et al. Collaborative mapping of an
+earthquake damaged building via ground and aerial robots. Field
+Serv Robot 2014;29(5):832–41.
+29. Nagatani K, Okada Y, Tokunaga N, et al. Multirobot exploration
+for search and rescue missions: A report on map building in
+RoboCupRescue 2009. J Field Robot 2011;28(3):373–87.
+30. Dube´ R, Gawel A, Sommer H, et al. An online multi-robot SLAM
+system for 3D LiDARs. 2017 IEEE/RSJ inter-national conference
+on intelligent robots and systems. Vancouver, BC, Canada.
+Piscataway: IEEE Press; 2017. p. 1004–11.
+31. Dube R, Gollub MG, Sommer H, et al. Incremental-segment-
+based localization in 3-D point clouds. IEEE Robotics Autom Lett
+2018;3(3):1832–9.
+32. Choudhary S, Carlone L, Nieto C, Rogers J, Christensen HI,
+Dellaert F. Distributed mapping with privacy and communication
+constraints: Lightweight algorithms and object-based models. Int J
+Robot Res 2017;36(12):1286–311.
+33. F. Dellaert Factor graphs and GTSAM: A hands-on introduction
+[disseration] Geprgia: Georgia Institute of Technology Georgia
+34. J.G. Mangelson D. Dominic R.M. Eustice et al. Pairwise
+consistent measurement set maximization for robust multi-robot
+map merging 2018 IEEE Press Brisbane, QLD, Australia. Piscat-
+away 2916 23
+35. Dube´ R, Dugas D, Stumm E, et alSegMatch: Segment based place
+recognition in 3D point clouds, 2017 IEEE international conference
+on robotics and automation (ICRA). Singapore, Singapore. Pis-
+cataway: IEEE Press; 2017.p.5266-72.. p. 5266–72.
+A distributed approach for lidar-based relative state estimation of multi-UAV in GPS-denied environments
+69
+=== END ===

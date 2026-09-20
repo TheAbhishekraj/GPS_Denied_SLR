@@ -1,0 +1,1224 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1043.pdf
+sha256: 926BFE78F211705410E34ED7A94765CD2699583E5F8188EBC9414C5217DCD08B
+library: pymupdf (fitz) v1.28.2
+pages: 19
+=== BEGIN ===
+[p.1]
+Academic Editor: Kan Wang
+Received: 22 May 2026
+Revised: 27 June 2026
+Accepted: 6 July 2026
+Published: 8 July 2026
+Copyright: © 2026 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license.
+Article
+Consistent-Innovation-Aided Distributed Cooperative
+Localization for Multi-UAV Navigation in
+GNSS-Denied Environments
+Zhikuan Hou 1
+, Chao Xue 1, Shuai Chen 1,*, Chuan Xu 1
+, Changhui Jiang 2 and Jiabao Niu 1
+1
+Nanjing University of Science and Technology, Nanjing 210094, China; hoo@mail.ustc.edu.cn (Z.H.);
+xuechao926@njust.edu.cn (Chao Xue)
+2
+Nanjing University of Aeronautics and Astronautics, Nanjing 210016, China; changhui.jiang@nuaa.edu.cn
+*
+Correspondence: chenshuai@njust.edu.cn
+Highlights
+What are the main findings?
+•
+A consistent-innovation-aided distributed cooperative localization method is proposed
+for GNSS-denied multi-glider aerial vehicle swarms.
+•
+The proposed method avoids explicit global cross-covariance propagation, providing
+a practical alternative to centralized cooperative localization under communication-
+constrained conditions.
+What are the implications of the main findings?
+•
+Conservative innovation-covariance approximation effectively balances localization
+accuracy, filtering consistency, and computational efficiency.
+•
+The proposed framework improves the engineering feasibility of distributed swarm
+navigation in GNSS-denied environments.
+Abstract
+Cooperative localization provides a promising solution for multi-UAV navigation in GNSS-
+denied environments. However, centralized cooperative localization and exact cross-
+covariance-based distributed methods usually require global state management or explicit
+propagation of inter-node cross-covariance, resulting in heavy communication and com-
+putational burdens. To address this problem, this paper proposes a consistent-innovation-
+aided distributed cooperative localization method for multi-glider UAV swarms. The
+method uses a strapdown inertial navigation system as the reference source and introduces
+inter-node ultra-wideband ranging as cooperative constraints. Each node maintains only its
+local state and covariance, while a conservative innovation covariance approximation is con-
+structed to perform distributed measurement updates without explicitly propagating global
+cross-covariance. The cooperative localization sub-filter is further integrated with altitude,
+geomagnetic, and scene-matching sub-filters through a federated filtering framework with
+adaptive vector information allocation. A GNSS-denied multi-glider release simulation
+is established to compare the proposed method with non-cooperative localization, cen-
+tralized cooperative localization, and an exact-cross-covariance distributed baseline. The
+results show that the proposed method reduces the position, velocity, and yaw RMSEs
+by 27.14%, 21.90%, and 9.68%, respectively, compared with the non-cooperative method.
+Compared with the exact-cross-covariance baseline, the proposed method achieves compa-
+rable localization accuracy while reducing communication traffic by approximately 91.44%.
+Remote Sens. 2026, 18, 2286
+https://doi.org/10.3390/rs18142286
+[p.2]
+Remote Sens. 2026, 18, 2286
+2 of 19
+Packet-loss experiments further show that the proposed method maintains bounded er-
+rors under a 20% packet loss rate, demonstrating improved robustness and engineering
+feasibility for communication-constrained UAV swarm localization.
+Keywords: GNSS-denied; distributed cooperative localization; consistent innovation co-
+variance; federated filtering
+1. Introduction
+Unmanned aerial vehicles (UAVs) have been widely used in many civil applications,
+such as emergency rescue, geographic surveying and mapping, energy inspection, and
+logistics distribution, which imposes increasingly high requirements on autonomous,
+long-endurance, and reliable navigation and positioning capabilities. A typical single-
+UAV navigation scheme relies heavily on the Global Navigation Satellite System (GNSS).
+However, its performance becomes vulnerable in complex environments such as urban
+canyons, where satellite signals are easily affected by physical obstruction and severe
+multipath effects, resulting in a sharp degradation of positioning accuracy [1]. To overcome
+the inherent vulnerability of satellite-based navigation, multi-source integrated navigation
+systems have been widely developed, usually taking the inertial navigation system (INS)
+as the reference and integrating external sensors such as vision, radar, barometers, and
+magnetometers [2]. Perception sensors may suffer from illumination changes, feature
+degradation, and image mismatching, and they often require prior maps, which limits
+their applicability in unknown exploration scenarios. With the rapid development of UAV
+swarm operations, navigation no longer needs to rely solely on the accuracy and stability
+of sensors carried by a single vehicle. Cooperative navigation (CN) has therefore emerged
+as an effective technology for complex environments [3]. By fusing onboard sensor data
+with cooperative information from other nodes, the swarm can achieve complementary
+navigation enhancement [4].
+Cooperative localization studies initially verified the moving long-baseline concept, in
+which a moving leader was used as a dynamic reference station to provide positioning con-
+straints for follower vehicles [5]. This concept was subsequently extended to aerial swarm
+navigation. Edwards et al. proposed a master–slave cooperative navigation algorithm
+and demonstrated that, when the leader provides high-precision position information, the
+follower can achieve non-divergent localization using only relative ranging measurements.
+In addition, increasing the number of inter-node ranging observations can effectively re-
+duce the geometric dilution of precision and improve the localization accuracy of follower
+nodes [6]. However, such master–slave methods usually rely on high-precision leader
+nodes and relative ranging or bearing sensors, which limits their robustness and scala-
+bility in large-scale UAV swarms. To overcome the dependence on a central or leader
+node, distributed cooperative localization has become an important research direction.
+In this architecture, there is no central processing node, and each UAV estimates its own
+state locally by exchanging relative measurements and onboard sensor information with
+neighboring nodes within the communication range [7,8]. Inter-node ranging information
+is used as a relative constraint to correct the accumulated drift of the onboard inertial
+navigation system, while neighboring nodes exchange only necessary state and covariance
+information through wireless links. Compared with centralized cooperative localization,
+this architecture can reduce dependence on a central node and improve the robustness and
+scalability of swarm navigation. Recently, Zheng et al. proposed a multi-UAV collaboration
+and IMU-fusion localization method for partially GNSS-denied scenarios, showing that
+https://doi.org/10.3390/rs18142286
+[p.3]
+Remote Sens. 2026, 18, 2286
+3 of 19
+collaborative ranging and inertial information can enhance localization stability [9]. Akhi-
+hiero et al. presented a UAV–UGV cooperative localization architecture in a GNSS-denied
+subterranean environment, where UWB ranging, onboard sensors, and nonlinear estima-
+tors were integrated to support cooperative state estimation [10]. Li et al. developed a
+distributed cooperative localization method based on UWB/INS integration and analyzed
+the influence of cross-covariance on localization accuracy, confirming that relative distance
+measurements can suppress INS drift in unmanned clusters [11]. These studies demonstrate
+the effectiveness of cooperative ranging and multi-source fusion for improving navigation
+performance in GNSS-denied environments.
+Taking swarm aerial vehicles operating in complex GNSS-denied environments as
+the research object, this paper addresses the problems of high cross-covariance mainte-
+nance burden and insufficient engineering feasibility in existing cooperative localization
+methods. A distributed cooperative localization framework is established, the generation
+and propagation mechanism of cross-covariance caused by inter-node ranging updates is
+analyzed, and a consistent-innovation-aided distributed cooperative localization method
+without explicitly maintaining global cross-covariance is proposed. The remainder of this
+paper is organized as follows. Section 2 presents the materials and methods, including the
+centralized cooperative localization model, the proposed consistent-innovation-aided dis-
+tributed cooperative localization algorithm, and the adaptive vector information allocation
+strategy. Section 3 reports the experimental results under nominal and packet-loss commu-
+nication conditions. Section 4 discusses the effectiveness, applicability, and limitations of
+the proposed method. Section 5 concludes the paper.
+2. Materials and Methods
+2.1. Master–Slave Cooperative Localization Method
+In cooperative localization for multiple-UAV formations, the master–slave navigation
+architecture is one of the most widely adopted approaches. In this framework, a master
+UAV equipped with high-precision positioning sensors serves as a navigation reference for
+the entire cooperative network. Before release, the carrier platform transfers its navigation
+information to the slave UAV through a transfer alignment module, providing the initial
+longitude, latitude, altitude, roll, pitch, and yaw states required for autonomous navigation.
+During the subsequent gliding phase, relative range and bearing measurements
+between the master and slave UAVs are obtained using onboard ranging and angle-
+measurement sensors. Based on these measurements, cooperative localization can be
+performed to improve the navigation performance of the slave UAV. The three-dimensional
+spatial relationship between the master and slave UAVs is illustrated in Figure 1. In this
+figure, Master denotes the position of the master node, which carries a high-precision
+anti-interference navigation system and continuously provides accurate navigation infor-
+mation. Slave denotes the position of the slave node in the cooperative network. The
+relative distance between the master and slave nodes is represented by d, while θ and φ
+denote the relative azimuth and elevation observations measured by the slave UAV.
+The slave first uses the high-precision position information provided by the master
+node in the cooperative network, as well as the relative distance and relative bearing
+observations between the slave and the master, to obtain its own position coordinates
+through spatial geometric solution. Then, the solved position coordinates are used as
+external position observations of the slave inertial navigation system and introduced into
+the filter framework to construct the corresponding loosely coupled position observation
+equation, so as to correct and constrain the navigation solution of the slave and improve
+the localization accuracy of the slave node under satellite-denied environments [9]. The
+algorithm flow is shown in the following figure.
+https://doi.org/10.3390/rs18142286
+[p.4]
+Remote Sens. 2026, 18, 2286
+4 of 19
+Figure 1. Schematic diagram of the master–slave cooperative method.
+As shown in Figure 2, this method depends on the master–slave structure and has
+a strong dependence on the high-precision master node and angle-measurement sensors.
+At the same time, relative bearing measurements are sensitive to noise and occlusion, and
+angle errors are easily amplified in geometric solution, resulting in unstable localization
+accuracy. Therefore, its practical applicability is very limited.
+Figure 2. Schematic diagram of the master–slave cooperative method.
+2.2. Consistent-Innovation-Aided Distributed Localization
+In the cooperative navigation scenario of an unmanned aerial vehicle swarm, all nodes
+are moving bodies with similar accuracy, and the cooperative observation data are inter-
+node ranging. Therefore, in addition to limited engineering applicability, the operating
+mechanism of the above master–slave structure is also not applicable.
+2.2.1. Centralized Cooperative Localization Algorithm Framework
+Centralized Cooperative Localization (CCL) uniformly models the state variables of
+all nodes and fuses all measurement information in a central processor to obtain globally
+consistent navigation state estimation results [10]. The centralized method can fully uti-
+lize inter-node ranging information and preliminary single-vehicle position estimation
+information, construct a swarm global filtering equation, and realize system-level optimal
+navigation estimation.
+Taking N UAV nodes as the research object, the unified state vector of the global nodes
+is given as follows:
+x = [xT
+1 xT
+2 · · · xT
+N]
+T
+(1)
+xk
+i = [ϕe
+ϕn
+ϕu
+δVe
+δVn
+δVu
+δL δλ δh
+εbx
+εby
+εbz
+εrx
+εry
+εrz ∇x ∇y ∇z]T
+(2)
+where xT
+1 xT
+2 · · · xT
+N is the state vector of each node, and xk
+i is the state estimate of the i-th
+node at epoch k. ϕe, ϕn, ϕu, δVe, δVn and δVu denote the attitude, velocity, and position
+https://doi.org/10.3390/rs18142286
+[p.5]
+Remote Sens. 2026, 18, 2286
+5 of 19
+errors in the east–north–up frame, respectively, where δL, δλ and δh correspond to latitude,
+longitude, and altitude errors. εb∗and ∇∗denote the gyroscope and accelerometer bias
+components along the body-frame axes, respectively.
+The discrete prediction equation and the update of the prior covariance are:
+x−(k) = F(k)x+(k −1)
+(3)
+P−(k) = F(k)P+(k −1)F(k)T + Q(k)
+(4)
+The motion states of the nodes are independent, and the global state transition matrix
+F and the global state covariance matrix P are block diagonal matrices. In the prediction
+step, there is no cross-covariance, and the inter-node errors remain independent:
+F =
+
+
+F1
+0
+. . .
+0
+0
+F2
+. . .
+0
+...
+...
+...
+0
+0
+0
+. . .
+FN
+
+
+(5)
+P =
+
+
+P1
+0
+. . .
+0
+0
+P2
+. . .
+0
+...
+...
+...
+0
+0
+0
+. . .
+PN
+
+
+(6)
+The CCL algorithm uses cooperative ranging constraints among nodes to estimate
+the autonomous localization of nodes within the swarm [12]. Suppose the autonomous
+navigation position information of nodes I and II in the swarm is respectively:
+(
+( ˆxI, ˆyI, ˆzI) = (xI + δxI, yI + δyI, zI + δzI)
+( ˆxII, ˆyII, ˆzII) = (xII + δxII, yII + δyII, zII + δzII)
+(7)
+where (xI, yI, zI) and (xII, yII, zII) denote the true positions of nodes I and II, respectively,
+while (δxI, δyI, δzI) and (δxII, δyII, δzII) denote their corresponding position errors.
+The true distance ρI II and the estimated distance ˆρI II between the two nodes are
+respectively:
+ρI II =
+q
+(xI −xII)2 + (yI −yII)2 + (zI −zII)2
+(8)
+ˆρI II =
+q
+( ˆxI −ˆxII)2 + ( ˆyI −ˆyII)2 + (ˆzI −ˆzII)2
+(9)
+Expanding the estimated distance ˆρI II by the second-order Taylor series and ignoring
+terms above the second order, the error term obtained by subtracting the estimated distance
+ˆρI II information from the cooperative ranging ˆρUI II is δρI II:
+δρI II = ˆρI II −ˆρUI II = ∂ˆρI II
+∂ˆxI
+δ ˆxI + ∂ˆρI II
+∂ˆyI
+∂ˆyI + ∂ˆρI II
+∂ˆzI
+∂ˆzI + ∂ˆρI II
+∂ˆxII
+∂ˆxII + ∂ˆρI II
+∂ˆyII
+∂ˆyII + ∂ˆρI II
+∂ˆzII
+∂ˆzII
+(10)
+
+
+
+φI =
+h
+∂ˆρI II
+∂ˆxI
+∂ˆρI II
+∂ˆyI
+∂ˆρI II
+∂ˆzI
+i
+φII =
+h
+∂ˆρI II
+∂ˆxII
+∂ˆρI II
+∂ˆyII
+∂ˆρI II
+∂ˆzII
+i
+(11)
+The updated measurement matrix is:
+HI = [01×6
+φI 01×9
+01×6
+φII
+01×9]
+(12)
+https://doi.org/10.3390/rs18142286
+[p.6]
+Remote Sens. 2026, 18, 2286
+6 of 19
+Considering node similarity, HII is also a vector with a similar structure. At epoch k,
+if there is one UWB range measurement between node I and node II, it should be noted
+that this measurement can also be regarded as the measurement made by node II on node I.
+Therefore, the innovation vector is:
+r(k) = H(k)x(k)−z(k)
+(13)
+where z(k) ∼N(0, R), H(k), and z(k) are expressed as:
+z(k) =
+"
+ρI(k)
+ρII(k)
+#
+, H(k) =
+"
+HI(k)
+HII(k)
+#
+(14)
+Suppose k is the epoch at which the two nodes perform measurement update for the
+first time. The r(k), H(k), z(k), and R denote the cooperative ranging innovation vector,
+measurement Jacobian matrix, UWB ranging measurement vector, and measurement noise
+covariance matrix, respectively. Therefore, the covariance matrix P−is a block diagonal
+matrix. Omitting the time index k, it is specifically expressed as:
+P−=
+"
+P−
+I I
+0
+0
+P−
+II II
+#
+(15)
+The centralized Kalman filtering gain matrix is:
+K = P−HTS−1
+(16)
+Since the innovation covariance matrix S(k) is no longer a block diagonal matrix, K
+contains the cross-covariance matrix of I and II is also not a block diagonal matrix.
+Partitioning the covariance matrix update result gives:
+P+ = (I −KH)P−=
+"
+I −KIHI
+−KIHII
+−KIIHI
+I −KIIHII
+#"
+PI I
+0
+0
+PII II
+#
+=
+"
+P+
+I I
+P+
+I II
+P+
+II I
+P+
+II II
+#
+=
+"
+(I −KIHI)PI I
+−KIHIIPII II
+−KIIHIPI I
+(I −KIIHII)PII II
+#
+(17)
+Considering that P+
+I II and P+
+II I are nonzero, the measurement function contains state
+components of multiple nodes at the same time, the posterior error distribution is coupled,
+and it continuously propagates in the subsequent prediction update and measurement
+update processes [13].
+The CCL algorithm not only brings huge communication and computational pressure
+but also exposes the entire swarm system to great risk. Once the central node fails, the
+whole cooperative navigation link will be forced to interrupt. This structural fragility
+makes the centralized method difficult to meet the real-time and reliability requirements of
+swarm unmanned system cooperative scenarios. To overcome the above shortcomings, the
+distributed cooperative localization algorithm is studied based on the CCL algorithm.
+2.2.2. Distributed Cooperative Algorithm Based on Consistent Innovation Covariance
+Referring to the idea of the centralized filtering algorithm, the state vectors of all
+nodes are uniformly included in the global state for optimal estimation. If the distributed
+system is expected to achieve estimation performance equivalent to that of centralized
+filtering, each node i must be able to locally and independently complete all information
+involved in prediction updating and measurement updating, including but not limited
+https://doi.org/10.3390/rs18142286
+[p.7]
+Remote Sens. 2026, 18, 2286
+7 of 19
+to the state transition matrices, predicted covariances, cross-covariances, and so on of all
+other nodes. For a system that uses a high-frequency inertial measurement unit as the
+reference, the system must continuously broadcast the state transition matrix of each node
+itself at a high frequency and complete cross-covariance prediction calculation [14]. As the
+scale of the cooperative system expands, the system is required to frequently exchange
+a large amount of information, causing the communication and storage burdens to grow
+rapidly and making it difficult to satisfy engineering constraints. This reflects that the
+traditional cross-covariance maintenance mechanism is difficult to implement in distributed
+cooperative localization. The distributed unmanned aerial vehicle swarm system is shown
+in Figure 3.
+Figure 3. Distributed unmanned aerial vehicle swarm system.
+Therefore, the core problem of distributed cooperative localization algorithms is not
+how to accurately reconstruct the cross covariance, but how to construct reasonable mea-
+surement updates when it is impossible to maintain the cross covariance. We propose a
+distributed information covariance approximation construction method based on the con-
+sistency principle to reduce the maintenance of cross information in the cooperative system.
+For nodes I and II in the centralized algorithm, their state vector and joint covariance
+matrix are:
+x =
+"
+xI
+xII
+#
+, P =
+"
+PI I
+PI II
+PII I
+PII II
+#
+(18)
+In distributed Kalman filtering, each node maintains its own state and its own co-
+variance matrix, and receives in real time the covariance matrix and position information
+broadcast by other nodes through the wireless link. The measurement update process in
+the distributed system is derived below by taking node I as an example. The first-order
+Taylor expansion of the equation is as follows:
+rI(k) = HI IIδxI + HI IIδxI −zI(k)
+(19)
+https://doi.org/10.3390/rs18142286
+[p.8]
+Remote Sens. 2026, 18, 2286
+8 of 19
+where HI I, HI II, and the innovation covariance SI directly affected by the cross-covariance
+is expressed as:
+SI =
+h
+HI I
+HI II
+i"
+PI I
+PI II
+PII I
+PII II
+#"
+HT
+I I
+HT
+I II
+#
++ [RI]
+= HI IPI IHT
+I I + HI IPI IIHT
+I II + HI IIPII IHT
+I I + HI IIPII IIHT
+I II + RI
+(20)
+To eliminate the explicit dependence of SI on the cross-covariance block PI II, PII I,
+covariance approximation is performed in the local measurement update modeling stage,
+and the local innovation covariance eSI is used to replace the true joint covariance matrix SI,
+which is expressed as:
+eSI =
+h
+HI I
+HI II
+i"
+PI I
+0
+0
+PII II
+#"
+HT
+I I
+HT
+I II
+#
++ [RI]
+= HI IPI IHT
+I II + HI IIPII IIHT
+I II + RI
+(21)
+In the position subspace, the measurement in UWB is the distance measurement
+between node I and node II. Therefore, the partial derivative of the range with respect to
+node I is the exact negative of that with respect to node II.
+HI II = −HI II
+(22)
+Considering that the joint covariance matrix must be symmetric positive definite and
+satisfies PI II = PT
+II I, the covariance approximation deviation ∆SI is:
+∆SI = SI −eSI = −HI IPI IIHT
+I I −HI IPI IIHT
+I I
+= −2HI IPI IIHT
+I I
+(23)
+HT
+I I is equivalent in the position subspace to the unit vector δPI, δpII along the UWB
+line-of-sight direction. Therefore, there is:
+HI IPI IIHT
+I I = EIPe
+I IIET
+I
+(24)
+where Pe
+I II is the cross-covariance sub-block between the position errors of I and II, and
+δpI, δpII are the position errors of the two nodes in the navigation coordinate system,
+respectively.
+
+
+
+
+
+
+
+
+
+Pe
+I II = cov(δpI, δpII)
+δpI =
+h
+δxI
+δyI
+δzI
+iT
+δpII =
+h
+δxII
+δyII
+δzII
+iT
+(25)
+Then the projection scalars xeU
+I
+and xeU
+II are introduced to represent the position error
+scalars along the UWB line-of-sight direction:
+xeU
+I
+= EIδpI, xeU
+II = EIδpII,
+(26)
+Substituting into Equation (12) gives:
+cov(xeU
+I , xeU
+II ) = EIPe
+I IIET
+I
+(27)
+Therefore:
+HI IPe
+I IIHT
+I I = cov(xeU
+I , xeU
+II )
+(28)
+https://doi.org/10.3390/rs18142286
+[p.9]
+Remote Sens. 2026, 18, 2286
+9 of 19
+That is, it is exactly equivalent to the covariance between the position error scalars
+of nodes I and II along the UWB line-of-sight direction, and there is a positive correlation
+trend between these position errors, namely:
+cov(xeU
+I , xeU
+II ) > 0
+(29)
+∆S = −2HI IPe
+I IIHT
+I I = −2cov(xeU
+I , xeU
+II ) < 0
+(30)
+In summary, for the UWB range-only cooperative localization problem, the theoretical
+innovation covariance SI and the approximate innovation covariance eSI satisfy:
+SI < eSI
+(31)
+Therefore, in the above covariance approximation process, the true innovation co-
+variance is conservatively enlarged. From the Kalman gain expression, a larger eSI leads
+to a smaller gain. Although this conservativeness sacrifices the optimality compared
+with the centralized filter to a certain extent, it maintains the consistency of innovation
+estimation [15].
+For the distance measurement between node I and II, the corresponding measurement
+matrix H has opposite signs for the elements related to the position states of the two nodes.
+This structural characteristic makes the measurement have a strong constraint ability on
+the relative position error between the two nodes in a statistical sense. When the two
+nodes have the same displacement along the line-of-sight direction, this displacement is
+canceled in the innovation, and therefore its direct effect on filter updating is weak. As
+the filtering process continues, the relative error is continuously suppressed, while the co-
+directional translation error component is difficult to correct effectively, so that the position
+errors between nodes tend to show statistical characteristics of co-directional variation in
+this direction.
+In the verification experiment set up later, multiple glider UAVs are sequentially de-
+ployed from the same carrier aircraft, inherit similar initial navigation errors, and then enter
+a gliding phase. Neighboring UAVs tend to share similar low-frequency position error com-
+ponents caused by initial alignment uncertainty, inertial drift, and common environmental
+effects. When projected onto the UWB line-of-sight direction, these error components tend
+to vary in the same direction [16]. Meanwhile, UWB ranging mainly constrains the relative
+distance between nodes, so the relative error component can be effectively suppressed,
+whereas the co-directional translation component is difficult to eliminate directly. This pro-
+vides a physical explanation for the positive correlation of position errors along the UWB
+line-of-sight direction and supports the conservative innovation covariance approximation
+used in the proposed method.
+In this section, under the premise of not explicitly maintaining the cross-covariance
+block, a consistent innovation covariance construction method for distributed cooperative
+localization is proposed. The relationship between the local innovation covariance approxi-
+mation and the theoretical value is proved from both mathematical structure and physical
+mechanism. Although ignoring the cross-covariance loses a certain degree of optimality, it
+is simple to implement in engineering, has controllable computational and communication
+overhead, and at the same time maintains a certain degree of conservativeness in the
+covariance sense.
+2.2.3. Adaptive Vector Information Allocation Algorithm
+Based on previous research results [17], the above proposed algorithm is constructed
+as a cooperative sub-filter, and then a federated filtering algorithm framework is built
+by combining it with an altimeter sub-filter, a geomagnetic information sub-filter, and a
+https://doi.org/10.3390/rs18142286
+[p.10]
+Remote Sens. 2026, 18, 2286
+10 of 19
+visual scene matching sub-filter. A vector information allocation algorithm based on the
+mean-square error matrix is used to optimize the system, so that each state variable can
+obtain different information allocation factors in real time, thereby further improving the
+filtering estimation accuracy. For the convenience of calculation, the diagonal elements
+of the mean-square error matrix can be used to independently allocate information to the
+components of the state of the sub-filter.
+Figure 4 shows the federated fusion architecture of the proposed method. The dis-
+tributed cooperative localization method proposed in Section 2.2.2 serves as the cooperative
+sub-filter in the federated architecture. The inertial navigation system provides the common
+state propagation reference for all sub-filters. The cooperative sub-filter takes inter-node
+UWB range measurements and the broadcast state information of neighboring nodes as
+inputs, and performs the distributed cooperative update to generate the local cooperative
+estimate and covariance. Simultaneously, the altimeter, geomagnetic, and scene-matching
+sub-filters process their corresponding onboard sensor observations and output their own
+local state estimates and covariance matrices. The outputs of all sub-filters are fused by the
+adaptive vector information allocation module to obtain the global navigation solution.
+IMU
+Collaborative 
+distance
+Altitude 
+Geomagnetic
+Scene matching
+Cooperative DCL
+Sub-Filter 
+Altitude 
+Sub-Filter
+Magnetometer
+Sub-Filter
+Scene matching
+Sub-Filter
+Diagonal elements
+Observable coefficient
+Adaptive distribution factor
+Federated 
+fusion 
+output
+ˆ &
+1
+1
+X
+P
+ˆ &
+2
+2
+X
+P
+ˆ &
+3
+3
+X
+P
+ˆ &
+4
+4
+X
+P
+gˆ &
+g
+X
+P
+iA
+i
+ϒ
+iB
+Neighbor state covariance broadcast
+1B
+2
+B
+3
+B
+4
+B
+ 
+Figure 4. Federated fusion architecture of the proposed method. The dashed lines represent the
+adaptive information weighting process.
+Taking the i-th sub-filter as an example, its mean-square error matrix is Pi, and its
+diagonal elements are extracted.
+Di = diag(Pi) =
+h
+Pi(1, 1)
+Pi(2, 2)
+. . .
+Pi(N, N)
+i
+(32)
+Construct Ai to perform vector information allocation for the i-th sub-filter, namely:
+Di = diag(Ai) ∗(D1 + D2 + . . . + DN)
+(33)
+Ai =
+
+
+αi1
+αi2
+...
+αin
+
+
+(34)
+αij =
+1/Pi(j, j)
+1/P1(j, j) + 1/P2(j, j) + · · · + 1/PN(j, j), i = 1, 2, · · · , N, j = 1, 2, · · · , n
+(35)
+https://doi.org/10.3390/rs18142286
+[p.11]
+Remote Sens. 2026, 18, 2286
+11 of 19
+The singular value decomposition of the observability matrix of this sub-filter is
+obtained as:
+Λi = diag(σ1, σ2, · · · , σn)
+(36)
+The singular values of the observability matrix are used to perform vector information
+allocation for the i-th sub-filter, satisfying:
+Λi = diag(γi) ∗(Λ1 + Λ2 + . . . + ΛN)
+(37)
+γi =
+
+
+γi1
+γi2
+...
+γin
+
+
+(38)
+γij =
+σij
+σ1j + σ2j + · · · σNj
+, i = 1, 2, · · · , N, j = 1, 2, · · · , n
+(39)
+Then the diagonal elements of the mean-square error matrix and the system observ-
+ability are combined to determine the adaptive vector allocation coefficient Bi, and the
+information conservation principle of filtering is satisfied.
+Bi = 1
+2(Ai + γi) =
+
+
+1
+2(αi1 + γi1)
+1
+2(αi2 + γi2)
+...
+1
+2(αin + γin)
+
+
+(40)
+N
+∑
+i=1
+Bi = I
+(41)
+To satisfy the principle of consistent convergence stability of filtering, the error covari-
+ance matrix of the i-th subsystem needs to be converted into a symmetric matrix, and the
+information allocation formula is modified as follows.
+P−1
+i
+=
+p
+BiP−1
+g
+p
+Bi
+(42)
+Q−1
+i
+=
+p
+BiQ−1
+g
+p
+Bi
+(43)
+ˆXi = ˆXg
+(44)
+where ˆXg, Pg, and Qg denote the global state estimate, global error covariance matrix, and
+global process noise covariance matrix, respectively.
+3. Results
+To verify the effectiveness of the proposed method, a multi-glider UAV cooperative
+navigation simulation scenario is constructed under GNSS-denied conditions. Multiple
+localization algorithms are compared in terms of positioning accuracy, velocity and yaw
+estimation, convergence behavior, communication traffic, and robustness under packet loss.
+3.1. Experimental Setup
+An airborne-release glider aerial vehicle digital simulation platform is built based
+on Linux 5.15 LTS, Ubuntu 22.04, and Qt 5.12.12. Through software, the carrier-aircraft
+trajectory, target point, environmental parameters, and various sensor model parameters
+are set and initialized. With reference to glider aerial vehicle dynamic state propagation and
+control quantity calculation, the attitude and velocity of the aerial vehicle are adjusted and
+https://doi.org/10.3390/rs18142286
+[p.12]
+Remote Sens. 2026, 18, 2286
+12 of 19
+the true motion trajectory is generated. Various sensor measurement data are generated
+according to the sensor error model. The navigation and localization module fuses inertial,
+ranging, altitude, geomagnetic, and other sensor data in real time through the proposed
+algorithm to provide real-time navigation and localization solutions. The recording module
+is used for visual display and data recording of the simulation process, providing a data
+basis for subsequent statistical analysis.
+The carrier aircraft is set to release 10 glider aerial vehicles sequentially at 1 s intervals.
+At the release instant, each aerial vehicle uses the high-precision pose information provided
+by the carrier aircraft to complete initial alignment and state initialization. Then it enters
+the GNSS-denied gliding phase and relies only on onboard sensors and inter-node relative
+ranging to complete autonomous localization. The overall experimental process is shown
+in Figure 5.
+Figure 5. Process of the multi-UAV release scenario.
+To highlight the effectiveness of the proposed algorithm, four comparison schemes are
+considered. Algorithm A is a non-cooperative method, in which each UAV performs multi-
+source integrated navigation independently without inter-node information exchange.
+Algorithm B is the centralized cooperative localization (CCL) method, which incorporates
+all node states and inter-node ranging measurements into a global filter and is used as a
+high-accuracy reference. Algorithm C is an exact-cross-covariance distributed cooperative
+localization method based on a central-equivalent EKF formulation [18]. It explicitly propa-
+gates and updates inter-node cross-covariance blocks, thereby avoiding double counting
+in cooperative measurement updates and providing a strong distributed baseline close to
+centralized cooperative localization under ideal communication conditions. Algorithm D
+is the proposed consistent-innovation-aided distributed cooperative localization method,
+which avoids explicit global cross-covariance propagation and constructs a conservative
+innovation covariance approximation for local updates. The four algorithms adopt the
+same initial conditions, motion trajectories, and sensor error models, and the evaluation
+period is uniformly set to 250 s. The simulated performance indicators of each sensor are
+listed in Table 1. The cooperative ranging error is modeled as an equivalent range error for
+the long-distance airborne cooperative localization scenario. The maximum cooperative
+link distance represents the assumed availability range of the communication-assisted
+cooperative measurement link in the simulation. The magnetometer provides a magnetic
+https://doi.org/10.3390/rs18142286
+[p.13]
+Remote Sens. 2026, 18, 2286
+13 of 19
+heading constraint after calibration and tilt compensation, while the scene-matching error
+is modeled as an altitude-dependent horizontal positioning uncertainty.
+Table 1. Detailed performance indicators of each sensor.
+Sensors
+Parameter
+Value
+Frequency
+Gyroscope
+Bias stability
+5◦/h
+200 Hz
+Angular random walk
+0.15◦/√h
+Accelerometer
+Bias stability
+0.15 mg
+200 Hz
+Velocity random walk
+0.03 m/s/√h
+Cooperative ranging
+(UWB)
+Equivalent range white-noise
+standard deviation
+20 m
+1 Hz
+Maximum cooperative link distance
+≤50 km
+1 Hz
+Magnetometer
+White-noise standard deviation of
+magnetic heading error
+0.5◦
+10 Hz
+Altimeter
+White-noise standard deviation of
+altitude error
+10 m
+1 Hz
+Scene matching
+White-noise standard deviation of
+horizontal positioning error
+0.25 × H m (H is the actual
+flight altitude)
+1 Hz
+3.2. Localization Performance Under Nominal Communication Conditions
+The carrier aircraft sequentially releases ten glider aerial vehicles near the preset
+release point. The initial release position is approximately located at longitude 119.98024◦
+and latitude 31.00237◦. After release, each aerial vehicle enters the unpowered gliding
+phase. The overall trajectory extends toward the southeast, and a certain lateral spacing is
+maintained during flight, forming the spatial distribution characteristics of multi-vehicle
+parallel gliding. The swarm reference truth trajectory is shown in Figure 6. The average
+distance of each trajectory is approximately 50 km. From the planar map trajectory, it can
+be seen that after the aerial vehicle swarm departs from the initial release area, it crosses
+water and land areas, and the trajectory covers a large geographical space, which can
+better simulate the navigation requirements of long-distance gliding flight and complex
+geographical backgrounds in actual missions.
+As shown in Figure 7, the three-dimensional reference truth trajectory results further
+show the spatial motion process of the aerial vehicle swarm in the longitude, latitude, and
+altitude directions. The glider aerial vehicles are released from high altitude at intervals
+and then continuously descend. The trajectories show an obvious altitude-decreasing
+characteristic. A certain spatial spacing has already been formed among different aerial
+vehicles, which is beneficial to enhancing the geometric observability of cooperative rang-
+ing constraints.
+Figure 8 presents the time-varying position errors and the corresponding cumula-
+tive distribution function (CDF) curves of the UAV swarm under different localization
+algorithms. As shown in Figure 8a, Algorithm A exhibits large position-error fluctuations
+and several obvious error peaks, indicating that single-UAV navigation errors accumulate
+significantly without cooperative constraints. Algorithm B provides the best overall ac-
+curacy due to centralized fusion and complete covariance utilization. Algorithm C, as an
+exact-cross-covariance distributed baseline, achieves performance close to Algorithm B by
+explicitly maintaining inter-node correlation terms, but this is obtained at the cost of high
+communication traffic. The proposed Algorithm D effectively suppresses error divergence
+and maintains a bounded error evolution close to Algorithm C, showing that the consis-
+tent innovation covariance approximation can preserve stable filtering behavior without
+https://doi.org/10.3390/rs18142286
+[p.14]
+Remote Sens. 2026, 18, 2286
+14 of 19
+explicit cross-covariance propagation. The CDF curves in Figure 8b further show that the
+cooperative algorithms are shifted to the left compared with Algorithm A, indicating that a
+larger proportion of position errors is concentrated within a smaller error range. Figure 9
+compares the CDF curves of velocity and yaw errors. The results show that cooperative
+ranging constraints not only improve position estimation but also contribute to more stable
+velocity and yaw estimation.
+10km
+ 
+Figure 6. Swarm planar trajectory in the geographic coordinate system. The blue dots indicate
+the initial release points, and the curves with different colors indicate the flight trajectories of the
+10 glider UAVs.
+Figure 7. Three-dimensional flight trajectory of the swarm.
+https://doi.org/10.3390/rs18142286
+[p.15]
+Remote Sens. 2026, 18, 2286
+15 of 19
+ 
+ 
+(a) 
+(b) 
+Figure 8. Position error comparison for the UAV swarm. (a) Time-varying average position error
+with the ±1σ error band; (b) CDF curves of position error.
+ 
+ 
+(a) 
+(b) 
+Figure 9. CDF curves of velocity and yaw errors for the UAV swarm. (a) CDF curves of velocity
+errors; (b) CDF curves of yaw errors.
+The quantitative results in Table 2 and Figure 10 further verify the above observations.
+Compared with the non-cooperative Algorithm A, the proposed Algorithm D reduces the
+position RMSE from 24.54 m to 17.88 m, the velocity RMSE from 1.05 m/s to 0.82 m/s,
+and the yaw RMSE from 0.31◦to 0.28◦, corresponding to improvements of 27.14%, 21.90%,
+and 9.68%, respectively. Algorithm B still provides the best overall accuracy, but it relies
+on centralized processing and global information management. Algorithm C achieves
+accuracy close to Algorithm B by explicitly propagating cross-covariance information, but
+its communication traffic reaches 156.09 KB/epoch, which is approximately 11.68 times
+that of Algorithm D. In contrast, Algorithm D achieves a communication load of only
+13.36 KB/epoch while maintaining comparable localization accuracy. Therefore, the pro-
+posed method provides a more practical balance between positioning accuracy, filter
+stability, and communication efficiency, making it more suitable for GNSS-denied UAV
+swarm localization under resource-constrained conditions.
+https://doi.org/10.3390/rs18142286
+[p.16]
+Remote Sens. 2026, 18, 2286
+16 of 19
+Table 2. RMSE comparison and improvement ratios.
+Type
+Position RMSE (m)
+Velocity RMSE (m/s)
+Yaw RMSE (Degree)
+Communication Traffic
+(KB/Epoch)
+Algorithm A
+24.54
+1.05
+0.31
+0
+Algorithm B
+16.44
+0.76
+0.26
+12.8
+Algorithm C
+16.93
+0.78
+0.26
+156.09
+Algorithm D
+17.88
+0.82
+0.28
+13.36
+ 
+ 
+(a) 
+(b) 
+ 
+ 
+(c) 
+(d) 
+Figure 10. Performance comparison of different cooperative localization algorithms for the UAV
+swarm. (a) Position RMSE comparison. (b) Velocity RMSE comparison. (c) Yaw RMSE comparison.
+(d) Communication traffic comparison.
+3.3. Robustness Analysis Under Packet-Loss Communication Conditions
+The above experiment evaluates the localization performance under stable commu-
+nication conditions. In practical UAV swarm missions, cooperative measurements and
+neighboring state information may be intermittently unavailable due to packet loss, com-
+munication delay, or link interruption. Therefore, a communication-constrained scenario is
+further introduced to compare the non-cooperative method, the centralized cooperative
+localization (CCL) method, and the proposed distributed cooperative localization (DCL)
+method under packet loss.
+Figure 11 shows the packet loss rate over time in the communication-constrained
+scenario. The first 250 s remain identical to the nominal experiment. After 250 s, inde-
+pendent packet loss with a configured probability of 20% is imposed on each cooperative
+communication link.
+https://doi.org/10.3390/rs18142286
+[p.17]
+Remote Sens. 2026, 18, 2286
+17 of 19
+ 
+Figure 11. Packet loss rate changes over time.
+Figure 12a compares the influence of packet loss on different cooperative localization
+algorithms. After a 20% packet loss rate is introduced, the global update failure rate of the
+CCL method increases significantly because CCL relies on network-wide synchronized
+fusion. The loss of several independent communication links may invalidate an entire
+global update, causing the CCL error to increase rapidly and weakening its cooperative
+advantage. In contrast, the proposed DCL method maintains bounded error behavior and
+remains close to its pre-loss performance, since the distributed filter does not require all
+network packets to be available at the same epoch. The quantitative results in Figure 12b
+show that the position RMSE of CCL increases from 16.0 m before packet loss to 53.1 m
+after packet loss, which is even larger than the non-cooperative result of 24.2 m at 250 s.
+This demonstrates the fragility of the centralized architecture when global communication
+integrity cannot be guaranteed. By comparison, the proposed DCL method maintains
+a post-loss position RMSE of 18.5 m, close to its pre-loss value of 17.2 m. These results
+indicate that the proposed distributed architecture degrades gracefully under packet loss
+and is more suitable for communication-constrained UAV swarm localization.
+ 
+ 
+(a) 
+(b) 
+Figure 12. Position error comparison under communication constraints. (a) Time-varying average
+position error. (b) Position RMSE comparison before and after packet loss.
+https://doi.org/10.3390/rs18142286
+[p.18]
+Remote Sens. 2026, 18, 2286
+18 of 19
+4. Discussion
+The experimental results show that the proposed method significantly improves po-
+sition, velocity, and yaw estimation compared with the non-cooperative method, while
+achieving accuracy close to centralized and ex-act-cross-covariance cooperative localiza-
+tion. Compared with the ex-act-cross-covariance baseline, the proposed method greatly
+reduces communication traffic by replacing full cross-covariance propagation with a con-
+servative innovation covariance approximation. The packet-loss experiment further in-
+dicates that the proposed distributed architecture maintains bounded errors under de-
+graded communication conditions, demonstrating better robustness and scalability for
+UAV swarm applications.
+Despite the above advantages, the proposed method still has several limitations.
+First, the current validation is mainly based on a digital simulation scenario. In practical
+UAV swarm missions, communication packet loss, transmission delay, asynchronous in-
+formation exchange, and abnormal ranging values may affect the stability of distributed
+measurement updates. Therefore, real-world flight experiments under complex communi-
+cation conditions, dynamic topology changes, and non-line-of-sight ranging environments
+will be further carried out in future work. In addition, the proposed consistent in-novation
+covariance approximation avoids explicit cross-covariance maintenance by introducing a
+conservative approximation. Although this strategy helps maintain filtering consistency
+and reduces the communication and computational burden, it may sacrifice part of the esti-
+mation optimality compared with a fully centralized filter. Therefore, further optimization
+of covariance approximation and adaptive communication mechanisms will be investi-
+gated to improve the robustness and scalability of the proposed method in large-scale
+UAV swarms.
+5. Conclusions
+This paper proposed a consistent-innovation-aided distributed cooperative localiza-
+tion method for multi-glider UAV swarms in GNSS-denied environments. The centralized
+cooperative localization model was first analyzed to clarify the generation and propagation
+of inter-node cross-covariance caused by cooperative ranging updates. On this basis, a
+conservative innovation covariance approximation was introduced so that each UAV only
+needs to maintain its local state and covariance while using neighboring state information
+for distributed measurement updates. The cooperative sub-filter was further integrated
+with altitude, geomagnetic, and scene-matching sub-filters through an adaptive vector
+information allocation framework. Simulation results show that the proposed method
+reduces the position, velocity, and yaw RMSEs by 27.14%, 21.90%, and 9.68%, respectively,
+compared with the non-cooperative method. Compared with the exact-cross-covariance
+distributed baseline, it achieves comparable localization accuracy while reducing com-
+munication traffic by approximately 91.44%. Under a 20% packet-loss rate, the proposed
+method maintains bounded positioning errors, demonstrating its robustness and practical
+applicability for communication-constrained UAV swarm navigation.
+Author Contributions: Conceptualization, Z.H.; methodology, Z.H.; software, C.X. (Chao Xue);
+validation, Z.H., J.N. and C.X. (Chao Xue); formal analysis, J.N.; investigation, C.X. (Chao Xue);
+resources, C.X. (Chuan Xu); data curation, J.N.; writing—original draft preparation, Z.H.; writing—
+review and editing, S.C. and C.J.; visualization, Z.H.; supervision, S.C.; project administration, S.C.;
+funding acquisition, S.C. All authors have read and agreed to the published version of the manuscript.
+Funding: This research was funded by the STSL2025-A-07(M) project and the National Natural
+Science Foundation of China, grant numbers 62503224. The APC was funded by Zhikuan Hou.
+Data Availability Statement: Data available on request from the authors.
+https://doi.org/10.3390/rs18142286
+[p.19]
+Remote Sens. 2026, 18, 2286
+19 of 19
+Acknowledgments: The authors have reviewed and edited the output, and take full responsibility
+for the content of this publication.
+Conflicts of Interest: The authors declare no conflicts of interest. The funders had no role in the design
+of the study; in the collection, analyses, or interpretation of data; in the writing of the manuscript; or
+in the decision to publish the results.
+References
+1.
+Negru, S.A.; Geragersian, P.; Petrunin, I.; Guo, W. Resilient multi-sensor UAV navigation with a hybrid federated fusion
+architecture. Sensors 2024, 24, 981. [CrossRef] [PubMed]
+2.
+Jarraya, I.; Al-Batati, A.; Kadri, M.B.; Abdelkader, M.; Ammar, A.; Boulila, W.; Koubaa, A. GNSS-denied unmanned aerial
+vehicle navigation: Analyzing computational complexity, sensor fusion, and localization methodologies. Satell. Navig. 2025, 6, 9.
+[CrossRef]
+3.
+Wang, L.; Huang, W.; Li, H.; Li, W.; Chen, J.; Wu, W. A review of collaborative trajectory planning for multiple unmanned aerial
+vehicles. Processes 2024, 12, 1272. [CrossRef]
+4.
+Hover, F.; Vaganay, J.; Elkins, M.; Willcox, S.; Polidoro, V.; Morash, J.; Damus, R.; Desset, S. A vehicle system for autonomous
+relative survey of In-water ships. Mar. Technol. Soc. J. 2007, 41, 44–55. [CrossRef]
+5.
+Song, H.; Bi, Y.; Hu, S.; Chen, Y. Outlier-tolerant relative positioning method based on multi-source information fusion for
+unmanned aerial vehicles. Sci. Rep. 2025, 15, 16358. [CrossRef] [PubMed]
+6.
+Zhang, L.; Sun, Y.; Su, Y.; Wang, J.; Li, Y. A processing approach for the NLOS error in UWB Ranging. In Proceedings of the 2021
+IEEE 2nd International Conference on Big Data, Artificial Intelligence and Internet of Things Engineering (ICBAIE), Nanchang, China,
+26–28 March 2021; IEEE: New York, NY, USA, 2021; pp. 518–526.
+7.
+Bu, Y.; Yan, Y.; Yang, Y. Advancement challenges in UAV swarm formation control: A comprehensive review. Drones 2024, 8, 320.
+[CrossRef]
+8.
+Ruan, L.; Li, G.; Dai, W.; Tian, S.; Fan, G.; Wang, J.; Dai, X. Cooperative Relative Localization for UAV Swarm in GNSS-Denied
+Environment: A Coalition Formation Game Approach. IEEE Internet Things J. 2022, 9, 11560–11577. [CrossRef]
+9.
+Zheng, Y.; Xie, Y.; Li, J. Multi-UAV collaboration and IMU fusion localization method in partial GNSS-denied scenarios. IEEE
+Access 2023, 11, 105499–105512. [CrossRef]
+10.
+Akhihiero, D.; Olawoye, U.; Das, S.; Gross, J. Cooperative localization for GNSS-denied subterranean navigation: A UAV–UGV
+team approach. Navig. J. Inst. Navig. 2024, 71, 677. [CrossRef]
+11.
+Li, T.; Yu, X.; Lin, Q.; Lv, Y.; Wen, G.; Shi, C. Distributed cooperative localization for unmanned systems using UWB/INS
+integration in GNSS-denied environments. IEEE Trans. Instrum. Meas. 2025, 74, 1–13. [CrossRef]
+12.
+Zhu, J.; Kia, S.S. Decentralized Cooperative Localization with LoS and NLoS UWB Inter-Agent Ranging. IEEE Sens. J. 2022, 22,
+5447–5456. [CrossRef]
+13.
+Roumeliotis, S.I.; Rekleitis, I.M. Propagation of uncertainty in cooperative multirobot localization: Analysis and experimental
+results. Auton. Robots 2004, 17, 41–54. [CrossRef]
+14.
+Luft, L.; Schubert, T.; Roumeliotis, S.I.; Burgard, W. Recursive decentralized localization for multi-robot systems with asyn-
+chronous pairwise communication. Int. J. Robot. Res. 2018, 37, 1152–1167. [CrossRef]
+15.
+Forsling, R.; Hansson, A.; Gustafsson, F.; Sjanic, Z.; Löfberg, J.; Hendeby, G. Conservative Linear Unbiased Estimation Under
+Partially Known Covariances. IEEE Trans. Signal Process. 2022, 70, 3123–3135. [CrossRef]
+16.
+Li, Q.; Wang, P.; Li, X.; Zhang, J.; Luo, Y.; Yu, W.; Cheng, H. Formation-Constrained Cooperative Localization for UAV Swarms in
+GNSS-Denied Environments. Sensors 2026, 26, 1984. [CrossRef] [PubMed]
+17.
+Hou, Z.; Chen, S.; Li, H.; Xue, C.; Xu, C. Application of Comprehensive State Adaptive Vector Filter Algorithm in Vehicle
+Navigation. In Proceedings of the 2024 4th International Conference on Control Theory and Applications (ICoCTA), Hangzhou, China,
+18–20 October 2024; IEEE: New York, NY, USA, 2024; pp. 41–48.
+18.
+Tian, C.; Hao, N.; He, F.; Yao, H. Consistent Distributed Cooperative Localization: A Coordinate Transformation Approach. In
+Proceedings of the 2024 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Abu Dhabi, United Arab Emirates,
+14–18 October 2024; IEEE: New York, NY, USA, 2024; pp. 10297–10303.
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+https://doi.org/10.3390/rs18142286
+=== END ===

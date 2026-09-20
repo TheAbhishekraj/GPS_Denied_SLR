@@ -1,0 +1,632 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0271.pdf
+sha256: D5EE2CF3F4DC7E0A7151EADE0426ACD4AA99D0DA597C3CFCDF17C6BCA66F4229
+library: pymupdf (fitz) v1.28.2
+pages: 5
+=== BEGIN ===
+[p.1]
+Hybrid IMU-Aided Approach for Optimized Visual 
+Odometry
+Ahmed Mahmoud 
+Department of Systems and Computer Engineering, 
+Carleton University, 
+Ottawa, Canada  
+ahmedgmahmoud@cmail.carleton.ca 
+Mohamed M. Atia 
+Department of Systems and Computer Engineering, 
+Carleton University, 
+Ottawa, Canada  
+mohamedatia@cunet.carleton.ca
+Abstract — Autonomous navigation of unmanned vehicles in 
+GPS-denied environments is a challenging problem, especially 
+for small ground vehicles and micro aerial vehicles (MAVs) 
+which are characterized by their small payload, short battery 
+lifetime and limited processing resources. Stereo vision 
+positioning has been introduced as a scale-free positioning 
+technique, but it is computationally expensive. Monocular vision 
+systems aided by inertial measurement unit (IMU) are more 
+computationally efficient but it suffers from IMU random biases 
+and scale errors. In this paper, we propose a hybrid visual-
+inertial odometry solution that minimizes the computation load 
+by dividing the mission into two interchangeable stages. Firstly, 
+a stereo vision stage in which a loosely coupled integration 
+between stereo cameras and IMU is performed. In this stage, an 
+extended Kalman filter (EKF) is used to automatically and 
+dynamically estimate IMU biases. Once the IMU is calibrated, a 
+monocular stage is activated where the system is downgraded 
+into single camera getting the motion scale from the calibrated 
+IMU. The proposed solution has been tested using the popular 
+IMU-enabled ZED-Mini tracking camera. We compared our 
+stereo vision solution against the IMU-aided monocular solution 
+and the results showed accurate positioning with the advantage 
+of less computation. Further analysis is provided where we 
+compared our solution with the built-in solutions of the ZED 
+Mini camera and the Intel Realsense T265 tracking camera. 
+Keywords—Visual Odometry, Inertial Navigation Systems 
+(INS), Extended Kalman Filter (EKF), Sensor Fusion, 
+Autonomous Navigation. 
+I. 
+INTRODUCTION AND BACKGROUND
+Having unmanned small vehicles with the ability of 
+autonomously navigate the world became a must in a wide 
+spectrum of applications, from security surveillance, boarder 
+control, building inspection, film making, to even space 
+missions and planet exploration and the application list is 
+getting larger by the day. However, the nature of these 
+applications imposes many constraints on the navigation 
+solutions in terms of payload, battery and processing power 
+yet, these constraints goes tighter for the small-scale vehicles. 
+Navigation becomes a more complex challenge under 
+unavailability of space-based Global Navigation Satellite 
+Systems (GNSS) [1]. From these constraints came the need 
+to use small and power efficient sensors like inertial 
+measurement units (IMUs) and cameras [2] [3]. IMUs and 
+cameras have their own limitations. However, IMU and 
+cameras have complementary characteristics that make the 
+integration of the two sensors a promising direction.  
+IMU is an important sensor used in navigation applications 
+where full 3D position, velocity, and orientation is calculated 
+incrementally using dead-reckoning [4]. Dead-reckoning 
+suffers from large drifts that grow overtime due to IMU 
+stochastic errors and biases. Therefore, the standard approach 
+is to use a low cost Micro-Electro-Mechanical Systems 
+(MEMS) IMU fused with other positioning sensors to control 
+IMU drifts and to provide precise positioning at affordable 
+cost.  Practically, to make IMU measurements usable, an 
+accurate estimation of IMU stochastic errors must be 
+performed.  Traditionally, GNSS has been the common 
+choice to fuse with IMUs [1] [4]. However, GNSS may not 
+be available in all scenarios and, hence, integration of IMU 
+with other sensors becomes necessary. 
+Camera-based solution is one of the best replacements of 
+GNSS for its availability, low cost and small size and weight. 
+Moreover, IMUs provide complementary characteristics to 
+vision sensors in the form of the higher input rates and higher 
+accuracy to track rotations at high dynamics, which made it 
+better choice for estimating fast motions. Many recent 
+researches tested visual inertial integration which delivered 
+promising results [5] [6]. However, visual processing is still 
+a computational bottleneck that affects the practical 
+application of visual inertial tracking in small-size battery-
+powered unmanned vehicles.  
+Estimating motion from images is known as ego motion 
+estimation [7]. The process of estimating the camera ego 
+motion from its input frame sequence [8] is a special case of 
+“structure from motion” and this process could be referred to 
+by the term Visual Odometry (VO). VO is implemented by 
+tracking the motion of visually recognized features in image 
+sequences. VO solutions can be classified into two main 
+common groups [9]; monocular methods and stereo vision 
+methods. In monocular visual odometry algorithms [10], use 
+a single camera feed is used to estimate the new camera 
+position and orientation. The weakness of this class of 
+solutions is that a single camera can only estimate the 
+translation and rotation between two image frames up to an 
+unknown scale. This scale is necessary to transform the 
+estimated camera motion to physical real-world motion. 
+Consequently, monocular visual odometry are always 
+integrated with other sensors like IMU [11] to estimate this 
+unknown scale and to provide real-world positioning. 
+However, uncalibrated IMU with large stochastic noise and 
+errors make the precise estimation of this unknown scale a 
+challenging problem.  
+In stereo visual odometry algorithms [7] [12], the visual 
+feature physical depth in the real-world is directly measured 
+by triangulation using images from two or more cameras and 
+then construct the camera motion in physical real-world 
+domain. Although stereo vision does not suffer from scale 
+ambiguity, the stereo vision processing is more expensive as 
+it processes two input video streams which consume larger 
+memory and power leading to shorter battery lifetime and 
+limited operating range. 
+Even with the availability of stereo camera onboard, having 
+a monocular vision-based navigation solution is more 
+978-1-7281-2723-1/19/$31.00 ©2019 IEEE
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+suitable to the restrictions imposed by the characteristics of 
+small autonomous vehicles. The smaller the vehicle, the less 
+the processing power available and the shorter the baseline 
+distance between cameras which cause degeneration to a 
+monocular mode whenever the visual features are at a 
+distance that is significantly larger than the baseline between 
+stereo cameras.  Therefore, we believe having a system that 
+can dynamically switch between a monocular and stereo 
+mode could give a great benefit to autonomous vehicles 
+navigation. 
+In this paper, we address the accuracy and computation 
+challenges of visual inertial odometry by proposing a hybrid 
+and adaptive fusion scheme that minimizes the processing 
+requirements by dividing the navigation mission into two 
+interchangeable phases. The core fusion algorithm used in 
+this work is the Extended Kalman Filter (EKF) which is 
+widely used for its simple implementation and suitability to 
+real-time applications [2] [13]. The proposed system operates 
+through two phases. Firstly, A stereo vision-based navigation 
+phase in which a loosely coupled integration between the 
+camera and IMU solution is performed where the vision 
+solution used as an update to the EKF to estimate the INS 
+errors. The second phase is a monocular phase where we 
+downgrade our vision system into only one camera-based 
+system with minimum computations and get the motion scale 
+from the calibrated INS solution. The system has been 
+realized and tested using the ZED-Mini camera tracking 
+system and results showed that the proposed hybrid adaptive 
+fusion scheme can provide accuracy that is comparable to full 
+stereo vision tracking with the advantage of less 
+computations. 
+The rest of this paper is organized as follows. Section II 
+describes the proposed solution. In section III we present the 
+experimental work. While section 5 is devoted to the 
+experimental results. Section IV concludes the paper. 
+II. PROPOSED SOLUTION
+The proposed fusion scheme benefits from the accuracy and 
+scale-free positioning estimate of stereo vision-based system 
+to update a full 3D IMU positioning solution within an EKF 
+module that considers the vehicle’s non-holonomic 
+constrains. Stereo mode is activated in the beginning until a 
+reliable accurate estimate of the IMU errors is obtained and 
+stable EKF convergence is achieved. Then, the system 
+switches to IMU-aided monocular mode benefitting from its 
+lower memory and computation requirements. Motion scale 
+generated by the IMU is tested every few seconds and when 
+the error in the motion scale goes beyond a certain threshold 
+the system switches back to the stereo mode and feed its 
+estimation to the EKF to re-estimate IMU biases. 
+The implemented EKF uses a full 3D IMU dynamic model 
+[14] to generate its predicted trajectory estimation of the
+position, velocity and orientation of the moving platform at a
+rate of 100Hz. At a lower rate (15 Hz) a stereo vison system
+that processes images sequence from couple of cameras is
+developed. The developed stereo vision uses SOFT SLAM
+library [5]. While using the SOFT estimation as a position
+update, EKF convergence is watched. Once converged, the
+system automatically switches to the monocular mode using
+the calibrated IMU position prediction (aided by non-
+holonomic constraints) to generate the motion scale leading
+to a full 3D monocular visual-inertial solution that is scale-
+free. Switching to monocular mode frees extra resources for 
+the other tasks like motion planning or mapping. The 
+Flowchart of the proposed VIO system is shown in Figure 1. 
+To sustain the accuracy of the system, the following 
+mechanism could be implemented. Every few seconds, we 
+switch on the stereo SOFT odometry solution and test the 
+EKF estimated motion scale against the SOFT odometry 
+solution for one iteration. If there is large discrepancy 
+between the two estimations, the system automatically 
+switches off the monocular estimation and feed the SOFT 
+odometry updates to the EKF to re-converge and re-estimate 
+the IMU biases. The remaining of this section is devoted for 
+describing both SOFT stereo VO and the monocular VO, we 
+refer the reader to [15]  for more detailed explanation of the 
+EKF implementation. 
+Figure 1: Flowchart of the proposed VIO system 
+A. SOFT Visual Odometry System
+For the stereo visual odometry stage, we used the SOFT
+odometry method [5], which ranks as one of the highest 
+accuracy visual odometry solution on KITTI vision 
+benchmark suite [16]. The name SOFT stands for Stereo 
+Odometry algorithm relying on Feature Tracking [17]. As can 
+be seen in the proposed solution in Figure 1, the estimated 
+change of position and orientation estimated from the SOFT 
+is fed to the EKF as an update to optimally estimate the IMU 
+biases and errors. The main drive that motivated every 
+decision in designing the SOFT odometry algorithm is 
+enabling real-time performance and optimizing the 
+processing requirements. The algorithm is composed of four 
+primary stages as shown Figure 2. The first stage is the 
+feature detection and selection in which the idea of bucketing 
+is applied. Bucketing technique divides the image into 50x50 
+pixel-sized buckets. In every bucket, corner and blob masks 
+are applied followed by non-maximum suppression step to 
+have four class lists of carefully selected strong features. 
+Then, these features go through circular matching process in 
+which the features are tested if they are matched in two 
+consecutive frames. Only the features that passes this test is 
+taken into account. Using this small subset of the image 
+features reduces the computational time for all the following 
+stages. 
+Figure 2: SOFT Visual odometry flowchart 
+The second stage is the feature tracking stage. Each 
+feature point has a few associated properties: 
+3D EKF
+INS
+Mechanization
+Stereo Phase
+or  Scale Test
+Monocular
+Phase or
+Scale Test
+SOFT Odometry
+Monocular
+Odometry
+Position,Velocity,Attitude
+IMU Error Estimates
+Position,Attitude
+Position, Velocity, Attitude
+Motion Scale
+Position, Attitude
+Single Feed
+Inertial
+Measurements
+Stereo Image
+Sequence
+Feature
+Detection and
+Selection
+Feature
+Tracking
+3D Point Cloud
+Projection
+RANSAC
+5-Points
+SLERP
+Translation
+Estimation
+R
+T
+stereo Image
+acquisition
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+1- Unique identifier. 
+2-  Age.  
+3-  Refined current position in the image.  
+4-  Feature strength.  
+5-  Belonging class.  
+6-  Initial descriptor. 
+With the feature first appearance a unique identifier is 
+assigned for it and the age is initialized with zero. In each 
+iteration the position of the feature point is refined on a 
+subpixel level with respect to the feature initial position, 
+using the same descriptor during the entire feature lifetime 
+reduces the drift. The third stage is the rotation estimation. In 
+this stage, the feed from the left camera is used as an input to 
+the RANSAC 5 points module [5] [9] to estimate the rotation 
+matrix then apply the spherical linear interpolation (SLERP) 
+step that refines the rotation estimation. Finally, the 
+translation estimation stage is implemented. Having all the 
+correspondences determined, the 3D point cloud estimation 
+of the previous view is projected into the image plane of the 
+current view, and then the translation is calculated iteratively 
+by minimizing a cost function. 
+B. Monocular Odometry System 
+In monocular mode, we implemented the basic components 
+of visual odometry algorithm as described in [8] [9], the 
+monocular solution flowchart is shown in Figure 3. As shown 
+in Figure 3, the monocular mode solution satisfies the most 
+basic implementation of the visual odometry solution. We 
+applied ORB feature detector [18] and then we tracked the 
+features using Kanade-Lucas-Tomasi [3] sparse optical flow 
+technique. The choice of optical flow came from its ability to 
+track features between frames without the need to detect the 
+features with each coming frame.  
+ 
+ 
+Figure 3: Proposed Monocular VO 
+A threshold of the minimum features was tuned to trigger 
+a new feature detection search. The sparse technique was 
+selected because it is faster than the dense optical flow. Once 
+we have point correspondences we used RANSAC 5-points 
+[19], which is a standard technique to handle, the existence of 
+outliers and to remove them and then compute the essential 
+matrix using the Epipolar geometry constraints. The epipolar 
+constraint between two views of a calibrated camera can be 
+expressed as:  
+                                            𝐼𝐼′𝐸𝐸𝐸𝐸= 0,                                   (1)  
+Where I and I’ are the corresponding features image 
+coordinates between two views, and E is the essential matrix. 
+Since the scale in monocular vision is unobservable, we get 
+the motion scale from the IMU prediction model.  Having the 
+essential matrix and the motion scale we estimate the rotation 
+R and translation T. Finally, we construct the final position Tf 
+and rotation matrix Rf: 
+ 
+                                             𝑅𝑅𝑓𝑓= 𝑅𝑅 𝑅𝑅𝑓𝑓 ,                                     (2)   
+                                      𝑇𝑇𝑓𝑓= 𝑇𝑇𝑓𝑓+ 𝑆𝑆 𝑅𝑅𝑓𝑓𝑇𝑇,                                  (3)  
+where S is the motion scale. In the proposed system, the 
+motion scale S is calculated from the calibrated IMU 
+compensated for biases as estimated by the EKF during the 
+stereo mode phase. 
+C. IMU Dynamic System  
+IMU predicts the orientation of body frame 𝐵𝐵 with respect 
+to a local frame 𝐿𝐿 and then projects accelerometers onto 𝐿𝐿 
+frame to calculate full 3D position and velocities by double 
+integration after compensating for gravity. In this work, a 
+quaternion vector 𝑞𝑞𝐵𝐵
+𝐿𝐿 representation for orientation is used 
+[20, 21]. Orientation kinematic differential equation is as 
+follows: 
+𝑞𝑞𝐵𝐵
+𝐿𝐿̇ = 1
+2 ൦
+𝑎𝑎
+𝑏𝑏
+𝑐𝑐
+𝑑𝑑
+    
+−𝑏𝑏
+𝑎𝑎
+𝑑𝑑
+−𝑐𝑐
+    
+−𝑐𝑐
+−𝑑𝑑
+𝑎𝑎
+𝑏𝑏
+    
+−𝑑𝑑
+𝑐𝑐
+−𝑏𝑏
+𝑎𝑎
+൪
+⎣
+⎢
+⎢
+⎢
+⎡
+0
+𝜔𝜔𝐿𝐿𝐿𝐿
+𝐵𝐵
+𝑥𝑥−𝑏𝑏𝑔𝑔𝑥𝑥
+𝜔𝜔𝐿𝐿𝐿𝐿
+𝐵𝐵
+𝑦𝑦−𝑏𝑏𝑔𝑔𝑦𝑦
+𝜔𝜔𝐿𝐿𝐿𝐿
+𝐵𝐵
+𝑧𝑧−𝑏𝑏𝑔𝑔𝑧𝑧⎦
+⎥
+⎥
+⎥
+⎤
+ 
+(4) 
+Where 𝜔𝜔𝐿𝐿𝐿𝐿
+𝐵𝐵
+ is the gyroscope measurements which 
+measures rotation rate of the 𝐵𝐵 frame with respect to the 𝐿𝐿 
+frame and 𝑏𝑏𝑔𝑔𝑥𝑥 is gyroscope biases. The velocity differential 
+equation can be approximated by: 
+𝑣𝑣̇𝐿𝐿≈𝑅𝑅𝐵𝐵
+𝐿𝐿(𝑎𝑎𝐼𝐼𝐼𝐼
+𝐵𝐵−𝑏𝑏𝑎𝑎) + 𝑔𝑔𝐿𝐿 
+(5) 
+where 𝑎𝑎𝐼𝐼𝐼𝐼
+𝐵𝐵 is the measured acceleration in the 𝐵𝐵 frame, 𝑏𝑏𝑎𝑎 is 
+an accelerometer bias vector,  𝑔𝑔𝐿𝐿 is the gravity vector in the 
+𝐿𝐿 frame, 𝑅𝑅𝐵𝐵
+𝐿𝐿 is rotation matrix from B to L. The position 
+differential equation in the 𝐿𝐿 frame can be approximated by: 
+𝑃𝑃̇𝐿𝐿≈𝑣𝑣𝐿𝐿 
+(6) 
+III. 
+EXPRIMENTAL WORK AND RESULTS 
+The experiments were performed in the 30mx30m 5th 
+floor of Mackenzie Building at Carleton University in 
+Ottawa. The data were collected by both ZED mini Stereo 
+navigation solution from Stereolabs [22] and  the Intel 
+Realsense T265 [23]. Both the ZED mini and the Realsense 
+(RS) cameras were attached to a simple wheeled platform and 
+interfaced with an MSI Intel Core i7-8750H CPU laptop 
+equipped by Nvidia RTX 2070 8 GB and 16 GB DDR4 RAM 
+powered by Ubuntu 18.04.1 operating system. The 
+experimental testing platform is shown in Figure 4. 
+ 
+(a) 
+ 
+ 
+Wheeled experimental 
+platform 
+(b) 
+ 
+ZED Mini Stereo Vision System 
+ (c) 
+ 
+Intel Realsense T265 Tracking System 
+Figure 4.Experimental Setup 
+Essential matrix
+estimation
+Feature
+Tracking
+Frame
+un-distortion
+Yes
+Translation and
+rotation
+estimation
+EKF
+Scale
+R,T
+Enough
+Features
+No
+Feature
+Extraction
+Single Camera Feed
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+The laptop was used to synchronize and time-tag all 
+incoming data (IMU and the cameras). For the presented 
+work, we used the images and the IMU readings of by the 
+ZED mini, and due to the absence of a ground truth indoors 
+we compared the estimated trajectory of the proposed 
+solution to the built-in ZED mini and Intel Realsense 
+estimations. Also, we measured the final position loop error 
+which is the positional difference between the starting 
+coordinate and the ending coordinate when we close the loop 
+in the testing area. 
+In the beginning, the system enabled the stereo mode by 
+default. As can be seen in Figure 5 and Figure 6, the EKF 
+needed less than 50 seconds to converge to the optimum 
+estimate of the accelerometers and gyroscopes biases. 
+ 
+Figure 5: Accelerometer estimated biases 
+ 
+Figure 6: Gyroscopes estimated biases 
+A comparison between the estimated trajectory of the 
+ZED mini (green), RS(blue) and the SOFT odometry(red) is 
+illustrated in Figure 7. The presented figure suggests that in 
+our test conditions SOFT results are comparable to the RS 
+position estimation while outperforms the ZED Mini position 
+estimation with less than 20 cm end-of-loop position error 
+after a complete loop (23.5mX18.5m) which took 
+approximately 90 seconds. 
+Using the SOFT estimated trajectory as a position update 
+to the EKF for 50 seconds, the EKF has converged as seen in 
+Figure 5 and Figure 6 and an accurate estimation of the IMU 
+biases has been obtained. Notably, the estimated gyroscope Z 
+bias behavior shows how feeding the EKF a bad initial guess 
+can lead to an interval of instability before convergence. 
+ After convergence, the system automatically switched to 
+the monocular mode visual odometry solution and continue 
+for 40 seconds resulted in the blue trajectory illustrated in 
+Figure 8. The red trajectory in Figure 8 is the full SOFT stereo 
+solution which has 20 cm end-of-loop position error. During 
+the experiment, 5 accuracy tests have been performed on the 
+IMU generated scale to verify its consistency with that 
+estimated scale from stereo vision. No discrepancy has been 
+detected as the error was smaller than the selected threshold, 
+and the overall error at the end of the tested loop was 0.5 
+meters. Although the calibrated IMU-aided monocular vision 
+solution is slightly less accurate than the SOFT stereo vision 
+solution, given the huge saving in computation by switching 
+to monocular solution instead of stereo solution, the 
+advantage of the proposed hybrid scheme is clear. 
+ 
+ 
+Figure 7: SOFT, Realsense and ZED mini estimated trajectories 
+ 
+Figure 8: Stereo vs. IMU-aided monocular vision solutions 
+ 
+IV. 
+CONCLUSION 
+In this paper, we presented a system that fuses both visual 
+and inertial sensors in a hybrid and adaptive scheme. The 
+solution uses a high precision visual odometry algorithm 
+(SOFT) as an update for the EKF to have an accurate 
+estimation of IMU biases. Then the system minimizes the 
+processing power requirements by switching to a monocular 
+visual odometry mode, which frees resources for the 
+additional tasks. The presented solution could help in 
+navigating unknown environments and the obtained accuracy 
+encourages an embedded implementation targeting small 
+autonomous battery-operated vehicles.  Our trajectory 
+estimation was compared to the soft odometry estimation, 
+ZED mini and Intel Realsense T265 tracking solutions and 
+for 50 seconds update outages, the overall position estimation 
+error was less than 2m. 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+V. 
+REFERENCES 
+ 
+[1]  N. Aouf and A. Nemra, "Robust INS/GPS Sensor 
+Fusion for UAV Localization Using SDRE Nonlinear 
+Filtering," IEEE Sensors Journal, vol. 10, no. 4, pp. 
+789-798, 2010.  
+[2]  A. Mahmood, A. Baig and Q. Ahsan, "Real time 
+localization of mobile robotic platform via fusion of 
+Inertial and Visual Navigation System," in 2012 
+International Conference of Robotics and Artificial 
+Intelligence, Rawalpindi, 2012.  
+[3]  F. Jabar, S. Farokhi and U. U. Sheikh, "Object 
+tracking using SIFT and KLT tracker for UAV-based 
+applications," in 2015 IEEE International Symposium 
+on Robotics and Intelligent Sensors (IRIS), Langkawi, 
+2015.  
+[4]  N. Abdelkrim, N. Aouf, A. Tsourdos and B. White, 
+"Robust nonlinear filtering for INS/GPS UAV 
+localization," in 16th Mediterranean Conference on 
+Control and Automation, Ajaccio, 2008.  
+[5]  I. Cvišić, J. Ćesić, I. Marković and Petrović, "SOFT-
+SLAM: Computationally efficient stereo visual 
+simultaneous localization and mapping for 
+autonomous unmanned aerial vehicles," Journal of 
+Field Robotics, vol. 35, p. 578– 595, 2018.  
+[6]  R. Wang, M. Schwörer and D. Cremers, "Stereo DSO: 
+Large-Scale Direct Sparse Visual Odometry with 
+Stereo Cameras," in IEEE International Conference 
+on Computer Vision (ICCV), Venice, 2017.  
+[7]  C. F. Olson, L. H. Matthies, H. Schoppers and M. W. 
+Maimone, "Robust stereo ego-motion for long 
+distance navigation," in Proceedings IEEE 
+Conference on Computer Vision and Pattern 
+Recognition. CVPR 2000, Hilton Head Island, 2000.  
+[8]  D. Nister, O. Naroditsky and J. Bergen, "Visual 
+odometry," in Proceedings of the 2004 IEEE 
+Computer Society Conference on Computer Vision 
+and Pattern Recognition, Washington, DC, 2004.  
+[9]  D. Scaramuzza and F. Fraundorfer, "Visual Odometry 
+[Tutorial]," IEEE Robotics & Automation Magazine, 
+vol. 2011, no. 4, pp. 80-92, 2011.  
+[10] J. Engel, V. Koltun and D. Cremers, "Direct Sparse 
+Odometry," IEEE Transactions on Pattern Analysis 
+and Machine Intelligence, vol. 40, no. 3, pp. 611-625, 
+2018.  
+[11] W. Wang and D. Wang, "Land vehicle navigation 
+using odometry/INS/vision integrated system," in 
+2008 IEEE Conference on Cybernetics and Intelligent 
+Systems, Chengdu, 2008.  
+[12] Z. Yong-guo, C. Wei and L. Guang-liang, "The 
+Navigation of Mobile Robot Based on Stereo Vision," 
+in 2012 Fifth International Conference on Intelligent 
+Computation Technology and Automation, 
+Zhangjiajie, Hunan, 2012.  
+[13] A. I. Roumeliotis and S. I. Mourikis, "A Multi-State 
+Constraint Kalman Filter for Vision-aided Inertial 
+Navigation," in Proceedings 2007 IEEE International 
+Conference on Robotics and Automation, Roma, 
+2007.  
+[14] M. Atia, "Design and simulation of sensor fusion 
+using symbolic engines," Mathematical and Computer 
+Modelling of Dynamical Systems, pp. 40-62, 2018.  
+[15] M. Atia, "Design and simulation of sensor fusion 
+using symbolic engines," Mathematical and Computer 
+Modelling of Dynamical Systems, vol. 25, no. 1, pp. 
+40-62, 2019.  
+[16] A. Geiger, P. Lenz, C. Stiller and R. Urtasun, "”Vision 
+meets Robotics: The KITTI Dataset," International 
+Journal of Robotics Research, vol. 32, no. 11, p. 
+1231–1237, 2013.  
+[17] I. Cvišić and I. Petrović, "Stereo odometry based on 
+careful feature selection and tracking," in 2015 
+European Conference on Mobile Robots (ECMR), 
+Lincoln, 2015.  
+[18] E. Rublee, V. Rabaud, K. Konolige and G. R. Bradski, 
+"ORB: An efficient alternative to SIFT or SURF," in 
+International Conference on Computer Vision, 
+Barcelona, 2011.  
+[19] D. Nister, "An efficient solution to the five-point 
+relative pose problem," IEEE Transactions on Pattern 
+Analysis and Machine Intelligence, vol. 26, no. 6, pp. 
+756-770, 2004.  
+[20] C. GRUBIN, "Derivation of the quaternion scheme 
+via the Euler axis and angle," Journal of Spacecraft 
+and Rockets, vol. 7, no. 10, pp. 1261-1263 , 1970.  
+[21] A. Schwab, "Quaternions, Finite Rotation and Euler 
+Parameters," 2002. 
+[22] Stereolabs, "ZED Mini Stereo Camera," Stereolabs, 
+[Online]. Available: https://www.stereolabs.com/zed-
+mini/. [Accessed 19 June 2019]. 
+[23] Intel, "Intel RealSens Tracking Camera T265," 22 
+June 2019. [Online]. Available: 
+https://www.intelrealsense.com/tracking-camera-
+t265/. 
+[24] J. Shi and Tomasi, "Good features to track," in 1994 
+Proceedings of IEEE Conference on Computer Vision 
+and Pattern Recognition, Seattle, WA, USA, 1994.  
+[25] K. Krishnaswamy and e. al, "Sensor fusion for GNSS 
+denied navigation," in 2008 IEEE/ION Position, 
+Location and Navigation Symposium, Monterey, CA, 
+2018.  
+[26] X. Haowei and L. Baowang, "Airborne LiDAR/INS 
+integrated navigation based on adaptive switching 
+between ICP and SLPF," in 2018 IEEE International 
+Conference on Signal Processing, Communications 
+and Computing (ICSPCC), Qingdao, 2018.  
+ 
+ 
+ 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:49 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

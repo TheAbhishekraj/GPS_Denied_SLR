@@ -1,0 +1,1301 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1463.pdf
+sha256: 0DD28CC5A69DA8D054CB9894F8F5CEFD3A170E27E2153E074514F6AE0F205E8A
+library: pymupdf (fitz) v1.28.2
+pages: 11
+=== BEGIN ===
+[p.1]
+This may be the author’s version of a work that was submitted/accepted
+for publication in the following source:
+Zhu, Xiaolong, Vanegas Alvarez, Fernando, & Gonzalez, Luis Felipe
+(2022)
+Decentralised Multi-UAV Cooperative Searching Multi-Target in Cluttered
+and GPS-Denied Environments.
+In Proceedings of the 2022 IEEE Aerospace Conference (AERO).
+Institute of Electrical and Electronics Engineers Inc., United States of
+America.
+This ﬁle was downloaded from: https://eprints.qut.edu.au/226555/
+© 2022 IEEE
+Personal use of this material is permitted. Permission from IEEE must be obtained for all
+other uses, in any current or future media, including reprinting/republishing this material for
+advertising or promotional purposes, creating new collective works, for resale or redistribu-
+tion to servers or lists, or reuse of any copyrighted component of this work in other works.
+Notice: Please note that this document may not be the Version of Record
+(i.e. published version) of the work. Author manuscript versions (as Sub-
+mitted for peer review or as Accepted for publication after peer review) can
+be identiﬁed by an absence of publisher branding and/or typeset appear-
+ance. If there is any doubt, please refer to the published source.
+https://doi.org/10.1109/AERO53065.2022.9843665
+[p.2]
+Decentralised Multi-UAV Cooperative Searching
+Multi-Target in Cluttered and GPS-Denied
+Environments
+Xiaolong Zhu
+Faculty of Engineering
+Queensland University of Technology
+2 George St, Brisbane, QLD 4000
+xiaolong.zhu@hdr.qut.edu.au
+Fernando Vanegas
+Faculty of Engineering
+Queensland University of Technology
+2 George St, Brisbane, QLD 4000
+f.vanegasalvarez@qut.edu.au
+Felipe Gonzalez
+Faculty of Engineering
+Queensland University of Technology
+2 George St, Brisbane, QLD 4000
+felipe.gonzalez@qut.edu.au
+Abstract—In recent years, the use of multi-unmanned aerial
+vehicles (UAVs) systems in outdoor GPS enabled environments
+has increased signiﬁcantly. Their use in GPS-denied environ-
+ments, however, is still a complex task.
+Examples of such
+environments include search and rescue inside buildings or
+collapsed building scenarios, urban or natural canyons, in which
+the GPS signal is limited or blocked.
+In order to provide a
+possible solution for these applications, this paper presents a
+multi-UAV system that can be utilised for a team of UAVs to
+autonomously navigate, search and detect multiple targets in a
+cluttered and GPS-denied environment. The multi-UAV system
+uses a decentralised framework based on Decentralised Partially
+Observable Markov Decision Processes (Dec-POMDP) to for-
+mulate the decision-making process considering uncertainties in
+the environments and sensing. This system was designed for a
+mission that needs to cooperate efﬁciently to search and ﬁnd
+multiple targets, without knowing possible locations, by sharing
+limited vital observations through WiFi connection. The system
+was tested in several cluttered and GPS-denied environments
+simulated in Gazebo and ROS interface. The environments were
+populated with different numbers and types of obstacles, several
+targets, a team of UAVs and boundaries. After comparing three
+different searching strategies, the results show that the system is
+capable of cooperatively searching and ﬁnding multiple targets
+in an effective approach while without having a collision in
+a complex environment.
+The multi-UAV system is robust to
+uncertainties in target exploration and localisation, enabling the
+use of multiple UAVs to enhance critical missions for challenging
+scenarios such as search and rescue or exploration and disaster
+management and assessment.
+TABLE OF CONTENTS
+1. INTRODUCTION. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .1
+2. BACKGROUND . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .2
+3. PROBLEM DESCRIPTION . . . . . . . . . . . . . . . . . . . . . . . . . . . .3
+4. SYSTEM ARCHITECTURE . . . . . . . . . . . . . . . . . . . . . . . . . . .3
+5. PROBLEM FORMULATION . . . . . . . . . . . . . . . . . . . . . . . . . . .5
+6. RESULTS . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .6
+7. CONCLUSIONS & FUTURE WORK . . . . . . . . . . . . . . . . . .8
+ACKNOWLEDGMENTS . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .8
+REFERENCES . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .8
+BIOGRAPHY . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .9
+978-1-6654-3760-8/22/$31.00 ©2022 IEEE
+1. INTRODUCTION
+The use of multiple unmanned aerial vehicles (UAVs) for
+activities such as real-time monitoring, Search and Rescue
+(SAR), remote sensing, cargo delivery, precision agriculture,
+and infrastructure inspection has lately received more atten-
+tion [1–5]. UAVs have been explored for SAR operations due
+to their manoeuvrability (ﬂying at different speeds, hovering,
+and agile access to small places), making them ideal for
+potentially hazardous or challenging tasks for humans [6].
+The research on multiple UAVs for SAR missions can be
+broadly classiﬁed into two categories: (i) swarm systems,
+which consist of a large number of smaller drones with lower-
+quality sensors and a lower level of autonomy [7], and (ii)
+cooperative systems, which consist of a few larger UAV
+platforms with more sensors and more powerful on-board
+processors that enable more complex on-board decisions than
+smaller drones [2, 8]. There is a substantial amount of study
+on SAR missions using a single UAV in GPS-denied settings
+[9–12]. In comparison, utilising a team of UAVs to efﬁciently
+and cooperatively locate a target in congested and GPS-
+denied environments remains a difﬁcult challenge.
+This focuses on the problem of using a team of UAVs for
+a SAR mission to explore and locate multiple targets within
+a building structure.
+This multi-UAV indoor search for
+multiple targets can be divided into three distinct problems:
+indoor exploration, multi-UAV cooperation, and multi-target
+ﬁnding. Each UAV must be capable of estimating its own
+position within the ﬂight area while accommodating all nec-
+essary uncertainties regarding its location and motions in the
+absence of GPS calibration. The multi-UAV system must be
+efﬁcient and collision-free in order to locate all setup targets
+while maintaining the system’s scalability and reliability.
+The main contributions of this paper are:
+1. A scalable decentralised POMDP formulation for sim-
+ulating a multi-target exploring mission involving a group
+of UAVs in GPS-denied environments with obstacles in the
+presence of uncertainty. This formulation enables the man-
+agement of a variable number of targets without incurring the
+computational cost associated with an additional target, as the
+formal POMDP formulation does.
+2. This paper proposes method which achieves a combina-
+tion a assisted localisation function with robust obstacles
+avoidance function to provide the location of UAV without
+GPS signals.
+1
+[p.3]
+2. BACKGROUND
+Control Architecture
+A multi-UAV system consists of intelligent agents or UAVs
+as autonomous entities which make decisions according to
+information of interaction and communication among them-
+selves and with the environment. The control architecture of
+a multi-agent system (MAS) is deﬁned by interaction within
+each agent [13]. Most frameworks of a MAS are divided
+into two major categories: centralised or decentralised ar-
+chitecture [14, 15]. The utilities and requirements of a MAS
+determine the designed control architecture.
+Centralised MAS—A centralised system is composed of a
+central controller or agent for the whole system and other
+executive agents. The central controller is capable of com-
+municating and accessing to gain all necessary information or
+data from other agents in order to process and make decisions
+for all the agents in the system [14]. In multi-UAV applica-
+tions, a ground control station (GCS) is the central controller
+in this multi-UAV system, gathers data from onboard sensors
+mounted on UAVs, then sends ﬂight commands to all UAVs
+through communication to complete tasks. It is evident that
+the centralised one could make an optimised decision from
+the system level to ensure the efﬁciency and collaboration of
+the system when performing tasks . However, the costs of the
+optimal decision are a stable, unobstructed communication
+within all the agents in the system and a high demand for
+computational performance in the central controller. Thus, a
+centralised MAS has an outstanding performance in limited
+applications in the real world.
+Decentralised MAS—A decentralised system does not have a
+central controller compared with the centralised one. Instead,
+there are separate controllers in a MAS for making decisions
+for one or a group of agents. This provides the beneﬁts for the
+system, which are less or no constraint on communication,
+less demanding for computational source and ﬂexibility of
+scalability [14]. These characteristics prove that the system is
+more robust and scalable in the number of agents and is able
+to tolerate communication issues, even in an unconnected
+circumstance.
+MDP and POMDP
+Markov Decision Process (MDP) is a widely used mathe-
+matical framework to model sequential decision making in
+stochastic domain [16]. An MDP framework aims to obtain
+a policy or a strategy from a given reward function, which
+is designed to ﬁlter an optimal action from predetermined
+actions at a particular decision point depending on detected
+observation and state of the agent.
+However, the MDPs
+framework requires the agent can gain a complete observation
+at each decision point, which is a demanding restriction for its
+applications.
+Partially Observable Markov Decision Processes (POMDP)
+extend from MDPs to be able to contain the incomplete obser-
+vational capabilities of agents and to consider the inaccurate
+or insufﬁcient observations from sensors and environments as
+stochastic items in the model. Formally, a POMDP is a tuple
+described as < S, A, T, Ω, O, R, γ > [16], where:
+• S is a set of all the environment states for the agent;
+• A is the set of all possible actions of the agent;
+• T(s, a, s
+′) is the probability of agent in state s
+′ ∈S after
+performs an action a ∈A at previous state s ∈S, which
+equals with Pr(s
+′|s, a);
+• Ωis the set of all possible observations;
+• O(s
+′, a, o) is the probability of observing o ∈Ωat state s
+′
+after performed the action a;
+• R is the set of rewards for each chosen action a at every
+state s;
+• γ ∈[0, 1) is the discount factor.
+The actual state of the agent, known as the belief-state b(s),
+is described by a probability distribution for all the possible
+states in agent state-space at the decision time, due to b(s)
+cannot be directly observable from the tuple.
+Due to the
+Markov assumption, it can be updated with a Bayesian ﬁlter
+for every action–observation pair:
+b
+′(s
+′) = ηΩ(s
+′, a, o)
+X
+s∈S
+T(s, a, s
+′)b(s)
+(1)
+where η acts as a normalising constant such that b
+′ remains a
+probability distribution.
+The objective of a POMDP is to ﬁnd a policy that maps beliefs
+into actions in the form π(b) →a, so that the total expected
+reward is maximised.
+This expected reward gathered by
+following π starting from belief b is called the value function:
+V (b) = E
+" h
+X
+t=0
+γt X
+s∈S
+R(s, π(bt))bt(s)|b0 = b
+#
+(2)
+Therefore, the optimal policy π∗is the one that maximises
+that value function: π∗(b) = arg max
+a V (b).
+Multi-Agent POMDP
+A multi-agent POMDP framework is an extension from
+a single agent POMDP framework in order to model the
+MAS for sequential decision making under uncertainty in
+a partially stochastic and partially observable environment.
+Formally, a multi-agent POMDP can be deﬁned as a tuple
+< I, S, A, T, O, O, R, γ, h > [17], where:
+• I is a ﬁnite set of n agents, i ∈I ;
+• S is a (ﬁnite) set of all the environment states for the agents;
+• A is the set of joint actions: A = ×i∈IAi, Ai is the set of
+available actions of i-th agent, which can be unique for each
+agent;
+• T is a set of state transition probabilities: T = S×A×S →
+[0, 1], the probability of transitioning from previous state s ∈
+S to current state s
+′ ∈S when set of joint actions⃗a ∈A are
+taken by each agent. Hence, T(s,⃗a, s
+′) = Pr(s
+′|s,⃗a);
+• O is the set of joint observations: O = ×i∈IΩi, Ωi is a set
+of observations available to i-th agent;
+• O is the observation probability function: O = O ×
+A × S →[0, 1], the probability of seeing the set of joint
+observations⃗o ∈O given the set of joint actions⃗a ∈A were
+taken which results in state s
+′ ∈S, Hence, O(⃗o,⃗a, s
+′) =
+Pr(⃗o|s
+′,⃗a);
+• R is the reward function: R = S × A →R, the immediate
+reward maps state s ∈S and performing the set of joint
+actions⃗a ∈A and is used to specify the goal of the agents;
+• γ ∈[0, 1) is the discount factor for the reward function R;
+• h is the horizon, which the problem terminates at the
+number of steps after current state.
+2
+[p.4]
+The goal in a MAS POMDP problem formulation is to
+calculate an optimal joint policy⃗π∗= {π1, · · · , πn} that
+maximises the accumulated discounted reward via the reward
+function (R) as in process in the POMDP model.
+The Multi-agent POMDP model can be used for both MAS
+control architectures, centralised or decentralised. The De-
+centralised POMDP (Dec-POMDP) is where each agent in
+a decentralised MAS is to compute its own optimal policy
+πi at its local belief bi with its local observations Ωi and
+actions Ai. The Dec-POMDP model has more ﬂexibility of
+the various grades of communication, from none to perfect
+and between indirect and direct [17, 18]. The characteristics
+of the Dec-POMDP model provides a much broader suitable
+formulation for real-world problems.
+However, the cost
+for a Dec-POMDP model to calculate the optimal policy is
+severely unaffordable for robots, especial for weight limited
+UAVs. Despite much research that have been done to de-
+velop advanced optimal or approximate policy algorithms and
+simplify the models for speciﬁc utilities [17–19], the nature
+of computational complexity of the model remains NEXP-
+complete [19]. In addition the complexity of the model surges
+in an exponentially way when adding an extra agent in the
+MAS [18,19]. The intractable computational cost restricts the
+complexity of the formulation and renders the utilities within
+simple theoretical cases instead of real-world applications.
+3. PROBLEM DESCRIPTION
+In this paper, we present a scalable, decentralised multi-UAV
+system for navigating and exploring ﬁnding multiple targets
+in cluttered environments under UAV position and target
+uncertainty without access to GPS/GNSS signals. The UAVs
+in the proposed decentralised MAS use the identical small-
+size quad-copter platform with onboard downward facing
+cameras and multi-orientation range sensors. The objective
+of the system is for UAVs to effectively search and detect all
+the targets in the search area by using a downward camera on
+each UAV. The ﬂy areas are illustrated in Figure 1, two/three
+different industrial-ofﬁce-like layouts with several walls and
+obstacles. The number of targets is provided to the system,
+while the localisations of all targets is uncertain.
+All the
+targets are static, placed on the ground and tagged by different
+ArUco markers for each target. As the typical ﬂight time of
+a small-size UAV with an onboard computer is in the range
+of 15 to 20 minutes, a maximum ﬂight time of 720 seconds
+is speciﬁed as a safety margin. The search mission will fail if
+the UAVs group cannot ﬁnd all the targets in the area within
+the maximum ﬂight time.
+UAVs are separately deployed from outside of ﬂight areas.
+All UAVs will take off simultaneously after initialising on-
+board sensors and communication connections, then hover for
+a couple of seconds to calibrate the drift error of the IMU, as
+described in Section 4. The initial drift of localisation in the
+process of hovering for calibration for each UAV generates
+an initial uncertainty in the UAV’s position and orientation.
+This initial uncertainty is modelled as a normal probability
+distribution in the system.
+We designed an assistant position subsystem for each UAV
+to reduce the accumulated errors and drift in IMU over time
+which has two mechanisms. The ﬁst one is that when a UAV
+ﬂies close to an obstacle, boundary or a wall, the onboard
+ranger sensor provides a reference distance to that obstacle or
+boundary to calibrate the position and orientation data from
+IMU. This mechanism only works once in a period of time
+Figure 1. The demonstration of scenario two in
+simulation environment.
+(30 seconds) and helps each UAVs to reduce the accumulated
+error in localisation. There second mechanism to eliminate
+the position drift after a period of ﬂight uses the downward
+camera; once the downward camera of a UAV detects the
+ArUco marker and the target in its ﬁeld of view (FOV),
+an algorithm from the ArUco package, which is based on
+Mixed Integer Linear Programming for camera to fast and
+robustly generate estimate pose and location of the marker
+[20], provides an estimated speed and orientation of the
+current position drift based on the static target while the ﬂight
+control subsystem of UAV executes hovering at the exact
+location. It is assumed that ﬂight conditions remain constant
+and that there is no wind to disrupt UAV ﬂight performance.
+In the SAR mission, the multi-UAV system requires each
+UAV to be able to avoid collisions with obstacles or other
+UAVs. The different orientation of the onboard range sensors
+help the UAV to avoid collisions with obstacles or boundaries,
+while all the UAVs try to ﬂy at different altitudes in order to
+avoid collision with each other by broadcasting their altitudes
+through the communication network. One key feature of the
+proposed system, is that it can handle an unstable, noisy and
+disconnected network (e.g. WiFi or radio) which is a common
+phenomenon in large cluttered environments.
+4. SYSTEM ARCHITECTURE
+A decentralised and modular multi-UAV framework was
+developed .
+The framework can be extended for multiple
+modular single-UAV in order to ensure the characteristics
+of Dec-MAS (e.g.
+scalability and redundancy) [21], as
+illustrated in Figure 2. Each UAV system is subdivided into
+four subsystems, each of which contains a variety of modules.
+Parallel implementation of a single-UAV subsystem in a
+multi-UAV framework is enabled by the Robotic Operative
+System (ROS), serving as the interface and connection. These
+modules communicate via ROS topics that are published and
+subscribed.
+The four subsystems that comprise a UAV framework are as
+follows: the Mission Planning Subsystem, which determines
+the optimal ﬂight actions; the Observation Subsystem, which
+integrates all onboard sensor observations; the Localisation
+Subsystem, which estimates the position and orientation of
+the UAVs in the ﬂight space; and the Information Exchange
+Subsystem, which facilitates the sharing and receiving of
+observations within the MAS.
+3
+[p.5]
+`
+i-th UAV
+`
+2nd UAV
+`
+Network
+Motion 
+Planner 
+Module
+Flight 
+Controller 
+(PX4)
+UAV /
+Gazebo
+IMU 
+Odometry
+Octomap 
+Server
+Observation 
+Fusion 
+Module
+Ranger 
+Sensor
+Downward 
+Camera
+Collision 
+Avoidance
+Module
+Target 
+Detection
+Module
+Observation 
+Exchange 
+Module
+Mission Planning 
+Subsystem
+Localisaon Subsystem  
+Observaon Subsystem
+Informaon 
+Exchange 
+Subsystem
+Assisting 
+Position 
+Module
+Map
+Observation 
+Procseeing 
+Module
+1st UAV
+Figure 2. The Int-Dec POMDP Multi-UAV system architecture.
+Mission Planning Subsystem
+A critical component of an autonomous system is the Mission
+Planning Subsystem. Its primary function is to determine the
+next action based on the current optimal policy computed
+from the decision-making model and currently available in-
+formation. In the proposed framework, the Mission Planning
+Subsystem consists of a Motion Planner Module and a Flight
+Controller. The Motion Planner Module makes use of the
+TAPIR [22], a fast online solver for large and continuous state
+space POMDP that makes use of the Adaptive Belief Tree
+(ABT) algorithm [22], to determine the optimal policy for the
+decentralised POMDP model (described in Section 5). PX4,
+an open-source versatile ﬂight control unit (FCU), is a widely
+used ﬂight controller in autonomous UAV systems [23]. Not
+only does the PX4 provide PID ﬂight control for a variety of
+UAV types, including multi-rotor, ﬁxed-wing, and VTOL, but
+it also includes a high-precision IMU for inertial odometry
+and a barometer for ﬂight altitude estimation. Additionally,
+PX4 supports Software In the Loop (SITL) simulation in the
+Gazebo via ROS as a simulation layer with communication
+interfaces (MAVLink) between the Motion Planner Module
+and onboard sensors.
+Observation Subsystem
+The Observation Subsystem is in charge of all data collected
+from the environment via various onboard sensors.
+This
+subsystem comprises three major modules and their asso-
+ciated sensors: the Observation Fusion Module, the Target
+Detection Module equipped with a downward camera, and
+the Collision Avoidance Module equipped with six differently
+oriented ranger sensors.
+The Observation Fusion Module
+transforms and fuses the data collected by the Observa-
+tion Fusion Module into the format required by the Motion
+Planner Module. Additionally, the processed observation is
+combined with the UAV’s global location and/or the global
+position of a detecting target as determined by the Localisa-
+tion Subsystem. To recognise the ArUco markers, a monoc-
+ular camera conﬁgured according to the Arducam IMX477
+High Quality motorised focus camera module is downward
+mounted on the bottom of the UAV. This camera has a
+resolution of 1440∗1080 and a horizontal FOV of 87◦. When
+a marker exposes within the camera’s valid FOV, the Target
+Detection Module will compute the distance and direction
+of the detected ArUco marker in the UAV local frame using
+the ArUco library. Meanwhile, six close-range laser sensors
+are mounted on the UAV in six directions to ensure collision
+avoidance during ﬂight. As the typical distance between the
+rotors of a small size UAV (e.g 80 cm in our experiments) ,
+the Collision Avoidance Module is conﬁgured to maintain a
+safe distance (30 cm in our experiments) between the UAV’s
+rotors and the nearest object by reading data from all the
+range sensors at a rate of 10 Hz.
+Localisation Subsystem
+The purpose of this subsystem is to provide an estimated
+position and orientation of the UAV when it is not receiv-
+ing GPS signals.
+It is composed of the IMU Odometry,
+the Assisting Position Module, and an Octomap Server that
+contains a known occupancy map of the ﬂying area. The
+3D occupancy map is constructed using the environment
+map in order to visualise the obstacles and boundaries in the
+probability approach for the Octomap Server [24].
+With-
+out GPS signals, the IMU Odometry in PX4 provides a
+4
+[p.6]
+primary onboard estimated location of the UAV, which has
+lost accuracy over time due to drift and accumulated error.
+The Assisting Position Module is intended to mitigate and
+calibrate IMU drifts and cumulative errors.
+This module
+makes use of the precise distance between the UAV and
+obstacles or boundaries obtained via ranger sensors and the
+UAV’s current possible global position to refer to the given
+map, compensating for the UAV’s accumulated position error
+throughout the mission. Meanwhile, IMU drift is determined
+by the horizontal distance between the UAV frame and an
+ArUco marker.
+When the Flight Controller believes the
+UAV is in a stable hover state following takeoff or during
+any step to detect the tag by a steady hover, the Assisting
+Position Module computes the actual movement to eliminate
+the drift error from the IMU. All of these methods reduce the
+position uncertainty of the UAV in the Octomap Server, and
+the Octomap Server provides other modules with calculated
+global location data.
+Information Exchange Subsystem
+The Information Exchange Subsystem, which is the critical
+and innovative component of the entire system, consists of
+two main modules (the Observation Processing Module and
+the Observation Exchange Module).
+These two modules
+extract, simplify, and share observed pivotal information with
+other UAVs in a designed uniform manner via the commu-
+nication network at a constant frequency (0.5 Hz), while
+also receiving and decoding messages (such as the number
+of detected targets and explored area of the ﬂight space)
+published by other numbers.
+We use a WiFi network to
+connect all of the signal UAV systems in the MAS. The Ob-
+servation Processing Module is intended to provide a uniﬁed
+approach for processing simple, distinct shared observation
+data. Each UAV system has a protocol that divides the map
+of the ﬂight area into a probability grid map with the same
+granularity as a previously used discrete state space. Each cell
+in the grid map is assigned a unique identiﬁer (ID) in order
+to maintain a uniﬁed cognition in the multi-UAV system.
+The Observation Processing Module simpliﬁes the process
+of sharing observations by checking data from the Motion
+Planner Module to ﬁlter fully complete explored or nearly
+complete explored grids (over 95% of their area) and sending
+their IDs to the Observation Exchange Module along with
+the number of detected targets and their positions on the grid
+map. The Observation Processing Module updates simpliﬁed
+observations at a rate of (0.5 Hz), the same as the information
+exchange rate. To avoid UAV-to-UAV collisions, this module
+constantly monitors the ﬂight altitudes of other UAVs on the
+network. The module provides an observational input to the
+Motion Planner Module in order to prevent the UAV from
+ﬂying at the same altitude as other UAVs.
+5. PROBLEM FORMULATION
+As described in Section 2, due to the computational com-
+plexity of the formal Dec-POMDP and its numerous ex-
+tensions [18, 19], it is economically impractical for an on-
+board computer to solve the entire problem, particularly
+for multi-target search and rescue, even when using state-
+of-the-art Dec-POMDP solving algorithms.
+In this paper
+we propose an integrated Dec-POMDP (Int-Dec-POMDP)
+model to solve the multiple targets ﬁnding problem described
+in Section 3.
+The model is based on the formal single
+agent POMDP which has been extended and modiﬁed to
+solve this task.
+The Int-Dec-POMDP model is improved
+and expanded upon from our previous work [5] in order to
+strike a balance between the computational cost of optimal
+Table 1. The Sets of Search and Avoidance Actions
+Search Actions as
+Avoidance Actions aa
+Fly forward
+Avoid backward
+Fly upward
+Avoid upward
+Fly downward
+Avoid downward
+Turn leftward
+Avoid leftward
+Turn rightward
+Avoid rightward
+Hovering
+policy computation and the complexity of the formulation
+implemented in the real world. The Int-Dec-POMDP is a
+tuple < I, {Sd, St}, A, T, {Ωl, Ωg}, O, R, γ, h >.
+State Variables ({Sd, St})
+I represents the ﬁnite set of the identiﬁcation of UAVs in the
+multi-agent system. In order to contain the complexity for the
+multi-target task, we propose that the state of each UAV can
+be deﬁned with two separate parts:
+• the UAV (drone) state Sd =< i, Pr, Vm, dc, tf > presents
+the state of the UAV and all the relevant setting parameters
+for the UAV;
+• the target state St =< n, Pe, Pt > describes the state with
+targets.
+In the UAV state Sd, i is the UAV identiﬁcation in the
+multi-UAV system, Pr = {xr, yr, zr, ψr} are the position
+and orientation of this UAV in the world frame, Vm =
+{vx, vy, vz, vψ} represent the airborne longitudinal, lateral,
+vertical, and yaw velocities in the UAV frame, safety distance
+dc = {dfront, drear, dleft, dright, dup, ddown} are obtained
+from laser ranger sensors in six directions, and the airborne
+manoeuvre period in the system is tf = 1 sec.
+We proposed the target state St for maintaining the system
+state space in the same complexity and being implemented
+on a onboard computer, instead of using the normal approach
+of formal POMDP [25].
+In the the target state tuple <
+n, Pe, Pt >, the number of all the targets is n; Pe = {xe, ye}
+represents the possible position of all targets (not for any
+speciﬁc target) in the process of exploration, which is used
+to distinguish the unexplored area in the entire space; and
+Pt = {xt, yt, zt, ψt} are assigned the actual position and
+orientation of the target when UAV has detected a target, and
+this detected target state can represent the localisation of all
+the targets via Monte Carlo sampling method [26].
+Actions (A)
+In this formulation, the UAV’s ﬂying actions are deﬁned as its
+longitudinal, lateral, vertical, and yaw movements. The set of
+actions A is divided into two categories, which are detailed in
+Table 1: search actions as and avoidance actions aa. To avoid
+a rapid change in the UAV’s ﬂight state, all of the activities
+summarised in Table 2 are performed at a constant velocity.
+As a result, the IMU’s precision can be maintained for an
+extended period. The onboard ranger sensors must detect an
+object inside the speciﬁed safety distance before performing
+one of the avoidance actions. The Motion Planner Module
+will then select the reverse avoidance action necessary to
+avoid a collision.
+5
+[p.7]
+Table 2. The Sets of Search and Avoidance Actions
+Action a
+Longitudinal
+Lateral
+Vertical
+Yaw
+Velocity
+Velocity
+Velocity
+Velocity
+vx (m/s)
+vy (m/s)
+vz (m/s)
+vψ (◦/s)
+Fly forward
+1.5
+0
+0
+0
+Fly upward
+0
+0
+0.6
+0
+Fly downward
+0
+0
+-0.6
+0
+Turn leftward
+0
+0
+0
+30
+Turn rightward
+0
+0
+0
+-30
+Hovering
+0
+0
+0
+0
+Avoid backward
+-1.0
+0
+0
+0
+Avoid upward
+0
+0
+0.6
+0
+Avoid downward
+0
+0
+-0.6
+0
+Avoid leftward
+0
+1.0
+0
+0
+Avoid rightward
+0
+-1.0
+0
+0
+Observations ({Ωl, Ωg})
+The observations Ωin the system is divided into two compo-
+nents:
+Local Observation (Ωl)—This information is obtained via the
+local onboard sensors of each UAV, which include the status
+of target detection in the presence of uncertainty, the position
+of the detected target within the FOV of the camera, the ID
+of the explored grid, the status of avoidance mode (in order
+to maintain the UAV’s safety space from an object), and the
+distance from surrounding obstacles on the map.
+Global Observation (Ωg)—The global observation from other
+UAVs is supplied as a shared message, including only the
+most valuable and simpliﬁed observation information via
+system communication. A shared global observation message
+contains the following information:
+the total number of
+detected targets, the global positions of all detected targets
+in the grid map corresponding to the detected UAV ID, the
+most recently explored grid ID corresponding to the searching
+UAV ID, and the IDs of all explored grids.
+Transition Function (T)
+The transition function (T) models the UAV dynamic re-
+sponse to motion commands that are represented as the step
+inputs.
+In order to represent the i-th UAV dynamics, a
+kinematic model is described as follows:
+Pr(t + 1)
+=
+Pr(t) + Tr(t) △Pr(t)
+(3)
+△Pr(t)
+=
+Vm(t) △t + Pwt(t)
+(4)
+In the above equations, Tr(t) is the dynamic change matrix
+at time step t, Pr(t) is the position of i-th UAV in the world
+frame at time step t and Pwt(t) = {xwt(t), ywt(t), 0, ψwt(t)}
+is the pose uncertainty during the ﬂight. The position of each
+UAV is determined by calculating the change in position due
+to its current velocity (Equation 3), which is controlled by
+the motion planner module and is selected according to the
+commanded action. A transformation from the UAV’s frame
+to the world frame is also calculated in these equations [27].
+Reward Function (R)
+The reward or cost values in the reward function are used
+to tune the solver in the system in order to force the UAV
+to follow the pattern of actions proposed. At each step, the
+Table 3. Reward Function Sets
+Status & Actions
+Reward/Cost Value
+Set A
+Set B
+Set C
+Detecting a target
+300
+300
+300
+Exploring a grid
+100
+100
+100
+Hitting an obstacle
+-100
+-300
+-300
+Out of region
+-100
+-300
+-300
+Search actions
+-10
+-10
+-10
+Hovering
+-30
+-30
+-30
+Avoidance actions
+-10
+-10
+50
+reward function is composed of the following components:
+(i) the reward for locating the target and exploring a new grid
+on the map, (ii) the penalty for colliding with an obstacle or
+ﬂying outside of operational space, and (iii) the cost of each
+manoeuvre. Three value sets of the reward function are listed
+in Table 3 to compare the multi-UAV system’s navigation
+and obstacle avoidance capabilities. These value sets include
+different penalties for colliding with an obstacle, a boundary
+or other UAVs and different costs for an avoidance action.
+Due to the fact that hovering reduces the efﬁciency of a SAR
+mission, the cost of hovering is higher than the cost of other
+search actions.
+Uncertainty
+The system’s three primary sources of uncertainty are the lo-
+calisation uncertainty of the UAVs during ﬂight , the location
+uncertainty of the targets, and the uncertainty associated with
+shared observations via the communication.
+Localisation of UAVs—The uncertainty in the location of each
+UAV in this formulation consists of two parts: (i) the uncer-
+tainty in localisation of system once it is initialised (on the
+x −y plane) is Pwd = {xwd, ywd, 0, ψwd}, in the process of
+initialisation, represented by a Gaussian probability distribu-
+tion (µ = 0.0m, σ = 0.2m); (ii) the UAV’s pose uncertainty
+after executing an action: Pwt = {xwt, ywt, 0, ψwt}, which
+is also described by the Gaussian distribution (µ = 0.0m,
+σ = 0.2m) & (µ = 0.0◦, σ = 5.0◦). We assume all the
+altitude data from PX4 is accurate for the system through the
+ﬂight. These localisation uncertainty values are updated via
+the transition function.
+Position of Targets —The position uncertainty of the target
+St = {Pe, Pt} are represented by the same uniform distribu-
+tion in the formulation.
+Exchanged Observation—Since the threshold for an explored
+cell in the grid map is 95% (as mentioned in Section 4), there
+is some uncertainty in shared observations regarding explored
+grids. We use a sample ﬁlter to retain the 5% of state samples
+within the informed grid as the uncertainty of the exchanged
+observation.
+6. RESULTS
+Three types of experiments were conducted to evaluate and
+analyse the proposed multi-UAV system’s performance. We
+use a simulation environment comprised of ROS, Gazebo,
+PX4 SITL, and Rviz. Figure 3 illustrates the two scenarios
+(S1 & S2) used in the simulations. Each simulated scenario
+contains two different sets of target locations (denoted by red
+6
+[p.8]
+(a)Scenario one (S1), with target locations P and Q.
+(b)Scenario two (S2), with target locations P and Q.
+Figure 3. Simulation environments with two unique
+scenarios.
+crosses in the ﬁgure and by ArUco markers in the Gazebo
+simulation ). A team of UAVs take off from the grey cells at
+the bottom of the image and ﬂy through the green ﬂy area in
+search of all targets while avoiding collisions with the blue
+obstacles. To ensure precise detection of the ArUco marker,
+each UAV’s maximum ﬂight altitude was limited to 4.5 m.
+Experiment One
+The purpose of this experiment is to compare the effect of
+various combinations of reward/cost values. The collision
+rate results are summarised in Table 4, which includes 25 runs
+for each scenario using four UAVs to locate targets at position
+P. The collision rate indicates how many times all UAVs in the
+team collided with an obstacle, a boundary wall, or another
+UAV during a single mission.
+It is evident that scenario
+two is more cluttered than scenario one, as indicated by the
+collision rates of each reward set in Table 4. When compared
+to Set A, the collision rates of reward values Set B and Set C
+are signiﬁcantly lower. This demonstrates that increasing the
+penalty for a collision in the reward function contributes to
+the creation of a safe path when a UAV performs a task. The
+distinction between Set B and Set C is that the avoidance
+actions are either rewards or costs in the reward function, and
+the close-to-zero results of Set C demonstrate the utility and
+robustness of the collision avoidance function.
+Table 4. Summary of Collision Rate
+Reward Function
+Scenario
+Collision Rate
+Set A
+S1
+36 %
+Set A
+S2
+44 %
+Set B
+S1
+8 %
+Set B
+S2
+12 %
+Set C
+S1
+0 %
+Set C
+S2
+4 %
+Table 5. Summary of Success Rate of All Targets
+Detected
+Target Position Set
+Scenario
+Success Rate
+P
+S1
+90%
+Q
+S1
+95%
+P + Q
+S1
+80%
+P
+S2
+70%
+Q
+S2
+75%
+P + Q
+S2
+55%
+Experiment Two
+The mission success rate and ﬂight time were compared in
+both scenarios using three target position sets.
+Each case
+consisted of twenty runs using a four-UAV system for reward
+Set C. Table 5 compares target detection rates for all cases.
+Overall, the results of scenario one are superior to those
+of scenario two. As can be seen, scenario two’s layout is
+signiﬁcantly larger and more complex than scenario one’s,
+and scenario two requires UAVs to spend more time exploring
+to locate all targets.
+In both scenarios, the UAV team’s
+success rate in detecting eight targets in position P & Q is
+signiﬁcantly lower than in detecting four targets in positions
+P or Q.
+The Figure 4 illustrates the time required to locate all setting
+targets in both scenarios. Overall, it is clear that the proposed
+multi-UAV system took longer to detect all targets in scenario
+one than it did in scenario two, owing to the complexity and
+size difference of the test environments. The primary differ-
+ences between the results for ﬁnding four targets (located at
+P or Q) and eight targets (located at P & Q) in both scenarios
+are that the median time required to ﬁnd more targets was
+signiﬁcantly longer, and the interquartile range (IQR) was
+also noticeably wider. This is expected, as the area explored
+to locate eight targets is more extensive than the area explored
+to locate four targets. Meanwhile, the set positions for the
+same number of targets had a moderate effect on the results
+in various scenarios.
+Experiment Three
+The purpose of this experiment is to determine the effect of
+the team size on the performance metric (time to ﬁnd all
+targets) of the proposed multi-UAV system. This case study
+was repeated 15 times with four different groups of UAVs
+in order to locate all targets placed at location P in scenario
+one.
+The number of UAVs in each of these four groups
+was increased from two to ﬁve to demonstrate the multi-
+UAV system’s scalability. According to the results shown
+in Figure 5, as the number of UAVs increases, the average
+time required to ﬁnd all targets decreases with a decreasing
+7
+[p.9]
+P+S1
+Q+S1 P+Q+S1
+P+S2
+Q+S2 P+Q+S2
+200
+300
+400
+500
+600
+700
+Time to Find the All Targets (sec)
+Figure 4. Time to ﬁnd all targets for both scenarios for
+three sets of target locations.
+Two-UAV
+Three-UAV
+Four-UAV
+Five-UAV
+200
+300
+400
+500
+600
+700
+Time to Find the All Targets (sec)
+Figure 5. Time of different numbers of UAVs in the team
+to ﬁnd four targets located at P in scenario one (S1).
+trend, from 640.5 sec to 342.9 sec. As can be seen, increasing
+the number of UAVs in a two-UAV system increases system
+performance by 37.4 % while decreasing the average search
+time by 10.2 % when comparing a four-UAV system to a
+ﬁve-UAV system under the same simulated condition. This
+decrease in improvement in res lutes indicates that increasing
+the number of UAVs does not improve the performance of
+the multi-UAV system linearly and becomes marginal as the
+number of UAVs increases.This trend creates the issue of
+having too many UAVs in the system, which increases the
+danger of collision, energy consumption, and system cost
+signiﬁcantly, while performance and efﬁciency improve just
+marginally.
+7. CONCLUSIONS & FUTURE WORK
+This article described an approach and framework for multi-
+UAV system search in an indoor environment without the use
+of GPS/GNSS. By utilising the proposed Int-Dec-POMDP as
+the underlying model, the framework is able to account for
+formulation uncertainties while maintaining the beneﬁts of a
+multi-agent system. The extended observation and observa-
+tion exchange subsystems are essential and new features that
+enable the system to maintain scalability and collaboration
+while containing computing complexity.
+Additionally, this paper proposes a combined approach
+for assisting navigation and localisation in the absence of
+GPS/GNSS signals, as well as for robust collision avoidance.
+Moreover, a contrast test of different sets of reward values in
+the reward function is simulated to demonstrate the collision
+avoidance function’s inﬂuence and robustness.
+The paper’s primary contribution is a demonstration of how
+the proposed framework may be used to perform MAS for
+multi-target search in a GPS-denied environment in an ef-
+ﬁcient and collision-free manner. The computation cost of
+the proposed multi-UAV system is within the capabilities of
+onboard processors, which is not possible when using formal
+Dec-POMDP formulations.
+Additional research avenues include identifying and integrat-
+ing a cost-effective Simultaneous Localisation and Mapping
+(SLAM) system within the architecture of a multi-UAV sys-
+tem. Additionally, real-world experiments can be conducted
+to demonstrate the framework’s adaptability by examining
+other limitations on communication network systems.
+ACKNOWLEDGMENTS
+The authors thank the Australian Research Council and
+Queensland University of Technology for funding this project
+(When every second counts: Multi-drone navigation in GPS-
+denied environments). The ﬁrst author would to acknowledge
+scholarship support from DATA61, CSIRO. We thank Dr.
+Hanna Kurniawati for the open source software TAPIR that
+was used as the online POMDP solver in this paper.
+REFERENCES
+[1]
+J. J. Acevedo, B. C. Arrue, and A. Ollero, “Cooperative
+Search, Reconnaissance, Surveillance,” in Unmanned
+Aircraft Systems.
+John Wiley & Sons, 2016, no. 2017,
+p. 383.
+[2]
+Z. Kashino, G. Nejat, and B. Benhabib, “Multi-
+UAV based autonomous wilderness search and rescue
+using target iso-probability curves,” in International
+Conference on Unmanned Aircraft Systems (ICUAS),
+2019, pp. 636–643.
+[3]
+H. Shakhatreh, A. Sawalmeh, A. Al-Fuqaha, Z. Dou,
+E. Almaita, I. Khalil, N. S. Othman, A. Khreishah, and
+M. Guizani, “Unmanned Aerial Vehicles: A Survey
+on Civil Applications and Key Research Challenges,”
+arXiv:1805.00881, pp. 1–58, Apr 2018.
+[4]
+O. Walker, F. Vanegas, and F. Gonzalez, “A framework
+for multi-agent UAV exploration and target-ﬁnding in
+GPS-denied and partially observable environments,”
+Sensors (Switzerland), vol. 20, no. 17, pp. 1–23, 2020.
+[5]
+X. Zhu, F. Vanegas, F. Gonzalez, and C. Sanderson, “A
+Multi-UAV System for Exploration and Target Finding
+in
+Cluttered
+and
+GPS-Denied
+Environments,”
+in
+2021 International Conference on Unmanned Aircraft
+Systems
+(ICUAS).
+IEEE,
+jun
+2021,
+pp.
+721–
+729. [Online]. Available:
+https://ieeexplore.ieee.org/
+document/9476820/
+[6]
+C. T. Recchiuto and A. Sgorbissa, “Post-disaster as-
+sessment with unmanned aerial vehicles:
+A survey
+8
+[p.10]
+on practical implementations and research approaches,”
+Journal of Field Robotics, vol. 35, no. 4, pp. 459–490,
+2018.
+[7]
+S. Perez-Carabaza, E. Besada-Portas, J. A. Lopez-
+Orozco, and J. M. de la Cruz, “Ant colony optimization
+for multi-UAV minimum time search in uncertain do-
+mains,” Applied Soft Computing, vol. 62, pp. 789–806,
+Jan 2018.
+[8]
+Y. Tian, K. Liu, K. Ok, L. Tran, D. Allen, N. Roy,
+and J. P. How, “Search and rescue under the forest
+canopy using multiple UAVs,” The International Journal
+of Robotics Research, vol. 39, no. 10-11, pp. 1201–
+1221, 2020.
+[9]
+W. Youn, H. Ko, H. Choi, I. Choi, J. H. Baek, and
+H. Myung, “Collision-free Autonomous Navigation
+of A Small UAV Using Low-cost Sensors in GPS-
+denied Environments,” International Journal of Control,
+Automation and Systems, vol. 19, no. 2, pp. 953–968,
+2021.
+[10] T. Dang,
+F. Mascarich,
+S. Khattak,
+H. Nguyen,
+H. Nguyen, S. Hirsh, R. Reinhart, C. Papachristos, and
+K. Alexis, “Autonomous Search for Underground Mine
+Rescue Using Aerial Robots,” in 2020 IEEE Aerospace
+Conference.
+IEEE, mar 2020, pp. 1–8.
+[11] F. Vanegas, K. J. Gaston, J. Roberts, and F. Gonzalez,
+“A Framework for UAV Navigation and Exploration
+in GPS-Denied Environments,” in IEEE Aerospace
+Conference, Mar 2019, pp. 1–6.
+[12] F. J. Perez-Grau, R. Ragel, F. Caballero, A. Viguria,
+and A. Ollero, “An architecture for robust UAV navi-
+gation in GPS-denied areas,” Journal of Field Robotics,
+vol. 35, no. 1, pp. 121–145, 2018.
+[13] Y. Rizk, M. Awad, and E. W. Tunstel, “Decision Making
+in Multiagent Systems: A Survey,” IEEE Transactions
+on Cognitive and Developmental Systems, vol. 10,
+no. 3, pp. 514–529, 2018.
+[14] S. S. Ponda, L. B. Johnson, A. Geramifard, and J. P.
+How, “Cooperative Mission Planning for Multi-UAV
+Teams,” in Handbook of Unmanned Aerial Vehicles,
+K. P. Valavanis and G. J. Vachtsevanos, Eds.
+Dor-
+drecht: Springer Netherlands, 2015, pp. 1447–1490.
+[15] G. Skorobogatov, C. Barrado, and E. Salam´ı, “Multiple
+UAV Systems: A Survey,” Unmanned Systems, vol. 8,
+no. 2, pp. 149–169, 2020.
+[16] W.
+Burgard,
+D.
+Fox,
+and
+S.
+Thrun,
+Probabilistic robotics.
+The MIT Press, 2005.
+[17] F.
+A.
+Oliehoek
+and
+C.
+Amato,
+A Concise Introduction to Decentralized POMDPs,
+ser. SpringerBriefs in Intelligent Systems.
+Cham:
+Springer International Publishing, 2016.
+[18] C. V. Goldman and S. Zilberstein, “Decentralized
+control of cooperative systems:
+Categorization and
+complexity analysis,” Journal of Artiﬁcial Intelligence
+Research, vol. 22, pp. 143–174, 2004.
+[19] D. S. Bernstein, “Complexity analysis and optimal al-
+gorithms for decentralized decision making,” Ph.D. dis-
+sertation, University of Massachusetts Amherst, 2005.
+[20] S. Garrido-Jurado,
+R. Mu˜noz-Salinas,
+F. Madrid-
+Cuevas,
+and R. Medina-Carnicer,
+“Generation of
+ﬁducial
+marker
+dictionaries
+using
+Mixed
+Integer
+Linear Programming,” Pattern Recognition, vol. 51,
+no.
+October,
+pp.
+481–491,
+mar
+2016.
+[Online].
+Available:
+https://linkinghub.elsevier.com/retrieve/pii/
+S0031320315003544
+[21] X. Zhu, F. Vanegas, and F. Gonzalez, “An Approach
+for Multi-UAV System Navigation and Target Finding
+in Cluttered Environments,”
+in 2020 International
+Conference on Unmanned Aircraft Systems (ICUAS).
+IEEE, sep 2020, pp. 1113–1120. [Online]. Available:
+https://ieeexplore.ieee.org/document/9214062/
+[22] D. Klimenko, J. Song, and H. Kurniawati, “TAPIR:
+A software Toolkit for approximating and adapting
+POMDP solutions online,” in Australasian Conference
+on Robotics and Automation, ACRA, vol. 02-04-Dece,
+2014.
+[23] L. Meier, D. Honegger, and M. Pollefeys, “PX4: A
+node-based multithreaded open source robotics frame-
+work for deeply embedded platforms,” in International
+Conference on Robotics and Automation (ICRA), 2015,
+pp. 6235–6240.
+[24] A. Hornung, K. M. Wurm, M. Bennewitz, C. Stachniss,
+and W. Burgard, “OctoMap: an efﬁcient probabilistic
+3D mapping framework based on octrees,” Autonomous
+Robots, vol. 34, no. 3, pp. 189–206, apr 2013.
+[25] Y.
+Zhao,
+X.
+Wang,
+C.
+Wang,
+Y.
+Cong,
+and
+L. Shen, “Systemic design of distributed multi-UAV
+cooperative decision-making for multi-target tracking,”
+Autonomous Agents and Multi-Agent Systems, vol. 33,
+no. 1-2, pp. 132–158, mar 2019. [Online]. Avail-
+able: https://doi.org/10.1007/s10458-019-09401-5http:
+//link.springer.com/10.1007/s10458-019-09401-5
+[26] P. Doshi and P. J. Gmytrasiewicz, “Monte Carlo
+Sampling
+Methods
+for
+Approximating
+Interactive
+POMDPs,” Journal of Artiﬁcial Intelligence Research,
+vol. 34, no. 1, pp. 297–337, mar 2009. [Online].
+Available:
+https://jair.org/index.php/jair/article/view/
+10592
+[27] F. Vanegas Alvarez and L. F. Gonzalez, “Uncertainty
+based online planning for UAV target ﬁnding in
+cluttered and GPS-denied environments,”
+in 2016
+IEEE Aerospace Conference, vol. 2016-June.
+IEEE,
+mar
+2016,
+pp.
+1–9.
+[Online].
+Available:
+http:
+//ieeexplore.ieee.org/document/7500566/
+BIOGRAPHY[
+Xiaolong Zhu is a current PhD can-
+didate at the School of Electrical Engi-
+neering and Robotics(EER), Faculty of
+Engineering, of Queensland University
+of Technology.
+He holds an MEng in
+Aeronautical Engineering from Beihang
+University and a BEng in Aircraft De-
+sign and Engineering from Xi’an Jiao-
+tong University.
+His current research
+focuses on motion planning for multi-
+UAV exploration in GPS-denied and cluttered environments.
+9
+[p.11]
+Fernando Vanegas is a Research Fellow
+in Robotics at Queensland University of
+Technology. He holds a M.Sc. in Electri-
+cal Engineering from Halmstad Univer-
+sity and a PhD in Aerial Robotics from
+QUT. He has developed frameworks for
+UAV mission planning in GPS-denied
+environments for navigation, target ﬁnd-
+ing and tracking purposes using ma-
+chine learning techniques based on rein-
+forcement learning and optimal sequential decision making.
+His current research interests include motion planning for
+UAV exploration in GPS-denied and cluttered environments,
+POMDP, SLAM and Visual Odometry.
+Felipe Gonzalez is a Professor at
+the School of Electrical Engineering
+and Robotics(EER), Engineering Fac-
+ulty with a passion for innovation in the
+ﬁelds of aerial robotics and automation.
+Gonzalez interest is in creating aerial
+robots, drones or UAVs that possess a
+high level of cognition using efﬁcient
+on-board computer algorithms using ad-
+vanced optimisation and game theory
+approaches that assist us to understand and improve our
+physical and natural world. Professor Gonzalez leads the
+Airborne Sensing Lab at QUT. He is the co-author of several
+books in UAV based remote sensing and UAV based design
+based on evolutionary optimisation and game strategies and
+as of 2021 has published nearly 155 refereed papers.
+10
+=== END ===

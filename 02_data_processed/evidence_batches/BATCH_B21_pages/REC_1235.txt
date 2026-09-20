@@ -1,0 +1,400 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1235.pdf
+sha256: 3BF798F1A29FAF39F30607EF46FF739952C129221DC2AE18D3B89EDC544D097A
+library: pymupdf (fitz) v1.28.2
+pages: 8
+=== BEGIN ===
+[p.1]
+Autonomous Positioning System for UAV 
+Scene Matching Under GNSS-Denied 
+Environments 
+Shenao Dua, Chenshuo Maa, Pengyang Wua, Anxi Yua,1 , Dexin Lia and Zhen Donga 
+aNational University of Defense Technology, Changsha 410073, China 
+Abstract. To address the significant decline in UAV navigation and positioning 
+accuracy caused by severe error accumulation of inertial measurement units (IMUs) 
+in GNSS-denied environments, which severely restricts operational capabilities, we 
+propose an autonomous UAV positioning system based on image matching/inertial 
+navigation fusion. First, a Multi-scale Oriented Gradient Fusion (MOGF) image 
+matching algorithm is developed to achieve rapid and high-precision matching for 
+UAV scene imagery. Subsequently, an autonomous positioning model integrating 
+image matching with INS is established to accurately determine the spatial 
+coordinates of the UAV. Finally, a prototype system for autonomous positioning via 
+image matching is designed and implemented on the RK3588 domestic computing 
+platform, with field flight tests conducted using the DJI M210 UAV platform. 
+Experimental results demonstrate stable system performance, achieving a 
+positioning accuracy of 16.4 meters and a real-time processing rate exceeding 8.3 
+Hz. These outcomes satisfy the requirements for high-precision and real-time 
+applications. 
+Keywords. UAV, GPS-denied, scene matching, inertial navigation, high-precision 
+positioning. 
+1. Introduction 
+Currently, the most mature approach for autonomous unmanned aerial vehicle (UAV) 
+positioning is integrated positioning technology based on the Global Positioning System 
+(GPS) combined with an Inertial Navigation System (INS) [1]. However, in complex 
+terrains, under conditions of malicious interference, or during wartime when GPS signals 
+may be unavailable, satellite navigation systems can experience denial or failure. Under 
+these GNSS-denied conditions, INS errors accumulate over time, resulting in degraded 
+positioning accuracy and consequently posing significant operational risks to the aircraft 
+[2]. 
+Addressing the challenge of autonomous high-precision positioning for UAVs in 
+GPS-denied environments, researchers globally have primarily proposed two categories 
+of solutions: traditional matching algorithms based on handcrafted feature descriptors, 
+and intelligent algorithms leveraging deep learning techniques. Edstedt [3] introduced a 
+Convolutional Neural Network-based cascaded matching network, achieving sub-pixel-
+level scene matching accuracy through a coarse-to-fine two-stage matching strategy. 
+ 
+1 Corresponding Author: Anxi Yu, yu_anxi@nudt.edu.cn 
+Intelligent Manufacturing and Cloud Computing
+I.S. Jesus and K. Wang (Eds.)
+© 2026 The Authors.
+This article is published online with Open Access by IOS Press and distributed under the terms
+of the Creative Commons Attribution Non-Commercial License 4.0 (CC BY-NC 4.0).
+doi:10.3233/ATDE260245
+442
+[p.2]
+Building on [3], Literature [4] incorporated a Transformer module, utilizing the self-
+attention mechanism to enhance contextual feature fusion and matching robustness. 
+Zhang et al. [5] employs template matching with ResNet-based feature extraction for fast, 
+high-precision matching. Hughes et al. [6] proposes an end-to-end FCN model using 
+deep learning. 
+However, despite the significant precision advantages of DL approaches, their 
+difficulties in model deployment pose challenges for practical embedded UAV 
+applications. Consequently, lightweight handcrafted feature methods remain prevalent. 
+Mei et al. [7] refined traditional feature extraction strategies by pruning features sensitive 
+to illumination and seasonal variations and optimizing the matching framework, 
+significantly enhancing stability and matching efficiency in complex environments. 
+Furthermore, Yu et al. [8] proposed a pose estimation method based on multi-feature-
+point scene matching. This method fuses scene matching results with INS data to directly 
+resolve the UAV’s full three-dimensional attitude angles and position information, 
+thereby achieving comprehensive state estimation. To achieve rapid and high-precision 
+matching, Ye et al. [9] proposed the CFOG algorithm based on HOG operators, which 
+significantly enhances matching speed and robustness. To address heterogeneous image 
+matching challenges, Yao et al. [10] introduced a novel descriptor combining anisotropic 
+weighted moments and absolute phase congruency gradient histograms. 
+In practical deployment environments, autonomous UAV positioning algorithms 
+must concurrently satisfy dual constraints of positioning accuracy and real-time 
+performance, yet existing methodologies exhibit limitations in reconciling these 
+competing requirements [11]. To address the high-precision positioning challenge for 
+UAVs, we propose an autonomous positioning method. The method employs an efficient 
+and robust matching algorithm that initiates with perspective projection model-based 
+preprocessing of real-time aerial imagery captured by the UAV alongside segmentation 
+of satellite reference maps. Subsequent image registration using Multi-scale Oriented 
+Gradient Fusion (MOGF) feature operator yields an affine transformation matrix, 
+enabling computation of the longitude and latitude coordinates corresponding to the real-
+time image's center point, thereby inferring the UAV's absolute position. Implementation 
+via a hardware system architected on the RK3588 embedded platform achieves 
+lightweight algorithm deployment, delivering meter-level positioning accuracy while 
+fulfilling real-time processing constraints. 
+2. Design of the System 
+As illustrated in Fig 1, the system derives the real-time imagery, base maps, and platform 
+attitude data. Subsequent perspective transformation correction determines the ground 
+coverage area captured by the current sensor. 
+The algorithm extracts feature points from real-time imagery, delineates regions of 
+interest for matching, and defines corresponding search areas in base maps. Descriptors 
+characterizing feature properties are constructed for detected points. Feature descriptors 
+from real-time images are matched against reference base map feature descriptors within 
+designated search regions, with mismatches eliminated through robust outlier rejection 
+algorithms. Finally, precise geographic coordinates of the UAV are computed through 
+geometric analysis of validated correspondence pairs. 
+S. Du et al. / Autonomous Positioning System for UAV Scene Matching
+443
+[p.3]
+Figure 1. Flow chart of the autonomous 
+positioning method
+Figure 2. Perspective transform relations
+3. Autonomous Localization Method Based on Scene Matching with MOGF
+3.1. System-Level Image Correction
+To address significant scale and coverage disparities between real-time imagery and 
+reference satellite images, the system incorporates two techniques: geometric distortion 
+correction [12] and predictive region-of-interest segmentation.
+As illustrated in Fig. 2, the perspective distortion model establishes correspondence 
+between 3D coordinates in the East-North-Up (ENU) frame and 2D projection 
+coordinates in the imaging plane. This bidirectional mapping is mathematically 
+represented as a homography matrix [13], enabling precise perspective rectification.
+Similarly, the geodetic coordinates of the image center can be derived from aircraft 
+attitude and altitude parameters. Following calculation of the coverage area based on 
+camera optical characteristics, the relevant section is cropped from the large-area base 
+map.
+3.2. System-Level Image Correction
+Post-system-calibration images are processed to extract feature points with rich textural 
+information. Region of Interest determination is guided by these feature points, where 
+texturally salient areas demonstrate higher ability to match. Subsequently, the algorithm 
+enhances the MOGF framework by replacing the ROEWA operator with Sobel-based 
+gradient computation. Integrating Sobel operators with Gaussian smoothing yields a 
+MOGF operator for robust feature descriptor construction.
+, =  × ,, , =  × ,       
+                 (1)
+Where,
+ denotes 
+a
+Gaussian
+kernel with the 
+standard 
+deviation
+of
+a .,and ,, represent horizontal/vertical gradient operators at scale . Further, 
+the gradient amplitude and direction can be obtained through the following equation:
+	
+, = (,)
+ + (,)
+
+                 (2)
+	
+, = (
+,
+,)
+          (3)
+Where, 	
+,represents the gradient magnitude of the reference image at scale
+, 	
+,represents the gradient orientation.
+A complex-valued feature description is constructed based on gradient magnitudes 
+and orientations computed using a multi-scale Sobel operator. Subsequently, a Gaussian 
+S. Du et al. / Autonomous Positioning System for UAV Scene Matching
+444
+[p.4]
+filter is generated and convolved with an all-ones matrix to yield an enhanced filter. 
+Finally, the EF is convolved with the FDM to output dense feature descriptors. 
+1
+1
+(
+,
+)
+(
+( , ))(
+(
+,
+))
+n
+m
+sen
+ref
+x
+y
+NCC
+x
+y
+D
+x y
+D
+x
+x y
+y
+
+
+
+
+
+
+
+
+ 
+ (4) 
+Where, 	
+(, ) denotes the feature description of the reference image template 
+region, 
+(, ) denotes the feature description of the candidate image search region. 
+The normalized cross-correlation (NCC) reflects the correlation response between 
+images, with higher values indicating higher matching confidence. Thus, the correct 
+offset (Δ, Δ) is given by the argument that maximizes(Δ, Δ). 
+The algorithm then performs template matching between the template region and 
+the search area, generating a correlation response surface to localize the optimal match 
+position. After completing all feature point matches, an iterative RMSE-based outlier 
+rejection method progressively eliminates mismatched point pairs inconsistent with the 
+geometric consensus. Valid correspondence pairs estimate the transformation model, 
+enabling computation of the geodetic coordinates (latitude, longitude) for the center point 
+of the target image. 
+3.3. UAV Coordinate Inversion 
+For a UAV carrier, its attitude at any given moment can be precisely determined, 
+establishing a body coordinate system referenced to the UAV [14]. Based on the UAV's 
+pitch angle, roll angle, and heading angle: 
+ ! =   " 
+ 
+ 
+ 
+ (5) 
+Where, ! is the transformation matrix from the body-fixed coordinate frame to the 
+ENU coordinate frame;  ,  , and  " are the rotation matrices corresponding to the 
+attitude angles. 
+The boresight vector of the camera within the body-fixed coordinate frame can be 
+precisely determined. Applying the transformation matrix then yields the boresight 
+vector in the ENU coordinate frame. Based on the directional vector of the boresight and 
+the carrier aircraft's altitude, the horizontal relative displacements (Δ,Δ#) of the UAV 
+relative to the image registration reference point can be calculated.  
+With the geodetic coordinates ($%, &%) of the conjugate points obtained in Section 
+2.2, the UAV's geodetic coordinates (
+w
+ ,
+w
+ ) are determined. 
+4. Scene Matching Autonomous Positioning System 
+An RK3588-based airborne processing unit was integrated onboard a DJI Matrice 210 
+UAV, handling real-time data processing and communicating navigation outputs to a 
+ground control station via data telemetry [15]. Final positioning results are visualized on 
+the GCS interface. The system architecture is shown in Fig. 3. 
+The system's data processing workflow as Fig. 4 initiates with real-time image 
+acquisition via an onboard camera and synchronous attitude data capture from the INS 
+module; these dual data streams are processed by the RK3588 SoC implementing scene 
+matching and platform localization algorithms; finally, solved states and raw GNSS/INS 
+data are downlinked through telemetry modules to the ground control station for real-
+time visualization on its monitoring interface. 
+S. Du et al. / Autonomous Positioning System for UAV Scene Matching
+445
+[p.5]
+Figure 3. System composition
+Figure 4. System data processing process
+During high-speed flight or under high-frequency vibration, UAV camera images 
+are prone to the "jello effect," which causes blurring and distortion, as shown in Fig 5(a). 
+To resolve this issue, we adopt the following two methods:
+1.Mechanical Stabilization: By mounting a stabilized gimbal, vibrations from the 
+airframe are effectively isolated, reducing their interference on the imaging process.
+2.Use of a Global Shutter: A traditional rolling shutter employs row-by-row 
+exposure, which produces distortion artifacts from inter-row misalignment during rapid 
+motion. In contrast, a global shutter exposes the entire frame instantaneously, eliminating 
+this type of distortion at its source.
+After implementing this combined approach, the image quality was significantly 
+improved, as shown in Fig 5(b).
+(a) The "Jelly Effect"
+(b) Mechanical Stabilization + Global Shutter
+Figure 5. Before-and-After Comparison of the Image Adjustment
+System-level image correction is highly dependent on the accuracy and real-time 
+performance of the UAV's attitude data—namely, its heading, pitch, and roll angles. On 
+one hand, inaccurate attitude angles can cause significant spatial misalignment between 
+the predicted reference image generated by the algorithm and the real-time image. On 
+the other hand, a low data update frequency cannot capture the instantaneous changes in 
+the aircraft's attitude, leading to matching latency. Both of these situations severely 
+impact the success rate and accuracy of the matching process.
+To meet these stringent requirements, we select the DETA90 high-performance 
+inertial navigation module. This module not only possesses high-precision attitude 
+determination capabilities but also features an IMU data output frequency of up to 400Hz, 
+which is sufficient to ensure the precision and real-time availability of attitude 
+information. Furthermore, its built-in anti-magnetic interference function provides a 
+guarantee for heading stability in complex environments. The key performance 
+parameters of this module are shown in Table 1.
+Table 1. Inertial navigation module DETA90
+Parameter
+Heading
+Pitch/roll
+IMU Freq
+Nav Freq
+Value
+0.1°
+0.8°
+400Hz
+200Hz
+S. Du et al. / Autonomous Positioning System for UAV Scene Matching
+446
+[p.6]
+5. Field Test Results 
+Field flight tests were conducted to validate the efficacy and real-time performance of an 
+autonomous UAV positioning system based on scene matching in GNSS-denied 
+environments. 
+The test site comprised diverse terrain features including buildings, playgrounds, 
+and vegetation. A predefined flight trajectory of approximately 200 meters was 
+established, with all localization algorithms operating in real-time onboard. System 
+validation included aerial imagery shown as Fig. 6(a), reference maps Fig. 6(b), and key 
+parameter configurations shown as Table 2. 
+     
+ 
+(a) Drone Imagery                                                    (b) Satellite Image 
+Figure 6. Drone and reference imagery 
+Table 2. Flight Plan Parameters 
+Param 
+Resolution 
+Height 
+Satellite maps 
+Field of view 
+Value 
+1920×1080 
+150m 
+5km×5km 
+256m×150m 
+In real-time processing systems, disk I/O operations consume computational 
+resources, potentially disrupting algorithm runtime sequences and introducing 
+measurement artifacts. To precisely evaluate the core performance of the algorithm itself, 
+this experiment deliberately limited onboard data logging to 40 critical positioning 
+results. The corresponding localization outcomes are depicted in Fig. 7. 
+ 
+ 
+(a) Interface Display                                                  (b) Single-Frame Matching Result 
+ 
+(c) RMSE                                                       (d) Processing Time per Frame 
+Figure 7. Analysis of Experimental Data 
+S. Du et al. / Autonomous Positioning System for UAV Scene Matching
+447
+[p.7]
+Fig. 7(a) depicts the platform's localized trajectory (blue solid line) versus raw GPS 
+data (red dashed line) rendered on the ground control interface. Congruent trajectory 
+trends validate stable operation of the scene matching-based autonomous positioning 
+system. 
+Fig 7(b) shows the matching point pairs obtained by processing a single aerial image 
+frame with the MOGF algorithm. From these matching pairs, the latitude and longitude 
+coordinates of the aerial image's center point can be calculated, which are then used to 
+derive the UAV's spatial coordinates. 
+Fig 7(c) shows the localization accuracy of the algorithm, plotting the RMSE 
+between the algorithm's calculated position and the GPS ground truth over 40 
+consecutive matches. The results demonstrate a high degree of stability in localization 
+accuracy, with the RMSE remaining below 20 meters for the vast majority of samples. 
+The average RMSE across all samples is 16.4 meters, indicating that the system 
+possesses high accuracy. 
+Fig 7(d) illustrates the system's processing efficiency. Initially, the processing time 
+is longer due to latency in the input data. However, the average time for the algorithm to 
+process a single image frame is only 0.12 seconds, corresponding to a processing 
+frequency higher than 8.3 Hz. This demonstrates the system's high real-time performance. 
+Collectively, these experiments verify high reliability, accuracy, and real-time capability 
+of the scene matching system, significantly enhancing platform survivability in GNSS-
+denied environments. 
+6. Summary 
+To address the navigation degradation of INS/GNSS integrated systems under complex 
+electromagnetic countermeasures or terrain where GNSS signals suffer from interference 
+and occlusion, this study proposes an autonomous UAV positioning system based on 
+scene matching. The system employs a three-layer "preprocessing-matching-solving" 
+architecture for end-to-end localization, utilizing a multi-scale fused gradient method for 
+rapid scene matching to satisfy real-time and high-precision requirements. Hardware 
+implementation adopts a domestic RK3588 platform as the core processing unit. The 
+system effectively suppresses high-frequency UAV jitter and achieves synchronized 
+high-frame-rate IMU measurements with real-time image processing. Field tests 
+conducted on DJI M210 platforms demonstrate positioning accuracy of 16.4m with a 
+processing rate exceeding 8.3Hz, confirming the system's high reliability, precision, and 
+real-time capability. 
+References 
+[1] Sriniva P, Kumar A. Overview of architecture for GPS-INS integration. 2017 Recent Developments in 
+Control, Automation & Power Engineering (RDCAPE), 2017: 433-438. 
+[2] Nader A B, Alexander G. A new method for compensating the errors of integrated navigation systems 
+using artificial neural networks. Measurement, 2021, 168: 108391. 
+[3] Edstedt J, Athanasladis I, Wadenback M, et al. DKM: Dense kernelized feature matching for geometry 
+estimation Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 
+Vancouver: IEEE. 2023: 17765-17775. 
+[4] Edstedt J, Sun Q, Bokman G, et al. RoMa: Robust dense feature matching Proceedings of the IEEE/CVF 
+Conference on Computer Vision and Pattern Recognition. Seattle: IEEE. 2024: 19790-19800. 
+S. Du et al. / Autonomous Positioning System for UAV Scene Matching
+448
+[p.8]
+[5] Zhang Han, Lei Lin, Ni Weiping, et al. Explore better network framework for high-resolution optical and 
+SAR image matching. IEEE Transactions on Geoscience and Remote Sensing, 2021, 60: 1-18. 
+[6] Hughes L H, Marcos D, Lobry S, et al. A deep learning framework for matching of SAR and optical 
+imagery. ISPRS Journal of Photogrammetry and Remote Sensing, 2020, 169: 166-179. 
+[7] Mei Chunbo, Fan Zhenhui, Zhu Qiju, et al. A Novel scene matching navigation system for UAVs based 
+on vision/inertial fusion. IEEE Sensors Journal, 2023, 23(6): 6192-6203. 
+[8] Yu Qifeng, Yang Shang , Liu Xiaochun, et al. Full-parameter vision navigation based on scene matching 
+for aircrafts. Science China Information Sciences, 2014, 57: 1-10. 
+[9] Ye Yuanxin, Bruzzone L, Jie Shan, et al. Fast and robust matching for multimodal remote sensing image 
+registration. IEEE Transactions on Geoscience and Remote Sensing, 2019, 57(11): 9059-9070. 
+[10] Yao Yongxiang, Zhang Yongjun, Wan Yi, et al. Heterologous images matching considering anisotropic 
+weighted moment and absolute phase orientation. Geomatics and Information Science of Wuhan 
+University, 2021, 46(11): 1727-1736. 
+[11] Omerbashich M. Integrated INS/GPS navigation from a popular perspective. Journal of Air 
+Transportation, 2002, 7(ISSN: 1093-8826). 
+[12] Xia X, Li Y, et al. Image correction for perspective projection distortion of cylindrical surface. Optics 
+and Precision Engineering,2023,31(11): 1691-169. 
+[13] Strang G. Introduction to Linear Algebra. 5th ed. Wellesley, MA: Wellesley-Cambridge Press, 2016: 
+401-405. 
+[14] Shipko V V. Algorithm for Correction of Geometric Distortions of Hyperspectral Images Formed during 
+Angular Oscillations of an Unmanned Aerial Vehicle. Optoelectronics, Instrumentation and Data 
+Processing,2023,59(2): 200-206. 
+[15] Zeng Youfeng. Research on fast image matching and positioning method of UAV in GNSS denial 
+environment . Wuhan:Huazhong University of Science and Technology. 
+S. Du et al. / Autonomous Positioning System for UAV Scene Matching
+449
+=== END ===

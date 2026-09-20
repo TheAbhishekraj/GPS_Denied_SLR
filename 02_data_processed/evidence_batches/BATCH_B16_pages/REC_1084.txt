@@ -1,0 +1,2765 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1084.pdf
+sha256: A36085D3C0F6F17B74BF4069A3A5C8660EF83B0C06E47EB1D0E42C6E12BE8561
+library: pymupdf (fitz) v1.28.2
+pages: 24
+=== BEGIN ===
+[p.1]
+Jarraya et al. Satellite Navigation             (2026) 7:6  
+https://doi.org/10.1186/s43020-026-00192-1
+ORIGINAL ARTICLE
+Open Access
+© The Author(s) 2026. Open Access This article is licensed under a Creative Commons Attribution 4.0 International License, which 
+permits use, sharing, adaptation, distribution and reproduction in any medium or format, as long as you give appropriate credit to the 
+original author(s) and the source, provide a link to the Creative Commons licence, and indicate if changes were made. The images or 
+other third party material in this article are included in the article’s Creative Commons licence, unless indicated otherwise in a credit line 
+to the material. If material is not included in the article’s Creative Commons licence and your intended use is not permitted by statutory 
+regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright holder. To view a copy of this 
+licence, visit http://creativecommons.org/licenses/by/4.0/.
+Satellite Navigation
+https://satellite-navigation.springeropen.com/
+CLAK:CNN‑LSTM‑Attention 
+and Kolmogorov‑Arnold Networks for non‑visual 
+UAV localization in GNSS‑denied environments
+Imen Jarraya1*   , Fatimah Alahmed1, Mohamed Abdelkader1, Khaled Gabr1, Muhammad Bilal Kadri1 and 
+Wadii Boulila1 
+Abstract 
+Visual localization has shown promise for accurate Unmanned Aerial Vehicle (UAV) navigation in GNSS-denied envi-
+ronments due to its high spatial resolution. However, performance declines in low-light or texture-scarce conditions 
+and incurs high computational costs. In contrast, non-visual sensors offer a lightweight, low-complexity alternative 
+for localization under such conditions. This work introduces CLAK (CNN-LSTM-Attention-KAN), a deep learning frame-
+work that estimates global UAV positions (latitude, longitude, and elevation) using non-visual sensors such as LiDAR, 
+barometric altitude, and Inertial Measurement Unit (IMU). CLAK combines Convolutional Neural Networks (CNNs) 
+for spatial encoding, Long Short-Term Memory (LSTM) layers for temporal modeling, attention for feature prioritiza-
+tion, and Kolmogorov-Arnold Networks (KANs) for flexible nonlinear regression. The model is trained on synthetic 
+UAV flight data generated using a ROS2 simulation framework that integrates Gazebo for 3D environment simulation 
+and PX4 for autopilot control, with QGroundControl (QGC) managing mission planning and monitoring. Elevation 
+data is extracted from a Digital Elevation Map (DEM) of the Taif region in Saudi Arabia, while ground truth positions 
+are derived from simulated onboard Global Positioning System (GPS) outputs. Simulation results across different 
+flight trajectories show CLAK can achieve up to 78.35% Mean Absolute Error (MAE) and 75.40% Root Mean Squared 
+Error (RMSE) reduction compared to the LSTM baseline, while maintaining an average coefficient of determination 
+( R2 ) of 0.998. These results demonstrate the scalability and precision of CLAK for UAV localization in GNSS-denied 
+conditions.
+Keywords  UAV localization, Non-visual fusion sensors, GNSS-denied environments, Deep learning, Kolmogorov-
+Arnold network, Digital elevation map
+*Correspondence:
+Imen Jarraya
+imenjarraya85@gmail.com
+Introduction
+Accurate localization remains a critical capability for 
+Unmanned Aerial Vehicles (UAVs) operating in envi-
+ronments where Global Navigation Satellite Systems 
+(GNSS) are unreliable or unavailable, such as urban 
+canyons, tunnels, forests, and indoor facilities (He et al., 
+2023; Alghamdi et al., 2025). Conventional GNSS-based 
+positioning is prone to signal blockage, multi path effects, 
+and spoofing, limiting its effectiveness in such challeng-
+ing scenarios. To address these limitations, a variety of 
+alternative localization techniques have been proposed 
+in the literature, including visual-based, non-visual, and 
+multimodal sensor fusion approaches. Beyond naviga-
+tion, accurate geolocation also underpins UAV-based 
+smart-city perception (e.g., traffic monitoring and urban 
+analytics), where sensed data must be consistently geo-
+referenced for reliable downstream Artificial Intelligence 
+(AI) inference (Benjdira et al., 2022).
+[p.2]
+Page 2 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+Visual methods employ camera imagery in conjunc-
+tion with IMU data to reconstruct UAV trajectories with 
+high precision and full six-degree-of-freedom pose esti-
+mation  (Ye et al., 2024). A leading example is Monocu-
+lar Visual-Inertial System (VINS-Mono), which operates 
+using a single monocular camera and a low-cost IMU, 
+representing the simplest viable sensor configuration for 
+such tasks. The system begins with robust on-the-fly ini-
+tialization and failure recovery routines. Core processing 
+uses a tightly integrated sliding-window nonlinear opti-
+mization that combines IMU preintegration and visual 
+feature observations. Loop detection enables efficient 
+relocalization, and a four-degree-of-freedom pose-graph 
+optimization corrects accumulated drift. VINS-Mono 
+also supports efficient map saving, loading, and merg-
+ing, and demonstrates reliable performance across pub-
+lic datasets, micro aerial vehicle flights, and mobile 
+platforms such as iOS devices  (Qin et al., 2018; Li et al., 
+2023b). Notable extensions include VINS-Fusion, which 
+enhances VINS-Mono to support stereo and RGB-D 
+cameras while retaining its optimization framework and 
+adding online spatial and temporal calibration. Oriented 
+FAST and Rotated BRIEF-Simultaneous Localization and 
+Mapping 3 (ORB-SLAM3) further broadens applicabil-
+ity by accommodating monocular, stereo, RGB-D, and 
+visual-inertial inputs. It employs intelligent keyframe 
+selection, robust feature tracking, Bag-of-Words loop 
+detection, relocalization, and multi-map handling to 
+deliver centimeter-level accuracy in diverse indoor and 
+outdoor environments (Zhang et  al., 2024a; Jiao et  al., 
+2023).
+Recent developments focus on reducing reliance on 
+calibration and improving runtime efficiency. Self-Super-
+vised Deep Mmonocular Visual-InertialOdometry and 
+Depth Estimation (SelfVIO) adopts a self-supervised 
+approach to jointly learn depth and motion, eliminating 
+the need for extrinsic calibration and outperforming tra-
+ditional VIO methods on datasets like KITTI and EuRoC 
+(Almalioglu et al., 2022; Wei et al., 2025; Chen and Pan, 
+2024). Optical Flow VINS-Mono minimizes latency by 
+offloading optical flow computation to on-sensor ASICs 
+and achieves 50 Hz performance on ARM Cortex-A72 
+hardware (Jarraya et  al., 2025a). Notably, Lidar Inertial 
+Odometry via Smoothing and Mapping (LIO-SAM) and 
+Lightweight and Ground-Optimized Lidar Odometry 
+and Mapping (LeGO-LOAM) merge Light Detection and 
+Ranging (LiDAR) depth data and IMU measurements 
+with camera information. This multimodal fusion offers 
+a balance between geometric precision and visual texture 
+robustness, resulting in more reliable localization in com-
+plex and dynamic settings. Similarly, SaliencyI2PLoc ena-
+bles GNSS-free localization by aligning camera images 
+with pre-constructed LiDAR maps through contrastive 
+learning and feature saliency enhancement  (Li et  al., 
+2025).
+Visual and hybrid localization systems offer high-pre-
+cision performance but face significant challenges when 
+deployed on lightweight and cost-constrained UAV plat-
+forms. These methods depend on high-resolution camera 
+inputs, continuous feature extraction and matching, and 
+nonlinear optimization processes, all of which require 
+substantial computational power and memory capacity. 
+Evaluations on embedded platforms such as NVIDIA 
+Jetson TX2, Nano, and Xavier NX have shown that even 
+highly optimized algorithms like VINS-Mono and ORB 
+SLAM often struggle to achieve real-time performance 
+unless they operate in maximum power modes. This 
+compromises energy efficiency and increases thermal 
+constraints, limiting the practical use of such systems in 
+energy-restricted UAV applications. In addition to com-
+putational limitations, the performance of these systems 
+is highly sensitive to environmental conditions. Situa-
+tions involving poor lighting, motion blur, low-texture 
+surfaces, or adverse weather conditions often result in 
+degraded image quality, negatively affecting localization 
+accuracy and reliability. Moreover, these systems often 
+require additional sensors and involve strict calibration 
+and synchronization procedures, further complicating 
+their integration into compact, resource-constrained 
+aerial platforms (Zhang et al., 2024b; Jarraya et al., 2025a; 
+Kramarić et al., 2025; Zhan et al., 2025).
+These limitations underscore the need for localization 
+strategies that reduce reliance on high-end hardware 
+while maintaining high accuracy under challenging con-
+ditions. LiDAR-IMU frameworks such as Fast LiDAR-
+Inertial Odometry (FAST-LIO) and FAST-LIO2 provide 
+powerful yet efficient alternatives. FAST-LIO fuses raw 
+LiDAR scans with IMU measurements using a tightly 
+coupled iterated extended Kalman filter and a parallel 
+kd-tree for map updates, enabling robust and fast odom-
+etry in cluttered or fast-motion environments. Its succes-
+sor, FAST-LIO2, eliminates explicit feature extraction by 
+registering raw points directly to the map and employs 
+an incremental kd-tree for efficient updates. This archi-
+tecture achieves real-time operation at rates above 100 
+Hz on both Advanced RISC Machine (ARM) and Intel 
+processors. Empirical comparisons demonstrate that 
+FAST-LIO frameworks match or exceed the localization 
+performance of more complex visual-LiDAR systems 
+such as LIO-SAM and LeGO-LOAM, while significantly 
+reducing computational overhead and sensor dependen-
+cies (Huaman et al., 2025; Zhan et al., 2025; Chen et al., 
+2024).
+These findings underscore a growing transition toward 
+lightweight, sensor-efficient localization models that 
+meet the performance and integration requirements of 
+[p.3]
+Page 3 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+	
+modern autonomous systems. Ongoing advancements 
+in AI have catalyzed the emergence of learning-based 
+techniques capable of overcoming localization chal-
+lenges in environments where signals, such as GNSS, are 
+degraded or unavailable. Among these methods, Long 
+Short-Term Memory (LSTM) networks, a subclass of 
+Recurrent Neural Networks (RNNs), have demonstrated 
+effectiveness in capturing temporal dependencies within 
+sequential sensor data. These models maintain robust 
+performance even when operating with noisy or incom-
+plete measurements. Their capabilities can be further 
+augmented through integration with complementary AI 
+methods, enabling the construction of hybrid models 
+that learn complex, nonlinear relationships from multi-
+sensor inputs to spatial representations. This integra-
+tion supports the development of accurate, resilient, and 
+generalizable localization systems adaptable to diverse 
+and challenging operational contexts (  (Xu et  al., 2024; 
+Narkhede et  al., 2021; Zhang et  al., 2024b; He et  al., 
+2023). In this context, we propose CLAK (CNN-LSTM-
+Attention-KAN), a hybrid deep learning framework that 
+integrates convolutional feature extraction, recurrent 
+temporal modeling, attention mechanisms, and Kolmog-
+orov-Arnold Network (KAN) to estimate UAV positions 
+in GNSS-denied environments. The main contributions 
+of this work are as follows:
+•	 Hybrid Architecture: We propose CLAK, a deep 
+learning model combining CNNs, LSTM, attention 
+mechanisms, and KANs to estimate UAV 3D posi-
+tions (latitude, longitude, elevation) from non-visual 
+sensors.
+•	 Multisensor Fusion: The framework integrates 
+LiDAR range, barometric altitude, and inertial meas-
+urements to achieve accurate localization in GNSS-
+denied environments.
+•	 Simulation and Evaluation: CLAK is trained and 
+evaluated on datasets generated from a Robot Oper-
+ating System 2 (ROS2) based simulation environment 
+incorporating PX4, Gazebo, and QGroundControl 
+(QGC), with GPS-based ground truth aligned to 
+a Digital Elevation Map (DEM) of the Taif region, 
+Saudi Arabia.
+The remainder of this paper is structured as follows. Sec-
+tion 2 reviews related literature on UAV localization and 
+sensor fusion. Section  3 presents the proposed CLAK 
+architecture. Section 4 details the experimental setup and 
+evaluation results. Section 6 concludes the study and dis-
+cusses future research directions.
+Related works
+Reliable localization of unmanned aerial vehicles in envi-
+ronments where Global Navigation Satellite System sig-
+nals are unavailable or significantly degraded remains a 
+critical challenge in the fields of robotics and autonomous 
+navigation. To address this problem, recent research 
+has advanced along multiple methodological direc-
+tions. Traditional sensor fusion techniques, particularly 
+those based on Kalman filtering, remain foundational 
+by integrating data from inertial measurement units, 
+barometric sensors, magnetometers, ultra-wideband 
+systems, or wheel odometry to maintain accurate state 
+estimation. Building on these methods, hybrid frame-
+works have been proposed that incorporate deep learn-
+ing components, such as Convolutional Neural Networks 
+(CNNs), long short-term memory networks, and atten-
+tion mechanisms, into classical estimation models, such 
+as the Extended Kalman Filter (EKF) or Factor Graph 
+Optimization (FGO). These hybrid approaches aim to 
+combine the generalization capability of learning-based 
+models with the consistency and physical interpretability 
+of model-based estimators. In parallel, fully data-driven 
+methods have emerged, relying exclusively on end-to-
+end neural architectures that learn to infer UAV position 
+and orientation directly from raw sensor inputs. These 
+methods eliminate the need for explicit filtering or opti-
+mization. Table  1 summarizes recent non-visual UAV 
+localization methods, highlighting their implementation 
+details, performance under GNSS-denied conditions, 
+and main limitations.
+Hybrid learning-filter models have shown promis-
+ing results by combining the representational power 
+of deep networks with the probabilistic rigor of clas-
+sical estimators. For instance, Wang et  al. (2025) pre-
+sented a Self-Attention LSTM (SALSTM) fused with an 
+EKF, leveraging IMU, barometric, and magnetometer 
+data to reduce velocity and position errors by over 50% 
+compared to conventional LSTM-only models. Simi-
+larly, Zhengsong Wang et al. (2025) developed a multi-
+stage architecture that integrates CNN-LSTM-Attention 
+modules with FGO. Their approach processes inertial 
+and odometric time-series data using CNNs for spatial 
+encoding and LSTM units for temporal modeling, while 
+an attention layer dynamically prioritizes salient features. 
+The learned representations are then optimized via FGO 
+to enforce trajectory smoothness and long-term consist-
+ency. Empirical evaluations on GNSS-denied vehicular 
+datasets reported Root Mean Squared Error (RMSE) 
+reductions ranging from 34.62% to 46.58%, substantially 
+outperforming both classical inertial navigation systems 
+and standalone deep learning baselines.
+A notable contribution that does not rely on deep 
+learning but falls under the hybrid category is the 
+[p.4]
+Page 4 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+Table 1  Summary of recent non-visual UAV localization methods: contributions and results
+Study
+Method
+Contributions and results
+Limitations
+ Wang et al. (2025)
+SALSTM + EKF
+Fuses IMU, barometric, magnetometer, and airspeed data. Achieves 
+a 50% reduction in position and velocity errors compared to con-
+ventional LSTM baselines
+Requires online retraining to adapt to environmental variations such 
+as wind and geomagnetic parameters
+ Zheng et al. (2025)
+AANO + KAN
+Uses atomic norm optimization and KANs for passive radar-based 
+target localization; achieves up to 38.2% error reduction over MLPs 
+with sub-meter accuracy
+Computationally intensive and sensitive to noise and target density
+ Wang et al. (2025)
+CNN-LSTM-Attention + FGO
+Combines CNN-LSTM-Attention for spatio-temporal feature extrac-
+tion with FGO for trajectory optimization under GNSS loss. Achieves 
+up to 46.58% RMSE reduction on vehicular datasets
+Performance depends on precise IMU-odometry synchronization 
+and FGO parameter tuning
+ Tang et al. (2022)
+GRU + AKF
+Combines GRU-predicted pseudo-GNSS measurements 
+with an Adaptive Kalman Filter, achieving RMSE reduction 
+from 157 m to 27 m and max error from 380 m to 91 m dur-
+ing 180-second GNSS outages
+Relies on robust GRU training and filter tuning; evaluation limited 
+to a controlled vehicular dataset
+ Xu et al. (2022)
+MC-BP + KF BP
+Integrates motion-constrained Kalman filtering with neural net-
+works for improved inertial drift correction without GNSS
+Requires kinematic prior knowledge and careful initialization
+ Fang et al. (2020)
+LSTM-aided INS
+Achieving errors of 17 m (east) and 10 m (north) over 180-second 
+GNSS outages, thereby improving standalone INS performance
+Evaluation limited to simulated GNSS outages in urban ground vehi-
+cle scenarios with no assessment under real UAV dynamics or aerial 
+conditions
+ Dai et al. (2020)
+RNN-INS integration
+Uses RNNs to estimate velocity and attitude errors, achieving a 60% 
+RMSE reduction over EKF baselines
+Generalization under unseen motion profiles not evaluated
+ Narkhede et al. (2021)
+LSTM-inc (incremental learning)
+Enables real-time attitude estimation via online LSTM weight 
+updates, enhancing adaptability to unknown motion patterns
+Risk of overfitting to short-term patterns without regularization
+ El Sabbagh et al. (2023)
+Cascaded CNN + BiLSTM
+Proposes a cascaded neural network using filtered IMU data 
+for localization during GPS outages, achieving a mean RMSE 
+of 2.94 m in GNSS-degraded vehicle scenarios
+Relies on high-quality IMU preprocessing
+[p.5]
+Page 5 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+	
+cooperative localization framework by Xianjia et  al. 
+(2021). The authors propose a multi-UAV positioning 
+system that fuses Ultra-Wideband (UWB) range meas-
+urements using an EKF. Their method demonstrates that 
+cooperative inter-UAV communication can significantly 
+improve localization accuracy, achieving average posi-
+tion errors below 1 m in GNSS-denied outdoor simula-
+tions. However, the approach is sensitive to the reliability 
+of inter-UAV links and the density of available anchor 
+nodes, which may limit its robustness in harsh environ-
+ments with signal attenuation or obstruction.
+Other studies have explored alternative fusion schemes 
+that incorporate deep learning with adaptive filtering. 
+Tang et  al. (2022) proposed a Gated Recurrent Unit-
+Adaptive Kalman Filter (GRU-AKF) hybrid framework, 
+where GRUs are trained to predict pseudo-GNSS meas-
+urements during signal loss. These predictions are then 
+filtered by an Adaptive Kalman Filter to correct inertial 
+drift. The system demonstrated a reduction in RMSE 
+from 157 m to 27 m and a decrease in maximum posi-
+tion error from 380 m to 91 m over 180-second GNSS 
+outages in urban driving scenarios. While effective, the 
+model’s performance hinges on the stability of GRU pre-
+diction quality and appropriate AKF tuning. Moreover, 
+the results are reported under a single experimental con-
+figuration, suggesting the need for broader multi-envi-
+ronment validation. Xu et  al. (2022) proposed a hybrid 
+learning-based localization model called Motion-Con-
+strained Backpropagation (MC-BP), which integrates a 
+motion-constrained Kalman filter with a backpropaga-
+tion neural network. Their approach explicitly incorpo-
+rates kinematic motion priors into the filtering process 
+to address the problem of drift in inertial-based systems. 
+Experimental results in GNSS-denied simulated envi-
+ronments demonstrated that MC-BP reduces the aver-
+age positional error by 37.8% compared to conventional 
+Kalman filtering, underscoring the value of combining 
+model-based constraints with data-driven learning.
+In contrast, deep learning-only methods focus on 
+directly modeling sensor dynamics from data, typically 
+using recurrent or convolutional architectures. Fang 
+et al. (2020) and Dai et al. (2020) showed that LSTM and 
+RNN-based models can significantly outperform tradi-
+tional inertial navigation systems during GNSS interrup-
+tions. Narkhede et al. (2021) introduced an incremental 
+LSTM-based learning framework that enables real-time 
+attitude estimation via online weight updates, improving 
+adaptability to dynamic motion patterns.
+El Sabbagh et  al. (2023) proposed a cascaded neural 
+architecture that combines CNN and Bidirectional LSTM 
+(BiLSTM) modules to estimate vehicle positions dur-
+ing GPS outages. Their method inputs filtered IMU data 
+into CNN layers for spatial feature extraction, followed 
+by BiLSTM layers for temporal modeling. Evaluated on 
+GNSS-denied driving scenarios, their system achieved a 
+mean RMSE of 2.94 m and demonstrated strong gener-
+alization across diverse trajectories, without reliance on 
+classical filters or visual sensors.
+More recently, Zheng et al. (2025) proposed a hybrid 
+passive radar localization approach that combines Accel-
+erated Atomic Norm Optimization (AANO) with KANs. 
+The method first performs high-resolution delay-Dop-
+pler estimation to resolve closely spaced targets, followed 
+by a KAN model that maps signal parameters to position 
+estimates. It achieves up to 38.2% error reduction over 
+Multilayer Perceptron (MLP) baselines with sub-meter 
+accuracy in complex scenarios. The KAN module con-
+verges rapidly within 20 epochs and generalizes well. 
+However, performance may degrade under high noise 
+or dense target conditions, and the framework requires 
+careful signal preprocessing and remains computation-
+ally intensive for real-time use.
+These data-driven learning strategies reduce reliance 
+on handcrafted models and extensive sensor calibration 
+procedures. However, they typically necessitate large-
+scale training datasets and robust regularization tech-
+niques to mitigate overfitting and ensure generalization. 
+Together, these developments underscore a paradigm 
+shift toward AI-centric and adaptable sensor fusion 
+frameworks, aimed at achieving robust UAV navigation 
+under GNSS-denied conditions. Within this evolving 
+landscape, we introduce CLAK (CNN-LSTM-Attention-
+KAN), a novel end-to-end deep learning architecture 
+for UAV localization. CLAK integrates convolutional 
+layers for spatial feature extraction, LSTM networks for 
+temporal dynamics modeling, attention mechanisms for 
+adaptive feature weighting, and KANs for expressive and 
+interpretable nonlinear function approximation. This 
+unified architecture offers a resilient and generalizable 
+alternative to conventional approaches in GNSS-com-
+promised environments.
+CNN‑LSTM‑attention‑Kolmogorov‑Arnold network 
+(CLAK)
+In real-world UAV operations, the unavailability or deg-
+radation of GNSS signals presents a significant chal-
+lenge to reliable geolocation, particularly in obstructed 
+or contested environments such as urban canyons, 
+dense forests, or GPS-denied airspace. To address this, 
+we introduce CLAK (CNN-LSTM-Attention-KAN), a 
+hybrid deep learning framework designed to estimate 
+global UAV positions using only onboard non-visual sen-
+sors. As shown in Fig. 1, CLAK performs sensor fusion 
+on multivariate time-series data from the Inertial Meas-
+urement Unit (IMU), LiDAR, and barometric altimeter.
+[p.6]
+Page 6 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+The fused input vector ˆxt is processed through a 
+neural architecture composed of convolutional lay-
+ers for local spatial encoding, LSTM units for captur-
+ing temporal dependencies, and attention mechanisms 
+for dynamic feature selection. The final prediction 
+layer integrates a Kolmogorov-Arnold Network, which 
+enables compact and expressive nonlinear function 
+approximation. At each timestep, the model outputs an 
+estimated geodetic coordinate vector ˆyt = [ ˆℓt, ˆt, ˆht]⊤ , 
+corresponding to the UAV’s predicted latitude, longi-
+tude, and elevation. Here, elevation refers to the UAV’s 
+vertical position relative to a reference surface, derived 
+from fused altitude cues such as LiDAR and baromet-
+ric pressure. Unlike traditional filter-based localiza-
+tion methods, which depend on explicit motion models 
+and recursive state estimation, CLAK infers positional 
+coordinates directly from sequential sensor patterns in 
+a purely data-driven manner.
+Sensor fusion and convolutional feature extraction
+The CLAK framework ingests synchronized measure-
+ments from three onboard non-visual sensors: a LiDAR 
+(ground distance), a barometer (atmospheric altitude), 
+and an inertial measurement unit.
+At each discrete time step t ∈{1, . . . , N} , these het-
+erogeneous signals are fused into a 17-dimensional fea-
+ture vector xt ∈R17 , defined as:
+Where
+•	 esim
+t
+ denotes the simulated elevation, computed as 
+the difference between barometric altitude and 
+LiDAR ground range: esim
+t
+= hbaro
+t
+−hlidar
+t
+.
+•	 pt ∈R3 is the translational position.
+•	 qt ∈R4 represents the UAV’s orientation encoded 
+as a normalized quaternion.
+•	 vt ∈R3 denotes linear velocity.
+•	 ωt ∈R3 represents the UAV’s linear angular veloc-
+ity vector.
+The objective is to learn a mapping from the fused sensor 
+feature space to the UAV’s global geodetic position. At 
+each time step t , the target output is a three-dimensional 
+vector yt = [ℓt, t, ht]⊤∈R3 , where ℓt , t , and ht denote 
+the latitude, longitude, and elevation, respectively at time 
+t. The regression problem is formulated as:
+To effectively process these heterogeneous sensor inputs 
+and extract meaningful spatiotemporal representations 
+for global position estimation, the CLAK framework 
+adopts a hierarchical deep learning architecture designed 
+for GNSS-denied UAV navigation.
+(1)
+xt =
+
+esim
+t
+, p⊤
+t , q⊤
+t , v⊤
+t , ω⊤
+t , a⊤
+t
+⊤∈R17,
+(2)
+f : R17 →R3,
+ˆyt = f (xt) =
+
+
+ˆℓt
+ˆt
+ˆht
+
+,
+Fig. 1  Proposed CLAK framework for UAV localization in GNSS-denied environments
+[p.7]
+Page 7 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+	
+As illustrated in Fig. 2, the model is composed of four 
+key neural modules, each designed to fulfill a distinct 
+computational function within the end-to-end localiza-
+tion pipeline.
+•	 Convolutional layer: Each of the six sensor modali-
+ties, namely the simulated elevation ( esim
+t
+ ), position 
+vector pt , quaternion orientation qt , linear velocity 
+vt , angular velocity ωt , and accelerometer readings 
+at , is processed through a dedicated one-dimensional 
+convolutional channel. These convolutional blocks 
+extract short-term temporal features and spatial pat-
+terns from the input sequences. Nonlinear transfor-
+mations are applied using ReLU activations, followed 
+by max pooling that reduces dimensionality while 
+preserving the most informative features over time.
+•	 Double LSTM layer: The outputs from the CNN 
+and Fully Connected (FC) layers are routed into a 
+stacked bidirectional LSTM architecture. This "dou-
+ble LSTM" configuration processes the temporal 
+sequences in both forward and backward directions 
+across two layers, enabling the model to capture 
+comprehensive motion dynamics and contextual 
+dependencies over time.
+•	 Attention-based feature aggregation: The outputs 
+of the LSTM units are combined using a temporal 
+attention mechanism that adaptively weighs the hid-
+den states across the time sequence. This enables the 
+network to prioritize the most informative time steps 
+for final position estimation, thus improving robust-
+ness in scenarios with intermittent sensor degrada-
+tion.
+•	 Kolmogorov-Arnold Network layer: The final stage 
+employs a fully connected feedforward network 
+constructed using KAN layers. Unlike conventional 
+MLPs, KAN leverages spline-based basis functions 
+(e.g., cubic B-splines) to form expressive univari-
+ate function blocks ℓ . These are stacked hierarchi-
+cally to approximate complex multivariate mappings. 
+The KAN receives the attention-aggregated feature 
+vector and regresses the global geodetic position 
+ˆyt = [ ˜ℓt, ˜t, ˜ht]⊤ at time step t.
+Convolutional feature extraction
+The CLAK framework begins its feature encoding pro-
+cess by applying One-Dimensional (1D) convolutional 
+layers independently to each input modality. This design 
+is inspired by the foundational convolutional neural net-
+work work of Lecun et  al. (1998) and is aimed at cap-
+turing local spatial-temporal patterns from raw sensor 
+streams.
+At each discrete time step t ∈{1, . . . , N} , the sequential 
+input vector xt ∈R17 is processed to produce modality-
+specific convolutional features zt ∈RCout , computed as:
+Attention-based feature aggregation
+Kolmogorov-arnold network layer
+CNN layer
+Inputs layer
+Pooling layer
+FC
+Double LSTM layer
+Outputs
+ReLU
+max
+Valid
+max
+Valid
+max
+Valid
+max
+Valid
+Valid
+Valid
+max
+max
+Fig. 2  Architecture of the proposed CLAK framework for UAV localization in GNSS-denied environments
+[p.8]
+Page 8 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+where:
+•	 ∗ denotes the 1D cross-correlation operator.
+•	 Cin and Cout are the input and output channel dimen-
+sions, respectively.
+•	 wi,j is the learnable convolutional kernel.
+•	 bj is a bias term associated with the j-th output chan-
+nel.
+•	 σ(·) is a nonlinear activation function, specifically 
+ReLU in this framework.
+These filters are capable of extracting fine-grained short-
+term dependencies in the data, such as abrupt changes in 
+linear acceleration, angular velocity, or simulated eleva-
+tion. Following convolution, the ReLU activation func-
+tion is applied element-wise:
+This nonlinearity promotes sparsity and enhances repre-
+sentational capacity by retaining only positive activations.
+In the next stage, a max pooling operation is applied to 
+improve robustness against minor temporal distortions 
+and reduce feature dimensionality:
+where N(t) denotes a fixed-size neighborhood cen-
+tered around time step t . This operation ensures local 
+invariance by emphasizing dominant features over short 
+intervals.
+The pooled output zpooled
+t
+ is then passed through a fully 
+connected layer to project it into a lower-dimensional 
+latent space:
+Where Wf ∈Rd×d′ and bf ∈Rd′ are learnable param-
+eters, with d and d′ denoting the input and output 
+dimensions of the latent space. The activation function 
+φ(·) , typically ReLU, introduces nonlinearity into the 
+transformation.
+This operation compresses and standardizes the sensor-
+specific features while preserving their most informative 
+characteristics. The resulting sequence {ˆzt}N
+t=1 constitutes 
+the temporally ordered embedding that is subsequently 
+passed to the LSTM-based temporal modeling module.
+(3)
+z(j)
+t
+= σ
+ Cin
+
+i=1
+wi,j ∗x(i)
+t
++ bj
+
+,
+(4)
+ReLU(x) = max(0, x),
+(5)
+zpooled
+t
+= max
+k∈N(t) zk,
+(6)
+ˆzt = φ
+
+Wf zpooled
+t
++ bf
+
+,
+Temporal modeling with LSTM
+The temporally ordered feature embeddings {ˆz1, . . . , ˆzN} , 
+obtained from the convolutional projection layers, are 
+passed through a stack of two Long Short-Term Memory 
+(LSTM) layers to capture the dynamic evolution of the 
+UAV state over time. This stacked configuration allows 
+the first LSTM layer to model short-term variations (e.g., 
+transient motion or sensor noise). In contrast, the second 
+layer refines the learned representations by capturing 
+longer-range dependencies and consistent motion trends 
+over extended sequences.
+Formally, the temporal modeling stage outputs a 
+refined sequence {z1, . . . , zN} , which is further used for 
+downstream regression. The internal operations of a Bidi-
+rectional LSTM (Bi-LSTM) unit are defined as follows 
+Kong et al. (2025); Khan et al. (2025); Gao et al. (2025):
+Where:
+•	 zt ∈Rd is the input feature vector at time t , produced 
+by the preceding CNN–FC block.
+•	 ht−1 ∈Rnh and ct−1 ∈Rnh denote the hidden and cell 
+states from the previous time step.
+•	 W·LSTM ∈Rnh×d and U·LSTM ∈Rnh×nh are the input 
+and recurrent weight matrices for each respective 
+gate ( f , i, o, c).
+•	 bLSTM
+·
+∈Rnh denotes the learnable bias vectors.
+•	 σ(·) is the sigmoid activation function, and tanh(·) is 
+the hyperbolic tangent function.
+•	 ⊙ represents the element-wise (Hadamard) product.
+The LSTM cell dynamically regulates the flow of informa-
+tion using three gating mechanisms that operate jointly 
+to maintain and update the internal memory. The forget 
+gate ft determines which components of the previous 
+(7)
+ft = σ(Wf LSTMzt + Uf LSTMht−1 + bLSTM
+f
+),
+(forget gate)
+(8)
+it = σ(WiLSTMzt + UiLSTMht−1 + bLSTM
+i
+),
+(input gate)
+(9)
+ot = σ(WoLSTMzt + UoLSTMht−1 + bLSTM
+o
+),
+(output gate)
+(10)
+˜ct = tanh(WcLSTMzt + UcLSTMht−1 + bLSTM
+c
+),
+(candidate cell state)
+(11)
+ct = ft ⊙ct−1 + it ⊙˜ct,
+(cell state update)
+(12)
+ht = ot ⊙tanh(ct),
+(hidden state update)
+[p.9]
+Page 9 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+	
+cell state ct−1 should be discarded, allowing the network 
+to suppress outdated or irrelevant information. Simul-
+taneously, the input gate it and the candidate memory 
+content ˜ct collaboratively introduce new relevant infor-
+mation into the memory cell, enabling the network to 
+adapt to recent changes in the input. The output gate ot 
+then regulates how much of the updated cell state ct con-
+tributes to the current hidden state ht , which is propa-
+gated through time and used to inform predictions. The 
+cell state ct serves as persistent memory that accumulates 
+temporal context over extended time horizons, making it 
+well-suited for modeling sequential dependencies in UAV 
+motion. This memory mechanism is especially advanta-
+geous in localization scenarios affected by sensor drift, 
+intermittent noise, or missing data, as it allows the model 
+to retain and refine critical motion patterns over time.
+To further enhance temporal modeling, CLAK incor-
+porates a Bi-LSTM architecture, where two LSTM layers 
+process the input sequence in forward and reverse time 
+orders. This bidirectional structure enables the network 
+to exploit both past and future context when encoding 
+each time step, thereby enriching the latent temporal 
+representation. The resulting temporal embeddings are 
+more robust, smoother, and more informative, which 
+is particularly crucial in GNSS-denied environments 
+where localization depends heavily on consistent motion 
+dynamics and temporal cues from non-visual sensor 
+streams.
+Attention‑based feature aggregation
+Following temporal encoding by the stacked Bi-LSTM 
+layers, an attention mechanism is applied to adaptively 
+aggregate the sequence of hidden states into a fixed-
+dimensional context vector. This attention-based pool-
+ing operation allows the model to selectively emphasize 
+the most informative temporal regions of the sequence, 
+thereby suppressing irrelevant fluctuations and enhanc-
+ing robustness against noise and drift (Luo et al., 2024).
+Let {h1, h2, . . . , hT} denote the sequence of hidden 
+states generated by the final LSTM layer, where each 
+hi ∈RH encodes the latent representation at time step 
+i . The attention mechanism proceeds by computing a 
+scalar alignment score ei for each time step, followed 
+by normalization into attention weights αi , and finally a 
+weighted sum to form the context vector c ∈RH:
+(13)
+ei = v⊤
+e tanh(Wehi + be),
+(alignment score)
+(14)
+αi =
+exp(ei)
+T
+j=1 exp(ej)
+,
+(attention weight)
+Where
+•	 We ∈Rd×H is a learnable weight matrix that projects 
+the hidden state into an attention space.
+•	 ve ∈Rd is a trainable vector that scores the projected 
+features.
+•	 be ∈Rd is a bias term.
+•	 αi ∈[0, 1] represents the normalized importance of 
+the i-th time step.
+The context vector c ∈RH functions as a compact, 
+information-rich representation of the entire temporal 
+sequence, wherein each hidden state hi contributes propor-
+tionally to its learned importance αi . Rather than treating 
+all time steps uniformly, the attention mechanism enables 
+the model to dynamically modulate the influence of each 
+temporal feature based on its contextual relevance to the 
+localization objective. This selective aggregation not only 
+reduces the dimensionality of the temporal data but also 
+serves as a form of soft alignment over the input sequence, 
+isolating salient motion cues such as sharp attitude changes 
+or terrain-induced elevation shifts.
+By weighting each state according to its alignment score, 
+the attention mechanism effectively filters out transient 
+noise and emphasizes temporally informative patterns that 
+correlate with accurate spatial positioning. The resulting 
+vector c encodes a non-local, sequence-aware embedding 
+that retains both content and temporal structure. These 
+properties are essential for achieving precise regression in 
+environments where GNSS signals are unavailable. Conse-
+quently, this formulation improves both the interpretability 
+of the learned features by identifying temporally significant 
+regions and the generalization ability of the subsequent 
+regression module, which utilizes this adaptively focused 
+representation.
+Kolmogorov–Arnold networks for nonlinear position 
+regression
+KANs are a recent class of neural architectures grounded in 
+the Kolmogorov-Arnold superposition theorem (Kolmog-
+orov, 1956), which guarantees that any multivariate con-
+tinuous function on a compact domain can be expressed 
+as a finite sum and composition of univariate continu-
+ous functions. Unlike traditional Multilayer Perceptrons 
+(MLPs) that use fixed activation functions at nodes, KANs 
+shift the nonlinearity to the edges by associating each con-
+nection with a learnable univariate transformation. This 
+edge-based parameterization not only enhances interpret-
+ability but also offers finer control over the approximation 
+(15)
+c =
+T
+
+i=1
+αihi,
+(context vector)
+[p.10]
+Page 10 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+complexity, ensuring smoother and more adaptive function 
+fitting (Liu et al., 2024).
+Let c = [c1, c2, . . . , cd]⊤∈Rd denote the latent input 
+vector derived from the attention-aggregated temporal 
+encoding. The output of a KAN layer is computed as a 
+superposition of transformed edge functions:
+where φi,j : R →R is a trainable univariate transfor-
+mation associated with the edge from input i to output 
+unit j , and j is an optional post-aggregation nonlinear-
+ity. Here, m = 2d + 1 ensures the network has sufficient 
+capacity to approximate general multivariate mappings as 
+per the theoretical lower bound.
+Each univariate transformation φi,j(x) is modeled as a 
+hybrid function comprising a Smooth Global Activation 
+(SiLU) and a localized cubic B-spline expansion:
+Where
+•	 SiLU(x) = x · σ(x) introduces smooth global nonlin-
+earity;
+•	 B(3)
+k (x) denotes the k-th cubic B-spline basis func-
+tion, evaluated over a normalized domain using the 
+Cox–de Boor algorithm (Li, 2024);
+•	 βijk are spline expansion coefficients;
+•	 w(b)
+ij  , w(s)
+ij regulate the influence of global and local 
+components.
+To ensure consistent expressivity across dimensions, 
+layer normalization is applied to all inputs x ∈[−1, 1] , 
+aligning the input range with the spline knot domain.
+The final regression stage of the CLAK architecture, as 
+illustrated in Fig.  2, is implemented using a KAN. This 
+module receives the compact, attention-weighted context 
+vector ct produced by the preceding recurrent and atten-
+tion layers. The KAN module applies a hierarchical com-
+position of univariate nonlinear transformations along 
+each edge, leveraging a mixture of global SiLU activations 
+and local cubic B-spline expansions to construct expres-
+sive function approximators.
+The processed feature representation is subsequently 
+passed through a fully connected KAN layer to generate 
+the final geospatial prediction ˆyt.
+As shown in the final stage of the architecture in Fig. 2, 
+the model employs a KAN that incorporates both spline-
+based basis functions Bk(x) and hierarchical activation 
+(16)
+f (c) =
+m
+
+j=1
+j
+ d
+
+i=1
+φi,j(ci)
+
+,
+(17)
+φi,j(x) = w(b)
+ij
+· SiLU(x) + w(s)
+ij
+G−1
+
+k=0
+βijk B(3)
+k (x),
+layers ℓ to capture highly nonlinear relationships arising 
+from complex sensor dynamics and terrain-induced vari-
+ations. This structured regression module receives the 
+attention-weighted context vector and enables expressive 
+function approximation in a compact and interpretable 
+form. By integrating convolutional feature extraction, 
+recurrent temporal encoding, attention-based aggrega-
+tion, and principled nonlinear regression, the CLAK 
+framework provides accurate and resilient UAV posi-
+tion estimates. Its design supports computational effi-
+ciency, making it well suited for real-time deployment on 
+resource-constrained aerial platforms operating in envi-
+ronments with degraded or unavailable GNSS signals.
+Computational complexity analysis of the CLAK framework
+For a single forward pass of CLAK on a sequence of 
+length N (i.e., {xt}N
+t=1 with xt ∈Rdx and dx = 17 , see 
+Table  3), the time complexity can be decomposed per 
+module as follows.
+1) Convolutional and FC blocks Each of the six sensor 
+modalities is processed by an independent 1D CNN with 
+kernel size kcnn and Cout filters:
+•	 Per convolutional layer, per modality: O(N kcnn Cout)
+•	 For all six modalities: O(6NkcnnCout).
+Max pooling with a window size of P = 1 incurs negli-
+gible cost.
+The fully connected projection
+with Wf ∈Rd×Cout , has cost O(N Cout d) , where d is the 
+LSTM input dimension (in practice d ≈H = 64).
+Thus, the total convolutional front-end cost is
+2) Stacked bidirectional LSTM The stacked Bi-LSTM 
+has L = 2 layers and hidden size H = 64 . Per time step, 
+direction, and layer:
+•	 Input transformation: O(Hd),
+•	 Recurrent transformation: O(H2).
+Thus, the cost per step/direction/layer is O(H(d + H)).
+For bidirectional processing with L layers over N 
+steps, the total cost is
+3) Attention module. Given the sequence of hidden states 
+{hi}N
+i=1 , where each hi ∈RH , the attention mechanism 
+ˆzt = φ
+
+Wf zpooled
+t
++ bf
+
+(Eq.6)
+(18)
+O
+
+N(6kcnnCout + Coutd)
+
+(19)
+O
+
+2NLH(d + H)
+
+(dominant term)
+[p.11]
+Page 11 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+	
+computes an alignment score between each hidden rep-
+resentation and a learnable context vector, as defined in 
+Eq. 15:
+The computational costs of the attention operations are 
+as follows:
+•	 Alignment score computation: O(NdH),
+•	 Softmax normalization: O(N),
+•	 Context vector aggregation: O(NH)
+Hence, the overall computational complexity of the 
+attention module is dominated by the alignment com-
+putation term:
+4) KAN regression head The KAN regression head takes 
+as input the attention-derived context vector c ∈RH and 
+produces the final position estimate ˆyt ∈R3 . Each input–
+output connection is modeled using a cubic B-spline 
+with g = 6 basis functions, providing smooth and adap-
+tive nonlinear mappings. Given H input dimensions and 
+u = 3 output units, the computational cost of the KAN 
+block can be expressed as:
+Unlike the convolutional, recurrent, and attention mod-
+ules whose operations scale linearly with the sequence 
+length N, the KAN head introduces only a fixed overhead 
+proportional to the number of spline evaluations, making 
+its cost independent of N.
+5) Overall time complexity Combining the individual 
+module costs derived above, the overall forward-pass 
+complexity of the CLAK model can be expressed as:
+With Cout = H = d = 64 , kcnn = 3 , L = 2 , u = 3 , and 
+g = 6 , all width-related terms are fixed constants. There-
+fore, the overall complexity of the CLAK model scales 
+linearly with the sequence length:
+Implementation and results
+This section presents the implementation of the CLAK 
+framework, the preparation of our UAV localization 
+dataset, and the subsequent validation and performance 
+evaluation. The objective is to assess the localization 
+ei = v⊤
+e tanh(Wehi + be),
+We ∈Rd×H
+(20)
+O(NdH)
+(21)
+O(H u g)
+(22)
+O
+
+N
+
+6kcnnCout + Coutd + 2LH(d + H) + dH
+
++ Hug
+
+(23)
+O(N)
+accuracy and computational efficiency of CLAK under 
+GNSS-denied conditions and compare its performance 
+with LSTM baselines using a high-fidelity simulation 
+platform. Performance is evaluated using two proto-
+cols. Firstly, five-fold cross-validation is conducted on 
+the dataset to assess the model’s ability to generalize to 
+unseen flight segments. Secondly, leave-one-trajectory-
+out testing is employed, in which the model is trained on 
+seven trajectories and evaluated on the withheld trajec-
+tory to assess its robustness across diverse flight patterns 
+and terrain conditions. In both cases, 3D geospatial posi-
+tions (latitude, longitude, elevation) are predicted from 
+fused barometric, LiDAR, and inertial measurements, 
+addressing challenges posed by varying altitudes and 
+complex topographic variations.
+Dataset and region localization
+A synthetic UAV localization dataset was developed 
+using the Open Source ROS2 Framework for Out-
+door UAV Dataset Generation (OS-RFODG) frame-
+work (Jarraya et al., 2025b), a ROS 2-based open-source 
+simulation platform specifically tailored for GNSS-
+denied environments. The dataset generation pipeline 
+incorporates a high-fidelity simulation stack that emu-
+lates realistic UAV flight dynamics and terrain inter-
+actions. PX4 serves as the flight control middleware, 
+Gazebo provides a physics-based simulation environ-
+ment, and QGroundControl (QGC) facilitates mission 
+planning, telemetry logging, and trajectory monitor-
+ing. Terrain modeling is achieved by integrating multi-
+resolution GeoTIFF elevation layers, including a Digital 
+Elevation Model, a Digital Surface Model, and a Digi-
+tal Terrain Model. These layers originate from satellite 
+imagery and remote-sensing datasets, undergo spatial 
+processing and quality assurance in Quantum Geo-
+graphic Information System (QGIS), and are rendered 
+together in a unified 3D environment using Blender. 
+By combining multiple elevation sources and applying 
+rigorous preprocessing, the simulated terrain faithfully 
+reproduces the fine-scale geographic complexity of the 
+real-world landscape. Flight scenarios were simulated 
+over the desert and mountainous terrain of the Taif 
+region in western Saudi Arabia, an area distinguished 
+by steep escarpments and elevated plateaus.
+As illustrated in Fig.  3, the simulation environment 
+integrates both high-resolution aerial imagery (Fig. 3a 
+) and 3D terrain reconstructions derived from a digi-
+tal elevation model (Fig. 3b ). The underlying DEM is 
+georeferenced to EPSG:4326 and stored as a GeoTIFF. 
+It spans approximately 415×155 pixels, covering the 
+region bounded by 40.1671◦ to 40.2824◦ longitude and 
+21.2646◦ to 21.3076◦ latitude. The horizontal resolution 
+is approximately 0.000278 degrees, and the elevation 
+[p.12]
+Page 12 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+values are stored as 16-bit integers (int16) , with a verti-
+cal accuracy of approximately 1 m. This elevation data 
+enables accurate simulation of terrain-relative altitude 
+and line-of-sight sensing, essential for GNSS-denied 
+UAV localization.
+Table  2 and Fig.  4 summarize the seven UAV flight 
+trajectories used to evaluate the CLAK framework. 
+Table 2 reports, for each trajectory, the total flight dura-
+tion in minutes (Dur), the geodesic distance covered in 
+kilometres (Dist), the geographic span in latitude and 
+longitude ( Lat, Lon ), the minimum and maximum 
+ground elevations (Min Elev, Max Elev), the first- and 
+second-order statistics of the residual noise (Mean Res, 
+Std Res, Var Res), and the Fast Fourier Transform (FFT) 
+energy of the residual signal. Figure  4 complements 
+these metrics by displaying histograms of the residual 
+noise, computed as the difference between barometric 
+altitude and LiDAR range. These distributions exhibit 
+pronounced non-Gaussian and multimodal characteris-
+tics, resulting from sensor drift, surface reflectivity var-
+iations, and underlying terrain heterogeneity. Together, 
+the table and figure highlight the diverse temporal, spa-
+tial, and noise-related challenges that learning-based 
+localization methods must address in GNSS-denied 
+environments.
+The residual statistics and spectral energy are for-
+mally defined as follows. Given residual samples ri for 
+i = 1, . . . , N:
+(24)
+Mean residual:
+r = 1
+N
+N
+
+i=1
+ri,
+Let Rk denote the discrete Fourier transform coefficients 
+of the residual sequence. The FFT energy is then
+Which by Parseval’s theorem equals the total signal 
+power in the time domain:
+The seven UAV trajectories exhibit a wide range of 
+flight conditions and residual noise characteristics, 
+reflecting both environmental diversity and sensor 
+response dynamics (Table 2, Fig. 4). Trajectory 2 is the 
+shortest and most compact mission, lasting 10.46  min 
+and covering 3.23  km over a limited spatial extent 
+(0.01131◦ × 0.00640◦ ). Despite its brevity, it presents 
+the highest residual variability (Std Res = 68.11 m, Var 
+Res = 4638.96  ­m2), which suggests intense fluctuations 
+in barometer-LiDAR agreement over short distances. 
+This is further supported by a moderate FFT energy 
+(25)
+Standard deviation:
+σr =
+
+
+
+ 1
+N
+N
+
+i=1
+(ri −r)2,
+(26)
+Variance:
+σ 2
+r = 1
+N
+N
+
+i=1
+(ri −r)2.
+(27)
+FFT Energy =
+⌊N/2⌋
+
+k=0
+Rk
+2,
+(28)
+N
+
+i=1
+|ri|2 =
+1
+N
+N−1
+
+k=0
+Rk
+2.
+Longitude
+Latitude
+Elevation (m)
+Elevation (m)
+a Aerial view of the Taif region
+b 3D Digital elevation model
+Fig. 3  Simulated environment of the Taif region: (a) UAV aerial view; (b) DEM
+[p.13]
+Page 13 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+	
+( 1.09 × 1013 ), indicating rapid transitions across localized 
+elevation discontinuities (782.96-−1016.31 m).
+Trajectories 3 (T3) and 1 (T1) are the most demanding 
+in terms of spatiotemporal coverage. T3 covers the great-
+est distance (14.70 km in 37.55 min), while T1 holds the 
+longest flight duration (38.11 min over 12.24 km). Both 
+traverse wide spatial footprints (up to 0.01980◦ in lon-
+gitude), with pronounced elevation variability (757.57-
+−1045.31  m for T3; 768.80-−1023.20  m for T1). Their 
+high residual noise levels (T1: 64.37 m; T3: 63.09 m) and 
+substantial FFT energy ( 2.45 × 1014 and 2.30 × 1014 , 
+respectively) indicate frequent terrain transitions and 
+dynamically varying altitudes, which challenge localiza-
+tion consistency.
+Trajectory 4 (T4), while spatially smaller than T3 (11.59 
+km), shares the same duration, spatial footprint, and ter-
+rain profile. Its residual structure (Std Res = 63.09  m) 
+and FFT energy ( 2.30 × 1014 ) closely match T3, implying 
+T1
+1200
+1000
+800
+600
+400
+200
+0
+1500
+1250
+1000
+750
+500
+250
+0
+1400
+1200
+1000
+800
+600
+400
+200
+0
+1200
+1000
+800
+600
+400
+200
+0
+2000
+1500
+1000
+500
+0
+300
+250
+200
+150
+100
+50
+0
+1500
+1250
+1000
+750
+500
+250
+0
+Frequency
+Frequency
+Frequency
+Frequency
+Frequency
+Frequency
+Frequency
+T2
+T3
+T4
+800
+900
+1000
+Residual (m)
+800
+900
+1000
+Residual (m)
+800
+900
+1000
+Residual (m)
+850
+900
+800
+750
+Residual (m)
+850
+900
+800
+750
+Residual (m)
+800
+900
+1000
+Residual (m)
+800
+900
+1000
+Residual (m)
+T5
+T7
+T6
+Fig. 4  Histograms of the sensor residual, defined as the difference between the barometer-derived altitude estimate and the LiDAR-derived 
+ground distance, for trajectories T1-T7.
+[p.14]
+Page 14 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+analogous signal behavior and localization difficulty. This 
+trajectory likely reinforces the robustness of the analysis 
+under repeated, challenging terrain conditions.
+Trajectory  5 (T5), spanning 28.87  min and 9.31  km, 
+is characterized by moderate terrain shifts (755.36-
+−902.51 m) and a smoother residual profile (Std Res = 
+36.42  m). However, its relatively elevated FFT energy 
+( 1.22 × 1014 ) suggests persistent low-to-mid-frequency 
+terrain undulations that accumulate significant vertical 
+uncertainty over time.
+Trajectory 6 (T6) represents the most stable scenario, 
+with the shortest residual deviation (Std Res = 33.95 m, 
+Var Res = 1152.41  ­m2) and the lowest FFT energy 
+( 6.74 × 1013 ). Its 6.94 km path over 21.74 min and mod-
+erate elevation range (756.12-−926.00 m) indicate grad-
+ual terrain gradients, making it a representative case of 
+smoother, low-variance navigation.
+Trajectory  7 (T7), covering 9.64  km in 34.17  min, 
+exhibits high spatial dispersion especially along the lon-
+gitude axis (0.01935◦)-and residual variability (63.32 m) 
+on par with T3 and T4. Its high FFT energy ( 1.87 × 1014 ) 
+and elevation span (758.21-−1046.06  m) reveal signifi-
+cant terrain-induced instability, despite a shorter overall 
+path.
+Overall, the dataset spans a broad range of mission 
+durations, elevation dynamics, and terrain complex-
+ity, providing a rigorous benchmark for evaluating the 
+robustness of GNSS-denied localization frameworks. 
+Its heterogeneity mirrors the challenges encountered in 
+real-world UAV operations, where localization systems 
+must adapt to varying environmental conditions and sen-
+sor behaviors.
+Residual histograms across all trajectories (Fig.  4) 
+reveal substantial deviations from Gaussianity, exhibiting 
+long-tailed and multimodal distributions. These patterns 
+are indicative of compounded sensor errors, including 
+barometric drift, LiDAR surface reflectivity artifacts, and 
+abrupt elevation transitions. Such non-Gaussian charac-
+teristics highlight the inadequacy of traditional filtering 
+approaches that assume simple noise models. They fur-
+ther motivate the adoption of learning-based methods 
+capable of capturing structured residual patterns and 
+adapting to topographically induced uncertainty in real 
+time. This reinforces the importance of advanced sensor 
+fusion architectures in achieving accurate and resilient 
+UAV localization in GNSS-denied environments.
+Simulation setup and sensor data synchronization
+All experiments were executed on Google Colab Pro, 
+which provides a virtualized Ubuntu 20.04 environment 
+with NVIDIA Tesla T4 GPUs and 16 GB of RAM. Table 3 
+details the hardware and software specifications.
+Each model, including the proposed CLAK framework, 
+was trained for 20 epochs using the Adam optimizer 
+with a learning rate of 1 × 10−3 , a batch size of 32, and 
+the Mean Squared Error (MSE) as the loss function. The 
+Adam optimizer (Adaptive Moment Estimation) adap-
+tively adjusts the learning rate of each parameter based 
+on the first and second moments of the gradient, ensur-
+ing efficient and stable convergence during training. 
+Table  4 presents the key parameters and hyperparam-
+eters employed in the CLAK implementation. Realistic 
+simulation fidelity was ensured by configuring all virtual 
+sensors with stochastic noise and drift characteristics 
+representative of commercial-grade UAV hardware. The 
+IMU modules simulated full Six-Degree-of-Freedom 
+Table 2  Trajectory characteristics (Transposed)
+Characteristic
+T1
+T2
+T3
+T4
+T5
+T6
+T7
+Duration (min)
+38.11
+10.46
+37.55
+37.55
+28.87
+21.74
+34.17
+Distance (km)
+12.2386
+3.2330
+14.6971
+11.5876
+9.3097
+6.9381
+9.6400
+Lat ( ◦)
+0.01356
+0.01131
+0.01275
+0.01275
+0.01318
+0.01395
+0.01147
+Lon ( ◦)
+0.01031
+0.00640
+0.01980
+0.01980
+0.01113
+0.01207
+0.01935
+Min Elev (m)
+768.80
+782.96
+757.57
+757.57
+755.36
+756.12
+758.21
+Max Elev (m)
+1023.20
+1016.31
+1045.31
+1045.31
+902.51
+926.00
+1046.06
+Mean Res (m)
+857.87
+888.45
+840.42
+840.42
+797.50
+789.24
+832.52
+Std Res (m)
+64.37
+68.11
+63.09
+63.09
+36.42
+33.95
+63.32
+Var Res (m2)
+4143.78
+4638.96
+3980.10
+3980.10
+1326.72
+1152.41
+4008.79
+FFT Energy
+2.45 × 1014
+1.09 × 1013
+2.30 × 1014
+2.30 × 1014
+1.22 × 1014
+6.74 × 1013
+1.87 × 1014
+Table 3  System specifications for simulation environment
+Component
+Specification
+CPU
+Intel Xeon @ 2.20 GHz (2 cores, 4 threads)
+RAM
+12–26 GB (dynamically allocated)
+Software stack
+Python 3.10, TensorFlow 2.15.1, tfkan 0.1.1
+[p.15]
+Page 15 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+	
+(6-DOF) motion, incorporating additive Gaussian noise 
+of 0.01 m/s2 on accelerometer readings and 0.001 m/s2 
+on gyroscope measurements, with bias drift profiles 
+modeled after the MPU-6050 specification. The LiDAR 
+sensors generated range data within a 0.1-120  m span, 
+subject to zero-mean Gaussian noise ( σ = 0.02 m ). The 
+barometric altimeter produced pressure-derived altitude 
+estimates with Gaussian perturbations ( σ = 0.1 m ) and 
+included temperature-compensation effects. Together, 
+these configurations accurately reproduced the stochas-
+tic behavior of typical onboard sensors used in compact 
+UAV systems operating under GNSS-denied conditions.
+In our ROS 2-based system, the preprocessing and syn-
+chronization of multimodal data from the LiDAR, IMU, 
+and barometric sensors are managed through a dedicated 
+pipeline. The overall preprocessing pipeline is summa-
+rized as follows:
+•	 LiDAR preprocessing: Although a 3D LiDAR sensor 
+was used, its output was converted into a single 1D 
+beam representation. This was achieved by selecting 
+one horizontal scan line (corresponding to the cen-
+tral elevation layer) and extracting the distance value 
+along that beam. The objective was to simplify spa-
+tial perception into a compact, range-based feature 
+for fusion while preserving the temporal characteris-
+tics of the LiDAR stream. The resulting 1D distance 
+measurement was then normalized for subsequent 
+processing.
+•	 IMU preprocessing: The raw IMU data provided 
+linear acceleration and angular velocity along 
+three axes. Each signal was bias-corrected and fil-
+tered using a low-pass Butterworth filter to remove 
+high-frequency noise. A short sliding window 
+of 50-100  ms was applied to compute statistical 
+descriptors such as mean and variance, preserving 
+the short-term motion context.
+•	 Barometric preprocessing: The barometric sensor 
+operated at a lower sampling rate (approximately 
+5  Hz). Its altitude estimates were interpolated 
+according to the synchronized ROS 2 timestamps, 
+ensuring that each LiDAR-IMU pair had a corre-
+sponding barometric value. Temperature and pres-
+sure-drift compensation were applied prior to nor-
+malization.
+•	 Temporal alignment: Because the three modalities 
+differ in sampling frequency (LiDAR ≈ 10 Hz, IMU 
+≈  200  Hz, barometer ≈  5  Hz), the closest times-
+tamped samples were aligned across modalities. All 
+synchronized readings were concatenated into a 
+17-dimensional feature vector representing spatial 
+(LiDAR beam), inertial (IMU), and environmental 
+(barometric) cues.
+Table 4  CLAK model parameters
+Symbol
+Description
+Value
+dx
+Input feature dimension (sensor fusion vector xt)
+17
+dy
+Output dimension ( [ ˆℓt, ˆt, ˆht])
+3
+Cout
+Number of CNN filters per convolutional layer
+64
+kcnn
+CNN kernel size
+3
+P
+Max pooling window size
+1
+H
+Number of hidden units in each LSTM layer
+64
+L
+Number of stacked LSTM layers
+2
+u
+Output units in the KAN regression layer
+3
+g
+Number of cubic B-spline basis functions (grid size)
+6
+η
+Learning rate of the Adam optimizer
+1 × 10−3
+B
+Training batch size
+32
+E
+Number of training epochs
+20
+σ(x)
+Sigmoid activation function
+σ(x) =
+1
+1+e−x
+tanh(x)
+Activation function for LSTM cell state
+Range (−1, 1)
+SiLU(x)
+Global activation in KAN edges
+x · σ(x)
+βijk
+Trainable spline expansion coefficients
+Learned parameters
+w(b)
+ij , w(s)
+ij
+Global (SiLU) and local (spline) mixing weights
+Learned parameters
+Optimizer
+Optimization algorithm
+Adam
+Loss
+Training loss function
+Mean Squared Error
+[p.16]
+Page 16 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+This ROS  2-based preprocessing pipeline ensures that 
+heterogeneous sensor data are temporally aligned, fil-
+tered, and normalized before entering the deep-learning 
+fusion module, thereby maintaining data consistency and 
+preventing temporal drift during training and inference.
+We compare the proposed CLAK architecture against 
+two baseline models under identical preprocessing, ini-
+tialization, and training configurations. All models are 
+initialized using the UAV’s initial position and elevation 
+derived from the recorded GPS coordinates and the cor-
+responding DEM reference before the GNSS-denied 
+interval, ensuring a consistent spatial frame for absolute 
+localization evaluation. The comparative baselines are 
+defined as follows:
+•	 LSTM: a single-layer LSTM encoder followed by fully 
+connected regression layers.
+•	 CNN-LSTM-Att: a hybrid model combining 1D 
+convolutions for spatial feature extraction, a stacked 
+LSTM for temporal modeling, and attention-based 
+pooling, as employed by Wang et al. (2025).
+Evaluation metrics
+The quantitative evaluation of each UAV localization 
+model was conducted using four complementary met-
+rics: the Mean Absolute Error (MAE), the Root Mean 
+Squared Error (RMSE), the Coefficient of Determina-
+tion ( R2 ), and the average inference time per sample 
+( T inf ). These indicators jointly assess both localization 
+accuracy and computational efficiency, thereby ena-
+bling a fair comparison across models.
+Let N denote the total number of time steps in a 
+given trajectory, and let (ℓt, t, ht) and ( ˆℓt, ˆt, ˆht) repre-
+sent the ground-truth and predicted geodetic coordi-
+nates, respectively, at time step t . The definitions of the 
+four evaluation metrics are presented below.
+•	 MAE: Measures the average magnitude of abso-
+lute deviations between predicted and true geo-
+detic coordinates, providing an intuitive measure 
+of overall prediction accuracy. It is computed as 
+shown in Equation (29). 
+•	 RMSE: Captures the quadratic mean of predic-
+tion errors, emphasizing larger deviations in the 
+estimated trajectory and reflecting global stability 
+(29)
+MAE = 1
+N
+N
+
+t=1
+
+|Oℓt −ℓt| + |Ot −t| + |Oht −ht|
+
+.
+of localization accuracy. The RMSE is defined in 
+Equation (30). 
+•	 R2 : Evaluates the proportion of variance in the ref-
+erence trajectory that is captured by the model pre-
+dictions, indicating the explanatory power of the 
+model. Values of R2 close to 1 denote strong con-
+sistency between predicted and true coordinates. 
+The computation is shown in Equation (31). 
+ where ¯ℓ , ¯ , and ¯h denote the mean values of the true 
+latitude, longitude, and elevation across all N sam-
+ples, respectively.
+•	 Average inference time per sample ( T inf ): Quanti-
+fies the computational latency per prediction and 
+determines whether a model satisfies real-time con-
+straints. The average inference latency is defined in 
+Equation (32). 
+ where τt represents the per-sample inference time 
+and T inf corresponds to the mean latency across all 
+N samples. A model is considered real-time capa-
+ble when T inf < Tbudget , with Tbudget denoting the 
+maximum permissible per-sample delay (30-35 ms), 
+equivalent to a 30-35  Hz frame rate on the target 
+hardware  (Lema et  al., 2024; Wofk et  al., 2019; Ye 
+et al., 2023).
+5‑Fold cross‑validation results
+Table  5 reports the mean ± std performance of each 
+model under five-fold cross-validation. CLAK outper-
+forms all baselines on every metric. Specifically, relative 
+to the LSTM model, CLAK achieves:
+(30)
+RMSE =
+
+
+
+ 1
+N
+N
+
+t=1
+
+(Oℓt −ℓt)2 + (Ot −t)2 + (Oht −ht)2
+
+.
+(31)
+R2 = 1 −
+N
+t=1
+
+( ˆℓt −ℓt)2 + (ˆt −t)2 + (ˆht −ht)2
+N
+t=1
+
+(ℓt −¯ℓ)2 + (t −¯)2 + (ht −¯h)2
+ ,
+(32)
+T inf = 1
+N
+N
+
+t=1
+τt,
+Table 5  5-Fold cross-validation results for UAV Localization
+Model
+MAE (m)
+RMSE (m)
+R2
+LSTM
+3.1953 ± 0.8012
+6.9293 ± 1.8777
+0.9681 ± 0.0057
+CNN-LSTM-Att
+1.1914 ± 0.0868
+3.3929 ± 0.3476
+0.9964 ± 0.0007
+CLAK
+0.9042 ± 0.0310
+2.3621 ± 0.1055
+0.9979 ± 0.0004
+[p.17]
+Page 17 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+	
+•	 a 71.7% reduction in MAE (from 3.1953 ± 0.8012 m 
+to 0.9042 ± 0.0310 m),
+•	 a 65.9% reduction in RMSE (from 6.9293 ± 1.8777 m 
+to 2.3621 ± 0.1055 m),
+•	 a 2.98% increase in R2 (from 0.9681 ± 0.0057 to 
+0.9979 ± 0.0004).
+Against the CNN–LSTM–Att baseline, CLAK further 
+delivers:
+•	 a 24.0% reduction in MAE (from 1.1914 ± 0.0868 m 
+to 0.9042 ± 0.0310 m),
+•	 a 30.4% reduction in RMSE (from 3.3929 ± 0.3476 m 
+to 2.3621 ± 0.1055 m),
+•	 a 0.15% improvement in R2 (from 0.9964 ± 0.0007 to 
+0.9979 ± 0.0004).
+Despite the strong performance of the CNN-LSTM-Att 
+model, CLAK reduces the MAE by an additional 0.29 m, 
+lowering the error to below 1 m and cutting the residual 
+uncertainty to approximately one quarter of its original 
+value after convolutional preprocessing.
+These gains show that incorporating attention pooling 
+and spline-based KAN activations in CLAK produces a 
+much closer fit to the ground-truth trajectories. In par-
+ticular, achieving an MAE under one metre and reducing 
+RMSE by more than 60% demonstrates CLAK’s effec-
+tiveness at mitigating complex, non-Gaussian noise in 
+GNSS-denied environments.
+Trajectory‑level performance in GNSS‑denied UAV 
+scenarios
+We evaluated three deep learning-based localization 
+models on seven distinct UAV flight trajectories col-
+lected in GNSS-denied outdoor environments. Each 
+trajectory exhibits different terrain complexity, elevation 
+variation, and sensor noise characteristics, posing unique 
+challenges for UAV localization algorithms. Table  2 
+summarizes the key attributes of the seven UAV flight 
+trajectories used for evaluation. Each trajectory differs in 
+total samples, flight duration, geographic extent, eleva-
+tion variation, and sensor noise statistics (mean, standard 
+deviation, variance). These diverse terrain complexities 
+and noise profiles present varying levels of challenge 
+for deep learning-based localization models and allow a 
+comprehensive assessment of algorithm robustness and 
+accuracy.
+Fig.  5 and 6 present an overlay of the ground-truth 
+and model-predicted UAV trajectories for a representa-
+tive flight. The reference trajectory (blue) delineates both 
+planar loops and vertical excursions characteristic of 
+the mission profile. The LSTM baseline (green) exhibits 
+systematic phase lag and spatial deviation, particularly 
+during segments of rapid altitude transition and high-
+curvature maneuvers, reflecting its limited capacity to 
+capture the underlying spatio-temporal correlations. In 
+contrast, the CLAK model (orange) achieves near-perfect 
+alignment with the true path, precisely reproducing both 
+horizontal loop geometries and elevation changes. This 
+result confirms CLAK’s robustness in modeling nonlin-
+ear UAV dynamics under GNSS-denied conditions.
+As shown in Table 6, the proposed CLAK architecture 
+consistently outperforms all baseline models across key 
+localization metrics. Compared to the LSTM and CNN–
+LSTM–Attention baselines, CLAK demonstrates the fol-
+lowing advantages:
+•	 A 65.2% reduction in MAE over LSTM; the best 
+MAE is observed in Trajectory  4 at 0.6848 m , and 
+CLAK also improves upon the CNN–LSTM–Atten-
+tion global MAE of 1.1914 m by 24.0%.
+•	 A 62.7% reduction in RMSE compared to LSTM; 
+the lowest RMSE, also in Trajectory 4, is 1.6732 m , 
+outperforming the CNN–LSTM–Attention average 
+RMSE of 3.3929 m by 30.4%.
+•	 A 12.4% increase in R2 over LSTM, reaching a peak 
+value of 0.9990 in Trajectory 4; CLAK also surpasses 
+the CNN–LSTM–Attention average R2 of 0.9964 by 
++0.15%.
+In addition to the strong performance on Trajectory 4, 
+CLAK exhibits consistent gains across all test flights. For 
+instance, in Trajectory 1, CLAK reduces the MAE from 
+2.86  m (LSTM) to 0.97  m, achieving a 66.2% improve-
+ment. In Trajectory  7, CLAK reduces the RMSE from 
+6.61 m (LSTM) to 1.62 m, a 75.4% decrease. These con-
+sistent improvements highlight the robustness of CLAK 
+across varying flight conditions.
+These per-trajectory advantages are reinforced by the 
+global results summarized in Table 7. On average across 
+all seven test flights, CLAK achieves:
+•	 The lowest mean absolute error at 0.800 m and the 
+lowest root-mean-square error at 1.915 m , out-
+performing LSTM by 68.3% in MAE and 65.1% in 
+RMSE, and surpassing CNN–LSTM–Attention by 
+14.9% in MAE and 16.7% in RMSE.
+•	 An 
+outstanding 
+coefficient 
+of 
+determination 
+( R2 = 0.9980 ), reflecting near-perfect trajectory fit-
+ting and superior modeling accuracy compared to 
+both baselines.
+•	 Efficient inference performance with an average com-
+putation time of 0.13 ms per sample. Although CLAK 
+introduces more latency than LSTM ( 0.06 ms ), it 
+remains within the bounds of real-time processing 
+[p.18]
+Page 18 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+requirements, and is only marginally slower than 
+CNN–LSTM–Attention ( 0.12 ms).
+•	 The KAN module further strengthens CLAK’s 
+expressive capability by refining nonlinear mappings 
+among sensor features with minimal computational 
+overhead. Its spline-based representation scales lin-
+early with the number of basis functions and adds 
+only 0.01 ms to the inference time, while yielding a 
+clear accuracy gain (RMSE reduced from 2.298 m to 
+1.915 m ). This highlights that KAN not only enhances 
+representational richness but also preserves the 
+framework’s real-time efficiency.
+Overall, CLAK not only achieves significant improve-
+ments in localization accuracy over both LSTM and 
+CNN–LSTM–Attention, 
+but 
+also 
+meets 
+real-time 
+requirements, making it a compelling solution for UAV 
+deployment in GNSS-denied environments.
+Benchmarking with additional AI‑Based UAV localization 
+models
+The robustness and generalization capability of the pro-
+posed CLAK framework were evaluated through the 
+implementation and benchmarking of four independ-
+ent AI-based deep learning architectures, as illustrated 
+1000
+Elev
+Lon
+Lat
+Trajectory 1
+Real
+LSTM
+CLAK
+950
+900
+850
+800
+40.212
+21.272
+21.274
+21.276
+21.278
+21.280
+21.282
+21.284
+21.286
+40.214
+40.216
+40.218
+40.220
+40.222
+40.224
+1000
+Elev
+Lon
+Lat
+Trajectory 2
+950
+900
+850
+800
+21.274
+21.276
+21.278
+21.280
+21.282
+21.284
+21.286
+21.288
+40.216
+40.218
+40.220
+40.222
+950
+Elev
+Lon
+Lat
+Trajectory 3
+900
+850
+800
+750
+40.208
+40.210
+40.212
+40.214
+40.216
+40.218
+40.220
+40.222
+21.274
+21.276
+21.278
+21.280
+21.282
+21.284
+21.286
+21.288
+21.290
+1000
+Elev
+Lon
+Lat
+Trajectory 4
+950
+900
+850
+800
+750
+21.274
+21.276
+21.278
+21.280
+21.282
+21.284
+21.286
+21.288
+40.2075
+40.2100
+40.2125
+40.2150
+40.2175
+40.2200
+40.2225
+40.2250
+40.2275
+Fig. 5  Comparison of real and predicted UAV trajectories for test flights T1-T4 using LSTM and CLAK models.
+[p.19]
+Page 19 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+	
+in Fig.  7. These four methods comprise a model-based 
+CNN, a model-based Gated Recurrent Unit (GRU), a 
+Transformer Encoder model, and the Mamba model. 
+Each model was independently designed, trained, and 
+tested to ensure architectural separation and unbiased 
+performance assessment. All models were trained and 
+evaluated under identical preprocessing, normaliza-
+tion, and hyperparameter configurations to guarantee 
+a fair and consistent evaluation. The experiments were 
+conducted using the same UAV sensor datasets and cor-
+responding DEM references to maintain experimental 
+uniformity.
+(1) Model-based CNN: The CNN captures local spa-
+tial and short-term temporal dependencies among con-
+secutive UAV sensor readings through one-dimensional 
+convolutions. Two successive convolutional layers with 
+rectified linear activation extract hierarchical features, 
+followed by a global pooling layer and a dense regression 
+head. The forward operation is expressed as:
+ where ∗ denotes convolution, φ(·) is the ReLU activation, 
+and W1, W2 are trainable kernel matrices. This architec-
+ture is effective for capturing fine-grained variations in 
+(33)
+ˆy = W2 φ(W1 ∗X + b1) + b2,
+880
+860
+840
+820
+800
+780
+760
+Elev
+Lon
+Lat
+Trajectory 5
+40.208
+40.210
+40.212
+21.272
+21.274
+21.276
+21.278
+21.280
+21.282
+21.284
+21.286
+40.214
+40.216
+40.218
+40.220
+880
+900
+860
+840
+820
+800
+780
+760
+Elev
+Lon
+Lat
+Trajectory 6
+40.208
+40.210
+40.212
+21.272
+21.274
+21.276
+21.278
+21.280
+21.282
+21.284
+21.286
+40.214
+40.216
+40.218
+40.220
+1000
+950
+900
+850
+800
+750
+Elev
+Lon
+Lat
+Trajectory 7
+40.210
+40.215
+21.274
+21.276
+21.278
+21.280
+21.282
+21.284
+21.286
+40.220
+40.225
+Fig. 6  Comparison of real and predicted UAV trajectories for test flights T5-T7 using LSTM and CLAK models
+[p.20]
+Page 20 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+sensor readings, such as rapid changes in acceleration or 
+altitude.
+(2) Model-based GRU: The GRU simplifies the recur-
+rent structure of the LSTM by merging the input and 
+forget gates into a single update gate, resulting in 
+fewer parameters and faster convergence. Its recurrent 
+update mechanism is defined as:
+ where zt and rt denote the update and reset gates, 
+respectively. The GRU efficiently models temporal 
+dependencies in UAV motion, providing reliable results 
+with reduced computational complexity.
+(3) Transformer Encoder Model: The Transformer lev-
+erages self-attention to capture long-range dependencies 
+within UAV sensor sequences without relying on recur-
+rence. The scaled dot-product attention is given by:
+(34)
+zt = σ(Wzxt + Uzht−1),
+rt = σ(Wrxt + Urht−1),
+˜ht = tanh(Whxt + Uh(rt ⊙ht−1)),
+ht = (1 −zt) ⊙ht−1 + zt ⊙˜ht,
+ where Q, K, V represent query, key, and value matrices, 
+and dk denotes the attention dimension. The Transformer 
+encodes multi-sensor interactions, effectively learning 
+global correlations between orientation, velocity, and ter-
+rain variations.
+(4) Mamba Model: Mamba is a selective structured 
+State-Space Model (SSM) designed as an efficient, atten-
+tion-free alternative to Transformers for long-sequence 
+processing. Its core transformation can be abstracted as:
+ where fMamba(·) denotes the stacked Mamba blocks 
+parameterized by  . Within each block, the selective 
+SSM dynamics evolve as:
+ with input-conditioned matrices B(·) , C(·) , D(·) ena-
+bling selective propagation or forgetting of information 
+depending on the current token (Dao and Gu, 2024).
+Mamba further leverages a hardware-aware paral-
+lel “selective scan” algorithm that yields throughput 
+improvements over standard attention modules and 
+scales linearly in sequence length.
+The CNN, GRU, and Transformer models serve as 
+foundational benchmarks for evaluating the proposed 
+CLAK framework (see Table 8). Among these, the Trans-
+former and the Mamba model achieve the lowest MAE 
+and RMSE, confirming their superior ability to model 
+both spatial and temporal dependencies. Notably, the 
+Mamba architecture introduces selective structured 
+(35)
+Attention(Q, K, V) = softmax
+
+QK⊤
+
+dk
+
+V,
+(36)
+ˆyt = fMamba
+
+x1:t; 
+
+,
+(37)
+ht = A ht−1 + B(xt) xt,
+ˆyt = C(xt) ht + D(xt) xt,
+Table 6  Per-trajectory performance and relative gains of CLAK over LSTM for UAV Localization
+Note: Results are rounded to two decimal places for clarity
+The values highlighted in bold indicate the best performance achieved among the comparedmodels for each evaluation metric.
+Metric
+Model
+Traj.1
+Traj.2
+Traj.3
+Traj.4
+Traj.5
+Traj.6
+Traj.7
+MAE (m)
+LSTM
+2.86
+3.71
+2.08
+3.16
+1.57
+1.25
+3.02
+CNN-Attention
+1.27
+1.18
+1.06
+0.73
+0.83
+0.76
+0.72
+CLAK
+0.97
+1.06
+0.84
+0.68
+0.65
+0.68
+0.69
+Gain CLAK vs. LSTM (%)
+↓66.16
+↓71.34
+↓59.63
+↓78.35
+↓58.28
+↓45.40
+↓76.96
+RMSE (m)
+LSTM
+6.19
+7.26
+4.74
+6.57
+3.82
+3.15
+6.61
+CNN-Attention
+3.09
+2.69
+2.62
+1.82
+2.19
+1.86
+1.77
+CLAK
+2.30
+2.40
+2.02
+1.67
+1.67
+1.71
+1.62
+Gain CLAK vs. LSTM (%)
+↓62.88
+↓66.93
+↓57.40
+↓74.56
+↓56.32
+↓45.75
+↓75.40
+R2
+LSTM
+0.83
+0.59
+0.93
+0.92
+0.92
+0.94
+0.92
+CNN-Attention
+0.99
+0.99
+0.99
+0.99
+0.99
+0.99
+0.99
+CLAK
+0.99
+0.99
+0.99
+0.99
+0.99
+0.99
+0.99
+Gain CLAK vs. LSTM (%)
++0.16
++0.39
++0.06
++0.07
++0.07
++0.05
++0.07
+Table 7  Average performance metrics and inference times
+The values highlighted in bold indicate the best performance achieved among 
+the comparedmodels for each evaluation metric.
+Model
+MAE (m)
+RMSE (m)
+R2
+Time (ms)
+LSTM
+2.527
+5.483
+0.8690
+0.06
+CNN-LSTM-
+Attention
+0.940
+2.298
+0.9971
+0.12
+CLAK
+0.800
+1.915
+0.998
+0.13
+[p.21]
+Page 21 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+	
+state-space blocks combined with a hardware-aware 
+parallel algorithm, enabling efficient fully-parallel GPU 
+execution and effective processing of long UAV sensor 
+sequences.
+Despite these strong individual performances, the 
+CLAK framework clearly outperforms all compared 
+models in Table 9. CLAK achieves the best overall con-
+sistency and stability across diverse trajectories, owing 
+to its unified integration of convolutional, recurrent, 
+Fig. 7  Benchmarking models. All models produce estimated UAV localization output.
+Table 8  Per-Trajectory Performance Comparison of Methods Based on CNN, GRU, Transformer, and Mamba for UAV Localization in 
+GNSS-Denied Environments
+The values highlighted in bold indicate the best performance achieved among the comparedmodels for each evaluation metric.
+Metric
+Model
+Traj.1
+Traj.2
+Traj.3
+Traj.4
+Traj.5
+Traj.6
+Traj.7
+MAE (m)
+CNN
+0.998
+3.272
+1.462
+1.089
+0.933
+1.053
+1.269
+GRU​
+0.908
+1.335
+1.112
+1.043
+1.040
+0.947
+0.956
+Transformer
+0.910
+1.291
+1.059
+1.005
+0.894
+0.890
+0.883
+Mamba
+0.818
+1.157
+0.912
+0.835
+0.749
+0.816
+0.694
+RMSE (m)
+CNN
+2.489
+7.157
+3.868
+2.868
+2.546
+2.698
+2.950
+GRU​
+2.742
+3.132
+3.010
+2.673
+2.568
+2.445
+2.392
+Transformer
+2.589
+3.008
+2.879
+2.426
+2.223
+2.117
+2.031
+Mamba
+2.117
+2.635
+2.224
+2.065
+2.004
+1.927
+1.790
+R2
+CNN
+0.910
+0.837
+0.977
+0.980
+0.982
+0.981
+0.984
+GRU​
+0.996
+0.998
+0.997
+0.995
+0.994
+0.996
+0.997
+Transformer
+0.996
+0.998
+0.998
+0.997
+0.996
+0.997
+0.998
+Mamba
+0.995
+0.998
+0.998
+0.997
+0.995
+0.996
+0.999
+[p.22]
+Page 22 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+attention, and Kolmogorov-Arnold representations. 
+This integrated architecture affords CLAK a significant 
+operational advantage in GNSS-denied UAV localization, 
+delivering robust high accuracy across varying flight pat-
+terns and terrain types.
+Discussion
+The CLAK framework demonstrates state-of-the-art per-
+formance in non-visual UAV localization within GNSS-
+denied environments, making notable improvements in 
+accuracy over recent benchmarks.
+Compared to a baseline single-layer LSTM model, 
+CLAK reduces the MAE by 65.2% and the RMSE by 
+62.7%, while maintaining an ultra-low inference time of 
+just 0.13,ms per sample. Although several recent meth-
+ods show notable improvements over LSTM baselines, 
+they often fall short in terms of generalizability or com-
+putational demands. For instance, Wang et al.’s SALSTM 
++ EKF approach   (Wang et  al., 2025) achieves a 50% 
+reduction in position and velocity errors by leveraging 
+IMU, barometer, magnetometer, and airspeed data. Yet, 
+it requires frequent online retraining to adapt to envi-
+ronmental changes. Similarly, the CNN-LSTM-Atten-
+tion + FGO method  (Wang et al., 2025) reports RMSE 
+reductions of 34.6% to 46.6% on vehicular datasets, but it 
+relies heavily on factor graph optimization and lacks the 
+robustness and generalizability of CLAK across varied 
+aerial trajectories.
+Both the AANO plus KAN method (Zheng et al., 2025) 
+and the CLAK framework demonstrate the utility of 
+Kolmogorov-Arnold Networks in improving localization 
+accuracy through spline-based approximations and edge-
+defined activations. The AANO plus KAN approach, 
+developed for passive radar-based time difference of 
+arrival localization, achieves a 38.2 percent reduction in 
+error compared to multilayer perceptrons. This result 
+illustrates the strength of KANs in modeling high-dimen-
+sional delay-to-position relationships in static ground-
+based geolocation tasks. However, the AANO plus KAN 
+method is limited by its reliance on fixed sensor geometry 
+and the absence of complementary sensing inputs. This 
+constraint reduces its adaptability to mobile or aerial 
+platforms and affects robustness in environments with 
+multipath propagation, occlusions, or elevation changes. 
+In contrast, the CLAK framework integrates KAN into 
+a multimodal fusion pipeline that combines LiDAR, 
+inertial measurements, barometric pressure, and digital 
+elevation models. This design enables accurate three-
+dimensional localization across diverse terrains and con-
+ditions where GNSS is unavailable. While both methods 
+benefit from the expressive capacity of KANs, CLAK 
+addresses a broader set of challenges and provides higher 
+robustness in UAV localization scenarios.
+Vision-based localization methods such as PPP com-
+bined with INS, vision, and LiDAR (Li et  al., 2023) 
+achieve high accuracy in satellite-assisted conditions. 
+However, their performance deteriorates during GNSS 
+outages. For example, they accumulate around 3  m of 
+error during a 60-second tunnel blackout. In contrast, 
+CLAK exhibits lower 3D drift, averaging 1.92 m with a 
+range of 1.62 to 2.40 m across seven GNSS-denied UAV 
+flights. This outperforms the CNN-LSTM-Attention 
+model, which records 2.30  m of drift, and the baseline 
+LSTM model, which records 5.48 m of drift.
+A key advantage of CLAK lies in its lightweight, real-
+time operational capabilities. It operates at 2000 Hz, 
+meeting the strict latency requirements of UAV control 
+loops. Unlike vision-aided filters that depend on GPU 
+acceleration and high-resolution image processing (Gha-
+nizadegan and Hashim, 2025; Li et al., 2023a; He et al., 
+2023), CLAK functions entirely on non-visual sensor 
+data, including IMU, LiDAR, and barometric inputs. This 
+enables near-instantaneous inference without the need 
+for high-power onboard computation.
+For example, vision-based systems like GLVL (Li et al., 
+2023a) achieve 2.39 m of accuracy in 0.48 s under sparse 
+visual conditions, and FoundLoc (He et  al., 2023) pro-
+vides sub-meter accuracy in dynamic scenes. However, 
+both methods rely heavily on visual data and computa-
+tional resources, limiting their responsiveness and suit-
+ability for embedded UAV platforms. In contrast, CLAK 
+offers a more efficient and resilient solution for real-
+time navigation in visually degraded or GNSS-denied 
+environments.
+Among CLAK’s strengths is its implicit map-matching 
+capability enabled by digital elevation priors. By compar-
+ing LiDAR range and barometric altitude with pre-loaded 
+digital elevation models, CLAK effectively reduces ver-
+tical drift, corrects local elevation biases, and preserves 
+spatial accuracy even over steep escarpments and rug-
+ged terrain. This capability enhances the system’s robust-
+ness in environments where traditional filters typically 
+Table 9  Average Performance of AI Models for UAV Localization
+The values highlighted in bold indicate the best performance achieved among 
+the comparedmodels for each evaluation metric.
+Model
+MAE (m)
+RMSE (m)
+R2
+CNN
+1.567
+3.909
+0.948
+GRU​
+1.021
+2.548
+0.996
+Transformer
+0.864
+2.090
+0.997
+Mamba
+0.854
+2.109
+0.997
+CLAK
+0.800
+1.915
+0.998
+[p.23]
+Page 23 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+	
+degrade, particularly in GNSS-denied settings with sig-
+nificant elevation variation.
+To further improve scalability and resilience, future 
+work will focus on:
+•	 Designing lightweight KAN variants with quantized 
+splines to reduce memory and latency overhead.
+•	 Employing pruning, quantization, and knowledge 
+distillation to optimize CLAK for embedded AI 
+accelerators.
+•	 Conducting extended field trials across diverse ter-
+rains and weather conditions with online learning.
+•	 Exploring distributed state estimation among multi-
+ple UAVs for improved drift correction and coopera-
+tive localization.
+CLAK establishes a practical benchmark for GNSS 
+denied UAV navigation by combining high-accuracy 
+localization, millisecond-scale inference, and minimal 
+sensor requirements. Its ability to generalize across ter-
+rain types and flight patterns without relying on vision 
+makes it a strong candidate for deployment on resource-
+constrained UAVs for critical missions. The integration 
+of convolutional spatial encoders, LSTM-based temporal 
+reasoning, adaptive attention, and spline-based function 
+approximation within CLAK’s unified pipeline under-
+scores the growing potential of learning-based methods 
+for operational autonomy.
+Conclusion
+This paper presented CNN-LSTM-Attention and Kol-
+mogorov-Arnold Networks for non-visual UAV locali-
+zation in GNSS-denied environments, a novel deep 
+learning framework for UAV localization in GNSS-
+denied environments, integrating convolutional encod-
+ing, LSTM-based temporal modeling, attention pooling, 
+and spline-based KAN layers. Through extensive trajec-
+tory-level evaluations, CLAK consistently outperformed 
+baseline models in both accuracy and robustness, achiev-
+ing an average gain of 62.7% in RMSE and 65.2% in MAE 
+compared to LSTM across seven real UAV trajectories. 
+To enhance real-time applicability, future work will 
+explore lightweight KAN variants and implement model 
+compression techniques such as pruning, quantization, 
+and knowledge distillation. Advances in neuromorphic 
+and quantum edge hardware are also expected to facili-
+tate CLAK’s integration on resource-constrained UAV 
+platforms. In summary, CLAK offers a scalable, accurate, 
+and self-contained solution for non-visual UAV localiza-
+tion, with strong potential for real-time deployment sup-
+ported by emerging edge hardware technologies.
+Acknowledgements
+We gratefully acknowledge the support of Prince Sultan University (PSU), 
+Saudi Arabia.
+Author contributions
+Conceptualization: I.J., M.A., F.A. Software, programming, and implementation: 
+I.J., K.G., M.A. Writing - original draft: I.J., F.A., M.A., K.G. Writing - review and 
+editing: M.B.K., M.A., W.B. Supervision: M.B.K., M.A., W.B. Project administration: 
+M.B.K., W.B. All authors read and approved the final manuscript.
+Funding
+The article processing charge was funded by Prince Sultan University (PSU).
+Data availability
+The dataset generated and/or analysed during the current study is publicly 
+available in the Hugging Face repository: https://​huggi​ngface.​co/​datas​ets/​
+riotu-​lab/​os-​rfodg-​outdo​or-​uav-​synth​etic-​datas​et-​taif-​saudi-​arabia with DOI: 
+https://​doi.​org/​10.​57967/​hf/​6398. Cite as: RIOTU-Lab. OS-RFODG Outdoor UAV 
+Synthetic Dataset, Taif, Saudi Arabia. Hugging Face, 2024. https://​doi.​org/​10.​
+57967/​hf/​6398.
+Declarations
+Competing interests
+The authors declare that they have no Conflict of interest.
+Author details
+1 Robotics and Internet of Things Laboratory, Prince Sultan University, 11586, 
+Riyadh, Saudi Arabia. 
+Received: 7 September 2025   Revised: 14 January 2026   Accepted: 19 
+January 2026
+References
+Alghamdi, S., Alahmari, S., Yonbawi, S., Alsaleem, K., Ateeq, F., & Almushir, F. 
+(2025). Autonomous navigation systems in gps-denied environments: A 
+review of techniques and applications. In: 2025 11th International Confer-
+ence on Automation, Robotics, and Applications (ICARA), pp. 290–299. 
+https://​doi.​org/​10.​1109/​ICARA​64554.​2025.​10977​619.IEEE.
+Almalioglu, Y., Turan, M., Saputra, M. R. U., De Gusmão, P. P. B., Markham, A., & 
+Trigoni, N. (2022). Selfvio: Self-supervised deep monocular visual-inertial 
+odometry and depth estimation. Neural Networks, 150, 119–136. https://​
+doi.​org/​10.​1016/j.​neunet.​2022.​03.​005
+Benjdira, B., Koubaa, A., Azar, A. T., Khan, Z., Ammar, A., & Boulila, W. (2022). Tau: 
+a framework for video-based traffic analytics leveraging artificial intel-
+ligence and unmanned aerial systems. Engineering Applications of Artificial 
+Intelligence, 114, Article 105095. https://​doi.​org/​10.​1016/j.​engap​pai.​2022.​
+105095
+Chen, Q., Li, G., Xue, X., & Pu, J. (2024).: Multi-lio: A lightweight multiple lidar-
+inertial odometry system. In: 2024 IEEE International Conference on 
+Robotics and Automation (ICRA), pp. 13748–13754. https://​doi.​org/​10.​
+1109/​ICRA5​7147.​2024.​10611​257.IEEE.
+Chen, C., & Pan, X. (2024). Deep learning for inertial positioning: A survey. IEEE 
+Transactions on Intelligent Transportation Systems, 25 (9), 10506-10523. 
+https://​doi.​org/​10.​1109/​TITS.​2024.​33811​61
+Dai, H.-F., Bian, H.-W., Wang, R.-Y., & Ma, H. (2020). An ins/gnss integrated 
+navigation in gnss-denied environment using recurrent neural network. 
+Defence Technology, 16(2), 334–340. https://​doi.​org/​10.​1016/j.​dt.​2019.​08.​
+011
+Dao, T., & Gu, A. (2024). Transformers are ssms: Generalized models and 
+efficient algorithms through structured state space duality. arXiv preprint 
+arXiv:​2405.​21060.
+El Sabbagh, M. S., Maher, A., Abozied, M. A. H., & Kamel, A. M. (2023). Promoting 
+navigation system efficiency during gps outage via cascaded neural 
+networks: A novel ai-based approach. Mechatronics, 94, Article 103026. 
+https://​doi.​org/​10.​1016/j.​mecha​troni​cs.​2023.​103026
+[p.24]
+Page 24 of 24
+Jarraya et al. Satellite Navigation             (2026) 7:6 
+Fang, W., Jiang, J., Lu, S., Gong, Y., Tao, Y., Tang, Y., Yan, P., Luo, H., & Liu, J. (2020). 
+An lstm algorithm estimating pseudo-measurements for aiding ins dur-
+ing gnss signal outages. Remote Sensing, 12(2), 256. https://​doi.​org/​10.​
+3390/​rs120​20256
+Ghanizadegan, K., & Hashim, H.A. (2025). Unscented particle filter for visual-
+inertial navigation using imu and landmark measurements. arXiv preprint 
+arXiv:​2504.​19318.
+Gao, Y., Yang, K., Yue, Y., & Wu, Y. (2025). A vehicle trajectory prediction model 
+that integrates spatial interaction and multiscale temporal features. Scien-
+tific Reports, 15(1), 8217. https://​doi.​org/​10.​1038/​s41598-​025-​93071-9
+He, Y., Cisneros, I., Keetha, N., Patrikar, J., Ye, Z., Higgins, I., Hu, Y., Kapoor, P., & 
+Scherer, S. (2023). Foundloc: Vision-based onboard aerial localization in 
+the wild. arXiv preprint arXiv:​2310.​16299.
+Huaman, R., Gonzalez, C., & Prado, S. (2025). Comparative analysis of lidar 
+inertial odometry algorithms in blueberry crops. Engineering Proceedings, 
+83(1), 9. https://​doi.​org/​10.​3390/​engpr​oc202​50830​09
+Jarraya, I., Al-Batati, A., Kadri, M. B., Abdelkader, M., Ammar, A., Boulila, W., & 
+Koubaa, A. (2025). Gnss-denied unmanned aerial vehicle navigation: 
+Analyzing computational complexity, sensor fusion, and localization 
+methodologies. Satellite Navigation,, 6 (1), Article 9. https://​doi.​org/​10.​
+1186/​s43020-​025-​00162-z
+Jarraya, I., Abdelkader, M., Gabr, K., Kadri, M.B., Alahmed, F., Boulila, W., & Kou-
+baa, A. (2025). OS-RFODG: Open-source ROS2 framework for outdoor UAV 
+dataset generation. Results in Engineering, 27, Article 106613 https://​doi.​
+org/​10.​1016/j.​rineng.​2025.​106613.
+Enabling Robust SLAM for Mobile Robots with Sensor Fusion. In: Fan, R., Guo, 
+S., Bocus, M.J. (eds) Autonomous Driving Perception. Advances in Com-
+puter Vision and Pattern Recognition. Springer, Singapore.
+Kramarić, L., Jelušić, N., Radišić, T., & Muštra, M. (2025). A comprehensive survey 
+on short-distance localization of uavs. Drones, 9(3), 188. https://​doi.​org/​
+10.​3390/​drone​s9030​188
+Kolmogorov, A. N. (1956). On the representation of continuous functions of 
+several variables as superpositions of continuous functions of one vari-
+able and addition. Doklady Akademii Nauk SSSR, 108(2), 179–182. https://​
+doi.​org/​10.​1007/​978-3-​642-​01742-1_5
+Khan, L., Qazi, A., Chang, H.-T., Alhajlah, M., & Mahmood, A. (2025). Empowering 
+urdu sentiment analysis: An attention-based stacked CNN-Bi-LSTM DNN 
+with multilingual BERT. Complex & Intelligent Systems, 11(1), 10. https://​doi.​
+org/​10.​1007/​s40747-​024-​01631-9
+Kong, Y., Wang, Z., Nie, Y., Zhou, T., Zohren, S., Liang, Y., Sun, P., & Wen, Q. (2025) 
+Unlocking the power of LSTM for long-term time series forecasting. In: 
+Proceedings of the AAAI Conference on Artificial Intelligence, vol. 39, pp. 
+11968–11976. https://​doi.​org/​10.​1609/​aaai.​v39i11.​33303.
+Lecun, Y., Bottou, L., Bengio, Y., & Haffner, P. (1998). Gradient-based learn-
+ing applied to document recognition. Proceedings of the IEEE, 86(11), 
+2278–2324. https://​doi.​org/​10.​1109/5.​726791
+Liu, Z., Cai, T., Zhang, Z., Wang, Y., Wojcik, C., Jaakkola, T., Tenenbaum, J.B., & Xu, 
+K. (2024). KAN: Kolmogorov-Arnold Networks. arXiv preprint arXiv:​2404.​
+19756.
+Li, Z. (2024). Kolmogorov-arnold networks are radial basis function networks. 
+arXiv preprint arXiv:​2405.​06721.
+Li, Y., Li, J., Dong, Z., Wang, Y., & Yang, B. (2025). Saliencyi2ploc: Saliency-guided 
+image-point cloud localization using contrastive learning. Information 
+Fusion, 118, Article 103015. https://​doi.​org/​10.​1016/j.​inffus.​2025.​103015
+Li, S., Li, X., Wang, H., Zhou, Y., & Shen, Z. (2023). Multi-GNSS PPP/INS/Vision/
+LiDAR tightly integrated system for precise navigation in urban environ-
+ments. Information Fusion, 90, 218–232. https://​doi.​org/​10.​1016/j.​inffus.​
+2022.​09.​018
+Lema, D. G., Usamentiaga, R., & García, D. F. (2024). Quantitative comparison 
+and performance evaluation of deep learning-based object detection 
+models on edge computing devices. Integration, 95, Article 102127. 
+https://​doi.​org/​10.​1016/j.​vlsi.​2023.​102127
+Luo, S., Wang, B., Gao, Q., Wang, Y., & Pang, X. (2024). Stacking integration 
+algorithm based on cnn-bilstm-attention with xgboost for short-term 
+electricity load forecasting. Energy Reports, 12, 2676–2689. https://​doi.​org/​
+10.​1016/j.​egyr.​2024.​08.​078
+Li, H., Wang, J., Wei, Z., & Xu, W. (2023). Jointly optimized global-local visual 
+localization of UAVs. arXiv preprint arXiv:​2310.​08082.
+Li, D., Zhang, F., Feng, J., Wang, Z., Fan, J., Li, Y., Li, J., & Yang, T. (2023). LD-SLAM: 
+A robust and accurate GNSS-aided multi-map method for long-distance 
+visual SLAM. Remote Sensing, 15(18), 4442. https://​doi.​org/​10.​3390/​rs151​
+84442
+Narkhede, P., Walambe, R., Poddar, S., & Kotecha, K. (2021). Incremental learning 
+of LSTM framework for sensor fusion in attitude estimation. PeerJ Com-
+puter Science, 7, 662. https://​doi.​org/​10.​7717/​peerj-​cs.​662
+Qin, T., Li, P., & Shen, S. (2018). VINS-Mono: A robust and versatile monocu-
+lar visual-inertial state estimator. IEEE Transactions on Robotics, 34(4), 
+1004–1020. https://​doi.​org/​10.​1109/​TRO.​2018.​28537​29
+Tang, Y., Jiang, J., Liu, J., Yan, P., Tao, Y., & Liu, J. (2022). A GRU and AKF-based 
+hybrid algorithm for improving INS/GNSS navigation accuracy during 
+GNSS outage. Remote Sensing, 14(3), 752. https://​doi.​org/​10.​3390/​rs140​
+30752
+Wang, Z., Liu, H., Guo, G., & Han, M. (2025). An enhanced vehicle self-position-
+ing method during GNSS outages using factor graph optimization and 
+CNN-LSTM-attention. IEEE Transactions on Instrumentation and Measure-
+ment, 74, Article 2521011. https://​doi.​org/​10.​1109/​TIM.​2025.​35539​46
+Wofk, D., Ma, F., Yang, T.-J., Karaman, S., & Sze, V. (2019). FastDepth: Fast 
+monocular depth estimation on embedded systems. In: 2019 Interna-
+tional Conference on Robotics and Automation (ICRA), pp. 6101–6108. 
+IEEE.https://​doi.​org/​10.​1109/​ICRA.​2019.​87941​82.
+Wang, Z., Shen, X., Li, J., Li, J., Wu, X., & Yang, Y. (2025). Enhancing integrated 
+navigation with a self-attention LSTM hybrid network for UAVs in GNSS-
+denied environments. Drones, 9(4), 279. https://​doi.​org/​10.​3390/​drone​
+s9040​279
+Wei, W., Zhou, Y., Hu, Y., Li, Z., Wang, S., Liu, X., & Li, J. (2025). BotVIO: A light-
+weight transformer-based visual-inertial odometry for robotics. IEEE 
+Transactions on Robotics, 41, 3760-3778. https://​doi.​org/​10.​1109/​TRO.​
+2025.​35770​54
+Xu, S., Li, Q., Wu, L., Jiang, S., Jiang, N., & Li, C. (2024). Research on collaborative 
+localization technology of UAVs based on INS and UWB. Journal of Physics: 
+Conference Series, 2764(1), Article 012093. https://​doi.​org/​10.​1088/​1742-​
+6596/​2764/1/​012093
+Xianjia, Y., Qingqing, L., Queralta, J.P., Heikkonen, J. & Westerlund, T. (2021). 
+Cooperative UWB-based localization for outdoors positioning and 
+navigation of UAVs aided by ground robots. In: 2021 IEEE International 
+Conference on Autonomous Systems (ICAS), pp. 1–5. https://​doi.​org/​10.​
+1109/​ICAS4​9788.​2021.​95511​77IEEE.
+Xu, Y., Wang, K., Jiang, C., Li, Z., Yang, C., Liu, D., & Zhang, H. (2022). Motion-
+constrained GNSS/INS integrated navigation method based on BP neural 
+network. Remote Sensing, 15(1), 154. https://​doi.​org/​10.​3390/​rs150​10154
+Ye, Q., Luo, J., & Lin, Y. (2024). A coarse-to-fine visual geo-localization method 
+for gnss-denied uav with oblique-view imagery. ISPRS Journal of Photo-
+grammetry and Remote Sensing, 212, 306–322. https://​doi.​org/​10.​1016/j.​
+isprs​jprs.​2024.​05.​006
+Ye, Y., Ma, X., Zhou, X., Bao, G., Wan, W., & Cai, S. (2023). Dynamic and real-time 
+object detection based on deep learning for home service robots. Sen-
+sors, 23(23), 9482. https://​doi.​org/​10.​3390/​s2323​9482
+Zhang, C., Gu, S., Li, X., Deng, J., & Jin, S. (2024). Vid-slam: A new visual-inertial 
+slam algorithm coupling an rgb-d camera and imu based on adaptive 
+point and line features. IEEE Sensors Journal. https://​doi.​org/​10.​1109/​JSEN.​
+2024.​34865​56
+Zhang, J., Han, F., Han, D., Yang, J., Zhao, W., & Li, H. (2024). Integration of sonar 
+and visual-inertial systems for slam in underwater environments. IEEE 
+Sensors Journal, 24 (10), 16792-16804. https://​doi.​org/​10.​1109/​JSEN.​2024.​
+33843​01
+Zhan, Q., Shen, R., Mao, Y., Shu, Y., Shen, L., Yang, L., Zhang, J., Sun, C., Guo, F., 
+& Lu, Y. (2025). Adaptive federated kalman filtering with dimensional 
+isolation for unmanned aerial vehicle navigation in degraded industrial 
+environments. Drones, 9(3), 168. https://​doi.​org/​10.​3390/​drone​s9030​168
+Zheng, Y., Wu, S., Lai, H., & Sun, H. (2025). A passive radar localization system via 
+accelerated atomic norm optimization and kolmogorov-arnold networks. 
+Measurement, 253, Part A, Article 117441. https://​doi.​org/​10.​1016/j.​measu​
+rement.​2025.​117441
+=== END ===

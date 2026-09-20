@@ -1,0 +1,1671 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1163.pdf
+sha256: 0D3D74F09E0C81F34BD3256D764AB169F925C1D40B31F960A2F96D647179BC1E
+library: pymupdf (fitz) v1.28.2
+pages: 15
+=== BEGIN ===
+[p.1]
+Contents lists available at ScienceDirect
+Results in Engineering
+journal homepage: www.sciencedirect.com/journal/results-in-engineering
+Research paper
+A comparative study of TERCOM-EKF and ViSensorRF for UAV localization 
+in GNSS-denied environments 
+Imen Jarraya
+∗, Khaled Gabr
+, Mohamed Abdelkader
+, Fatimah Alahmed
+, 
+Muhammad Bilal Kadri
+, Wadii Boulila
+Robotics and Internet of Things Laboratory, Prince Sultan University, Riyadh, 12435, Saudi Arabia
+a r t i c l e i n f o
+Keywords:
+UAV Localization
+GNSS-Denied environments
+Visual-inertial sensor fusion
+Non-visual sensor fusion
+Random forest regression
+Extended Kalman ﬁlter
+Digital elevation model
+ 
+a b s t r a c t
+Accurate localization is essential for Unmanned Aerial Vehicles (UAVs) in mission-critical applications such as 
+military operations, search and rescue, and environmental monitoring. While Global Navigation Satellite Sys-
+tems (GNSS) provide reliable positioning in open environments, GNSS-denied conditions remain challenging, 
+such as in obstructed or hostile environments. Various localization strategies have been developed using visual 
+and/or non-visual sensors such as LiDAR, barometers, Inertial Measurement Units (IMU), and cameras, with re-
+cent advances in machine learning. However, there is a lack of comparative studies that analyze the trade-oﬀs 
+between learning-based and conventional estimation approaches in such conditions. This study bridges that gap 
+by comparing two fundamentally diﬀerent methods: a Terrain Contour Matching algorithm-Extended Kalman Fil-
+ter framework (TERCOM-EKF), and Visual-Inertial Sensor Fusion with Random Forest Regression (ViSensorRF), 
+a machine learning approach based on Random Forest Regression (RFR). Both methods are evaluated in a GNSS-
+denied simulation environment using PX4, Robot Operating System (ROS) 2, Gazebo, and QGroundControl over 
+a digital elevation model of the Taif region in Saudi Arabia. Results demonstrate that ViSensorRF achieves su-
+perior localization accuracy, with a root mean square error (RMSE) ranging between approximately 1 to 5 m 
+across multiple trajectories, but requires signiﬁcantly higher execution time of 1.92 s. In contrast, TERCOM-EKF 
+oﬀers faster computation of 0.04 s, making it suitable for real-time deployment in resource-constrained UAV sys-
+tems. These ﬁndings highlight a trade-oﬀ between localization precision and computational eﬃciency, oﬀering 
+valuable insights for UAV deployment in GNSS-denied environments.
+1.  Introduction
+Unmanned Aerial Vehicles (UAVs) have become indispensable plat-
+forms across civilian and defense domains, supporting a wide range of 
+autonomous missions such as infrastructure inspection, precision agri-
+culture, environmental surveillance, disaster response, and scientiﬁc
+exploration [1,2]. The rapid evolution of onboard sensing, communi-
+cation, and control technologies has signiﬁcantly expanded UAV opera-
+tional capabilities, enabling greater levels of autonomy and situational 
+awareness. As autonomy continues to advance, the requirement for
+accurate, reliable, and resilient localization has become increasingly 
+critical, especially in complex environments where Global Navigation 
+Satellite System (GNSS) signals are degraded, obstructed, or entirely un-
+available [3,4].
+Traditionally, UAVs determine their position, velocity, and orien-
+tation using GNSS, including Global Positioning System(GPS), Galileo, 
+∗Corresponding author.
+ 
+E-mail addresses: ijarraya@psu.edu.sa (I. Jarraya), khammad@psu.edu.sa (K. Gabr), mabdelkader@psu.edu.sa (M. Abdelkader), falahmed@psu.edu.sa (F. 
+Alahmed), mkadri@psu.edu.sa (M.B. Kadri), wboulila@psu.edu.sa (W. Boulila).
+GLONASS, and BeiDou, which provide global coverage and centimeter-
+level accuracy under ideal conditions. While GNSS oﬀers reliable perfor-
+mance in open-sky environments, its applicability is signiﬁcantly con-
+strained in complex environments such as forests, tunnels, underground 
+environments, and high security zones. Moreover, intentional interfer-
+ence methods such as jamming and spooﬁng have raised growing con-
+cerns about the reliability of GNSS-dependent navigation, particularly 
+in mission-critical or adversarial environments [5,6].
+Although high precision GNSS modules and open-source real-time 
+kinematic (RTK) processing tools such as RTKLIB and u-blox F9P have 
+improved positioning accuracy [7–9], they remain susceptible to the 
+same environmental and security limitations. This growing vulnerabil-
+ity has led to a surge of research eﬀorts focused on developing GNSS-
+independent localization methods. These strategies leverage onboard 
+sensors, digital maps, and artiﬁcial intelligence techniques to improve 
+resilience and ensure continuity of navigation.
+https://doi.org/10.1016/j.rineng.2025.108279
+Received 20 August 2025; Received in revised form 4 November 2025; Accepted 17 November 2025
+Results in Engineering 29 (2026) 108279 
+Available online 28 November 2025 
+2590-1230/© 2025 The Author(s). Published by Elsevier B.V. This is an open access article under the CC BY-NC-ND license ( http://creativecommons.org/licenses/by- 
+nc-nd/4.0/ ). 
+[p.2]
+I. Jarraya et al.
+Inertial Measurement Units (IMUs) form the backbone of dead reck-
+oning navigation systems for UAVs because of their high update rate 
+and independence from external positioning signals. An IMU typically 
+consists of three orthogonally mounted accelerometers and three gyro-
+scopes that measure speciﬁc force and angular rate, respectively. These 
+measurements are integrated over time to estimate velocity, attitude, 
+and position, forming the core of strapdown inertial navigation sys-
+tems (INS). However, in cost-eﬀective Micro-Electro-Mechanical Sys-
+tems (MEMS) based IMUs, error accumulation including bias drift, scale 
+factor instability, and random noise progressively degrades positional 
+accuracy during extended GNSS-denied ﬂights [10,11]. MEMS sensors 
+operate by detecting minute displacements of microfabricated mechan-
+ical elements using capacitive, piezoelectric, or tunneling-based sensing 
+principles. While these devices are compact, lightweight, and energy ef-
+ﬁcient, they are aﬀected by thermal variations, mechanical vibration, 
+and long-term bias instability. The resulting inertial errors propagate 
+through integration, causing velocity errors that grow linearly and po-
+sition errors that grow quadratically with time. For example, a small 
+gyroscope bias of 0.01 deg/s can lead to several meters of position error 
+after only a few minutes of ﬂight.
+Recent work by Xuan et al. (2024) reviewed advances in MEMS IMU 
+array technology and emphasized that even with advanced calibration 
+techniques and stochastic modeling, zero-bias drift remains a critical 
+limitation for accurate long-term navigation in GNSS-denied environ-
+ments [12]. To mitigate these limitations, modern UAV systems apply 
+bias estimation and correction through ﬁltering algorithms such as the 
+Extended Kalman Filter (EKF), the Unscented Kalman Filter (UKF), and 
+the Error-State Kalman Filter (ESKF). These ﬁlters use dynamic pro-
+cess models to estimate and remove bias components from IMU mea-
+surements in real time, thereby improving stability and reducing drift. 
+Complementary sensors such as barometers, radar altimeters, ultrasonic 
+range ﬁnders, and LiDAR units are also integrated to provide redun-
+dant observations and enhance positioning robustness [13–15]. By fus-
+ing these auxiliary measurements with inertial data, the navigation sys-
+tem constrains IMU drift and maintains accurate positioning over long 
+durations, even in the absence of GNSS signals.
+Visual sensors including RGB, stereo, and depth cameras provide 
+additional spatial awareness through techniques such as Simultaneous 
+Localization and Mapping (SLAM), visual odometry (VO), and feature-
+based landmark tracking. Stereo cameras compute disparity maps to es-
+timate depth, while time-of-ﬂight and structured-light cameras directly 
+measure distance, generating dense three-dimensional point clouds that 
+assist in surface reconstruction and obstacle detection. Despite these ca-
+pabilities, vision-based systems remain sensitive to environmental con-
+ditions such as low illumination, repetitive texture, and motion blur, 
+which can impair feature extraction and tracking [16]. Moreover, high-
+altitude ﬂights or homogeneous terrain surfaces reduce visual parallax, 
+creating scale ambiguity and reducing pose estimation accuracy.
+To overcome the limitations of individual sensing modalities, re-
+cent research emphasizes the integration of visual, inertial, and range-
+based sensor data combined with machine learning (ML) frameworks 
+to enhance adaptability and performance in GNSS-denied environments 
+[17,18].Hybrid sensor fusion architectures exploit the complementary 
+strengths of each modality: inertial sensors provide high-frequency mo-
+tion updates, visual systems deliver global spatial constraints, and Li-
+DAR data contribute absolute range and terrain structure information. 
+ML models such as Random Forest Regression (RFR), Convolutional 
+Neural Networks (CNNs), and Long Short-Term Memory (LSTM) net-
+works have shown strong capabilities in learning nonlinear depen-
+dencies between multi-sensor observations and corresponding motion 
+states, thereby improving accuracy and stability under dynamic and vi-
+sually degraded conditions [19,20].
+Geospatial datasets such as Digital Elevation Models (DEMs), Digi-
+tal Surface Models (DSMs), and Digital Terrain Models (DTMs) play an 
+increasingly important role in terrain-aided navigation [21]. DEMs rep-
+resent the Earth’s topographic surface, including all natural and man-
+made features, DSMs capture the uppermost surfaces such as vegetation 
+and buildings, and DTMs model the bare terrain after removing surface 
+objects. These datasets, processed using QGIS, Blender, or other GIS-
+integrated simulation platforms, are fused with onboard sensor data to 
+create accurate terrain-aware localization frameworks. By correlating 
+real-time LiDAR or barometric altitude data with preloaded DEM or 
+DTM maps, UAVs can estimate their horizontal displacement through 
+terrain correlation, enhancing localization accuracy and ensuring navi-
+gation continuity in GNSS-denied conditions.
+This work presents a comparative analysis of UAV localization strate-
+gies adapted for GNSS-denied environments. The ﬁrst method, referred 
+to as TERCOM-EKF, is a Terrain Contour Matching algorithm-Extended 
+Kalman Filter framework that correlates onboard altitude measurements 
+with preloaded DEMs using an EKF. This method integrates LiDAR, baro-
+metric, and inertial sensor data to estimate UAV position relative to 
+known terrain features. The second method, ViSensorRF, a visual-inertial 
+sensor fusion with RFR, employs a data-driven fusion framework that 
+combines visual and non-visual sensors used in the previous method to 
+estimate global position using an RFR model trained on multi-sensor ob-
+servations. Unlike previous studies that evaluate single-method localiza-
+tion systems, this work uniquely integrates and compares both classical 
+estimation and modern machine learning-based approaches under iden-
+tical GNSS-denied conditions. The contribution lies in analyzing how 
+learning methods perform relative to terrain-aided ﬁltering, thereby re-
+vealing the trade-oﬀs between computational eﬃciency and localiza-
+tion accuracy in UAV scenarios. The main objective of this research is 
+to develop and evaluate robust, data-driven, and model-based localiza-
+tion strategies that can ensure reliable UAV navigation in GNSS-denied 
+environments. To achieve this goal, the study investigates the comple-
+mentary roles of traditional terrain correlation and machine learning-
+based sensor fusion using synthetic datasets that replicate real-world 
+ﬂight conditions. The principal contributions of this work are summa-
+rized as follows:
+• We conduct a comparative analysis between a traditional terrain-
+aided localization approach (TERCOM-EKF) and a learning-based 
+sensor fusion method (ViSensorRF) under GNSS-denied conditions.
+• We design and generate high-ﬁdelity synthetic datasets using ROS 2, 
+PX4, Gazebo, and QGroundControl, simulating UAV operations over 
+realistic terrain models of the Taif region in Saudi Arabia.
+• We perform extensive evaluations based on root-mean-square error 
+(RMSE) and execution time, highlighting key trade-oﬀs between lo-
+calization precision and computational eﬃciency. We also compare 
+its performance against other methods, including Fast LiDAR-inertial 
+odometry (Fast-LIO), the Multisensor-aided Inertial Navigation Sys-
+tem (MINS), and a machine learning-based approach, eXtreme Gra-
+dient Boosting (XGBoost).
+• We provide practical insights into the applicability of conventional 
+map-based versus machine-learning-based methods for real-time, 
+resource-constrained UAV systems.
+The remainder of the paper is organized as follows: Section 2 reviews 
+related localization techniques and their performance benchmarks.
+Section 3 details the localization strategies. Section 4 presents and dis-
+cusses the experimental results. Section 5 illustrates the conclusion and 
+future directions.
+2.  Related works
+Robust localization for UAVs in GNSS-denied environments has 
+emerged as a critical area of research as UAVs are increasingly used 
+in defense, emergency response, infrastructure monitoring, and indus-
+trial automation. Alternative positioning strategies have been proposed 
+as GNSS signals are often unreliable in obstructed or hostile environ-
+ments, such as urban canyons, tunnels, forests, or areas subject to jam-
+ming. These can be broadly categorized into (i) visual-based methods, 
+(ii) non-visual sensor approaches, and (iii) hybrid multi-sensor fusion 
+Results in Engineering 29 (2026) 108279 
+2 
+[p.3]
+I. Jarraya et al.
+frameworks, with an increasing trend toward machine learning and ar-
+tiﬁcial intelligence integration. For example, Munguia et al. [22] intro-
+duced a vision-based Simultaneous Control, Localization, and Mapping 
+(SCLAM) system that tightly integrates monocular SLAM with hierar-
+chical control modules to enable autonomous exploration and return-
+to-home in GPS-denied environments. Table 1 describes the proposed
+solutions, the sensors used, and the results of recent studies. This com-
+parative summary highlights the evolution of UAV localization technolo-
+gies, from hand-crafted feature matching to deep learning and hybrid 
+fusion models, each tailored to speciﬁc environmental or mission con-
+straints.
+2.1.  Vision-only localization
+Visual-only approaches rely on onboard cameras to estimate UAV po-
+sitions by matching captured imagery with satellite or aerial references. 
+For example, Wang et al. [18] proposed a deep sequence-based match-
+ing pipeline that boosts visual UAV-to-satellite geolocalisation, achiev-
+ing Recall@5 of 99 % on the ALTO and NewYorkFly datasets. Gao et al. 
+[23] improved accuracy by integrating the SuperPoint and SuperGlue 
+descriptors with RANSAC, obtaining a mean error of 0.356 m.
+Specialized strategies for terrain-aided or extraterrestrial navigation 
+have also emerged [24]. Wan et al. [25] applied terrain-aided SLAM 
+via frequency domain matching, achieving a 0.45-meter error across a 
+33.8 km trajectory.
+Visual-only systems are vulnerable to failure in low-texture, poorly 
+lit, or repetitive-pattern environments and depend heavily on the avail-
+ability and quality of reference maps. To improve robustness under vari-
+able conditions, Yao et al. [26] introduced a drift-free visual localization 
+framework. It combines image matching, visual odometry, and terrain-
+weighted optimization and demonstrates robustness even during night-
+time operations without requiring downward-facing cameras, altime-
+ters, or IMUs.
+2.2.  Hybrid multi-sensor fusion
+To address the limitations of vision-based systems, recent research 
+has combined visual inputs with data from IMUs, LiDAR, barometers, 
+and radar altimeters. Gupta et al. [27] highlighted that accurate sensor 
+calibration is necessary to ensure reliable UAV orientation and position 
+estimation. Kinnari et al. [28] introduced LSVL, a visual localization 
+method that uses season-invariant descriptors derived from both visual 
+and non-visual sensors. Similarly, Lee et al. [29] developed a georef-
+erenced localization framework that fuses aerial scene matching with 
+INS, and barometric data via an EKF, achieving 1.4 pixels accuracy over 
+mountainous trajectories and demonstrating robust UAV localization in 
+GNSS-denied environments. Zhou et al. [30] developed a multi-level vi-
+sual localization framework for low-altitude UAVs that combines image 
+retrieval with image registration, enhanced by IMU-based adjustments 
+and sliding-window map updates, enabling precise and reliable naviga-
+tion in GNSS-denied conditions.
+2.3.  Non-visual localization
+Cui et al. [31] proposed a non-visual alternative using a mechanical 
+antenna to emit low-frequency magnetic signals. This enables robust 
+UAV positioning without reliance on lighting or high processing power. 
+However, it requires a base station and has a limited coverage area. Jar-
+raya et al. [32] analyzed several ﬁltering strategies and Recursive Least 
+Squares, within a terrain-matching framework, and introduced a UKF-
+based method enhanced by a k-dimensional(KD) Tree. This approach 
+achieved markedly higher precision, cutting RMSE by 84.6 % compared 
+to the conventional Terrain Contour Matching (TERCOM) algorithm.
+Recent advances have introduced learning-based sensor fusion 
+strategies that leverage neural networks to infer UAV positions from 
+heterogeneous sensor streams. For instance, Wang et al. [33] proposed 
+a hybrid Self-Attention Long Short-Term Memory (SALSTM) network 
+that fuses IMU, barometer, magnetometer, and airspeed data to estimate 
+UAV velocity and attitude during GNSS outages. The network outputs 
+are integrated within an EKF to improve localization accuracy. How-
+ever, the eﬀectiveness of the approach inherently relies on the accuracy 
+of the sensor measurements, particularly from low-cost MEMS sensors. 
+Roux et al. [19] used LSTM networks to fuse temporal data from mul-
+tiple sensors, improving tracking in dynamic scenes. El Sabbagh et al. 
+[34] developed a cascaded model using a non-linear autoregressive neu-
+ral network with exogenous inputs and feedforward neural networks to 
+estimate navigation errors during GNSS outages. Ahmed et al. [35] in-
+tegrated frequency modulated continuous wave (FMCW) radar into an 
+EKF and Particle Filter framework, achieving a 99.89 % reduction in 
+drift error during GNSS loss, validated in real terrain.
+In multi-agent contexts, Bodi et al. [36] proposed a LiDAR-based for-
+mation control framework that integrates k-means clustering for relative 
+localization and reinforcement learning for robust formation control, 
+without relying on maps or GNSS.
+2.4.  Contribution
+Despite the breadth of recent advancements, a comparative analy-
+sis of fundamentally distinct localization paradigms, such as terrain-
+referenced estimation versus learning-based sensor fusion, remains
+underexplored. This study bridges that gap by analyzing two funda-
+mentally diﬀerent strategies for UAV localization in GNSS-denied en-
+vironments. The TERCOM-EKF method applies terrain-referenced esti-
+mation by correlating onboard sensor data with DEMs using an EKF. In 
+contrast, the ViSensorRF framework employs a machine learning model 
+that integrates visual and inertial sensor data through RFR to estimate 
+global position. Leveraging high-ﬁdelity synthetic datasets generated 
+using ROS 2, PX4, Gazebo, QGroundControl, QGIS, and Blender, this 
+work provides an in-depth evaluation of the strengths, limitations, and 
+trade-oﬀs between map-based estimation and learning-based sensor fu-
+sion under degraded navigation conditions. In addition, we conduct an 
+extensive comparative study using the same dataset against established 
+methods, including Fast-LIO, MINS, and XGBoost, to benchmark the per-
+formance.
+3.  UAV Localization methods in GNSS-denied environments
+This section introduces two divergent localization strategies evalu-
+ated for their eﬀectiveness in estimating UAV position without GNSS. 
+Rather than relying on satellite signals, both methods exploit onboard 
+sensor data to infer global coordinates (latitude and longitude). As illus-
+trated in Fig. 1, the two approaches reﬂect distinct design philosophies: 
+one grounded in map-based correlation, the other in multi-modal data-
+driven inference.
+The TERCOM-EKF approach applies a terrain-referenced estimation 
+framework that matches observed elevation proﬁles with preloaded 
+DEMs. It integrates barometric, LiDAR, and IMUs within an EKF to main-
+tain spatial coherence. This strategy is particularly suited for environ-
+ments with diverse terrain features and accurate prior mapping data. In 
+contrast, ViSensorRF adopts a machine learning paradigm by employ-
+ing RFR to learn spatial patterns from multi-sensor observations. This 
+method fuses visual imagery with inertial and environmental data to es-
+timate geospatial coordinates. Unlike deterministic ﬁltering techniques, 
+it leverages data distributions captured during training, enabling ﬂexi-
+ble adaptation to heterogeneous or visually structured environments.
+3.1.  Terrain contour matching-extended Kalman ﬁlter
+The TERCOM-EKF framework integrates terrain-based referencing 
+with recursive probabilistic estimation to localize UAVs operating in 
+GNSS-denied environments. By correlating real-time onboard altitude 
+measurements with preloaded DEM data, the system generates reﬁned 
+Results in Engineering 29 (2026) 108279 
+3 
+[p.4]
+I. Jarraya et al.
+Table 1 
+Summary of localization methods based on sensor type, results, and method name.
+Reference
+Sensors
+Key Results
+Method
+ Visual-only
+Yao et al. [26]
+Camera
+MAE𝑥,𝑦,𝑧 = (6.7, 8.1, 6.9) m; 
+RMSE𝑥,𝑦,𝑧 = (9.8, 12.2, 10.1) m
+Image matching, visual odometry, 
+terrain-weighted constraint optimization
+Gao et al. [23]
+Camera
+Mean error = 0.356 m
+SuperPoint + SuperGlue with RANSAC
+Wang et al. [18]
+Camera, satellite images
+R@5 = 99.99 %, AP = 89.92 %
+Coarse-to-ﬁne sequence matching
+Wan et al. [25]
+DEM, Camera
+RMSE𝑝𝑜𝑠 = 0.45 m
+Terrain-aided SLAM via frequency-domain 
+geo-referencing
+ Non-Visual
+Wang et al. [33]
+IMU, barometer, magnetometer, 
+airspeed sensor
+RMSE𝑎𝑙𝑡 = 1.36Â°, RMSEℎ𝑜𝑟𝑖𝑧𝑜𝑛𝑡𝑎𝑙 = 
+141 m
+SALSTM
+Cui et al. [31]
+Mechanical antenna, ampliﬁer, 3D 
+magnetic ﬁeld sensor
+RMSE𝑝𝑜𝑠< 0.45 m
+Positioning with mechanical antenna
+Bodi et al. [36]
+LiDAR
+RMSE𝑟𝑒𝑙−𝑝𝑜𝑠 = 0.2593 m
+LiDAR-based relative localization (k-means + 
+vector matching)
+El Sabbagh et al.
+[34]
+IMU
+RMSE𝑝𝑜𝑠 = 8.6 m (high-grade IMU, 
+50s outage)
+Cascaded neural network for error estimation
+Ahmed et al.
+[35]
+IMU, radar, barometer, magnetometer
+RMSE3𝐷𝑝𝑜𝑠−𝑃𝐸= 5.11 ± 0.79 m
+Radio odometry with nonlinear EKF/PF
+ Hybrid
+Ouyang et al.
+[37]
+Camera, vector map, altimeter, 
+compass
+MAE < 10 m
+Coarse-to-Fine Building Vector Matching + 
+PF (Gaussian mixture model)
+Kinnari et al.
+[28]
+Camera, IMU, magnetometer
+Localization error (x,y) = 
+12.6–18.7 m
+LSVL
+Munguia et al.
+[22]
+Camera, IMU, altimeter
+MAE = 0.12 ± 0.06𝜎 m
+SCLAM
+R@1 - recall at rank 1; AP - average precision; MAE - mean absolute error.
+Fig. 1. Comparison of alternative UAV localization methods in GNSS-denied environments. TERCOM-EKF uses elevation map correlation and non-visual sensors. 
+ViSensorRF fuses visual and non-visual inputs using a machine learning model to predict global position.
+geolocation estimates through an EKF loop. The modular architecture is 
+shown in Fig. 4, capturing the multi-sensor input fusion and correction 
+processes.
+3.1.1.  Inertial navigation system
+The ﬁrst stage of the TERCOM-EKF localization pipeline relies on 
+the onboard IMU, which provides raw six-degree-of-freedom (6-DoF) 
+motion data. These measurements consist of the speciﬁc force vector 
+𝐚𝑏= [𝑎𝑏
+𝑥, 𝑎𝑏
+𝑦, 𝑎𝑏
+𝑧]⊤ obtained from the tri-axial accelerometers, and the an-
+gular rate vector 𝝎𝑏= [𝜔𝑏
+𝑥, 𝜔𝑏
+𝑦, 𝜔𝑏
+𝑧]⊤ obtained from the tri-axial gyro-
+scopes. Both quantities are expressed in the UAV body frame (X-plane) 
+and represent, respectively, the instantaneous linear acceleration and 
+rotational velocity along the three principal axes of motion[38].
+Strap-Down INS Integration. The raw inertial data are processed 
+by a strap-down inertial navigation system (SINS), which integrates the 
+accelerations and angular rates over time [39]. This integration yields:
+• the estimated position vector in the local navigation frame, 𝐏𝑛
+INS =
+[𝑥𝑛, 𝑦𝑛, 𝑧𝑛]⊤;
+Results in Engineering 29 (2026) 108279 
+4 
+[p.5]
+I. Jarraya et al.
+Fig. 2. TERCOM - System diagram, Golden 1980 [41]
+• the velocity vector 𝐕𝑏= [𝑣𝑏
+𝑥, 𝑣𝑏
+𝑦, 𝑣𝑏
+𝑧]⊤; and
+• the attitude vector 𝜽𝑛
+INS = [𝜙, 𝜃, 𝜓]⊤, corresponding to roll, pitch, and 
+yaw angles.
+This stage forms the dead-reckoning backbone of the system, providing 
+continuous navigation information through numerical integration of the 
+IMU outputs.
+Coordinate Transformation. To align the local NED-frame estimates 
+with the global Earth reference, the SINS output is transformed from the 
+navigation frame to the geodetic frame using a coordinate transforma-
+tion matrix 𝐂𝑠. The transformation is expressed as:
+𝑋INS = 𝐂𝑠⋅𝐏𝑛
+INS
+(1)
+where 𝑋INS = (𝜙, 𝜆, ℎ) denotes the height ℎ, latitude 𝜙, and longitude 
+𝜆. The initial reference parameters (𝜙0, 𝜆0, ℎ0) deﬁne the transformation 
+origin.
+3.1.2.  Altimetric sensor fusion
+To determine terrain-relative altitude, the system fuses measure-
+ments from:
+• A barometric altimeter providing atmospheric-pressure-based alti-
+tude ℎBARO
+• A LiDAR unit measuring direct distance to ground ℎLiDAR
+The observed terrain elevation below the UAV is computed as:
+ℎobs = ℎBARO −ℎLiDAR
+(2)
+This value serves as the measured terrain height from the UAV’s cur-
+rent perspective.
+3.1.3.  Terrain contour matching
+TERCOM, as shown in Fig. 2, is a widely used technique in UAV 
+navigation that involves correlating real-time terrain data collected by 
+onboard sensors with a pre-existing terrain map stored in a DEM. The 
+success of TERCOM relies on the precision of the underlying mathemat-
+ical models and algorithms [32,40].
+a. Core Concepts in Terrain Contour Matching
+The principal concepts of the TERCOM method and their relevance to 
+UAV localization are outlined as follows:
+• Observed Terrain Data: Let ℎ𝑜𝑏𝑠= (ℎ𝑜𝑏𝑠,0, ℎ𝑜𝑏𝑠,1, … , ℎ𝑜𝑏𝑠,𝑑−1) repre-
+sent the vector of terrain contour data points observed by the UAV. 
+This data represents the elevations of the terrain relative to a refer-
+ence level, such as sea level. Each element ℎ𝑜𝑏𝑠,𝑖 is a numerical value 
+indicating the elevation at a speciﬁc geographic location, measured 
+by the UAV’s sensors, which may include radar, LiDAR, or stereo-
+scopic cameras.
+• True Terrain Contour: The true terrain contour, denoted by ℎ𝑡𝑟𝑢𝑒=
+(ℎ𝑡𝑟𝑢𝑒,0, ℎ𝑡𝑟𝑢𝑒,1, … , ℎ𝑡𝑟𝑢𝑒,𝑑−1), represents the actual elevations of the ter-
+rain at the same geographic locations as the observed data. It is esti-
+mated by combining the observed terrain data ℎ𝑜𝑏𝑠 with a noise com-
+ponent 𝑛= (𝑛0, 𝑛1, … , 𝑛𝑑−1), which accounts for inaccuracies such as 
+sensor errors or environmental factors. The relationship between the 
+true terrain contour and the observed terrain data can be expressed 
+mathematically as:
+ℎ𝑡𝑟𝑢𝑒,𝑖= ℎ𝑜𝑏𝑠,𝑖+ 𝑛𝑖
+for 𝑖= 0, 1, … , 𝑑−1
+(3)
+The noise 𝑛𝑖 is often assumed to follow a Gaussian distribution, 
+𝑛𝑖∼(0, 𝜎2), where 𝜎2 represents the variance of the noise.
+• DEM Reference: The DEM, denoted by ℎ𝑑𝑒𝑚, provides pre-existing 
+accurate terrain elevation data for a speciﬁc region. It serves as 
+a reference for comparing and matching the observed terrain data 
+ℎ𝑜𝑏𝑠. The DEM is typically obtained using remote sensing technolo-
+gies, such as satellites, LiDAR, or aerial surveys, which capture high-
+resolution elevation data. The DEM provides a reference model of 
+the terrain’s elevation at a series of geographic points.
+The DEM data can be expressed as:
+ℎ𝑑𝑒𝑚=
+⎛
+⎜
+⎜
+⎜
+⎜⎝
+ℎ𝑑𝑒𝑚,0,0
+ℎ𝑑𝑒𝑚,0,1
+…
+ℎ𝑑𝑒𝑚,0,𝑛
+ℎ𝑑𝑒𝑚,1,0
+ℎ𝑑𝑒𝑚,1,1
+…
+ℎ𝑑𝑒𝑚,1,𝑛
+⋮
+⋮
+⋱
+⋮
+ℎ𝑑𝑒𝑚,𝑚,0
+ℎ𝑑𝑒𝑚,𝑚,1
+…
+ℎ𝑑𝑒𝑚,𝑚,𝑛
+⎞
+⎟
+⎟
+⎟
+⎟⎠
+(4)
+where ℎ𝑑𝑒𝑚,𝑖,𝑗 represents the elevation at the geographic location (𝑖, 𝑗)
+within the region 𝐷, with 𝑚 being the number of latitude points and 
+𝑛 being the number of longitude points.
+The DEM provides an approximation of the actual terrain (ℎ𝑡𝑟𝑢𝑒) 
+and serves as a critical reference during the terrain matching process, 
+facilitating the comparison and alignment of observed terrain data.
+In this study, the DEM serves as the spatial reference for known ter-
+rain data, providing an accurate geospatial foundation for terrain corre-
+lation within the TERCOM framework. The DEM is derived from a Geo-
+TIFF dataset representing the elevation distribution of the study area, 
+as illustrated in Fig. 3. The ﬁgure presents a grayscale elevation map, a 
+zoomed DEM region, and a 3 × 3 sampled elevation matrix, collectively 
+demonstrating how elevation data are spatially organized and utilized 
+in the matching process.
+b. Terrain Matching Process
+The accuracy of terrain-based localization in TERCOM depends on 
+the degree of alignment between the observed terrain proﬁle and the 
+reference DEM.
+Match Metric 𝑀. The match metric quantiﬁes the diﬀerence be-
+tween the observed terrain elevations and the corresponding DEM refer-
+ence values across multiple geographic points. It serves as the primary 
+similarity measure in the TERCOM framework, assessing how closely the 
+UAV’s real-time sensor data align with the stored terrain model. In this 
+study, the match metric is computed using the Mean Absolute Distance 
+(MAD) function, which provides a robust and computationally eﬃcient 
+basis for evaluating positional accuracy in the presence of sensor noise 
+and terrain variability.
+For the 𝑖-th observed terrain point and the 𝑗-th DEM candidate loca-
+tion, the match metric is deﬁned as:
+⎧
+⎪
+⎪
+⎨
+⎪
+⎪⎩
+𝑀𝑖,𝑗= |||ℎ𝑜𝑏𝑠,𝑖−ℎ𝑑𝑒𝑚,𝑗,𝑖|||,
+Individual match metric,
+𝑀𝑗= 1
+𝑑
+𝑑−1
+∑
+𝑖=0
+|||ℎ𝑜𝑏𝑠,𝑖−ℎ𝑑𝑒𝑚,𝑗,𝑖|||,
+Aggregated match metric.
+(5)
+Here, 𝑀𝑖,𝑗 represents the absolute elevation diﬀerence between the 
+observed and reference terrain for each point. At the same time, 𝑀𝑗
+denotes the average similarity value across all 𝑑 observations for the 
+𝑗-th DEM candidate location. Smaller values of 𝑀𝑗 indicate a stronger 
+match between the observed terrain and the DEM, leading to a more 
+accurate position estimate within the TERCOM-EKF framework.
+Results in Engineering 29 (2026) 108279 
+5 
+[p.6]
+I. Jarraya et al.
+Fig. 3. DEM representation with grayscale elevation map, zoomed region, and sampled elevation matrix.
+Match Threshold. 𝑀0 The threshold 𝑀0 deﬁnes the maximum al-
+lowable diﬀerence between the observed terrain ℎ𝑜𝑏𝑠 and the DEM ℎ𝑑𝑒𝑚
+for a match to be considered valid. The relationship between 𝑀𝑗 and 
+𝑀0 establishes the conﬁdence level in the UAV’s estimated position:
+Match Probability =
+⎧
+⎪
+⎨
+⎪⎩
+High (Accurate Position),
+if 𝑀𝑗≤𝑀0
+Low (Inaccurate Position),
+if 𝑀𝑗> 𝑀0
+(6)
+A smaller 𝑀𝑗 therefore corresponds to a higher probability that the 
+observed terrain segment accurately aligns with the DEM, while a larger 
+𝑀𝑗 indicates a potential mismatch.
+The stepwise procedure of the MAD-based TERCOM algorithm is 
+summarized in Algorithm 1.
+Algorithm 1 MAD-Based TERCOM algorithm for UAV terrain correla-
+tion.
+Require: ℎ𝑜𝑏𝑠: vector of observed terrain elevations; ℎ𝑑𝑒𝑚: DEM terrain 
+elevations; 𝑀0: match threshold; 𝑑: number of observed terrain 
+points; 𝐽: number of candidate DEM points.
+Ensure: Estimated UAV position (𝜙𝑏𝑒𝑠𝑡, 𝜆𝑏𝑒𝑠𝑡, ℎ𝑏𝑒𝑠𝑡).
+1: Initialization: Initialize 𝑀𝑖,𝑗 and 𝑀𝑗 for all 𝑖∈[0, 𝑑−1] and 
+𝑗∈[1, 𝐽−1]. 
+2: for 𝑖= 0 to 𝑑−1 do
+3:
+for 𝑗= 1 to 𝐽−1 do
+4:
+Extract ℎ𝑑𝑒𝑚,𝑗,𝑖 corresponding to candidate 𝑗 and observation 𝑖. 
+5:
+Compute individual match metric using Mean Absolute 
+Distance (MAD):
+𝑀𝑖,𝑗= |ℎ𝑜𝑏𝑠,𝑖−ℎ𝑑𝑒𝑚,𝑗,𝑖|
+6:
+end for
+7: end for
+8: for 𝑗= 1 to 𝐽−1 do
+9:
+Compute aggregated match metric:
+𝑀𝑗= 1
+𝑑
+𝑑−1
+∑
+𝑖=0
+𝑀𝑖,𝑗
+10:
+if 𝑀𝑗< 𝑀0 then
+11:
+Store candidate position (𝜙𝑗, 𝜆𝑗, ℎ𝑑𝑒𝑚,𝑗) as potential match.
+12:
+end if
+13: end for
+14: Select (𝜙𝑏𝑒𝑠𝑡, 𝜆𝑏𝑒𝑠𝑡, ℎ𝑏𝑒𝑠𝑡) = arg min𝑗𝑀𝑗. 
+15: Output (𝜙𝑏𝑒𝑠𝑡, 𝜆𝑏𝑒𝑠𝑡, ℎ𝑏𝑒𝑠𝑡) and update UAV search area for the next 
+iteration.
+3.1.4.  Extended Kalman ﬁlter
+EKF reﬁnes the UAV’s estimated position by continuously fusing 
+high-frequency inertial data with terrain-based updates, thereby com-
+pensating for drift accumulation in the inertial navigation system during 
+GNSS-denied ﬂight. As illustrated in Fig. 4, the EKF operates in two con-
+secutive phases: the prediction stage, which propagates the state estimate 
+and its uncertainty forward in time, and the correction stage, which re-
+ﬁnes the estimate using new terrain-referenced observations from TER-
+COM. The EKF state vector represents small corrections in the UAV’s 
+geodetic position:
+𝛿𝐗𝑘=
+⎡
+⎢
+⎢⎣
+𝛿𝜙
+𝛿𝜆
+𝛿ℎ
+⎤
+⎥
+⎥⎦
+(7)
+where 𝛿𝜙, 𝛿𝜆, and 𝛿ℎ denote the latitude, longitude, and height error 
+states, respectively.
+Prediction Stage. In the prediction stage, the EKF propagates the 
+estimated error state and its covariance forward in time based on the 
+system dynamics matrix and the process noise covariance. The evolution 
+of the state and covariance is given by:
+⎧
+⎪
+⎨
+⎪⎩
+𝛿𝐗−
+𝑘= 𝐀⋅𝛿𝐗𝑘−1,
+𝐏−
+𝑘= 𝐅⋅𝐏𝑘−1 ⋅𝐅⊤+ 𝐐,
+(8)
+where:
+• 𝐀 is the discrete-time system dynamics matrix deﬁning the linearized 
+motion model.
+• 𝐅 is the state transition matrix obtained from the Jacobian of the 
+system equations.
+• 𝐏−
+𝑘 is the a priori covariance matrix representing the uncertainty of 
+the predicted state.
+• 𝐐 is the process noise covariance accounting for unmodeled dynam-
+ics or system-level perturbations such as IMU bias drift, structural vi-
+bration, and numerical integration errors, thereby ensuring stochas-
+tic variation around the nominal motion model. It is modeled as a 
+zero-mean Gaussian process:
+𝐰𝑘∼(0, 𝐐)
+(9)
+Correction Stage. When a new terrain observation becomes avail-
+able, the EKF performs measurement-based correction. The Kalman gain 
+𝐊𝑘 determines the optimal weighting between the predicted state and 
+the new observation:
+𝐊𝑘= 𝐏−
+𝑘𝐇⊤(𝐇𝐏−
+𝑘𝐇⊤+ 𝐑)−1
+(10)
+where
+• 𝐇 is the measurement sensitivity matrix relating the state variables 
+to the observable quantities. 
+Results in Engineering 29 (2026) 108279 
+6 
+[p.7]
+I. Jarraya et al.
+• 𝐑 is the measurement noise accounting for inaccuracies in the ob-
+servation process, including LiDAR range noise, barometric uncer-
+tainty, and DEM interpolation errors. It quantiﬁes the reliability of 
+terrain-based observations and is modeled as a zero-mean Gaussian 
+process: 
+𝐯𝑘∼(0, 𝐑)
+(11)
+The correction phase of the EKF updates the UAV’s estimated state 
+by incorporating terrain-based observations from the TERCOM module. 
+This step minimizes the drift accumulated by the inertial navigation sys-
+tem through optimal probabilistic fusion of the predicted state and the 
+measurement update. The corrected state estimate and the updated co-
+variance matrix are expressed as a coupled system of equations:
+⎧
+⎪
+⎨
+⎪⎩
+𝛿𝐗𝑘= 𝛿𝐗−
+𝑘+ 𝐊𝑘
+(𝐳𝑘−𝐇𝛿𝐗−
+𝑘
+),
+𝐏𝑘= (𝐈−𝐊𝑘𝐇)𝐏−
+𝑘,
+(12)
+where 𝛿𝐗𝑘 is the corrected error state vector, 𝐊𝑘 is the Kalman gain, 𝐇
+is the measurement matrix, 𝐳𝑘 is the measurement residual vector, and 
+𝐏𝑘 is the updated state covariance matrix.
+These system equations deﬁne the core mechanism of the EKF cor-
+rection phase, ensuring that the UAV’s estimated geodetic position 
+remains statistically consistent with terrain-referenced measurements 
+while maintaining minimal uncertainty growth during GNSS-denied 
+navigation. The Kalman gain adaptively adjusts the contribution of each 
+sensor input based on its uncertainty, ensuring optimal weighting be-
+tween the inertial prediction and the terrain-based correction. Conse-
+quently, the TERCOM observations continuously bound the long-term 
+drift of the INS, yielding a stable and accurate localization estimate even 
+under prolonged GNSS-denied conditions.
+3.1.5.  Final state update
+After correction, the reﬁned UAV position is obtained by compensat-
+ing the raw INS output with the updated EKF error state:
+𝑋corrected = 𝑋INS −𝛿𝐗𝑘
+(13)
+This corrected position 𝑋corrected represents the best estimate of the 
+UAV’s location in the local geodetic frame, maintaining reliable navi-
+gation performance under GNSS-denied conditions. The output is sub-
+sequently used for guidance, mapping, or autonomous control tasks.
+3.2.  Visual-inertial sensor fusion with random forest regression
+The Visual-Inertial Sensor Fusion with Random Forest Regression 
+(ViSensorRF) framework aims to achieve accurate UAV localization in 
+GNSS-denied environments by leveraging both visual and non-visual 
+sensor data in a learning-based estimation pipeline. Unlike traditional 
+model-based approaches such as TERCOM, which rely on DEM correla-
+tion, ViSensorRF formulates localization as a supervised regression task 
+and learns a direct mapping from sensory features to global geodetic 
+coordinates using an RFR model, as shown in Fig. 5.
+3.2.1.  Feature construction
+At each timestamp 𝑖, the system acquires a synchronized set of multi-
+modal sensor readings from the UAV’s onboard units, which are then 
+combined into a single feature vector for supervised regression learning. 
+The feature vector is deﬁned as:
+𝐱𝑖= [𝐟vision, ℎLiDAR, ℎBARO, 𝐚IMU, 𝝎IMU
+],
+(14)
+Where each component captures complementary spatial, altimetric, and 
+dynamic information about the UAV and its surrounding environment:
+• Visual Feature Vector (𝐟vision ∈ℝ𝑑): Each image 𝐼𝑖 captured by the 
+UAV-mounted camera is ﬁrst converted to grayscale to reduce redun-
+dancy and computational cost while preserving geometric and textu-
+ral details. The image is resized to a uniform resolution of 64 × 64 pix-
+els and subsequently ﬂattened into a one-dimensional vector through 
+column-wise vectorization:
+𝐟vision = vec(𝐼𝑖) ∈ℝ4096.
+This operation transforms the 2D spatial intensity distribution into 
+a compact numerical representation, allowing the Random Forest 
+model to interpret terrain variations as structured numerical pat-
+terns. All pixel intensities are normalized using z-score scaling to 
+ensure numerical compatibility with non-visual features.
+• LiDAR-Based Altitude (ℎLiDAR ∈ℝ): Represents the instantaneous 
+vertical range between the UAV and the ground surface, mea-
+sured directly by the LiDAR sensor. This parameter provides high-
+precision, terrain-relative altitude data that enhances the system’s 
+ability to discriminate between elevation contours and topographic 
+features, particularly in uneven or sloped terrains.
+• Barometric Altitude Estimate (ℎBARO ∈ℝ): Corresponds to an es-
+timated altitude derived from the UAV’s onboard altitude and Li-
+DAR measurements. In the implemented system, this feature is com-
+puted as the diﬀerence between the barometric-based altitude and 
+the LiDAR-measured range:
+ℎbaro = ℎaltitude −ℎLiDAR,
+Which eﬀectively approximates the UAV’s relative elevation above 
+the local terrain. This synthetic barometric estimate improves verti-
+cal stability by compensating for short-term LiDAR noise and atmo-
+spheric variations.
+• Inertial Measurements (𝐚IMU ∈ℝ3, 𝝎IMU ∈ℝ3): Denote the three-
+axis linear acceleration and angular velocity vectors obtained from 
+the IMU. These readings describe the UAV’s dynamic motion, includ-
+ing translational acceleration and rotational rates, and are crucial for 
+correlating visual and elevation changes with physical movement.
+All sensory streams are precisely synchronized based on hardware 
+timestamps to ensure that each multimodal observation 𝐱𝑖 reﬂects the 
+UAV’s complete state at the same instant. Each feature channel is stan-
+dardized using z-score normalization to equalize the statistical contri-
+bution of heterogeneous sensors during training. The resulting multi-
+modal feature vector encapsulates visual context, elevation cues, and 
+dynamic motion information, forming the core input representation for 
+the ViSensorRF learning-based localization framework in GNSS-denied 
+environments.
+3.2.2.  Regression model
+The objective is to estimate the UAV’s geodetic position vector:
+𝐲𝑖= [𝜙𝑖, 𝜆𝑖, ℎ𝑖] ∈ℝ3
+(15)
+where 𝜙𝑖, 𝜆𝑖, and ℎ𝑖 denote the latitude, longitude, and altitude, re-
+spectively. The Random Forest model (⋅) learns the nonlinear mapping 
+from features to global coordinates as:̂
+𝐲𝑖= (𝐱𝑖) = 1
+𝑇
+𝑇∑
+𝑡=1
+𝑡(𝐱𝑖)
+(16)
+where 𝑡(⋅) is the prediction from the 𝑡-th decision tree in the ensemble 
+of 𝑇 trees, and ̂𝐲𝑖 denotes the estimated position. The mean squared 
+error (MSE) loss minimized during training is deﬁned as:
+= 1
+𝑁
+𝑁
+∑
+𝑖=1
+‖‖(𝐱𝑖) −𝐲𝑖‖‖
+2
+(17)
+where 𝑁 is the total number of training samples.
+ViSensorRF thus performs global position estimation in a purely 
+data-driven manner, capturing complex interdependencies between sen-
+sor readings and spatial coordinates. Its learning capability enables ro-
+bust performance in visually structured and topographically diverse en-
+vironments (see Algorithm 2).
+Results in Engineering 29 (2026) 108279 
+7 
+[p.8]
+I. Jarraya et al.
+Fig. 4. Architecture of the TERCOM-EKF pipeline. Multi-sensor inputs are fused using terrain matching and Kalman ﬁltering to estimate UAV position without GNSS.
+Fig. 5. Architecture of the ViSensorRF framework, illustrating visual-inertial data fusion and position estimation through RFR.
+Results in Engineering 29 (2026) 108279 
+8 
+[p.9]
+I. Jarraya et al.
+Algorithm 2 ViSensorRF: Visual-inertial sensor fusion with RFR.
+Require: Multi-modal sensor logs {𝐟vision, ℎLiDAR, ℎBARO, 𝐚IMU, 𝝎IMU}, 
+ground-truth geodetic labels 𝐲𝑖= [𝜙𝑖, 𝜆𝑖, ℎ𝑖], and total samples 𝑁.
+Ensure: Trained RFR model (⋅) and estimated UAV position ̂𝐲𝑖=
+[̂𝜙𝑖,̂ 𝜆𝑖,̂ ℎ𝑖].
+1: Feature Construction: 
+2: for each timestamp 𝑖= 1 to 𝑁 do
+3:
+Extract visual features 𝐟vision from 𝐼𝑖 (grayscale conversion, resiz-
+ing, ﬂattening). 
+4:
+Retrieve non-visual readings {ℎLiDAR, ℎBARO, 𝐚IMU, 𝝎IMU}. 
+5:
+Form feature vector:
+𝐱𝑖= [𝐟vision, ℎLiDAR, ℎBARO, 𝐚IMU, 𝝎IMU]
+(14)
+6: end for
+7: Construct matrices 𝐗∈ℝ𝑁×𝐷 and 𝐘∈ℝ𝑁×3.
+8: Feature Normalization: 
+9: Standardize 𝐗 via z-score normalization.
+10: Model Training: 
+11: Split (𝐗, 𝐘) into training and testing sets. 
+12: Train Random Forest model (⋅)
+13: Minimize loss  as in Eq. (17). 
+14: Evaluate (⋅) using RMSE, MAE, and 𝑅2 on train/test data.
+15: Inference: 
+16: For new input 𝐱𝑡, estimate:̂
+𝐲𝑡= (𝐱𝑡) = 1
+𝑇
+𝑇∑
+𝑡=1
+𝑡(𝐱𝑡)
+(16)
+17: Measure inference latency for real-time evaluation.
+18: Visualization: 
+19: Plot 3D trajectories of (𝜙, 𝜆, ℎ) comparing predicted ̂𝐲 and reference 
+𝐲.
+4.  Results and discussion
+This section evaluates the two localization methods, TERCOM-EKF 
+and ViSensorRF, over six UAV ﬂight datasets. The assessment considers 
+longitude and latitude estimation errors, relative improvement percent-
+ages, and execution time. The study also evaluates additional SLAM-
+based and AI-driven localization methods, including fast-LIO, MINS, and 
+XGBoost, for comparative analysis relative to the TERCOM and ViSen-
+sorRF frameworks.
+4.1.  Testing environment
+Makkah Region in Saudi Arabia was selected as the testing ground 
+for implementing TERCOM and ViSensorRF for UAV localization (see 
+Fig. 6). This region oﬀers a diverse topography that combines moun-
+tainous and desert landscapes with minimal urban elements.
+For model training, the learning-based components (ViSensorRF and 
+XGBoost) were trained using data generated from the Taif region. The 
+dataset was divided into 75 % for training and 25 % for internal testing 
+to validate model performance. Additionally, external validation was 
+performed using ﬂight trajectories not included in either subset, provid-
+ing a robust assessment of performance on unseen terrain and environ-
+mental conditions.
+Six trajectories were generated to evaluate both localization meth-
+ods, following the UAV dataset generation framework presented in [42]. 
+The simulations were conducted using the Robot Operating System 2 
+(ROS 2), PX4, Gazebo, and QGroundControl.
+The DEM was extracted and processed using QGIS and Blender to 
+ensure accurate terrain representation. To emulate realistic ﬂight con-
+ditions, the simulated sensors in Gazebo were conﬁgured with noise pro-
+ﬁles that closely mimic real-world sensor behavior. The testing environ-
+ment, sensor conﬁgurations, and DEM parameters are comprehensively 
+summarized in Tables 2–4, respectively.
+4.2.  Performance evaluation metrics
+The evaluation of localization accuracy requires formal mathemat-
+ical deﬁnitions to ensure objective comparison across datasets. In this 
+study, error metrics are expressed both in Cartesian space (𝑋, 𝑌) and in 
+geographic coordinates (longitude and latitude). The ﬁrst step involves 
+computing the Cartesian Root Mean Square Error (RMSE), which quan-
+tiﬁes the discrepancy between the estimated and ground-truth positions 
+along each spatial axis. This metric, formally deﬁned in Eq. (18), pro-
+vides a baseline measurement of localization accuracy in meters.
+𝑅𝑀𝑆𝐸𝑑=
+√
+√
+√
+√1
+𝑁
+𝑁
+∑
+𝑖=1
+(̂𝑝𝑑,𝑖−𝑝𝑑,𝑖
+)2,
+𝑑∈{𝑋, 𝑌}
+(18)
+Here, ̂𝑝𝑑,𝑖 denotes the estimated UAV position along the 𝑑-th axis 
+(𝑋 or 𝑌), 𝑝𝑑,𝑖 represents the corresponding ground-truth position, and 
+𝑁 is the total number of sampled positions. The RMSE thus measures 
+the average deviation between the predicted and true positions, where 
+lower values indicate higher localization accuracy.
+Since UAV navigation is typically referenced in geodetic coordinates, 
+these Cartesian errors are converted into longitude and latitude devi-
+ations. The transformation from Cartesian displacements to geodetic 
+coordinates is expressed in Eq. (19), which maps position diﬀerences 
+(𝑋, 𝑌) into navigationally meaningful quantities (𝜆, 𝜙). This conversion 
+allows performance assessment to be reported directly in terms of lon-
+gitude and latitude errors, making results more interpretable for aerial 
+navigation applications.
+⎧
+⎪
+⎨
+⎪⎩
+𝜆= 𝜆0 +
+𝑋
+𝑅cos(𝜙0) ,
+𝜙= 𝜙0 + 𝑌
+𝑅.
+(19)
+where 𝜆 and 𝜙 denote longitude and latitude, (𝜆0, 𝜙0) the reference 
+position, and 𝑅 the Earth’s radius.
+Once the transformation is applied, the RMSE values can be com-
+puted separately for longitude and latitude, as shown in Eq. (20). This 
+formulation captures directional discrepancies in geodetic space, en-
+abling detailed evaluation of errors speciﬁc to each coordinate dimen-
+sion.
+⎧
+⎪
+⎪
+⎨
+⎪
+⎪⎩
+𝑅𝑀𝑆𝐸𝜆=
+√
+1
+𝑁
+∑𝑁
+𝑖=1
+(̂𝜆𝑖−𝜆𝑖
+)2,
+𝑅𝑀𝑆𝐸𝜙=
+√
+1
+𝑁
+∑𝑁
+𝑖=1
+(̂𝜙𝑖−𝜙𝑖
+)2.
+(20)
+Finally, to highlight the performance advantage of one method over 
+another, an improvement percentage metric is introduced in Eq. (21). 
+This metric expresses the relative reduction in error achieved by ViSen-
+sorRF compared to TERCOM-EKF, allowing direct interpretation of gains 
+in terms of accuracy improvements across all six evaluated UAV ﬂight 
+datasets.
+Δ% = 𝑅𝑀𝑆𝐸TERCOM −𝑅𝑀𝑆𝐸ViSensorRF
+𝑅𝑀𝑆𝐸TERCOM
+× 100
+(21)
+4.3.  TERCOM-EKF Results
+Table 5 summarizes the localization accuracy obtained with the 
+TERCOM-EKF method across six UAV ﬂight datasets. Results are pre-
+sented both in Cartesian coordinates (𝑋, 𝑌) and in converted geodetic 
+coordinates (longitude 𝜆, latitude 𝜙). This dual representation provides 
+a comprehensive view of the method’s performance by reporting raw 
+spatial deviations in meters, while also expressing errors in navigation-
+ally meaningful degrees.
+Results in Engineering 29 (2026) 108279 
+9 
+[p.10]
+I. Jarraya et al.
+Fig. 6. GroundControl (QGC) interface used to deﬁne and monitor UAV ﬂight trajectories over the Taif region.
+Table 2 
+Simulation and testing environment conﬁguration. 
+Component
+Details
+Hardware Speciﬁcations
+Intel i7 CPU with 16 GiB RAM and an NVIDIA 
+GeForce RTX 3070 Mobile GPU
+Simulation Framework
+ROS2, PX4, Gazebo, QGroundControl
+Terrain Modeling Tools
+QGIS, Blender, NASA DEMs
+Localization Region
+Taif region, Makkah Province, Saudi Arabia, 
+(21◦16′50ε𝑁, 40◦13′06ε𝐸), elevation 847.25 m
+Evaluation Dataset
+Six UAV trajectories generated using 
+ROS2-PX4 framework with terrain-grounded 
+synthetic data
+Sensor Inputs Used
+LiDAR, barometer, IMU, and camera data 
+(multi-modal)
+Localization Methods 
+Compared
+TERCOM-EKF (map-based correlation) vs. 
+ViSensorRF (RFR using sensor fusion)
+Performance Metrics
+RMSE (X, Y), longitude/latitude error, relative 
+error improvement (%), execution time
+Table 3 
+Sensor conﬁguration parameters.
+Sensor
+Conﬁguration Details
+RGB Camera
+Resolution: 320 × 240 pixels; focal length 
+𝑓𝑥= 𝑓𝑦= 277.19; principal point (160, 120).
+LiDAR
+Range: 0.1–120 m; angular resolution 0.25◦; 
+scan rate 10 Hz; Gaussian noise 𝜎= 0.02 m.
+IMU
+6-DOF accelerometer and gyroscope; 
+accelerometer noise 0.01 m/s2; gyroscope 
+noise 0.001 rad/s; bias drift matches 
+MPU-6050 speciﬁcations.
+Barometer
+Pressure-based altitude sensor; noise standard 
+deviation 𝜎= 0.1 m.
+Table 4 
+DEM Parameters for Taif region.
+ Attribute
+ Speciﬁcation
+ Coordinate Reference System
+ EPSG:4326
+ Spatial resolution
+≈ 28.81 m/pixel.
+ Geographical extent
+ covers ≈57.9 km2.
+Table 5 
+TERCOM-EKF Results: RMSE in cartesian coordinates and converted geodetic 
+errors (longitude/latitude).
+ Trajectory (Data 𝑖)
+ RMSEX (m)
+ RMSEY (m)
+ RMSE𝜆 (◦)
+ RMSE𝜙 (◦)
+ Trajectory 1 (Data 1)
+ 414.564
+ 878.305
+ 0.00400
+ 0.00791
+ Trajectory 2 (Data 2)
+ 233.180
+ 822.759
+ 0.00225
+ 0.00741
+ Trajectory 3 (Data 3)
+ 706.616
+ 700.114
+ 0.00682
+ 0.00631
+ Trajectory 4 (Data 4)
+ 645.999
+ 864.547
+ 0.00623
+ 0.00779
+ Trajectory 5 (Data 5)
+ 854.889
+ 786.126
+ 0.00825
+ 0.00708
+ Trajectory 6 (Data 6)
+ 963.244
+ 770.036
+ 0.00930
+ 0.00694
+The TERCOM-EKF method demonstrates a moderate level of accu-
+racy. In Cartesian space, RMSE values range from approximately 200 m 
+to nearly 960 m, with both longitudinal and latitudinal errors contribut-
+ing to the overall deviation. When expressed in geodetic form, the errors 
+fall within the order of 10−3 to 10−2 degrees. These correspond to sev-
+eral hundred meters of positional displacement, which, while suﬃcient 
+for coarse navigation, remain inadequate for precise UAV guidance in 
+GNSS-denied environments.
+Notably, Trajectory 2 exhibits the lowest Cartesian RMSE (233 m in 
+𝑋 and 823 m in 𝑌), corresponding to approximately 0.00225◦ in longi-
+tude and 0.00741◦ in latitude.
+In contrast, Trajectory 6 shows the highest overall error, exceeding 
+960 m in 𝑋 and 770 m in 𝑌, equivalent to nearly 0.0093◦ longitude devi-
+ation. These ﬁndings underline the variability of TERCOM-EKF perfor-
+mance across trajectories, inﬂuenced by factors such as terrain richness, 
+ﬂight path complexity, and sensor drift.
+Overall, the TERCOM-EKF serves as a useful baseline, establishing 
+the limitations of classical terrain-aided ﬁltering under GNSS-denied 
+conditions. Its results provide a benchmark for assessing the improve-
+ments achieved by data-driven approaches such as ViSensorRF, dis-
+cussed in the following subsection.
+4.4.  ViSensorRF results
+Table 6 reports the localization accuracy achieved with the ViSen-
+sorRF method. Unlike TERCOM-EKF, which relies on correlation-based 
+Results in Engineering 29 (2026) 108279 
+10 
+[p.11]
+I. Jarraya et al.
+Table 6 
+ViSensorRF results: RMSE in geodetic coordinates (longitude/lat-
+itude) with corrected meter equivalents at 𝜙0 = 21.28◦ (1◦𝜙≈
+111,320 m, 1◦𝜆≈103,730 m).
+ Trajectory (Data 𝑖)
+ RMSE𝜆 (◦) [m]
+ RMSE𝜙 (◦) [m]
+ Trajectory 1 (Data 1)
+9.58 × 10−6 (0.99 m)
+3.12 × 10−5 (3.47 m)
+ Trajectory 2 (Data 2)
+1.76 × 10−5 (1.83 m)
+1.02 × 10−5 (1.14 m)
+ Trajectory 3 (Data 3)
+1.58 × 10−5 (1.64 m)
+1.00 × 10−5 (1.11 m)
+ Trajectory 4 (Data 4)
+3.70 × 10−5 (3.84 m)
+3.22 × 10−5 (3.58 m)
+ Trajectory 5 (Data 5)
+1.10 × 10−5 (1.15 m)
+1.93 × 10−5 (2.15 m)
+ Trajectory 6 (Data 6)
+2.33 × 10−5 (2.41 m)
+4.51 × 10−5 (5.02 m)
+Table 7 
+Performance comparison be-
+tween 
+TERCOM-EKF 
+and 
+ViSensorRF across six UAV 
+trajectories. Improvements in 
+geodetic RMSE are shown.
+ Trajectory
+Δ𝜆 (%)
+Δ𝜙 (%)
+ 1
+ 99.76
+ 99.61
+ 2
+ 99.22
+ 99.86
+ 3
+ 99.77
+ 99.84
+ 4
+ 99.41
+ 99.59
+ 5
+ 99.87
+ 99.73
+ 6
+ 99.75
+ 99.35
+matching within the EKF, ViSensorRF leverages machine learning re-
+gression to directly predict positional corrections from sensor and ter-
+rain features.
+The results show a substantial reduction in error magnitude com-
+pared to TERCOM-EKF. RMSE values consistently fall within the order of 
+10−5 degrees, translating into meter-level positional deviations. Speciﬁ-
+cally, across the six datasets, longitudinal errors range between 0.99 m 
+and 3.84 m, while latitudinal errors remain between 1.11 m and 5.02 m. 
+This represents nearly two orders of magnitude improvement relative 
+to TERCOM-EKF, which typically exhibits errors of several hundred me-
+ters.
+Dataset 1, for instance, improves from approximately 400–880 m 
+RMSE in Cartesian coordinates under TERCOM-EKF to below 4 m under 
+ViSensorRF. Even the more challenging Dataset 6, which records errors 
+exceeding 960 m with TERCOM-EKF, achieves errors around 5 m with 
+ViSensorRF. This demonstrates the robustness of the machine learning 
+approach across diﬀerent ﬂight trajectories and terrain conditions.
+Overall, the ViSensorRF method achieves near real-time, meter-level 
+localization accuracy in GNSS-denied conditions, marking a signiﬁcant 
+advancement over classical terrain-referenced ﬁltering.
+4.5.  Trajectory visualizations
+To further evaluate the localization performance of the proposed 
+methods, a series of trajectory comparisons was conducted between the 
+estimated paths and the corresponding ground-truth references. Figs. 7, 
+and 8 illustrate representative results obtained across diﬀerent UAV 
+datasets. Fig. 7 presents two examples of ViSensorRF predictions in out-
+door ﬂight scenarios. The predicted 2D trajectories (blue curves) are 
+overlaid on the corresponding ground-truth paths (red curves). In both 
+cases, ViSensorRF demonstrates robust performance, producing nearly 
+overlapping curves with minimal deviations. These results indicate that 
+ViSensorRF is able to exploit the correlation between inertial and visual-
+inertial features to achieve sub-meter accuracy even under challenging 
+GNSS-denied conditions.
+Fig. 8 provides a direct comparison between the TERCOM-EKF, and 
+ViSensorRF methods for the same dataset. In Fig. 8(a), TERCOM-EKF 
+shows notable drift and mismatches in both lateral and longitudinal di-
+rections, particularly visible in areas with limited terrain texture. This 
+is a well-known limitation of terrain-referenced navigation, which is 
+highly dependent on map granularity and initialization accuracy.
+Conversely, Fig. 8(b) show that ViSensorRF successfully reconstructs 
+the UAV trajectory with near-perfect overlap with the reference, clearly 
+outperforming TERCOM-EKF.
+Overall, the trajectory visualizations conﬁrm that ViSensorRF signiﬁ-
+cantly improves localization accuracy compared to conventional terrain-
+matching strategies such as TERCOM-EKF. This improvement is es-
+pecially pronounced in complex or repetitive terrain patterns, where
+traditional correlation-based approaches tend to diverge. The consis-
+tency of ViSensorRF across diﬀerent datasets emphasizes its potential 
+for robust UAV navigation in GNSS-denied environments.
+4.6.  Discussion
+The comparative results in Table 7 demonstrate a clear dominance of 
+ViSensorRF over TERCOM-EKF in terms of localization accuracy. Across 
+all six trajectories, ViSensorRF consistently reduces RMSE values by 
+more than 99 % compared to TERCOM-EKF. This gain reﬂects the ad-
+vantage of leveraging multi-modal sensor fusion and machine learning 
+regression, which enables ViSensorRF to capture nonlinear correlations 
+inaccessible to correlation-based terrain matching.
+Three key insights emerge from these results:
+• Robustness to terrain variability. TERCOM-EKF performance is 
+strongly dependent on terrain richness and initialization. It tends to 
+drift when ﬂying over texture-sparse or featureless regions, where 
+altitude-terrain correlation signals are weak. By contrast, ViSen-
+sorRF remains stable even under challenging conditions, consistently 
+achieving meter-level accuracy. This robustness highlights the capac-
+ity of data-driven models to fuse heterogeneous sensor modalities 
+and adapt to variable environments.
+• Computational trade-oﬀ. Despite its superior accuracy, ViSensorRF 
+requires a considerably longer processing time per localization cy-
+cle on a standard Intel i7 CPU (1.92s), whereas TERCOM-EKF com-
+pletes each cycle in only 0.04s. This substantial eﬃciency advan-
+tage makes TERCOM-EKF more suitable for real-time deployment 
+on resource-constrained UAVs. This contrast arises from their un-
+derlying principles. ViSensorRF is a data-driven learning approach 
+that infers position via multi-sensor regression, while TERCOM-EKF 
+relies on direct terrain matching and ﬁltering. The data-driven de-
+sign enables ViSensorRF to capture complex sensor relationships and 
+achieve higher precision, but it also increases computational demand 
+and depends on high-quality, region-speciﬁc training data. Conse-
+quently, retraining or ﬁne-tuning is required when deploying ViSen-
+sorRF in new environments, whereas TERCOM-EKF remains more 
+immediately transferable and eﬃcient for real-time embedded UAV 
+applications.
+• Operational implications. The improvement from kilometer-scale 
+errors under TERCOM-EKF to meter-scale precision under ViSen-
+sorRF represents a transformative leap for UAV navigation in GNSS-
+denied environments. Achieving meter-level localization accuracy 
+enables advanced missions, such as safe urban ﬂights, swarming co-
+ordination, and terrain-following operations, that would be infeasi-
+ble with TERCOM-EKF alone.
+In summary, ViSensorRF delivers superior accuracy and robustness 
+but at the expense of signiﬁcantly higher computational requirements. 
+TERCOM-EKF, while less precise, is faster and lighter, making it attrac-
+tive for onboard embedded platforms where low-latency operation is 
+critical. Future research should prioritize improving the eﬃciency of 
+ViSensorRF through techniques such as model compression, pruning, 
+quantization, or hardware acceleration to make its robustness deploy-
+able under real-time constraints. Another promising direction lies in 
+hybrid architectures, where TERCOM-EKF provides rapid, low-latency 
+updates and ViSensorRF supplies periodic, high-accuracy corrections, 
+achieving a practical balance between eﬃciency and precision. Finally, 
+Results in Engineering 29 (2026) 108279 
+11 
+[p.12]
+I. Jarraya et al.
+Fig. 7. Comparison of the ViSensorRF-predicted 2D UAV trajectories with ground-truth 3D ﬂight paths in outdoor environments for two representative cases.
+Fig. 8. Comparison of UAV trajectories generated by (a) TERCOM-EKF and (b) ViSensorRF. While TERCOM-EKF suﬀers from accumulated drift and terrain depen-
+dency, ViSensorRF achieves near-perfect alignment with the real trajectory, demonstrating superior localization accuracy.
+the establishment of a standardized benchmarking framework will en-
+able fair and systematic evaluation of localization strategies across di-
+verse environmental and sensor conditions, accelerating the translation 
+of research advances into practical, mission-ready UAV systems.
+4.7.  Comparative evaluation with other localization methods
+Additional state-of-the-art localization methods were implemented 
+and evaluated under GNSS-denied conditions using the same dataset 
+and UAV ﬂight trajectories. Two widely recognized frameworks, Fast 
+LiDAR-Inertial Odometry (Fast-LIO) and the Multisensor-Aided Inertial 
+Navigation System (MINS), were integrated as established benchmarks 
+representing the Visual-Inertial Odometry (VIO) and Simultaneous Lo-
+calization and Mapping (SLAM) paradigms. Furthermore, a non-visual, 
+learning-based model, XGBoost (eXtreme Gradient Boosting), was in-
+cluded to provide a data-driven perspective within the same compar-
+ative evaluation framework. Fast-LIO fuses LiDAR and IMU data for 
+real-time motion estimation [43,44], while MINS integrates camera, 
+LiDAR, and IMU measurements within a tightly coupled optimization 
+framework [45]. These methods enable a cross-domain comparison en-
+compassing SLAM-based estimation, visual-inertial fusion, and machine 
+learning regression for UAV localization in GNSS-denied environments.
+The SLAM-based methods, Fast-LIO and MINS, failed to maintain 
+stable localization at higher altitudes where visual and structural fea-
+tures were sparse or indistinguishable. As shown in Fig. 9, the Fast-LIO 
+implementation in the Taif region using ROS 2, Gazebo, and QGround-
+Control illustrates the UAV trajectory visualization obtained in RViz
+under GNSS-denied conditions. In this ﬁgure, green represents the 
+ground-truth UAV trajectory, purple corresponds to the estimated trajec-
+tory produced by the localization algorithm, and yellow illustrates the 
+UAV’s estimated pose. A similar degradation was observed for MINS un-
+der the same conditions. This degradation arises from the limited texture 
+and reduced correspondence quality required for reliable SLAM feature 
+matching.
+Results in Engineering 29 (2026) 108279 
+12 
+[p.13]
+I. Jarraya et al.
+Fig. 9. RViz visualization (ROS visualization tool) of UAV localization trajectories using Fast-LIO framework. It shows the ground-truth UAV trajectory (green) of the 
+UAV during a takeoﬀ to a height of approx. 1 km, estimated position trajectory produced by FAST-LIO framework (purple), and the instantaneous UAV’s estimated 
+position vector (yellow), the last estimate by FAST-LIO. The ﬁgure shows a clear divergence of the position estimates with respect to the ground truth.
+Table 8 
+XGBoost results: RMSE in cartesian coordinates and converted 
+geodetic errors (longitude/latitude).
+ Trajectory (Data 𝑖) RMSE𝑋 (m) RMSE𝑌 (m) RMSE𝜆 ( ◦) RMSE𝜙 ( ◦)
+ Trajectory 1
+ 2.6892
+ 2.2843
+2.6 × 10−5
+2.1 × 10−5
+ Trajectory 2
+ 3.6056
+ 1.7203
+3.5 × 10−5
+1.5 × 10−5
+ Trajectory 3
+ 2.0146
+ 1.7914
+1.9 × 10−5
+1.6 × 10−5
+ Trajectory 4
+ 1.9923
+ 1.5835
+1.9 × 10−5
+1.4 × 10−5
+ Trajectory 5
+ 2.9024
+ 1.9556
+2.8 × 10−5
+1.8 × 10−5
+ Trajectory 6
+ 3.7471
+ 1.6293
+3.6 × 10−5
+1.5 × 10−5
+Table 9 
+Comparison of localization strategies.
+ Localization Strategy
+ RMSEX (m)
+ RMSEY (m)
+ MINS
+ Failed
+ Failed
+ Fast-LIO
+ Failed
+ Failed
+ XGBoost
+ 1.9923-3.7471
+ 1.5835-2.2843
+ TERCOM-EKF
+ 233.180–963.244
+ 700.114–878.305
+ ViSensorRF
+ 0.99-3.84
+ 1.11-5.02
+To address the instability observed in SLAM-based techniques under 
+sparse visual conditions, AI-driven approaches such as ViSensorRF and 
+XGBoost were introduced. ViSensorRF combines visual and non-visual 
+sensor data within an RFR framework, achieving competitive RMSE val-
+ues but with higher computational cost. In contrast, XGBoost [46] fuses 
+LiDAR, IMU, and barometric measurements without relying on visual 
+inputs, making it particularly suitable for visually degraded conditions. 
+By learning nonlinear relationships between multi-sensor inputs and po-
+sitional outputs, XGBoost provides an adaptive correction mechanism 
+that eﬀectively captures dynamic sensor behavior. The corresponding 
+results are presented in Table 8.
+Table 9 summarizes the RMSE values obtained for all evaluated 
+methods. ViSensorRF signiﬁcantly outperforms traditional estimation 
+techniques such as TERCOM-EKF, reducing the RMSE from hundreds 
+of meters to only a few meters. XGBoost achieves comparable accu-
+racy while oﬀering faster execution. The measured execution times were 
+0.04s for TERCOM-EKF, 0.498s for XGBoost, and 1.92s for ViSensorRF, 
+conﬁrming the computational advantage of the learning-based model.
+These ﬁndings suggest that the most eﬀective strategy is a hybrid 
+fusion of TERCOM-EKF and XGBoost, combining the rapid baseline es-
+timation capability of TERCOM-EKF with the adaptive reﬁnement of 
+XGBoost to achieve both real-time performance and high localization 
+accuracy in GNSS-denied environments.
+Despite these promising results, this study has certain limitations. 
+The evaluation was conducted using a single regional dataset represent-
+ing the Taif terrain, and the DEM was generated from real-world ele-
+vation data using the available open-source os-rfodg framework [42]. 
+However, obtaining accurate, high-resolution DEMs across diﬀerent re-
+gions worldwide remains a considerable challenge due to limited data 
+accessibility, variations in spatial resolution, and regional restrictions 
+on geospatial information. Therefore, additional testing across multiple 
+landscapes using veriﬁed DEM sources is necessary to validate cross-
+terrain generalizability fully. In future work, the proposed TERCOM-
+XGBoost hybrid framework will be expanded and evaluated using real-
+world UAV ﬂight datasets combined with high-precision DEM data
+covering geographically diverse environments.
+5.  Conclusion and future work
+This study presented a comprehensive comparative evaluation of 
+multiple UAV localization strategies for GNSS-denied environments, in-
+cluding TERCOM-EKF, ViSensorRF, Fast-LIO, MINS, and XGBoost. The 
+ﬁndings reveal that ViSensorRF, a visual-inertial learning-based ap-
+proach, achieves an over 99 % reduction in localization error relative 
+to TERCOM-EKF and consistently maintains sub-5 m RMSE, with sev-
+eral trajectories showing near-perfect alignment with the ground truth. 
+In contrast, TERCOM-EKF oﬀers lower positional accuracy but oper-
+ates at 0.04s, demonstrating strong suitability for real-time, resource-
+constrained UAV platforms. Among the additional methods, Fast-LIO 
+and MINS failed to converge at high altitudes due to the sparsity of 
+visual features. In contrast, XGBoost achieved comparable accuracy to 
+ViSensorRF while signiﬁcantly reducing execution time.
+Results in Engineering 29 (2026) 108279 
+13 
+[p.14]
+I. Jarraya et al.
+These results highlight a fundamental trade-oﬀ between precision 
+and computational eﬃciency, oﬀering both theoretical insights into 
+how sensor modality and learning architecture inﬂuence localization 
+robustness and practical guidance for UAV navigation in GNSS-denied 
+missions. While the AI-based approaches demonstrated excellent accu-
+racy by leveraging multi-sensor data rather than traditional matching 
+and ﬁltering, their dependence on high-quality, region-speciﬁc training 
+data limits their generalizability. Applying these models to new environ-
+ments would require retraining or ﬁne-tuning to accommodate terrain 
+and environmental variability. This limitation deﬁnes a clear direction 
+for future research, emphasizing cross-regional validation to enhance 
+scalability and robustness.
+Considering the combined factors of computational time, localiza-
+tion accuracy, generalizability, data availability, and sensor cost, the 
+choice of the most suitable method is application dependent. To further 
+enhance real-time applicability, future research will focus on computa-
+tional optimization of learning-based models through pruning, quanti-
+zation, and hardware acceleration. Additionally, a hybrid localization 
+framework is proposed, in which TERCOM-EKF provides continuous, 
+high-frequency baseline updates, and ViSensorRF or XGBoost provides 
+periodic, high-accuracy corrections. Synchronization between the two 
+modules will be managed via timestamp alignment and adaptive up-
+date scheduling, ensuring that reﬁned AI-based estimates are seamlessly 
+integrated into the TERCOM-EKF prediction cycle without introducing 
+latency. This hybrid strategy aims to bridge the gap between robustness 
+and real-time feasibility, advancing the deployment of resilient, adap-
+tive localization systems for mission-critical UAV operations.
+CRediT authorship contribution statement
+Imen Jarraya: Writing – original draft, Validation, Supervision, 
+Software, Methodology; Khaled Gabr: Writing – original draft, Vi-
+sualization, Validation, Software, Data curation; Mohamed Abdelka-
+der: Writing – original draft, Supervision, Methodology, Formal anal-
+ysis; Fatimah Alahmed: Writing – original draft, Software, Methodol-
+ogy; Muhammad Bilal Kadri: Writing – review & editing, Resources, 
+Project administration, Investigation, Funding acquisition, Formal anal-
+ysis; Wadii Boulila: Writing – review & editing, Resources, Project ad-
+ministration, Methodology, Investigation, Funding acquisition, Formal 
+analysis, Conceptualization.
+Data availability
+The dataset used in this study is publicly available on 
+Hugging 
+Face: 
+https://huggingface.co/datasets/riotu-lab/
+os-rfodg-outdoor-uav-synthetic-dataset-taif-saudi-arabia.
+Declaration of competing interest
+The authors state that they have no known ﬁnancial interests or per-
+sonal relationships that could have inﬂuenced the work presented in this 
+paper. 
+Acknowledgments
+The authors extend their sincere appreciation to Prince Sultan Uni-
+versity for covering the Article Processing Charges (APC) associated 
+with this publication.
+References
+[1] A.J. Moshayedi, Z. Wang, M. Sharifdoust, A.S. Khoojine, W. Zhang, A. Kolahdooz, 
+J. Hu, Smart farming solutions: a user-friendly GUI for maize tassel estimation us-
+ing YOLO with dynamic and ﬁxed labelling, featuring video support, IEEE Access 
+(2025).
+[2] M. Tanveer, etal. , Towards a secure and computational framework for Internet 
+of Drones enabled aerial computing, IEEE Trans. Netw. Sci. Eng. 10 (5) (2022) 
+3058–3070.
+[3] Y. Yao, C. Sun, T. Wang, J. Yang, E. Zheng, UAV Geo-localization dataset and method 
+based on cross-view matching, Sensors 24 (21) (2024). https://doi.org/10.3390/
+s24216905
+[4] M. Norbelt, X. Luo, J. Sun, U. Claude, UAV Localization in urban area
+mobility environment based on monocular VSLAM with deep learning, Drones 
+9 (3) (2025). https://www.mdpi.com/2504-446X/9/3/171. https://doi.org/10.
+3390/drones9030171
+[5] C.V.S. Babu, A. Pal, Enhancing security for unmanned aircraft systems in IoT envi-
+ronments: defense mechanisms and mitigation strategies, in: S.K. Gupta, M. Kumar, 
+A. Nayyar, S. Mahajan (Eds.), Unmanned Aircraft Systems, Wiley, 2024, 429–476, 
+https://doi.org/10.1002/9781394230648.ch11.
+[6] Y. Chang, Y. Cheng, U. Manzoor, J. Murray, A review of UAV autonomous navigation 
+in GPS-denied environments, Rob. Auton. Syst. 170 (2023) 104533.
+[7] E. Fredeluces, T. Ozeki, N. Kubo, A. El-Mowafy, Modiﬁed RTK-GNSS for challenging 
+environments, Sensors 24 (9) (2024) 2712.
+[8] G. Huang, S. Du, D. Wang, GNSS Techniques for real-time monitoring of landslides: 
+a review, Satellite Navig. 4 (1) (2023) 5.
+[9] W.M. Othman, A.A. Ateya, M.E. Nasr, A. Muthanna, M. ElAﬀendi, A. Koucheryavy, 
+A.A. Hamdi, Key enabling technologies for 6G: the role of UAVs, terahertz commu-
+nication, and intelligent reconﬁgurable surfaces in shaping the future of wireless 
+networks, J. Sens. Actuat. Netw. 14 (2) (2025) 30.
+[10] C. Brommer, A. Fornasier, M. Scheiber, J. Delaune, R. Brockers, J. Steinbrener, S. 
+Weiss, The INSANE dataset: large number of sensors for challenging UAV ﬂights in 
+Mars analog, outdoor, and out-/indoor transition scenarios, Int. J. Rob. Res. 43 (8) 
+(2024) 1083–1113, https://doi.org/10.1177/02783649241227245.
+[11] N. El-Sheimy, A. Youssef, Inertial sensors technologies for navigation applications: 
+state of the art and future trends, Satellite Navig. 1 (1) (2020) 2.
+[12] J. Xuan, T. Zhu, G. Peng, F. Sun, D. Dong, A review on the inertial measurement 
+unit array of microelectromechanical systems, Sensors 24 (22) (2024) 7140.
+[13] H. Guo, X. Chen, M. Yu, M. Uradzi´nski, L. Cheng, The usefulness of sensor fusion for 
+unmanned aerial vehicle indoor positioning, Int. J. Intell. Unmanned Syst. 12 (1) 
+(2024) 1–18.
+[14] M.N. Cahyadi, T. Asﬁhani, H.F. Suhandri, S.C. Navisa, Analysis of GNSS/IMU sen-
+sor fusion at UAV quadrotor for navigation, in: IOP Conference Series: Earth and 
+Environmental Science,  1276, IOP Publishing, 2023, p. 012021.
+[15] D. Janos, P. Kuras, Ł. Ortyl, Evaluation of low-cost RTK GNSS receiver in motion 
+under demanding conditions, Measurement 201 (2022) 111647.
+[16] A.T. Fragoso, C.T. Lee, A.S. McCoy, S.J. Chung, A seasonally invariant deep trans-
+form for visual terrain-relative navigation, Sci. Rob. 6 (55) (2021) eabf3320.
+[17] M.H. Rahman, M.A.S. Sejan, M.A. Aziz, R. Tabassum, J.I. Baik, H.K. Song, A compre-
+hensive survey of unmanned aerial vehicles detection and classiﬁcation using ma-
+chine learning approach: challenges, solutions, and future directions, Remote Sens. 
+16 (5) (2024) 879.
+[18] Z. Wang, D. Shi, C. Qiu, S. Jin, T. Li, Y. Shi, Z. Liu, Z. Qiao, Sequence matching for 
+image-based UAV-to-satellite geolocalization, IEEE Trans. Geosci. Remote Sens. 62 
+(2024) 5607815, https://doi.org/10.1109/TGRS.2024.3359605.
+[19] A. Roux, S. Changey, J. Weber, J.P. Lauﬀenburger, LSTM-Based projectile trajectory 
+estimation in a GNSS-denied environment, Sensors 23 (6) (2023) 3025.
+[20] I. Jarraya, A. Al-Batati, M.B. Kadri, M. Abdelkader, A. Ammar, W. Boulila, A. 
+Koubaa, GNSS-Denied unmanned aerial vehicle navigation: analyzing computa-
+tional complexity, sensor fusion, and localization methodologies, Satellite Navig. 
+6 (1) (2025) 9. https://doi.org/10.1186/s43020-025-00162-z
+[21] M. Junaid, M.E. Al-Atroush, S. Mahmood, K. Sultan Shah, A. Ullah, Recent develop-
+ments in unmanned aerial vehicle (UAV) surveys for rock slope stability analysis–a 
+review, Geocarto Int. 40 (1) (2025) 2519915.
+[22] R. Munguia, A. Grau, Y. Bolea, G. Obregón-Pulido, A simultaneous control, lo-
+calization, and mapping system for UAVs in GPS-denied environments, Drones 9 
+(1) (2025). https://www.mdpi.com/2504-446X/9/1/69. https://doi.org/10.3390/
+drones9010069
+[23] H. Gao, Y. Yu, X. Huang, L. Song, L. Li, L. Li, L. Zhang, Enhancing the localiza-
+tion accuracy of UAV images under GNSS denial conditions, Sensors 23 (24) (2023)
+9751.
+[24] M.B.K. Soﬁa Yousuf, Improving the position accuracy and computational eﬃciency 
+of UAV terrain aided navigation using a two-stage hybrid fuzzy particle ﬁltering 
+method, Comput. Mater. Cont. 82 (1) (2025) 1193–1210. http://www.techscience.
+com/cmc/v82n1/59207. https://doi.org/10.32604/cmc.2024.054587
+[25] X. Wan, Y. Shao, S. Zhang, S. Li, Terrain aided planetary UAV localization based on 
+geo-referencing, IEEE Trans. Geosci. Remote Sens. 60 (2022) 1–18.
+[26] F. Yao, C. Lan, L. Wang, H. Wan, T. Gao, Z. Wei, GNSS-Denied geolocalization of 
+UAVs using terrain-weighted constraint optimization, Int. J. Appl. Earth Obs. Geoinf. 
+135 (2024) 104277. https://doi.org/10.1016/j.jag.2024.104277
+[27] A. Gupta, X. Fernando, Simultaneous localization and mapping (slam) and data fu-
+sion in unmanned aerial vehicles: recent advances and challenges, Drones 6 (4) 
+(2022) 85.
+[28] J. Kinnari, R. Renzulli, F. Verdoja, V. Kyrki, LSVL: large-scale season-invariant visual 
+localization for UAVs, Rob. Auton. Syst. 168 (2023) 104497.
+[29] I. Lee, C.K. Sung, H. Lee, S. Nam, J. Oh, K. Lee, C. Park, Georeferenced UAV local-
+ization in mountainous terrain under GNSS-Denied conditions, Drones (2025).
+[30] Q. Zhou, H. Tang, Z. Zhang, Y. Xu, F. Xiao, Y. Jia, A hierarchical absolute visual 
+localization system for low-altitude drones in GNSS-Denied environments, Remote 
+Sens. 17 (20) (2025) 3470.
+[31] Y. Cui, C. Wang, Q. Hu, B. Xu, X. Song, Z. Yuan, Y. Zhu, A novel positioning method 
+for UAV in GNSS-denied environments based on mechanical antenna, IEEE Trans. 
+Ind. Electron. 71 (10) (2024) 13461–13469.
+[32] I. Jarraya, M. Abdelkader, K. Gabr, A. AlMusalami, Non-visual terrain navigation 
+for UAVs: a comparative study in GPS-denied, in: International Conference on Smart 
+Results in Engineering 29 (2026) 108279 
+14 
+[p.15]
+I. Jarraya et al.
+Systems and Emerging Technologies: Edition 2024,  1401, Springer Nature, 2025, 
+p. 345.
+[33] Z. Wang, X. Shen, J. Li, J. Li, X. Wu, Y. Yang, Enhancing integrated navigation with a 
+self-attention LSTM hybrid network for UAVs in GNSS-denied environments, Drones 
+9 (4) (2025) 279.
+[34] M.S.E. Sabbagh, A. Maher, M.A.H. Abozied, A.M. Kamel, Promoting navigation sys-
+tem eﬃciency during GPS outage via cascaded neural networks: a novel AI based ap-
+proach, Mechatronics 94 (2023) 103026. https://doi.org/10.1016/j.mechatronics.
+2023.103026
+[35] A.A. Hammadi, J. Yang, Z. Zhang, C. Yuen, M. Debbah, An experimental analysis 
+of outdoor UAV localisation through diverse estimators and crowd-sensed data fu-
+sion, Transp. Res. Proc. 69 (2024) 193–200. https://doi.org/10.1016/j.trpro.2024.
+06.193
+[36] M.A. Bodi, L. Zhenbao, F. Jiang, Z. Wen, D. Qingqing, W. Xiao, J. Zhang, W. Lina, 
+Reinforcement learning based UAV formation control in GPS-denied environment, 
+Chin. J. Aeronaut. 36 (11) (2023) 281–296.
+[37] C. Ouyang, S. Hu, F. Long, S. Shi, Z. Yu, K. Zhao, Z. You, J. Pi, B. Xing, A semantic 
+vector map-based approach for aircraft positioning in GNSS/GPS denied large-scale 
+environment, Defence Technol. 34 (2024) 1–10.
+[38] M.S. Braasch, Inertial navigation systems, in: A.V. Nebylov, J. Watson (Eds.), 
+Aerospace Navigation Systems, John Wiley & Sons, Ltd., 2016, 1–25, https://doi.
+org/10.1002/9781119163060.
+[39] E.S.S. Oda, S.F. Nafea, et al., Integrated INS/GNSS navigation systems: a compre-
+hensive review of ﬁltering and AI-based fusion techniques, Suez Canal Eng. Energy 
+Environ. Sci. 3 (3) (2025) 17–30.
+[40] D. Wang, L. Liu, Y. Ben, P. Dai, J. Wang, Underwater terrain-matching algorithm 
+based on improved iterative closest contour point algorithm, Meas. Control (2024) 
+00202940231224569.
+[41] D. Vaman, TRN history, trends and the unused potential, 2012 IEEE/AIAA 31st Dig-
+ital Avionics Systems Conference (DASC), IEEE, (2012) 1A3–1.
+[42] I. Jarraya, M. Abdelkader, K. Gabr, M.B. Kadri, F. Alahmed, W. Boulila, A. Koubaa, 
+OS-RFODG: open-source ROS2 framework for outdoor UAV dataset generation, Re-
+sults Eng. (2025) 106613.
+[43] Ericsii, FAST_LIO_ROS2: ROS2 version of FAST_LIO2, 2025, (https://github.com/
+Ericsii/FAST_LIO_ROS2). GitHub repository, accessed 2025-10-27.
+[44] W. Xu, F. Zhang, Fast-lio: a fast, robust lidar-inertial odometry package by 
+tightly-coupled iterated kalman ﬁlter, IEEE Rob. Autom. Lett. 6 (2) (2021) 3317–
+3324.
+[45] W. Lee, P. Geneva, C. Chen, G. Huang, MINS: eﬃcient and robust multisensor-aided 
+inertial navigation system, J. Field Rob. 42 (7) (2025) 3252–3284.
+[46] T. Chen, C. Guestrin, XGBoost: a scalable tree boosting system, in: Proceedings of 
+the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data 
+Mining, KDD ’16, Association for Computing Machinery, New York, NY, USA, 2016, 
+p. 785-794. https://doi.org/10.1145/2939672.2939785
+Results in Engineering 29 (2026) 108279 
+15 
+=== END ===

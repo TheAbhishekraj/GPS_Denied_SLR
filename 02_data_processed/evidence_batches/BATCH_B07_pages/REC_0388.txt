@@ -1,0 +1,3804 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0388.pdf
+sha256: 02F29846A1BE5B80D873123E9C81AC62CF0910061448AD7C8EB7A6CA68DA0836
+library: pymupdf (fitz) v1.28.2
+pages: 31
+=== BEGIN ===
+[p.1]
+3460
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+Multi-UAV Cooperative Navigation Based on
+Multisource Information Fusion: A Review
+Fujun Song , Qinghua Zeng , Rui Zhang, Xiaohu Zhu, Xiaoyu Ye , and Zongyu Zhang
+Abstract—Unmanned aerial vehicle (UAV) swarms are
+increasingly deployed in both civilian and military domains,
+where high-precision navigation in Global Navigation Satel-
+lite System (GNSS)-denied environments remains a critical
+challenge. Cooperative navigation (CN) has emerged as
+a promising paradigm by leveraging intervehicle informa-
+tion exchange and multisource information fusion (MSIF) to
+enhance swarm navigation performance. Although numerous
+surveys have summarized multisensor integration and state
+estimation methods for single-platform UAVs, comprehen-
+sive reviews dedicated to CN remain limited. This article
+presents a structured framework for CN that integrates multi-
+source information acquisition, cooperative localization (CL)
+techniques in GNSS-denied environments, and multisource
+fusion algorithms. On this basis, we provide a systematic
+review of CN from three perspectives: relative measure-
+ment information, CN architectures, and swarm cooperative
+optimization algorithms. Furthermore, fusion algorithms are
+categorized into four classes, namely, mathematically derived, graph-based, filtering-based, and learning-based
+approaches, with their development trends systematically analyzed. The synergistic features of multisource information
+are then discussed, with emphasis on information selection, fault tolerance, and resilient fusion. Finally, the hierarchical
+structure of MSIF is highlighted, revealing the evolutionary trend from feature-level toward decision-level strategies. This
+survey aims to present a holistic understanding of UAV CN, outline key technical challenges, and shed light on future
+research directions in this rapidly evolving field.
+Index Terms— Cooperative navigation (CN), multisource information fusion (MSIF), multiple unmanned aerial vehicles
+(UAVs).
+I. INTRODUCTION
+I
+N RECENT years, unmanned aerial vehicle (UAV) systems
+have attracted extensive attention owing to their significant
+application potential. Benefiting from their wide operational
+Received 28 November 2025; accepted 16 December 2025. Date of
+publication 25 December 2025; date of current version 2 February 2026.
+This work was supported by the Fifth Electronic Research Institute of
+MIIT under Grant 25Z05. The associate editor coordinating the review
+of this article and approving it for publication was Prof. Dongsoo Har.
+(Corresponding authors: Xiaoyu Ye; Zongyu Zhang.)
+Fujun Song, Qinghua Zeng, Rui Zhang, and Xiaohu Zhu are
+with
+the
+School
+of
+Aeronautics
+and
+Astronautics,
+Sun
+Yat-sen
+University, Shenzhen 518107, China (e-mail: songfj3@mail2.sysu.
+edu.cn; zqinghua@mail.sysu.edu.cn; zhangr365@mail2.sysu.edu.cn;
+zhuxh37@mail2.sysu.edu.cn).
+Xiaoyu Ye is with Guangdong Provincial Key Laboratory of Intel-
+ligent Unmanned Systems for Reliability and Digital Verification, the
+Ministry of Industry, and the Information Technology Key Laboratory
+of Quality and Reliability Engineering Technology of Civil Aircraft and
+Aero-Engine, China Electronic Product Reliability and Environmen-
+tal Testing Research Institute, Guangzhou 511300, China (e-mail:
+yexy@ceprei.com).
+Zongyu Zhang is with the School of Artificial Intelligence, Dalian Mar-
+itime University, Dalian 116026, China (e-mail: zhangzy@dlmu.edu.cn).
+Digital Object Identifier 10.1109/JSEN.2025.3646302
+range, high autonomy, and enhanced safety, UAVs have
+witnessed rapid expansion and are poised to play a pivotal role
+in diverse applications, including swarm reconnaissance, aerial
+surveillance, ground observation, small-package delivery, and
+commercial demonstrations [1]. In the context of autonomous
+navigation, UAVs serve as a crucial component in multiple
+aspects, where accurate positioning techniques further enhance
+their overall performance. Currently, most UAV navigation
+systems adopt an integrated design combining the inertial nav-
+igation system (INS) with satellite-based navigation. However,
+in strongly disturbed environments, such as urban canyons
+with tall buildings, satellite signals may become unavailable
+or unreliable. Consequently, UAV platforms are commonly
+augmented with additional sensors to provide auxiliary navi-
+gation support, such as radio-based receivers, magnetometers,
+optical cameras, and barometric altimeters [2]. Beyond con-
+ventional on-board sensors, multiple-input multiple-output
+(MIMO) radar technology has emerged as a key enabler for
+cooperative navigation (CN), offering robust external sens-
+ing and improved relative positioning accuracy in Global
+Navigation Satellite System (GNSS)-denied environments [3].
+1558-1748 © 2025 IEEE. All rights reserved, including rights for text and data mining, and training of artificial intelligence
+and similar technologies. Personal use is permitted, but republication/redistribution requires IEEE permission.
+See https://www.ieee.org/publications/rights/index.html for more information.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3461
+Fig. 1.
+Diagram of cooperation navigation for UAVs (the localization
+error is represented by an ellipse with the axis corresponding to the
+direction of localization error [8]).
+In particular, MIMO radar delivers higher resolution imaging
+and supports distributed cooperative sensing, rendering it
+especially well-suited for high-precision relative positioning
+and environmental perception in multi-UAVs operations [4].
+The research topics and challenges of CN and integrated
+navigation exhibit strong similarities, as UAV swarms com-
+monly encounter localization difficulties in GNSS-denied
+environments. In 2019, Science Robotics highlighted that the
+deployment of micro-UAV swarms is primarily constrained
+by the lack of autonomous cooperative relative localization
+(RL) and navigation technologies under satellite-denied con-
+ditions [5]. In 2020, the China Association for Science and
+Technology identified “high-precision intelligent navigation
+for unmanned systems in satellite-denied environments” as
+one of the top ten engineering challenges. A distinguishing
+feature of CN lies in its dependence on intervehicle infor-
+mation sharing, with an increasing diversity in the types
+and combinations of multisource information. For instance,
+Li et al. [6] proposed a distributed estimation framework
+that integrates ranging, vision, and intermittent position mea-
+surements. This method constructs both direct and indirect
+geometric constraints among UAVs by exploiting relative
+distances and cooperative observation features. Furthermore,
+Jarraya et al. [7] introduced a dynamic model-aided navigation
+(DMAN) method tailored for small-scale multirotor UAVs,
+which can provide temporary navigation support when GNSS
+position and velocity measurements are unavailable or unre-
+liable. To address these challenges, CN leverages intervehicle
+measurement sharing, combined with dedicated algorithms or
+strategies, to achieve multisource information fusion (MSIF),
+thereby enhancing the overall navigation performance of UAV
+swarms. As an emerging paradigm, the fundamental scenario
+of CN is illustrated in Fig. 1. In GNSS-denied environments,
+UAV swarms can effectively suppress the temporal drift inher-
+ent in INS-derived position errors by cooperatively fusing
+estimated signal indicators [e.g., time of arrival (TOA)] with
+the positional information of neighboring UAVs [8].
+In recent years, the rapid advancement of CN technologies
+has facilitated their widespread adoption across both military
+and civilian applications. Research on multiplatform CN pri-
+marily encompasses two dimensions: cooperative architectures
+and navigation methods [9], [10]. Regarding cooperative archi-
+tectures, CN is commonly categorized into leader–follower and
+parallel configurations. Navigation methods primarily address
+multisensor integration, information processing, and algorithm
+design, and are generally classified into three fundamen-
+tal approaches: centralized, hierarchical [11], and distributed
+schemes [12]. Currently, relative information measurements
+in CN predominantly rely on angle-of-arrival (AOA), rang-
+ing [13], and vision-based techniques [14]. In addition, prior
+geometric configurations and inter-UAV information sharing
+within a swarm are widely employed as critical information
+sources [15]. Consequently, CN constitutes a multidisciplinary
+and complex technology that can be analyzed from three per-
+spectives: relative measurement information, CN architectures,
+and swarm cooperative optimization algorithms. Innovations in
+navigation methods drive the evolution of cooperative archi-
+tectures, while the intrinsic requirements of these architectures
+further stimulate advances in navigation methods.
+Although numerous survey articles have summarized UAV
+navigation systems, Bijjahalli et al. [16] highlighted recent
+advances
+in
+intelligent
+navigation
+for
+unmanned
+aerial
+systems (UASs). Huang [17] reviewed the progress and
+challenges of visual-inertial navigation, whereas Nazarahari
+and Rouhani [18] conducted a comprehensive investigation
+of fusion technologies for micro-inertial measurement units
+(MIMUs) over the past four decades. Chen et al. [19] pro-
+vided a survey on deep learning (DL)-based localization and
+mapping techniques in 2020. More recently, Jarraya et al. [7]
+developed the first structured survey framework for UAV local-
+ization techniques in GNSS-denied environments, providing an
+in-depth discussion of methods, sensors, and algorithms appli-
+cable in outdoor scenarios where GNSS signals are unavailable
+or jammed. Unlike other surveys that primarily focus on state
+estimation techniques, our previous work [20] summarized
+the development of small UAV navigation techniques based
+on multisensor fusion under GNSS-denied conditions and
+highlighted several key technical challenges.
+Despite these efforts, most surveys have predominantly
+focused on integrated navigation for single platforms, leaving
+CN in UAV swarms relatively underexplored. The primary
+challenges identified in these existing reviews concern the
+positioning, navigation, and timing of individual platforms.
+In contrast, swarm CN exploits intervehicle information
+exchange (e.g., relative measurements and state sharing) to
+enhance overall swarm navigation performance, including
+absolute positioning accuracy, relative positioning precision,
+consistency, and situational awareness in environments where
+global information, such as GNSS, is unreliable. Its central
+objective is to advance multisource fusion from simple infor-
+mation integration toward coordinated information sharing and
+distributed estimation. Although several studies have reviewed
+swarm CN [21], these surveys remain largely confined to
+traditional sensor fusion paradigms and are insufficient to
+provide a comprehensive and in-depth analysis of UAV CN
+technologies.
+Overall, compared with existing survey studies on multi-
+sensor integration [22] and multiagent CN [23], this article
+proposes and elaborates on a more comprehensive CN frame-
+work. The framework integrates multisource information
+acquisition, cooperative localization (CL) techniques under
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+3462
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+GNSS-denied conditions, and the corresponding MSIF algo-
+rithms. On this basis, the article further provides a systematic
+review of CN from two perspectives: the types of multi-
+source information and the mechanisms of information fusion.
+Furthermore, the current limitations are identified and future
+research directions are outlined, with the aim of presenting a
+holistic view of the progress in this field as well as the critical
+challenges that remain.
+Section II reviews the multisource information available
+in multi-UAV systems. Section III focuses on CN types
+under different types of information combinations, starting
+from the classification of localization methods. Section IV
+introduces the categorization of fusion algorithms based on
+their structural characteristics. Section V further explores the
+cooperative features of multisource information and discusses
+the key challenges and future directions. Finally, Section VI
+concludes the article by summarizing and reviewing its main
+content.
+II. CLASSIFICATION OF MULTISOURCE
+INFORMATION IN UAV SWARMS
+CN for UAVs involves the integration and calibration of
+individual navigation information through intervehicle com-
+munication links, thereby enhancing the overall navigation
+accuracy of the formation [24]. In UAV swarm localization
+scenarios, effectively exploiting MSIF is particularly critical
+for achieving accurate estimation of position, velocity, and
+attitude [25]. As illustrated in the graphical abstract, this
+work categorizes and summarizes multisource information,
+including external information such as sensor measurements
+(as shown in Fig. 2) and carrier model-based data, as well as
+system-level features such as topological structure information.
+In this context, CN depends on two essential information
+sources: external data (e.g., sensor measurements and UAV
+carrier information), which form the basis for state estimation
+and control, and topological structure information, which
+provides the communication infrastructure and transmission
+pathways.
+A. Sensors
+1) Local Measurement Sensors:
+a) Inertial navigation system: INSs provide several advan-
+tages, including high autonomy, strong resistance to interfer-
+ence, the ability to deliver multiple navigation parameters, and
+good concealment [26]. Generally, the modeling of gyroscopes
+and accelerometers used in INS can be expressed as follows:
+ˆωb = ωb + bg + nω,
+nω ∼N
+
+0, σ 2
+ω I
+
+ˆab = ab + ba + na,
+na ∼N
+
+0, σ 2
+a I
+
+(1)
+where the IMU measures the angular rate ωb and the carrier
+acceleration ab with gravity in the body frame b. The measure-
+ment errors include accelerometer bias ba, gyroscope bias bg,
+and additive Gaussian white noise.
+With ongoing advancements and refinements in inertial
+navigation technology, INS is expected to be widely deployed
+in diverse and challenging environments, even in the absence
+Fig. 2. Multisource sensors.
+of auxiliary navigation systems, owing to its inherent reli-
+ability and precision. However, after initial alignment, the
+navigation accuracy of INS gradually degrades over time, and
+the alignment process itself requires a relatively long duration.
+To standardize repeated restart and calibration procedures,
+Derevyankin and Matasov [27] introduced a “telescopic”
+system architecture for strapdown INSs (SINSs), enhancing
+both repeatability and stability. Huang et al. [28] investigated
+the navigation accuracy estimation of high-precision platform-
+based INS (PINS) and proposed an improved least-squares
+support vector machine model to predict PINS performance.
+Furthermore, emerging inertial sensing technologies—such as
+nuclear magnetic resonance gyroscopes, cold-atom inertial
+sensors, particle image velocimetry-based inertial sensors, and
+hemispherical resonator gyroscopes [29]—have demonstrated
+the ability to partially overcome the inherent limitations of
+conventional INS while achieving remarkable accuracy and
+stability.
+b) Barometer: A barometer operates by estimating alti-
+tude based on changes in atmospheric pressure. However,
+it is susceptible to environmental disturbances. For instance,
+temperature variations can induce pressure fluctuations, and
+airflow generated by UAV rotors may also affect barometer
+readings [30]. Therefore, when equipped with relative altitude
+sensors such as ultrasonic or laser rangefinders, a combination
+of ultrasonic/laser measurements and GPS altitude informa-
+tion can serve as an alternative to barometric measurements.
+Ultrasonic rangefinders (also known as sonars) offer certain
+limitations in terms of power consumption, weight, size, and
+measurement range, but can provide more accurate altitude
+data [31]. The commonly used barometric altitude calculation
+formula is expressed as
+H = Tb
+β
+
+
+ PH
+Pb
+−β R
+gn −1
+
++ Hb
+(2)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3463
+where Hb and Tb denote the geopotential altitude lower bound
+and atmospheric temperature of the corresponding layer, β is
+the vertical temperature gradient, gn is the standard gravity,
+Pb is the atmospheric pressure at the layer lower bound, PH is
+the pressure at the target altitude, and R is the specific gas
+constant for air. The corresponding measurement model is
+Hbaro = h + wbaro
+(3)
+where Hbaro is the barometer-measured altitude, h is the
+true altitude of the vehicle, and wbaro represents barometric
+measurement noise.
+c) Laser sensor: Lasers, due to their high energy, strong
+directionality, and uniform beam characteristics, have been
+extensively applied in military, medical, and navigation
+domains [32]. Walter et al. [33] proposed a UV-based air-
+borne relative positioning method for real-time control of
+leader–follower UAV formations. This approach integrates a
+UV light source with a camera system to enable coordinated
+flight among multiple UAVs, although safety concerns cur-
+rently limit its practical deployment. Ming et al. [13] further
+developed a leader–follower UAV CN system based on laser
+tracking, in which the leader UAV projects a laser beam toward
+the follower, and the follower determines the relative position
+of the light spot to achieve vision-based autonomous tracking.
+Laser measurements are typically represented by the range-
+azimuth-elevation (RAE) model. In this formulation,
+P
+denotes the observation point; r is the distance between P
+and the laser sensor, computed as the product of the speed of
+light and pulse propagation time, divided by two; α represents
+the azimuth angle; and ϵ represents the elevation angle, both
+of which correspond to the laser emission directions
+
+
+r
+α
+ϵ.
+
+=
+
+
+p
+x2 + y2 + z2
+tan−1 (y/x)
+sin−1
+
+z
+√
+x2+y2+z2
+
+
+.
+(4)
+The Laser measurement model can be expressed as
+ˆr = r + nr
+ˆα = α + nα
+ˆϵ = ϵ + nϵ
+(5)
+where ˆr, ˆα, and ˆϵ are the measured distances, azimuth, and
+elevation, respectively, and nr, nα, and nϵ are zero-mean
+Gaussian measurement noises.
+d) Infrared: Infrared-visible image fusion is an important
+image processing technique for UAV surveillance, combining
+the advantages of infrared and visible cameras to enhance
+target visibility and recognition capabilities [34], [35]. Lever-
+aging the complementary characteristics of infrared and visible
+imaging, image fusion can improve target detection perfor-
+mance and enhance the overall perceptual capability of UAV
+monitoring systems [36]. Image fusion integrates multimodal
+images from different sources into a single, information-
+rich image, improving quality and reducing redundancy. The
+primary goal of infrared-visible fusion is to generate an image
+that preserves fine details from visible light while highlighting
+target regions from infrared imaging [37].
+Tang et al. [38] used thermal and visible cameras to
+track UAVs under varying lighting conditions. Lin et al. [39]
+employed
+monocular
+cameras
+to
+extract
+UAV
+features
+and
+applied
+cascade
+classifiers
+for
+feature
+recognition.
+Park et al. [40] used 850-nm infrared LEDs to enhance the
+reflectivity of leader UAV guide markers and tracked them
+with an infrared camera on the follower UAV. Infrared light
+reduces solar interference; however, the use of low-power
+LEDs limits tracking distance. Considering attitude deviations
+in the homogeneous transformation matrix ˆH
+R
+M ∈R3×3 and
+measurement noise, the nonlinear visual measurement model
+is expressed as [41]:
+vec
+
+ˆH
+R
+M
+
+= vec
+
+H R
+M
+
++ vfir
+(6)
+where vfir ∈R9 is assumed to be zero-mean Gaussian noise.
+e) Camera: In GNSS-denied environments, the demand
+for alternative navigation solutions has steadily increased. With
+advances in computational power and computer vision (CV)
+technologies, visual sensors have emerged as a promising
+substitute for GNSS. Lobos-Tsunekawa et al. [42] proposed
+a mapless visual navigation system based on deep reinforce-
+ment learning (DRL), capable of extracting information from
+color images and generating motion commands with a high
+degree of autonomy. Pershina et al. [43] reviewed recent
+developments in image-based object recognition using deep
+convolutional neural networks (CNNs) and evaluated their
+potential for visual navigation. Sabo et al. [44] introduced an
+optical-flow-based visual navigation method inspired by bee
+navigation, investigating the feasibility of automatic altitude
+and velocity adjustments for UAVs flying near obstacles or
+through narrow passages.
+Currently, the intelligence level of visual navigation systems
+remains limited [45]. To improve navigation accuracy, it is nec-
+essary both to increase the number of cameras and to enhance
+image quality and processing capabilities. Given that visual
+navigation requires real-time feature extraction, efficiency and
+precision in image processing are critical. Gaofei team from
+Zhejiang University [46] conducted studies on cooperative
+obstacle-avoidance navigation for micro-UAVs. The sensor
+configuration of micro-UAVs is illustrated in Fig. 3.
+Typically, the system establishes the relationship between
+the measured relative position j zn
+r and the true positions of
+two cameras, accounting for measurement noise
+j zn
+r = jhln
+r = xn
+c −x j
+c =
+
+W R j
+c
+T 
+i R j
+t d j
+c + jdn
+q
+
+(7)
+where dn
+c denotes the translation vector from the reference
+frame Q to the nth UAV-camera reference frame C, obtained
+via the camera-robot calibration procedure. The rotation matrix
+W R j
+c can be derived from the attitude and heading reference
+system (AHRS) or IMU mounted on the jth UAV-camera
+system. The corresponding measurement equation can be
+expressed as
+j zn
+r = xn
+c −x j
+c + v
+(8)
+where j zn
+r is the measured relative position of the nth camera
+with respect to the jth camera; xn
+c and x j
+c are the positions
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+3464
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+Fig. 3. Cypress forest scene with drone traversal [46].
+of the nth and jth cameras in the world coordinate system,
+respectively; and v represents measurement noise, typically
+modeled as zero-mean Gaussian noise.
+2) Exteroceptive Sensors:
+a) Global Navigation Satellite System: Currently, GNSSs
+include
+China’s
+BeiDou,
+Europe’s
+Galileo,
+Russia’s
+GLONASS, and the United States’ GPS. GNSS offers
+high navigation accuracy, simple user equipment, and low
+cost. However, it relies on ground stations and is vulnerable
+to interference, making it a passive navigation system.
+To improve GNSS accuracy, integrity, and continuity, research
+on GNSS augmentation techniques is essential, including
+adding signals or signal sources to optimize performance
+[47]. Huang et al. [48] introduced intersatellite links (ISLs)
+to enhance GNSS measurement and control performance.
+ISLs independently evaluate ephemeris and clock parameters,
+improving system integrity and forming a key technology
+for
+next-generation
+autonomous
+GNSS
+navigation.
+Lee
+and Lee [49] proposed an improved space–time adaptive
+processing
+algorithm
+to
+enhance
+GNSS
+anti-jamming
+capabilities. Zuffada et al. [50] studied GNSS-based reflection
+algorithms, analyzing the sensitivity of GNSS to various
+targets and improving target recognition performance.
+When GNSS provides position and velocity signals, the raw
+measurements—including latitude, longitude, altitude in the
+ECEF frame, and Doppler velocity—are transformed into the
+navigation frame ({n}) using the takeoff point as the origin.
+The GNSS measurement error model in the navigation frame
+is given by
+ˆpn
+G = pn
+G + np,
+np ∼N
+
+0, σ 2
+pG I
+
+ˆvn
+G = vn
+G + nv,
+nv ∼N
+
+0, σ 2
+vG I
+
+(9)
+where ˆpn
+G and ˆvn
+G are the GNSS-measured position and
+velocity, pn
+G and vn
+G are the true values, and np and nv repre-
+sent zero-mean Gaussian measurement noises with variances
+σ 2
+pG and σ 2
+vG, respectively.
+b) Ultrawideband (UWB): UWB is a wireless technology
+that transmits extremely short pulses over a wide frequency
+spectrum, enabling high-precision ranging and robust rela-
+tive positioning [51]. The UWB-assisted relative navigation
+approach demonstrates that high relative positioning accuracy
+can be achieved even with a limited number of GPS satel-
+lites, even in GNSS-denied or cluttered environments [52].
+Xu et al. [53] proposed a decentralized fusion algorithm
+combining INS, visual navigation, and UWB, also achieving
+centimeter-level relative accuracy. Using the time-of-arrival
+(TOA) ranging method as an example, the distance between
+an anchor node and a mobile target is calculated from signal
+propagation time t under synchronized clocks
+d = c · t
+(10)
+where c is the signal propagation speed (c = 3 × 108 m/s), and
+d is the measured distance. For n anchor nodes, the measured
+distance to the ith anchor is
+ˆdi =
+(
+di + εi,
+LOS
+di + εi + ηi,
+NLOS
+,
+i = 1, 2, . . . , n
+(11)
+where di is the true distance, ˆdi is the measured distance,
+εi and ηi are the measurement noise and nonline-of-sight
+(NLOS) error due to obstacles, with εi ∼N(µlos, σ 2
+los) and
+ηi ∼N(µnlos, σ 2
+nlos), satisfying µlos = 0 and µnlos > 0.
+c) Bluetooth (BLE): Recently, low-energy BLE has gained
+attention for localization and user tracking due to its readily
+available received signal strength indicator (RSSI), low com-
+plexity, low power consumption, wide availability, low cost,
+and ease of deployment [54]. Distance can be estimated using
+various methods, with RSSI-based ranging being the classical
+approach [55]. By modeling signal attenuation in air, the
+logarithmic distance path loss model [56], [57] approximates
+the relationship between RSSI and distance
+RSSI (d) = RSSI (d0) −10n · log10
+ d
+d0
+
+(12)
+where d is the estimated distance, d0 is a reference distance,
+RSSI(d) is the expected signal strength at distance d, and n
+is the environment-dependent path loss exponent.
+d) Wireless fidelity (Wi-Fi): Wireless fidelity (Wi-Fi) has
+attracted considerable research interest due to its wide cov-
+erage, ubiquity, and low power consumption [58]. With
+continuous protocol upgrades, many Wi-Fi devices now sup-
+port fine timing measurement (FTM) [59] and channel state
+information (CSI) acquisition, enhancing localization accu-
+racy. In practice, indoor mapping is time-consuming, and
+UAVs equipped with Wi-Fi can improve efficiency, making
+Wi-Fi a promising indoor positioning solution [60].
+e) ZigBee: ZigBee, as a wireless communication protocol
+and standard, is suitable for large-scale data transmission.
+Compared to Wi-Fi, ZigBee offers higher reliability and
+stability, particularly in multilayer data transmission sce-
+narios [61]. Accordingly, Min and Nam [62] proposed a
+ZigBee-based UAV formation control method, applicable in
+indoor GNSS-denied or outdoor GPS-enabled environments.
+Each UAV can communicate with others via ZigBee, reducing
+the risk of collisions during formation flight.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3465
+B. Model-Aided Information
+Compared with exteroceptive sensors, model-based nav-
+igation does not require physical sensors and relies on
+platform-intrinsic model constraints. It can update the nav-
+igation state when external information is unavailable or
+unreliable. Model-aided information provides two main advan-
+tages: zero additional cost and continuous availability.
+1) Kinematic Information: Direct kinematic information con-
+verts platform motion into measurements that feed the
+navigation filter. Its primary feature is that knowledge of
+the INS-carrying platform or its environment can be directly
+transformed into measurement information to support the navi-
+gation filter [63]. Examples include zero-velocity updates [64],
+zero-heading updates [65], and relative position updates [66],
+which are widely used in mobile robotics, pedestrian navi-
+gation, and UAV applications. In CN, direct methods such
+as zero-velocity updates are less common because they rely
+on self-contained information and do not facilitate inter-UAV
+interaction. Relative position updates require sensor redun-
+dancy [67]. For zero-heading applications, Euston et al. [68]
+proposed a kinematics-based method in which UAVs experi-
+encing sensor failure maintain a fixed north-heading, enabling
+partial topological solvability and guiding navigation node
+selection.
+As an example, the leader–follower CL method based on
+follower UAV displacement vectors [69] solves the UAV
+position at time tk+1 by combining the displacement vector
+from tk to tk+1 with a circular equation. The measurement
+equations are
+ xk+1−Dxm
+k,k+1 −xm
+k
+2 +
+ yk+1−Dym
+k,k+1 −ym
+k
+2 = r2
+k
+ xk+1 −xm
+k+1
+2 +
+ yk+1 −ym
+k+1
+2 = r2
+k+1
+where ˆrk+1 is the relative distance measurement at tk+1,
+and vk+1 is assumed to be zero-mean Gaussian noise,
+vk+1 ∼N(0, σ 2
+r )
+ˆrk+1 =
+q xk+1 −xm
+k+1
+2 +
+ yk+1 −ym
+k+1
+2 + vk+1.
+(13)
+2) Dynamic
+Information:
+Integrating
+additional
+vehicle
+model constraints into the state estimation framework can
+further enhance navigation performance [70], particularly
+improving the robustness of unmanned systems under com-
+plex environments and operational conditions. Model-assisted
+information is typically derived from dynamic models. Due
+to their embedded state information, dynamic models can be
+regarded as a unique set of virtual sensors. Model-assisted INS
+can operate independently of external sensors and, in terms of
+navigation assistance, behaves analogously to physical sensors,
+exhibiting heterogeneous characteristics [71]. For different
+UAV platforms, the corresponding dynamic models impose
+distinct state constraints; however, when incorporated into a
+filter fusion framework, their constraint effects are comparable
+to those of conventional sensor functionalities [72].
+As an additional information source, model-aided informa-
+tion provides strong physical predictions, primarily capturing
+aerodynamic or hydrodynamic effects that are not measur-
+able by conventional sensors [73]. Previous studies classify
+dynamic model-assisted navigation methods based on UAV
+dynamics into two primary approaches [20]: thrust-based [74]
+and aerodynamic-based [75]. According to UAV flight force
+constraints, the additional force can be expressed as
+f b
+ex =
+
+ˆab −ba −ˆT
+b
++ (na + nT )
+(14)
+where
+ˆab denotes the measured acceleration, ba is the
+accelerometer bias, ˆT
+b is the estimated thrust, and na and
+nT represent accelerometer and thrust measurement noise,
+respectively. This expression models the UAV’s additional
+forces acting on the platform.
+Although these methods are primarily developed for aerial
+UAVs, the classification and principles can also be extended
+to underwater vehicles (UVs) or unmanned ground vehi-
+cles (UGV). Furthermore, the processing steps for dynamic
+model-assisted navigation can be summarized as follows.
+a) Extraction of navigation-relevant states: Precisely derive
+effective state information from dynamic model data, which
+involves model construction and establishment of associated
+constraints.
+b) Deep fusion with onboard sensor data: Integrate naviga-
+tion information from the dynamic model with other onboard
+sensors, embedding it within an MSIF framework.
+c) Multirate fusion filtering: Perform fusion filtering at dif-
+ferent update rates to obtain high-precision navigation results,
+providing robust multisource data support for navigation in
+complex environments.
+C. Geometric Information
+Geometric information is one of the core elements for
+achieving CL in UAV swarm systems, primarily determined
+by the geometric structure among individual nodes [76].
+Based on the optimized structure for cooperative positioning
+(CP) among cluster nodes (as illustrated in Fig. 4), common
+CN architectures include leader–follower, hierarchical, and
+parallel types, all of which rely on intervehicle information
+exchange to enable group-level data sharing. Furthermore,
+to adapt to dynamic environments and enhance positioning
+accuracy, mechanisms for maintaining and reconstructing the
+cooperative structure have been proposed.
+1) Leader–Follower
+Structure:
+The
+leader–follower
+approach categorizes positioning nodes into leaders and
+followers, with the leader equipped with high-precision
+navigation sensors. Follower nodes leverage cooperative
+observation information to optimize their own positioning
+accuracy. Liu and Xu [77] proposed a federated filtering-based
+CP method, deploying subfilters on individual UAV platforms
+and a leader filter on the leader UAV, enabling the fusion
+of inter-UAV relative angles, distance measurements, and
+onboard inertial navigation data. Communication networks
+support
+low-latency
+data
+exchange
+via
+BLE,
+ZigBee,
+or
+5G
+[78],
+while
+the
+data
+fusion
+process
+integrates
+measurements
+from
+multiple
+sources,
+including
+GNSS
+receivers and onboard sensors [79]. However, studies initially
+focused on two-UAV formations, estimating relative attitude
+based on ranging radar and onboard navigation systems [80],
+and applying robust GPS/INS-integrated H-infinity filters
+under
+unknown
+noise
+conditions
+[81].
+Wang et al. [82]
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+3466
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+Fig. 4.
+CN structure diagram. (a) Leader–followers structure.
+(b) Multileaders–followers structure. (c) Hierarchical structure. (d) Dis-
+tributed structure.
+developed a leader–follower algorithm fusing visual sensors
+and ranging radars to estimate relative positions and velocities
+in formation flight. Irigireddy and Moncavo [83] proposed
+a vision-based algorithm for leader–follower formations to
+estimate and track the leader, while Ding et al. [84] further
+estimated leader attitude using visual sensors.
+Existing methods primarily focus on pairwise relative
+navigation and cannot effectively fuse relative and abso-
+lute measurements from multiple UAVs. The leader–follower
+structure can be further divided into single-leader [85]
+and multileader configurations [86]. Hybrid distance-angle
+measurements have recently been explored to enhance sys-
+tem stability and positioning accuracy for underwater and
+aerial targets [87]. In GNSS-denied environments, relative
+distance and angle measurements via communication links
+provide a novel approach for CL, enabling high-precision
+positioning
+in
+autonomous
+vehicles
+[88].
+For
+example,
+multimicro-UAV tracking in GNSS-denied scenarios can inte-
+grate relative and absolute velocity measurements with local
+nonlinear observers [89], while Guo et al. [90] employed
+UWB-based indirect CL. Dehghani and Menhai [91] proposed
+a leader–follower cooperative control method with a cascaded
+loop to regulate relative distances and angles, thereby enhanc-
+ing CN stability.
+2) Hierarchical CN: In traditional leader–follower archi-
+tectures, the follower’s navigation relies entirely on the
+leader [92]. If the leader fails, system reliability is compro-
+mised, making single-leader–follower structures unsuitable for
+large-scale UAV formations [93]. To address this limitation,
+Song et al. [94] proposed a hierarchical CN structure, dividing
+UAVs into high-precision and low-precision layers based on
+onboard sensor accuracy. Low-precision UAVs acquire CN
+information from high-precision UAVs via radar and laser
+sensors and construct distance-angle-based cooperative models
+to enhance their positioning accuracy [95].
+However, continuous leader–follower cooperation encoun-
+ters reliability challenges when leaders fail [96]. Hierarchical
+CN dynamically layers UAVs based on estimated position-
+ing accuracy, enabling cooperative recovery in the event of
+node failure [97]. Flexibility is a key feature of hierarchi-
+cal cooperative fusion (HCF) algorithms. While increased
+connectivity can improve system performance, integrating
+low-accuracy or faulty measurements may degrade follower
+UAV positioning [96]. Furthermore, using all received coop-
+erative information increases computational complexity due
+to variations in estimation precision and multipath effects in
+wireless environments.
+3) Parallel Structure: In parallel CN, all nodes are equipped
+with sensors of similar precision and mutually optimize
+their positioning through cooperative observations. This mech-
+anism introduces correlations in state estimation between
+nodes, which are often challenging to model accurately in
+practice.
+Covariance intersection (CI) is the main approach for par-
+allel structure. Julier and Uhlmann [98] first proposed CI,
+which avoids the need for internode cross-covariance estima-
+tion while enabling CP. Carrillo-Arce et al. [99] developed
+a CI-based model: if a node lacks relative observations, it fuses
+local sensor data via EKF; if relative observations exist,
+local estimates are first computed, then CI is applied to fuse
+estimates with neighboring nodes. This process maintains con-
+sistency and has an overall computational and communication
+complexity of O(N).
+Parallel structure treat all UAVs equally; each UAV acts as a
+host, and failures in one or more UAVs do not critically affect
+others [100]. However, correlations between local estimates
+are difficult to model, leading to conservative covariance
+bounds in CI methods, limiting CP accuracy. Nonlinear mea-
+surements, such as relative distances, are also challenging to
+integrate. Therefore, more efficient CP strategies are needed
+for complex environments.
+4) Cooperative Structure Maintenance and Reconfiguration:
+In practical applications, UAV cluster topology dynamically
+changes with flight environments and mission objectives,
+increasing positioning uncertainty [101]. Under fixed forma-
+tions, Inalhan et al. [102] modeled multi-UAV control with
+decision systems and established discrete optimal solutions
+with global convergence under identifiability and linear
+independence constraints. Thrun [103] proposed a Monte
+Carlo-based CN algorithm that updates probability distribu-
+tions using relative pose information. Jo et al. [104] exploited
+differential GPS for relative distance measurements within
+formations.
+To address UAV heterogeneity in positioning accuracy,
+high-precision UAVs can serve as reference platforms to
+enhance low-precision UAVs’ navigation using inter-UAV
+relative distance information [105]. Further studies [106]
+developed multiplatform INS error correction methods and
+extended EKF-based relative navigation, enabling joint esti-
+mation across the formation. However, these approaches often
+assume Gaussian-distributed sensor errors and rely on pairwise
+observations, limiting full utilization of cooperative informa-
+tion. In conclusion, the central challenge lies in designing
+a CL method that effectively integrates multiple sources of
+information.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3467
+Fig. 5.
+Several common localization method demos. (a) GNSS.
+(b) Radio. (c) INS. (d) Laser.
+III. CLASSIFICATION OF CL METHOD UNDER
+GNSS-DENIED ENVIRONMENTS
+Based on a systematic review of multisource information,
+this chapter examines a range of representative CN approaches
+and establishes a conceptual framework for the subsequent
+discussion of specific fusion algorithms. Mitrovic et al. [107]
+proposed a comprehensive classification scheme for UAV
+navigation, dividing existing methods into five categories:
+satellite navigation, INS, terrestrial navigation, geomagnetic
+navigation, and vision-based navigation. From the perspec-
+tive of measurement modalities, navigation systems can be
+further categorized as relative distance-based, relative bearing-
+based, relative heading-based, and other types. However, this
+taxonomy remains limited. As illustrated in Fig. 5, many com-
+monly used sensors exhibit multifunctional characteristics and
+therefore cannot be strictly confined to a single classification
+category.
+In GNSS-denied environments, UAV systems can acquire
+relative information from the environment, onboard sensors,
+and inter-UAV measurements through various means. Fig. 6
+illustrates that these approaches can be broadly categorized
+into absolute positioning and relative positioning. Furthermore,
+based on the type of information utilized, they can be further
+refined into three classes: radio frequency information, visual
+information, and dynamic model information. This classifica-
+tion facilitates more rational system modeling and the design
+of navigation strategies.
+A. Classification Based on Localization Methods
+1) Relative Localization: RL primarily relies on initial states
+and historical observations to estimate the current position,
+involving a higher proportion of local measurement infor-
+mation. As a typical CL approach, RL aims to infer UAV
+positions within local coordinate frames, demonstrating strong
+adaptability and practicality in GNSS-denied environments,
+such as indoor or complex outdoor scenarios. RL meth-
+ods integrate multiple localization strategies, including dead
+Fig. 6. Classification of CL methods.
+reckoning, simultaneous localization and mapping (SLAM)
+[108], optical flow [109], and visual-inertial odometry (VIO)
+[110], thereby enabling flexible and high-accuracy localization
+solutions in the absence of absolute position information.
+Dead reckoning techniques estimate incremental displace-
+ments of an agent in real time to update its position.
+Representative approaches include INS [111], visual odometry
+(VO) [112], and recently developed SLAM algorithms [113].
+SLAM provides location estimates while simultaneously con-
+structing environmental maps; however, cumulative errors are
+inevitable. As flight duration increases, localization errors
+accumulate, significantly impacting mission accuracy and
+reliability.
+In addition, RL also includes CL strategies based on other
+agents [114], where GNSS-denied nodes rely on assistance
+from multiple agents with accurate localization capabilities.
+Han et al. [115] proposed a particle filter (PF)-based approach
+that reduces the number of cooperating agents to one, albeit at
+the cost of significantly higher computational resources. Sim-
+ilarly, vision-based methods [116] and ranging sensor-based
+schemes [117] have been developed to determine UAV-anchor
+relative positions or by measuring the direction of arrival
+(DOA) between GPS-enabled UAVs and GNSS-denied ones.
+Furthermore, by integrating joint DOA–TDOA estimation
+techniques, MIMO radar-based methods enable UAV swarms
+to maintain robust relative positioning even under GNSS-
+denied conditions [118].
+As a critical component of swarm navigation, RL is
+particularly important when interagent distances are small.
+In such contexts, RL sensors typically provide more accu-
+rate and cost-effective information than absolute localization
+approaches [82]. The deployment of efficient inter-UAV RL
+algorithms ensures robust CN in complex environments.
+Beyond GNSS, existing UAV swarm localization systems
+successfully leverage technologies such as cooperative SLAM
+(C-SLAM) [119], UWB ranging [120], and motion capture
+(MoCap) systems [121], although these methods are primarily
+limited to indoor applications. Leveraging these measurements
+within CN algorithms significantly enhances overall system
+accuracy in GNSS-denied environments.
+2) Absolute Localization: In GNSS-denied environments,
+absolute localization plays a crucial role in determining UAV
+positions with respect to the global Earth-centered coordinate
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+3468
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+system. Absolute localization provides real-time positions that
+are independent of initial states or historical data. These
+methods typically rely on external sensing technologies to
+determine the UAV’s position relative to environmental land-
+marks or other agents in a multirobot team. To address
+GNSS/INS outages in complex urban environments, high-
+definition (HD) maps [122] and map-matching techniques
+have been incorporated, with LiDAR-based or vision-based
+odometry serving as auxiliary information sources within
+multisensor fusion frameworks [123]. Such methods have been
+widely adopted for localization correction in GNSS-denied
+conditions.
+Conventional
+satellite-based
+systems
+such
+as
+GPS,
+GLONASS,
+and
+GALILEO
+are
+not
+considered
+in
+GNSS-denied
+scenarios.
+Since
+localization
+information
+is fundamental to CN, considerable research has focused
+on
+alternative
+absolute
+localization
+methods,
+notably
+terrain-referenced navigation (TRN) [124], also referred to
+as terrain-aided navigation (TAN) [125] or terrain-based
+navigation (TBN) [126]. Other effective alternatives include
+acoustic localization [127] and UWB-based CL. Although
+acoustic methods are less sensitive to illumination and
+atmospheric disturbances, they are prone to severe multipath
+effects in cluttered environments, limiting their applicability
+for aerial platforms.
+CL using static ground anchors requires the prior deploy-
+ment of precisely positioned anchor nodes, rendering it
+unsuitable for highly dynamic scenarios such as search-
+and-rescue or battlefield reconnaissance. Magnetic localiza-
+tion [128], which estimates position by sensing environmental
+magnetic fields and matching them with embedded maps,
+suffers from high computational complexity, limiting its
+deployment on lightweight UAVs. Vision-based localization
+techniques [129] provide accurate estimates but face chal-
+lenges in relative state estimation outside the field of view,
+necessitating the integration of omnidirectional sensing mod-
+ules, such as UWB devices, for complementary measurements.
+Furthermore, scene-based and terrain-based approaches exploit
+real-time comparisons with prestored maps (e.g., digital eleva-
+tion models, DEMs) to ensure reliable navigation in complex
+environments [130]. Lee et al. [131] proposed the advanced
+precision TAN (APTAN) system, which integrates INS, GNSS,
+and TRN with interferometric radar altimeters and LiDAR,
+achieving reliable real-time navigation under GNSS-denied
+conditions.
+Other absolute localization approaches include template
+and feature matching (TFM) [132] and semantic mapping
+and recognition (SMR) [133], which leverage advanced sens-
+ing technologies to enhance localization in GNSS-degraded
+scenarios. To further improve accuracy and robustness,
+Gao et al. [134] employed template- and feature-matching
+techniques to align real-time sensor data with predefined maps,
+achieving high-precision navigation results.
+Overall, absolute localization methods are characterized by
+high autonomy, compactness, and continuous output capabil-
+ities. However, these approaches often involve higher costs,
+requiring both ground-based infrastructure and onboard local-
+ization hardware.
+B. Classification Based on Information Type
+1) Radio-Based CN: Radio navigation is one of the essen-
+tial means to realize CN for aerial swarms. This technique
+provides capabilities such as ranging, angle measurement, and
+velocity estimation, thereby enabling high-precision determi-
+nation of position, velocity, and attitude. Moreover, it features
+fast response and all-weather operability. Commonly adopted
+radio navigation methods for swarm CN mainly include satel-
+lite navigation [135], sonar [136], radar [137], and lidar-based
+approaches [136].
+However, these sensors are often expensive and sometimes
+bulky, which limits their applicability in outdoor environments.
+For instance, sonar systems have a restricted operational
+range [138]. Active laser-based systems, such as LiDAR [139],
+represent a highly promising sensing technology, as they
+can operate under any visibility conditions (i.e., both day
+and night, unlike cameras) and directly provide 3-D mea-
+surements of the surrounding environment. Nevertheless, the
+cost of LiDAR remains relatively high, and its deployment
+in certain applications may cause system overload. Fur-
+thermore, LiDAR contains moving components, which may
+introduce additional measurement errors [140]. To address
+this issue, Hedgecock et al. [80] proposed the relative GPS
+tracking method, which relies on predetermined base station
+receiver positions as intermediate references and subsequently
+resolves the spatial positions of nearby nodes through rela-
+tive motion comparisons. To overcome the GPS limitations,
+to enhance the accuracy of UAVs operating in close formation,
+Gross et al. [141] developed a robust relative navigation
+method that integrates carrier-phase differential GPS, INS,
+and peer-to-peer radio ranging, combining UWB ranging with
+multisource data fusion.
+In addition, researchers have increasingly focused on CL,
+which estimates positions using relative distance and/or
+angle information between UAVs, thereby improving the
+fault tolerance of navigation systems [142]. Relative dis-
+tance measurements can be obtained via UWB radio or
+optical systems [143]. Moreover, with the development of
+radio direction finding (RDF) technology [144], relative angle
+measurements between UAVs have also become feasible,
+enabling higher accuracy CL. Extensive studies have addressed
+UWB/INS CL. Most UWB-based systems typically assume
+prior knowledge of at least two auxiliary node positions [145].
+Gentner et al. [146] proposed an SLAM-based localization
+scheme that enables pedestrian positioning using three UWB
+nodes without prior auxiliary node information, achieving
+centimeter-level accuracy; however, it still requires prede-
+ployment of three nodes. Liu et al. [147] introduced an
+indoor autonomous robot localization framework integrating
+INS with UWB signals and employing the Sage-Husa adaptive
+filter to enhance both accuracy and robustness, demonstrating
+high performance even with only two deployed UWB nodes.
+Fallon et al. [148] proposed a CN method for autonomous UVs
+(AUVs) using a single maneuvering surface vessel to obtain
+azimuth estimates.
+Sivaneri and Gross [149] investigated UAV–UGV CN under
+GNSS-challenged environments, where UGV motion planning
+assisted UAV navigation. The feasibility and effectiveness of
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.10]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3469
+this scheme were experimentally validated. Causa et al. [150]
+proposed a multi-UAV “parent–child” framework combining
+radio ranging and camera-derived angles to enhance CL in
+GNSS-denied conditions. Kushleyev et al. [151] developed a
+UAV relative navigation system integrating GPS, INS, and
+UWB, with sonar-based altitude measurements that, despite
+constraints in power, size, and range, provide high short-range
+accuracy [152].
+In
+most
+GNSS-challenged
+environments,
+existing
+radio-based CN algorithms typically require at least one
+UAV to operate continuously in a nominal GNSS coverage
+area [153]. However, such assumptions are difficult to
+satisfy in complex or harsh environments. Consequently,
+current research trends are shifting toward MSIF—such
+as the integration of vision sensors and external auxiliary
+information—aiming to significantly improve the robustness
+and accuracy of state estimation [154].
+2) Vision-Based CN: Vision-based navigation offers advan-
+tages such as miniaturization, portability, and low cost, and is
+commonly employed as an auxiliary scheme to INS. More-
+over, some conventional reconnaissance tasks that historically
+relied on radar or other radio-based approaches have increas-
+ingly shifted toward optical information processing in recent
+years [155]. As is well known, visual-INSs (VINSs) are
+particularly suitable for UAV operations in GNSS-denied envi-
+ronments due to their rich information content, low cost, and
+lightweight characteristics. In certain applications, VINS can
+even outperform LiDAR-based state estimation methods [17].
+Lu et al. [156] categorized vision-based navigation methods
+into two types: relative vision localization (RVL) and absolute
+vision localization (AVL), which emphasize different UAV
+navigation strategies based on visual data.
+However, it is important to note that while most current
+studies on vision-based navigation focus on VINS implemen-
+tations for individual UAVs, the potential of multi-UAV visual
+collaboration has only recently begun to attract attention [157].
+Recent surveys have highlighted the key role of multisensor
+fusion technologies in advancing UAV localization under
+GNSS-denied conditions. Yin et al. [158] and Tong et al. [159]
+provided comprehensive reviews of SLAM systems and coop-
+erative visual localization methods, respectively, emphasizing
+the benefits of integrating vision-inertial, LiDAR-inertial, and
+LiDAR-vision modalities. Such fusion schemes are especially
+critical for enhancing robustness and accuracy in UAV local-
+ization, making them highly suitable for large-scale swarm
+deployments.
+Despite the significant potential of multisensor fusion meth-
+ods, several challenges remain in practical applications, such
+as limited real-time processing capabilities, system stability in
+dynamic environments, and hardware compatibility across het-
+erogeneous localization modules. Vemprala and Saripalli [160]
+proposed a CL framework for micro aerial vehicles (MAVs)
+based on vision sensors. In this framework, all UAVs are
+assumed to be equipped with monocular cameras and com-
+munication capabilities. As illustrated in Fig. 7, the algorithm
+integrates visual information with relative attitude estimation
+to achieve high-accuracy swarm localization within complex
+environments. On the other hand, visual feature extraction is
+Fig. 7.
+Vision-based CL: a conceptual representation [160]. (a) Initial
+phase of collaboration. (b) CL.
+Fig. 8. Cooperative visual-range-inertial navigation setup [6].
+one of the major achievements in the development of CV
+technology and has been widely applied in the field of artificial
+intelligence. During UAV operation, the system can extract
+visual features from natural landmarks or artificial markers
+and match them against a geographic database to estimate
+its own position (as illustrated in Fig. 8). For example, Mel-
+nyk et al. [108] derived relative poses among agents based on
+shared visual features and conducted an observability analysis
+to identify the necessary conditions for accurate localization.
+Xu et al. [53] trained a CNN for UAV detection and fused
+its outputs with depth information from an RGB-D camera
+and distance measurements from a UWB module, thereby
+cooperatively estimating the relative states of multirotor UAVs
+in indoor environments. Zhang et al. [161] constructed a
+semantic local map to characterize environmental features
+and proposed a supervised neural network (NN)-based map-
+matching method for camera-assisted vehicle localization.
+During multi-UAV cooperative operations, visual feature
+perception can be employed not only for target detection and
+tracking but also for estimating the relative motion states
+between UAVs through feature comparison, thereby enabling
+dynamic correction of positional information. Cui et al. [162]
+proposed a navigation algorithm that integrates visual infor-
+mation (VIS) with an INS. In this approach, all observation
+data—including inertial measurements and visual features—
+are jointly processed within an unscented Kalman filter (UKF).
+By leveraging filtering strategies, the algorithm effectively
+reduces the estimation error of relative states among UAVs.
+Researchers have also extensively explored vision-based
+relative navigation for formation flight [163]. Lee et al. [164]
+introduced
+an
+adaptive
+INS/GPS
+integrated
+navigation
+method
+to
+provide
+stable
+navigation
+control
+for
+mul-
+tiple UAVs by fusing inertial and GPS measurements.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.11]
+3470
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+Fig. 9.
+Block diagram of the navigation filter with information
+aiding [177].
+Oh and Johnson [165] proposed a vision-based naviga-
+tion model designed to estimate relative attitudes among
+UAVs during formation flight. CL methods based on shared
+visual information have demonstrated significant advantages in
+improving localization accuracy. For instance, Zhu et al. [166]
+presented a scheme that exploits common visual features to
+achieve high-precision localization. However, the performance
+of the shared visual method strongly depends on the overlap
+probability of camera fields of view, as shown in Fig. 9.
+To further enhance the localization accuracy of multi-
+UAV systems, geometric constraints among agents have been
+employed for cooperative optimization. In this method, obser-
+vations of the same feature target from multiple onboard
+cameras are used to indirectly construct geometric constraints,
+thereby improving the overall localization capability of the
+system [6]. Moreover, [167] introduced the concept of loop-
+closure constraints, where historical encounter information
+among UAVs is exploited to significantly expand the set
+of observable shared landmarks. This mechanism provides
+continuous constraints on pose estimation, enabling improved
+CN and state estimation accuracy even in scenarios where the
+camera fields of view do not overlap.
+3) Model-Based CN: UAV dynamic models have been
+widely applied in various fields, including control strategy
+design, navigation performance enhancement, sensor substi-
+tution, sensor fault diagnosis, and action decision-making via
+learning [168]. Consequently, in GNSS-integrated navigation
+systems, dynamic models can also serve as replacements for
+inertial measurement units (IMUs), enabling attitude estima-
+tion in the absence of IMU data [169]. In the so-called
+“model-aided navigation” approaches, researchers introduce
+accurate INS dynamic models. Koifman and Bar-Itzhack [170]
+were among the pioneers in this area, proposing a complete
+dynamic model for fixed-wing UAVs as an alternative to GPS
+information. As shown in Fig. 6, this approach highlights
+a bidirectional correction mechanism between the inertial
+system and the dynamic model. Specifically, the model not
+only provides predictive information for navigation but is also
+updated by observational data to refine its own parameters,
+thereby further improving estimation accuracy and enhancing
+system robustness [171].
+However, there is a prevailing consensus in current research
+on UAV state estimation: estimators based on dynamic mod-
+els can adapt in real time to variations in rotational and
+translational drag parameters during flight, while providing
+smooth and lag-free estimates of inertial acceleration [74].
+Such estimators do not require expensive sensors or exter-
+nal measurement sources, enabling online estimation of
+model parameters and offering a feasible pathway for
+large-scale deployment of high-performance, low-cost UAV
+systems [176].
+In the context of CN within data link systems, numerous
+studies have focused on achieving high-precision, model-
+assisted navigation for multi-UAV systems. For instance,
+Yang et al. [128] proposed a CN approach for multiple
+UAVs that integrates relative distance information with magne-
+tometer measurements. This method leverages magnetometer
+outputs to construct the UAV kinematic model, thereby
+enhancing positioning accuracy. For a minimal cooperative
+unit composed of a leader UAV with known position and
+follower UAVs with unknown positions, Zhu et al. [69]
+introduced a CP algorithm based on follower motion vector
+features to achieve precise pose estimation.
+Moreover, Zhou et al. [178] developed a multiagent naviga-
+tion approach under the random finite set (RFS) framework,
+combining the probability hypothesis density (PHD) and car-
+dinalized PHD (CPHD) filters. This algorithm redefines the
+virtual potential field construction mechanism, enabling agents
+to autonomously adjust their paths according to relative veloc-
+ities for obstacle avoidance. Our team conceived a method
+that exploits the consistency properties in formation CN, using
+a leader UAV aerodynamic prediction model to enhance the
+navigation accuracy and robustness of follower UAVs under
+GNSS-denied conditions.
+Beyond UAVs, model-assisted navigation methods have also
+been extensively investigated in other types of autonomous
+systems, as shown in Table I. Numerous studies have explored
+applications in UVs [179], marine vehicles (MVs) [180], and
+land vehicles [181], which will not be discussed in detail here.
+However, most existing model-assisted navigation research
+primarily focuses on state-level observation fusion, lacking
+feature-level fusion strategies commonly seen in visual nav-
+igation. As previously noted, certain dynamic models cannot
+be directly used as observable measurements; their temporal
+evolution often better reflects the true state of the vehicle.
+Therefore, future research should emphasize the integration
+of DL and artificial intelligence techniques into dynamic data,
+exploiting latent feature information to enhance predictive
+capability and advance multisource UAV navigation from
+traditional state fusion toward feature-driven fusion.
+IV. RESEARCH ON MSIF ALGORITHMS
+Regarding CN methods, specific fusion algorithms are
+a key factor influencing overall performance. We provide
+a systematic summary and classification of fusion algo-
+rithms. With the continuous advancement of navigation
+technologies, the fundamental principles and core algorithms
+of MSIF are evolving toward higher efficiency and sim-
+plicity, while the overall framework largely follows the
+traditional “data acquisition–processing–fusion–application”
+workflow (as illustrated in Fig. 10).
+On the one hand, conventional foundational algorithms are
+continuously optimized to enhance navigation accuracy; on
+the other hand, the introduction of advanced algorithms brings
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.12]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3471
+TABLE I
+REPRESENTATIVE MODEL-AIDED NAVIGATION METHODS
+Fig. 10. Flow of the fusion algorithms based on multisource information.
+new challenges in terms of computational load, system latency,
+cost management, as well as system availability and stability.
+As shown in Fig. 11, the existing studies of CN can be primar-
+ily categorized into four algorithmic frameworks: model-based
+methods grounded in mathematical derivation, graph-theoretic
+modeling approaches, fusion techniques based on Bayesian
+filtering theory, and adaptive algorithms leveraging intelligent
+learning.
+The fusion algorithms manifest heterogeneous performance
+characteristics, each offering specific advantages and exhibit-
+ing inherent limitations under varying application contexts.
+Table II provides a summary of representative filter-based
+Fig. 11. Classification of multisensor fusion algorithms.
+fusion methods, highlighting their advantages, limitations, and
+applicability.
+A. Optimization Algorithms Based on Mathematical
+Derivation
+1) Maximum Likelihood Estimation (MLE): In swarm UAV
+systems, the state information of individual vehicles and
+their relative observations can be jointly modeled. Optimal
+estimation methods, such as MLE or least squares (LSs),
+can be employed to fuse position and attitude information,
+effectively reducing computational complexity while enhanc-
+ing localization and attitude estimation accuracy.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.13]
+3472
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+TABLE II
+SUMMARY OF FILTER-BASED OPTIMIZATION ALGORITHMS
+In distributed multirobot localization research, Roumeliotis
+and Bekey [182] proposed a distributed state estimation
+approach in which each robot independently acquires internal
+and external sensor data and exchanges information within the
+network. Utilizing a distributed Kalman filter (KF) structure,
+each robot independently performs filtering and state updates
+to derive its own position estimate. This strategy effectively
+simplifies the complexity of centralized data processing but
+may face challenges in practical deployment, including data
+latency, information loss, and reduced overall perception
+consistency.
+Nerurkar et al. [183] modeled swarm localization as a
+nonlinear optimization problem based on the maximum a
+posteriori (MAP) principle and employed the Levenberg–
+Marquardt algorithm for iterative solution of the optimal
+estimate. This approach also incorporates distributed conjugate
+gradient methods to enable parallel processing, thereby
+reducing computational complexity. However, it requires
+high precision in internode time synchronization. While
+optimization-based
+fusion
+localization
+methods
+generally
+achieve higher accuracy than traditional approaches such as
+PF or Kalman filtering, their performance is still constrained
+by the design of the optimization objective function and lacks
+sufficient theoretical support.
+de Haag et al. [184] proposed a CN architecture integrating
+multisensor information, including cameras, LiDAR, UWB,
+beacons, and GNSS. Based on the MLE framework, the
+method jointly optimizes relative and absolute UAV poses, fur-
+ther enhancing the accuracy and stability of swarm localization
+systems.
+2) Least Squares: Similarly, Tomic et al. [185] constructed
+a nonconvex LSs estimation function based on distance mea-
+surement models and geometric modeling, employing MLE
+to infer distances between two sensors, thereby enabling CL
+in 3-D wireless sensor networks (WSNs). Liu et al. [186]
+proposed a nonlinear LSs (NLSs) model for TOA-AOA CL
+and solved it via the Newton iterative method. However, these
+algorithms rely on a centralized architecture, requiring all
+measurement data to be aggregated at a fusion center (e.g.,
+base station or central node) for unified computation of all
+node positions.
+Khan et al. [187] derived a linear LSs (LLSs) method
+for AOA-TOA CL in 2-D scenarios. Compared to NLS,
+LLS estimates only the positions of the target nodes of
+interest, thereby effectively reducing computational com-
+plexity and communication overhead. Building upon this,
+weighted LSs (WLS) further improves localization accu-
+racy. Tomic et al. [188] proposed a 3-D CL model fusing
+RSS and AOA, designing a relative distance-based weight-
+ing method. However, this approach assumes that RSS
+and AOA measurement errors depend solely on intersensor
+distance.
+Furthermore, Liu et al. [87] proposed a distributed WLS
+localization method based on two-hop TOA and AOA mea-
+surements, achieving efficient position estimation of target
+nodes in 3-D space. This study also analyzed the impact of
+TOA and AOA measurement errors on localization accuracy,
+providing theoretical support for subsequent system error
+modeling and algorithmic optimization
+L (β) = (y −Xβ)⊤W (y −Xβ) .
+(15)
+The closed-form solution is
+ˆβWLS =
+
+X⊤W X
+−1
+X⊤W y
+(16)
+where y is the observation vector (output), X is the design
+matrix (input features), W is the diagonal weight matrix, and
+β is the parameter vector to be estimated.
+3) Lie Algebra: Lie group theory, due to its natural continu-
+ity in handling 3-D rotations and rigid body transformations,
+has received wide attention in SLAM pose estimation [189].
+Knuth and Barooah [190] introduced Lie algebra into CN mod-
+eling, representing each node’s state in the special Euclidean
+group SE(3) and computing the group mean using Lie algebra,
+enabling state estimation across platforms. Recently, invariant
+extended KFs (InEKFs) based on SO(3) manifold theory have
+shown significant advantages in nonlinear system estimation.
+By leveraging the symmetry of Lie groups, this approach
+ensures system dynamics satisfy the group-affine property,
+such that the defined “invariant error” evolves according to a
+log-linear differential equation on the Lie algebra [191]. The
+key feature of this structure is the decoupling of error dynam-
+ics from the current system state, maintaining linearization
+accuracy even with initial state deviations, thus significantly
+improving filter robustness and estimation accuracy.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.14]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3473
+Fig. 12. Weight factor graph co-location method for UAV formation [8].
+4) Quadratically Constrained Optimization (QCQP): In nav-
+igation, QCQP algorithms are widely used in path plan-
+ning, trajectory optimization, and resource allocation [192].
+CN problems can be formulated as QCQP and converted
+into solvable convex optimization problems via Lagrangian
+relaxation. Compared to Bayesian estimation-based methods
+such as Kalman filtering, QCQP does not rely on explicit
+system models or correlations among motion states, and avoids
+linearization, potentially yielding more consistent estimates
+under certain conditions [193]. Taylor and Spletzer [194] pro-
+posed a distributed state estimation method for multiplatform
+CL in static scenarios. By applying Lagrangian relaxation to
+reconstruct the nonconvex problem into a convex optimization
+problem, this method enables efficient solution, providing a
+feasible approach for improving CL accuracy under stationary
+conditions.
+B. Graph-Theoretic Optimization Algorithms
+Graph-theoretic optimization methods primarily model the
+relationships among all targets within a certain range as a
+mathematical graph structure. Starting from each node in the
+graph, information flow to other nodes can be analyzed, and
+specific algorithms can be designed to optimize the graph
+structure, thereby providing an intuitive representation of
+abstract problems.
+1) Factor Graphs: As shown in Fig. 12, weight factor graphs
+can be regarded as an optimization method based on prob-
+abilistic graphical models. Due to their high efficiency in
+fusing multisource information, they have been widely applied
+in fault diagnosis [195], target tracking [196], and robotic
+navigation [197]. Leveraging this capability, various factor-
+graph-based algorithms for CL have been proposed [198].
+These methods typically construct a global optimization cost
+function, jointly modeling onboard inertial measurements and
+received cooperative information at the current time. However,
+they often do not fully consider the differing contributions of
+various cooperative information sources in state estimation.
+To enhance cooperation performance and trajectory tracking
+accuracy in multi-UAV systems, Guerrero et al. [199]
+employed Newton–Euler dynamic modeling and a hierarchical
+swarm structure to abstract the multi-UAV system into an
+information graph, building a nonlinear control framework for
+cooperative control. This method effectively integrates system
+dynamics with communication structure to achieve coordi-
+nated control among multiple vehicles. Shames et al. [200]
+proposed a graph-theoretic approach for localization of mobile
+agents in a 2-D plane. The method assumes known internode
+distances and relative angles, with the overall structure satis-
+fying rigidity constraints, enabling CP among multiple agents.
+To address the decline in state estimation accuracy caused
+by weakened distance constraints in conventional graph
+optimization, Zhu et al. [201] proposed a weighted factor-
+graph-based CL method guided by navigation performance
+evaluation. By assessing the actual contribution of coop-
+erative information to navigation performance, low-quality
+information sources are filtered out, preventing them from
+influencing the final position estimate and improving both
+estimation accuracy and computational efficiency. However,
+although relative-distance performance evaluation has been
+extensively studied in WSNs, it remains less explored in multi-
+UAV CN.
+Wang et al. [202] proposed a factor-graph-based
+resilient CL (FG-RCL) method for multirobot systems, fusing
+visual sensor and UWB measurements to achieve precise state
+estimation while effectively mitigating limited field-of-view
+issues inherent in visual sensors.
+2) Bayesian Network (BN): Classical approaches, including
+the extended KF (EKF), PF, and optimization-based tech-
+niques, typically rely on centralized processing architectures,
+requiring a central processor to compute all agent positions,
+making them unsuitable for distributed systems and vulnerable
+to single-point failures [11]. To address these limitations,
+BN methods have been introduced.
+BN is an efficient inference technique based on a Bayesian
+framework and operates on factor graphs, and their effec-
+tiveness has been extensively validated. As a distributed
+inference mechanism, BN enables state estimation in networks
+without central control, offering strong scalability and robust-
+ness [203]. Li et al. [204] used graph theory to study the
+localization method of mobile agents in 2-D space. Consider-
+ing the time-varying characteristics of the network topology,
+Wymeersch et al. [205] proposed a distributed CN algorithm
+based on the network factor graph. The algorithm can handle
+a variety of scenarios and can achieve accurate and robust
+positioning with little communication.
+3) Voronoi: Voronoi diagrams provide an effective graph
+structure to represent spatial relationships between robots and
+obstacles, and are widely used in path planning to generate
+feasible navigation paths. Liu et al. [206] proposed a method
+combining relational reasoning with Voronoi local maps for
+goal-driven navigation tasks. The Voronoi local maps map
+semantic subgoals to specific spatial locations through online
+construction, enabling efficient path planning.
+Furthermore, the introduction of generalized Voronoi dia-
+grams (GVDs) [207] enhances the efficiency of frontier-based
+exploration strategies,
+providing structured guidance for
+autonomous mobile robot exploration. To overcome the slow
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.15]
+3474
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+path generation and high path cost in traditional planning
+methods, researchers have proposed autonomous exploration
+frameworks based on the rapid extraction of Voronoi graph
+features. Wu et al. [208] further proposed the VoroNav frame-
+work, which introduces a novel graph structure representing
+the navigation space and significantly improves navigation
+performance through structured graph search strategies.
+C. Filter-Based Optimization Algorithms
+1) KF and EKF: Numerous filtering-based fusion algorithms
+have been proposed, with performance dependent on the
+application scenario and modeling approach. In Kalman-filter-
+based fusion, system architectures are typically classified as
+centralized or hierarchical/distributed, depending on whether
+raw measurements are directly used [11]. In centralized fusion,
+all sensor measurements are transmitted to a fusion cen-
+ter, which constructs high-dimensional measurement vectors
+for state estimation, achieving theoretically optimal global
+accuracy [209]. However, this requires high computational
+and communication resources, limiting real-time performance
+and scalability. Distributed fusion allows subsystems (agent
+nodes) to perform local estimation independently, later com-
+bining results into a global state. This approach reduces
+computational and communication load, facilitates sensor fault
+detection and isolation (FDI), and enhances system sur-
+vivability and robustness in dynamic environments. Despite
+various improvements and extensions of the KF, no univer-
+sal method simultaneously achieves optimal performance in
+computational complexity, error control, and noise modeling
+accuracy. In practical applications, achieving low computa-
+tional overhead, nonaccumulating errors, and accurate mod-
+eling of complex noise is challenging, leaving ample research
+opportunities.
+To address the limited accuracy of Kalman-filter-based
+fusion methods under highly nonlinear system or observation
+models in CN scenarios [213], several improvements have
+been proposed, such as distributed EKFs [214], UKFs [215],
+and cubature KFs (CKFs) [216], improving fusion accuracy
+and robustness. For example, Liu et al. [217] proposed a
+CN algorithm using ranging and velocity measurements, with
+EKF estimating follower state errors. Results show significant
+improvements in positioning accuracy compared to single INS
+or ranging-only methods.
+However, Kalman-filter-based swarm fusion methods typ-
+ically
+rely
+on
+fully
+connected
+(FC),
+time-synchronized
+communication networks, which are difficult to achieve in
+practice. When relative observations exist, the computational
+complexity of fusing N nodes can reach O(N 4), severely
+limiting scalability. In addition, these methods only use the
+previous state and current observation, underutilizing historical
+information and constraining accuracy in large-scale coop-
+erative systems. Trujillo et al. [140] proposed a localization
+method fusing UWB ranging with inertial observations using
+EKF for target state estimation. Although only a single aux-
+iliary node is required, prior knowledge of the target node’s
+position and heading is assumed. Jung et al. [218] developed
+a quaternion-error-state EKF based on IMU propagation for
+distributed CN, improving both accuracy and scalability.
+While Bayesian-filter-based fusion methods achieve high
+positioning precision, their computational complexity grows
+with time. Common practice uses a fixed-time window, yet the
+relationship between positioning accuracy and window length
+remains underexplored. For micro-UAVs with limited onboard
+resources, optimizing fusion computation while maintaining
+high accuracy, exploiting distributed computation, and mini-
+mizing communication remains a critical challenge.
+2) Invariant EKF (IEKF): IEKFs differ from conventional
+EKF by defining state variables on matrix Lie groups [219].
+Traditional EKF represents states in vector space, modeling
+attitude via direction cosine matrices or quaternions, while
+position and velocity reside in Euclidean space. In contrast,
+IEKF models position and velocity within the Lie group, more
+closely integrating system geometric properties.
+Due to the high maneuverability of UAV swarms, their flight
+states often exhibit pronounced nonlinear characteristics at
+certain operating points. Under such conditions, the traditional
+EKF is prone to estimation bias and even divergence, which
+can severely degrade filtering performance and consistency.
+However, the core advantage of IEKF lies in invariant error
+propagation, decoupling error dynamics from the current state
+and rendering the state transition matrix independent of the
+trajectory. Consequently, IEKF maintains numerical stability
+and estimation accuracy even with initial state errors, outper-
+forming EKF and UKF in robustness and consistency.
+This invariance extends to observation modeling: if the
+observation model is left-invariant or right-invariant, the mea-
+surement matrix does not depend on the state estimate,
+ensuring Kalman gain remains trajectory-independent. In mul-
+tisensor systems, left-invariant observations include acoustic
+positioning [220], GNSS position measurements [221], and
+velocity measurements, while right-invariant observations
+often come from DVL or wheel odometry. In these scenar-
+ios, centralized right-invariant EKF (RIEKF) is commonly
+used. However, for large state estimation errors, RIEKF
+performance may be limited due to trajectory-dependent mea-
+surement matrices. Conversely, left-invariant EKF (LIEKF)
+performs better under such conditions. As shown in Fig. 13,
+Hwang et al. [222] proposed a federated filtering frame-
+work where different subfilters handle different observation
+types: LIEKF for left-invariant measurements and RIEKF
+for right-invariant measurements. Since all subfilters update
+with trajectory-independent Kalman gains, the overall sys-
+tem achieves significantly improved positioning accuracy and
+robustness compared to centralized architectures.
+3) AKF: Within the Kalman filtering framework, the current
+state estimate and its uncertainty depend on information from
+subsequent observations. KFs can correct raw sensor measure-
+ments affected by noise to produce estimates closer to the
+true values, thereby improving sensor output accuracy [223].
+However, KF performance is highly sensitive to the system
+model dynamics and the accurate characterization of process
+and measurement noise statistics [224].
+In practice, noise covariance matrices are often difficult to
+determine precisely. Traditional KF approaches typically fix
+one covariance matrix (e.g., Q or R) and adaptively tune the
+other to improve filtering performance. To address this, [225]
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.16]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3475
+Fig. 13.
+Novel federated structure of invariant EKF using left-/right-
+invariant observations [222].
+proposed an adaptive EKF (AEKF) that dynamically estimates
+noise covariances, enabling more accurate state tracking.
+Despite improvements in estimation performance, AEKF
+has several limitations [226]. Filtering results can diverge,
+adversely affecting positioning accuracy; computational com-
+plexity is relatively high, imposing demands on hardware
+resources; and ensuring the positive definiteness of the process
+noise covariance matrix during real-time estimation is chal-
+lenging, potentially causing numerical instability [227]. There-
+fore, practical implementations require a balance between
+estimation accuracy and system feasibility.
+Assuming precise modeling of the process noise covariance
+Q, Li et al. [228] proposed an EMD-based adaptive Kalman
+filtering method for state estimation in X-ray pulsar naviga-
+tion systems. Zhang et al. [229] introduced an adaptive KF
+using innovation sequence analysis combined with pseudo-
+measurement vectors, while [230] developed an improved
+AKF based on covariance matching. Both methods assume
+the measurement noise covariance R is fully known, achiev-
+ing enhanced accuracy under certain conditions but reducing
+adaptability in complex environments.
+4) Unscented Kalman Filter: The UKF is widely employed
+for systems exhibiting strong nonlinearities and complex
+modeling characteristics. Unlike the traditional EKF, which
+linearizes system dynamics, UKF utilizes the unscented
+transformation (UT) to propagate states, a deterministic
+sampling-based nonlinear approach. By selecting a set of
+representative sigma points in the state space and propagating
+them through the system dynamics, UKF can estimate the
+mean and covariance of state variables with higher accuracy,
+thereby outperforming EKF in state estimation [231].
+In standard UKF, the process and measurement noise
+covariance matrices ( Q and R) are typically fixed. However,
+in real-world nonlinear systems such as UAVs and AUVs,
+uncertainties and time-varying noise in dynamic environ-
+ments are common [232]. If noise statistics are unknown or
+inaccurately estimated, UKF performance may significantly
+degrade [233]. To address this, adaptive noise covariance
+adjustment mechanisms and robust estimation concepts have
+been introduced to enhance the filter’s capability against
+time-varying noise and outlier measurements [210]. Li et al.
+[234] proposed a data-fusion-based adaptive UKF for multi-
+UAV systems, achieving optimal CL among platforms.
+Similarly, Khaghani and Skaloud [235] applied UKF to
+rotorcraft VIO systems, enabling high-precision navigation
+under high-speed flight conditions.
+Despite its advantages in estimation accuracy, UKF entails
+high computational complexity. Similar to PFs, real-time
+implementation on embedded platforms remains challenging.
+For large-scale cluster drones, the significant demand for
+computing resources is a practical limitation factor for the
+deployment of algorithms.
+5) FF: Federated Kalman filtering (FKF) has been widely
+adopted as an efficient multisensor fusion method in UAV CN
+[236]. This approach features low computational complexity,
+simple implementation, and flexible information distribution,
+enabling effective multisource data integration for improved
+navigation solutions [211].
+To address GNSS-denied scenarios, Bao et al. [237] pro-
+posed the FKF combining multirotor aerodynamic models,
+INS, and GPS for fault-tolerant navigation. This method main-
+tains navigation accuracy and reduces error propagation under
+GPS outage conditions. In practice, however, sensor noise
+characteristics are often unknown or time-varying, resulting in
+nonstationary covariance matrices and degraded filter perfor-
+mance. To tackle this challenge, AFKF have been developed,
+including innovation-sequence-based AFKF adjustments [238]
+and subfilter failure probability strategies. Furthermore, a vari-
+ational Bayesian (VB)-based adaptive FKF algorithm has
+been
+proposed
+and
+successfully
+applied
+to
+multisensor
+fusion systems, including INS, GPS, TAN, and geomagnetic
+navigation [2].
+During UAV formation flight, the low-precision navigation
+sensors onboard each UAV lead to a rapid accumulation of
+navigation errors over time. Employing a centralized KF for
+CN not only introduces single-point failure risks but also
+imposes a substantial computational burden on the leading
+node. As illustrated in Fig. 14, a UAV CN algorithm based
+on a federated filtering framework has been proposed. This
+method effectively mitigates error divergence while signifi-
+cantly reducing the computational load on the leader node, all
+without compromising navigation accuracy [77].
+Due to constraints in size and cost, UAV swarms are
+typically unable to carry high-precision INSs. Therefore,
+CN
+tasks
+must account
+for
+UAV formations equipped
+solely with low-accuracy navigation devices. Compared to
+centralized filtering approaches, federated filtering offers
+significant advantages in system fault tolerance and compu-
+tational distribution, making it more suitable for multi-UAV
+CN systems [239].
+Furthermore, by jointly leveraging conventional sensor mea-
+surements and cluster-level dynamic information through a
+federated KF with multiple subnodes, the CN system can
+effectively compensate for failures in individual dynamic
+subnodes.
+6) Particle Filtering: Unlike traditional Kalman filtering,
+PF relies less on precise system models and noise charac-
+teristics, making it a viable approach for multisource CN
+data fusion. In PF-based CL studies, Prorok et al. [240]
+proposed a multinode PF localization algorithm that effectively
+reduces computational complexity through particle clustering.
+The algorithm was validated in a multinode (10-node) scenario
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.17]
+3476
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+Fig. 14. Workflow chart of multi-UAV CN system [77].
+fusing odometry, relative distance, and relative angle informa-
+tion, demonstrating good accuracy and stability.
+Currently, many studies approximate the posterior density
+(PD) under the PF framework by constructing it via modified
+KFs [241]. However, in complex multisource CN systems,
+the posterior distribution is often affected by various non-
+ideal factors, exhibiting highly nonlinear and non-Gaussian
+characteristics that are difficult to approximate with a sin-
+gle distribution. Sun and Liu [212] proposed an alternative
+approach that focuses not on improving the accuracy of the
+system model but on optimizing the PD structure to reduce
+perturbations from sensor noise, thereby mitigating particle
+degeneracy and sample impoverishment and providing a new
+solution for multisource CN data fusion.
+Moreover, since the accuracy of the observation model
+directly affects the importance of particle sampling in
+PF, selecting an appropriate importance density function
+(IDF) becomes a key strategy for performance improvement.
+To address time-varying non-Gaussian noise caused by exter-
+nal disturbances, Wang et al. [242] proposed an improved
+PF algorithm that fully incorporates the latest observation
+information during the sampling stage.
+D. Learning-Based Optimization Algorithms
+1) Neural Networks: With continuous improvements in
+hardware performance and computational efficiency, NNs
+methods have been widely applied in real-time tasks such
+as image processing, signal processing, and natural language
+processing, and have drawn attention for their capability
+in handling nonlinear problems [243]. Chiang et al. [244]
+conducted one of the earliest studies introducing NNs into
+INS. Their work employed a multilayer feedforward NN with
+backpropagation to construct a multisensor fusion scheme
+for accurate ground vehicle positioning, demonstrating the
+potential of NN in navigation applications.
+Early NN-based navigation research mainly followed two
+directions: first, using networks to predict and replace GNSS
+data to address failures in INS/GNSS fusion systems caused
+by GNSS outages. Because INS errors accumulate rapidly
+over time, position estimation accuracy significantly degrades.
+To this end, Noureldin et al. [245] designed a multilayer
+Fig. 15.
+PINNs architecture. It functions by employing its own output
+prediction as the initial state [247].
+perceptron (MLP) network that uses INS position information
+and the current time as inputs to predict INS errors dur-
+ing GNSS outages. In [246], an input-reduced NN structure
+with FC layers was proposed to regress velocity and posi-
+tion, enhancing system robustness. Currently, artificial NNs
+(ANNs) are the mainstream method for compensating INS
+errors under GNSS-denied conditions. Their core idea is to
+construct a nonlinear mapping between inputs and outputs to
+estimate and correct INS errors during GNSS outages. For
+instance, in GNSS-available conditions, INS output positions
+and IMM-EKF outputs are used to train an extreme learning
+machine (ELM), which then compensates for INS errors when
+GNSS fails.
+However,
+NN
+performance
+heavily
+depends
+on
+net-
+work
+architecture
+and
+training
+data
+quality
+and
+often
+requires substantial training time to maintain generaliza-
+tion. During GNSS outages, UAV swarms can automatically
+switch to network-based CN. One NN-assisted navigation
+(NNA) method combines a distance-based measurement net-
+work with an INS-based positioning network, employing a
+translation-rotation matching strategy to estimate each UAV’s
+localization error [248].
+Another
+approach
+improves
+system
+performance
+by
+enhancing the covariance estimation module within a KF.
+Wang et al. [249] proposed using a three-layer FC NN
+to enhance the adaptive KF in INS/GNSS integrated sys-
+tems, with performance evaluated in [250]. In addition,
+Chen et al. [251] developed a wavelet-basis-based FC NN
+structure for INS/GNSS integration, providing reliable position
+estimation under GNSS-denied conditions while reducing the
+modeling complexity of conventional KF algorithms.
+Furthermore, by incorporating physical laws into NNs,
+physics-informed NNs (PINNs) offer potential solutions for
+highly nonlinear low-inertia systems, measurement noise, and
+data availability or uncertainty limitations, while ensuring
+solution robustness. Once trained, PINNs do not require
+retraining. The core idea behind PINNs is to incorporate
+the differential equation into the loss function, as illustrated
+in Fig. 15. For rotorcraft UAVs, thrust is a key physical
+quantity in control and state estimation. Traditional thrust
+estimation relies on complex aerodynamic models or sensor
+measurements, which are often limited by modeling errors
+or sensor noise. By integrating physics constraints with
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.18]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3477
+data-driven methods, PINNs can effectively improve thrust
+estimation accuracy and generalization capability [247]. Dur-
+ing network training, physical conservation laws or kinematic
+constraints are embedded into the loss function, ensur-
+ing that outputs both fit observations and satisfy physical
+principles.
+2) Reinforcement Learning (RL): In recent years, research
+on RL for optimizing CN of multi-UAV systems has received
+widespread attention, continuously advancing this field [252].
+RL-based navigation can directly map raw sensory measure-
+ments to autonomous control signals in large-scale, complex,
+and 3-D environments. Over the past few years, RL techniques
+have been extensively applied to improve path planning, nav-
+igation, and control performance of UAV swarm networks in
+complex scenarios [252]. For example, in [253], a multiagent
+RL (MARL) approach was introduced for swarm-based target
+tracking of UAVs. End-to-end cooperative MARL enables
+UAVs to make intelligent flight decisions based on past and
+present states of the target, achieving cooperative tracking
+while reducing energy consumption.
+In another study, Hu et al. [253] proposed a DRL-based
+autonomous
+maneuver
+decision-making
+framework
+for
+dual-UAV cooperative air combat. UAVs perform situational
+assessment,
+identify
+the
+current
+state
+of
+targets,
+and
+design reward functions to improve training convergence,
+enabling them to outperform adversaries. Wei et al. [254]
+combined MARL with long short-term memory (LSTM)
+networks to train UAV behavioral policies and designed
+refined reward functions. They also improved the recurrent
+deterministic policy gradient (RDPG) algorithm, enhancing
+policy convergence. Although introducing LSTM improved
+algorithm stability to some extent, inherent instability in
+multiagent systems remains unresolved.
+To address these challenges, Kang et al. [255] modeled
+multiagent joint optimization tasks as a partially observable
+Markov decision process (POMDP) and, considering resource
+constraints, energy limitations, and collision avoidance, pro-
+posed a multiagent proximal policy optimization (MAPPO)
+algorithm. This method requires relatively low exploration,
+achieving efficient training while maintaining good navigation
+performance.
+In relative navigation systems under complex environments,
+to handle possible failures of range sensors, some studies have
+proposed enhancing system robustness via ensemble learning.
+For instance, Sheng et al. [256] employed the AdaBoost
+algorithm to combine multiple weak learners into a strong
+learner, enabling robust fault state prediction.
+3) Deep Learning: Recently, DL techniques have made sig-
+nificant breakthroughs in CV and have been widely applied to
+UAV positioning, remote sensing perception, and vision-based
+autonomous navigation [257]. With rapid advances in image
+processing and CV, DL-based visual navigation research has
+expanded across various platforms [258], [259]. Its core lies
+in extracting navigation-relevant features from preprocessed
+image data. Golroudbari and Sabour [260] reviewed end-to-
+end DL applications in autonomous navigation, covering not
+only localization but also obstacle detection, scene understand-
+ing, path planning, and control.
+In GNSS-denied conditions, geomagnetic navigation is con-
+sidered an important alternative. Cuenca et al. [261] proposed
+a DL-based geomagnetic navigation framework designed
+for GPS-degraded environments, demonstrating robust and
+adaptive navigation performance. Leveraging DL’s strong rep-
+resentation capabilities, image sensor data can be directly
+mapped to control commands for end-to-end UAV autonomy.
+Amer et al. [262] used onboard RGB camera images to train
+CNNs to generate steering commands, achieving vision-based
+autonomous navigation.
+AI methods, with strong feature learning and efficient
+function approximation capabilities, demonstrate significant
+potential in UAV navigation. Current research mainly focuses
+on two directions: 1) bio-inspired navigation mechanisms,
+constructing a “UAV brain” model with spatial cognition to
+achieve end-to-end integration of vision, perception, and local-
+ization; and 2) learning-driven navigation systems that rapidly
+identify navigation states, diagnose anomalies, and recon-
+struct systems in complex, dense swarm flight environments,
+enhancing adaptability to dynamic environments. Integrating
+AI deeply with navigation systems not only improves accu-
+racy and robustness but also reduces modeling complexity
+and adaptation costs. Therefore, intelligent CN in complex
+environments is expected to be a key direction for future UAV
+system development [258].
+V. ANALYSIS OF KEY ISSUES AND PROSPECTS BASED
+ON MULTISOURCE INFORMATION CHARACTERISTICS
+Building upon recent research advances, this study further
+analyzes and discusses the key challenges in CN technolo-
+gies characterized by multisource information. On one hand,
+we examine the resilient design of fusion strategies, empha-
+sizing the selection, switching, and fault-tolerant mechanisms
+associated with multisource data, multiple signal types, and
+various subsystems. We explore the emerging trend of infor-
+mation fusion evolving from the data level to the feature and
+decision levels, thereby underscoring the growing potential of
+multilevel fusion frameworks in enhancing CN performance.
+A. Multisignal Source Selection
+1) Limitations: As illustrated in Fig. 16, in complex scenar-
+ios involving heterogeneous swarm flight, providing accurate
+and reliable navigation information is fundamental for UAV
+formation control. In CN, the commonly used GNSS receivers
+can achieve high-precision measurements and positioning in
+open environments. Nevertheless, multipath effects and NLOS
+reception [263] can significantly degrade the performance
+of GNSS-based relative navigation systems, manifesting as
+reduced accuracy, integrity, and continuity, and in some cases,
+even signal denial [10]. Furthermore, due to constraints in
+cost, payload, endurance, and size, a single UAV cannot carry
+multiple high-precision sensors simultaneously [264]. These
+issues present significant challenges to CN in multi-UAV
+systems.
+As summarized in Section II, the information fusion process
+among multiple UAVs can be categorized into three naviga-
+tion modes: multileader, single-leader, and distributed [265].
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.19]
+3478
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+Fig. 16. Complex flight scenarios in an isolated airspace cluster.
+Among them, the single-leader [6] and multileader modes are
+more common. The CN algorithms in these modes are similar
+in principle to multisatellite positioning, making the algorithms
+relatively simple and well-established [95]. In distributed CN
+algorithms, the suppression of pure INS positioning errors
+theoretically depends on both the number and quality of
+UAVs in the formation [266]. High-precision positioning in
+all three modes relies on the optimal performance of reference
+nodes. In addition, the relative configuration among nodes is
+a critical factor that can significantly reduce or even diverge
+the positioning accuracy of individual nodes [267].
+To enhance UAV state estimation accuracy while reduc-
+ing computational complexity, cooperative systems require
+evaluation of cooperative information performance and data
+fusion based on geometric or probabilistic approaches. Con-
+sidering the optimal spatial geometric configuration (OSGC)
+between follower and leader UAVs, the relative distance
+information of leader UAVs with known positions can be
+used as observation vectors to achieve high-precision CL for
+follower UAVs. Causa et al. [150] proposed a multi-UAV
+formation geometry for CN in the GPC challenge environ-
+ment. When the precise positions of leader UAVs are known,
+the aforementioned distance-based CL method selects leader
+nodes based on spatial geometry, but does not fully assess
+the impact of relative distance performance on system posi-
+tioning accuracy. Traditional distance-based CL algorithms
+often ignore CN performance information, and poor-quality
+cooperative data can degrade follower UAV state estimation
+accuracy [201]. By leveraging the Fisher criterion and rel-
+ative entropy, cooperative UAV node positions and related
+distance information are comprehensively evaluated. The con-
+tributions of selected cooperative nodes’ positions and distance
+measurements to tracking UAV state estimation are weighted
+to achieve improved accuracy. Using only two-hop measure-
+ments based on TOA and AOA, a WLSs method is proposed
+to distribute the computation of specific target nodes in 3-D
+environments. Moreover, the impact of TOA and AOA mea-
+surement errors on positioning accuracy is analyzed based on
+geometric relationships [87].
+Whether in leader–follower or hierarchical cooperative
+frameworks, the problem essentially reduces to the selection
+of reference UAVs. Rigid selection schemes in CN can lead to
+inefficiencies in the reference UAV group. To enhance system
+robustness and accuracy, multireference CN is necessary. How-
+ever, existing studies have primarily focused on filtering signal
+sources based on relative distance and directional information
+to select the optimal reference for the target UAV, which
+remains insufficient.
+2) Prospects: In summary, CN relies on high-precision
+UAVs within a formation to act as reference signal sources,
+while UAVs with lower positioning accuracy are designated
+as targets to be localized, obtaining navigation information
+from surrounding reference UAVs via data links. Tradi-
+tional leader–follower CN achieves high-precision positioning
+primarily by designating high-end, well-equipped UAVs as
+references. In scenarios where high-configuration UAVs are
+not explicitly assigned, it becomes challenging to identify
+which UAV maintains high accuracy under signal denial con-
+ditions or leader failures, thereby complicating leader–follower
+distinction. Moreover, most formation CN algorithms empha-
+size the use of cooperative information to assist absolute
+navigation, while relatively less attention is paid to relative
+navigation [88]. Previous multisensor fusion-based coopera-
+tive relative navigation methods for UAV formations share a
+common limitation: the relative positions between UAV pairs
+are estimated only using the multisensor information of those
+two UAVs, resulting in low utilization of multi-UAV infor-
+mation and limited improvements in the accuracy, integrity,
+and continuity of relative navigation. Evidently, formation
+CN must address three critical issues: 1) reliability of high-
+precision layers; 2) multireference navigation optimization;
+and 3) relative navigation within the formation.
+B. Resilient Fusion of Multisource Information
+1) Limitations: Traditional sensor fusion frameworks mainly
+focus on individual sensor combinations to enhance envi-
+ronmental adaptability, often neglecting cooperative operation
+among sensors. The improvement of multi-UAV CN accuracy
+also depends on effective MSIF. Relative sensor noise filtering
+and measurement fusion can be implemented using EKF.
+In existing CN algorithms, EKF-based methods [268] or
+equivalent information filter approaches are widely used due
+to their computational efficiency and accuracy. However,
+their theoretical consistency cannot be guaranteed. Notably,
+although InEKF and Lie group theory have demonstrated
+remarkable performance in robotic pose estimation, they also
+face challenges in sensor validity detection, which is similarly
+critical for CN.
+Current solutions in the literature generally follow three
+strategies: 1) fusion of information from other nodes, such
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.20]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3479
+Fig. 17. Framework of the proposed interactive sensor-independent-update (ISIU) method. Different colors represent different subsections.
+as Visnav [269] or AOA and range measurements [270]; how-
+ever, errors in these observations can propagate and amplify
+issues; 2) reliance on external environmental perception or
+datasets, such as 3-D mapping [271], cameras [272], and
+3-D LiDAR [273], which are limited by sensor availability
+or dataset dependency; and 3) enhancing estimator robustness
+via M-estimators [274] or fault detection and exclusion (FDE)
+[275], although the increased complexity imposes stringent
+requirements on detection and diagnostic logic, complicating
+algorithm design and tuning [276].
+Thus, a resilient multisource fusion mechanism is urgently
+needed. Compared with conventional engineering practices
+that rely on numerous if-else structures for sensor validity
+detection, it is crucial to maximize the residual value of sen-
+sors and select optimal combinations based on sensor health.
+During switching among different sensor or measurement
+submodels, the interacting multiple model (IMM) framework
+provides an effective solution and has been widely applied in
+target tracking and localization [277]. In IMM, model switch-
+ing refers to instantaneous transitions between submodels,
+as shown in Fig. 17. In CIMM [278], the transition proba-
+bility matrix (TPM) π is manually tuned, performing well
+in relatively stable systems. However, as Johnston and Krish-
+namurthy citebib:294 point out, the accuracy of IMM-based
+ISIU strategies is highly sensitive to the TPM π, representing
+a Markov chain. Inappropriate transition probabilities can
+significantly affect fusion results and hinder proper submodel
+selection. Therefore, a more scientific approach to determining
+the transition probabilities is required, as π should not be
+considered a constant matrix [280].
+2) Prospects: In previous studies [281], we investigated
+navigation algorithms with dynamic model correction, focus-
+ing on multisource sensor reliability and interactive resilient
+fusion frameworks. Due to the low cost and compact size of
+MEMS-IMUs, integrating multiple IMUs into a system can
+enhance both robustness and accuracy [282]. This approach
+reduces overall noise levels, making inertial measurements
+more representative of actual values and consequently improv-
+ing system accuracy [283]. Previous research has also
+investigated high-grade IMUs [284], and experimental results
+using multiple MEMS-IMUs show that employing four IMUs
+can improve navigation performance by 30%–50%. Theoret-
+ically, the optimal weighting of each IMU depends on its
+measurement noise variance. Most studies assume identical
+noise characteristics for IMUs of the same type and assign
+equal weights for fusion [285]. Estimating the online noise
+variance of MEMS-IMUs [286] as a performance metric and
+incorporating it into a multisource resilient fusion framework
+is therefore of significant research value.
+As illustrated in [287], based on a simplified, dimensionless
+sensor reliability evaluation scheme, we proposed an improved
+multisource resilient fusion algorithm for redundant relative
+navigation using IEKF as a submodel. We also designed
+an ES-RIEKF-based multirate full-source relative navigation
+framework, which accounts for both interactive measurement
+fusion and prediction stage interactions. Sensor reliability
+metrics are employed to design the multimodel transition prob-
+ability matrix, thereby reducing the sensitivity of submodel
+weights.
+Future work should explore the integration of conven-
+tional perception sensors, such as cameras, LiDAR, and
+millimeter-wave radar, with UAV external auxiliary informa-
+tion, including kinematic and dynamic models, as well as
+topological information. In such a multisource fusion sys-
+tem, the transition probabilities between different subfilter
+models should adaptively change according to the system
+state. For current cooperative systems, an updated sensor
+reliability evaluation framework [288] can guide the design of
+the filter transition probability matrix. Moreover, the resilient
+fusion framework should analyze redundant information in
+previously unconsidered submodels, exploring its impact on
+performance and potential benefits for inertial navigation,
+ultimately enabling highly perceptive environmental awareness
+and precise prediction of navigation states.
+C. Fault-Tolerant Approaches Based on Multisubsystems
+1) Limitations: The FKF offers several advantages [289]:
+1) higher accuracy; 2) good fault-tolerance performance; and
+3) a relatively simple global information fusion algorithm
+with low computational cost. The primary strength of FKF
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.21]
+3480
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+lies in its ability to distribute and adjust information between
+subfilters and the main filter according to the information
+allocation principle. With the development of UAV swarm
+localization, fault-tolerant CN based on federated filtering
+has become a research focus [290], mainly in centralized
+and distributed architectures [291]. Centralized CN requires
+transmitting measurements from all UAVs to a central station
+for collective processing [292], but faces limitations such as
+high computational burden and reduced fault tolerance.
+To address inconsistencies in conventional distributed
+EKF-based synchronization, research has explored IEKF,
+a nonlinear observer based on Lie group theory. Unlike
+standard EKF, IEKF defines state variables on matrix Lie
+groups and maintains linearization accuracy even with inaccu-
+rate initial states, showing superior precision and consistency
+across various UAV applications [16]. Another critical aspect
+in FKF design is selecting an appropriate adaptive federated
+information distribution coefficient, which directly affects the
+structure, characteristics, and filtering accuracy [293]. How-
+ever, in complex operational environments, sensors may be
+affected by external disturbances, increasing measurement
+errors [294]. To address this issue, extensive research has
+been conducted on the allocation of subfilter information
+weights in federated filters [211]. Gao et al. [295] proposed
+a Markov distance-based adaptive federated KF, introducing
+adaptive fusion and allocation coefficients during informa-
+tion fusion when subsystems malfunction, thereby improving
+robustness. Wang et al. [296] developed an INS/GNSS/DVL
+integrated navigation algorithm using a robust, strongly adap-
+tive federated KF. Similarly, Guo et al. [297] introduced an
+observability-sharing factor considering both system character-
+istics and state estimation performance for nonlinear sampling
+in integrated navigation, followed by a robust integrated nav-
+igation framework with distributed federated filtering.
+In practice, sensor noise may also vary over time, lead-
+ing to unknown or time-varying noise covariance matrices.
+In conventional federated filters, the state noise covariance
+matrix (SNCM) and measurement noise covariance matrix
+(MNCM) for each subfilter are usually treated as constant, ren-
+dering them unsuitable for dynamic noise [298]. To adaptively
+accommodate inaccuracies in measurements [299], AFKFs
+are required. Existing AFKF approaches—whether based on
+innovations or subfilter failure probabilities [300]—suffer from
+high uncertainty due to assumptions in subsystem fault prob-
+abilities. Advanced adaptive methods, such as multimodel
+adaptive KFs [301] and NN-based adaptive KFs [302], perform
+poorly in estimating SNCM and MNCM and cannot be readily
+extended to federated frameworks. Therefore, current AFKF
+methods cannot fully address covariance estimation under
+unknown or time-varying noise, and adaptive strategies for
+federated filters require further development.
+VB approaches have become increasingly popular in adap-
+tive filtering [303]. For example, [304] introduced a VB-based
+filter to estimate states under inaccurate inputs in complex
+marine conditions, deriving augmented state vectors, pre-
+diction error covariances, and measurement noise matrices
+more precisely. Wang et al. [2] proposed a VB-based adap-
+tive federated KF for joint state estimation, achieving high
+reliability and precise positioning under strong UAV maneu-
+vers. However, direct fusion of unprocessed measurements into
+the main filter can degrade accuracy. Chang et al. [305] further
+proposed VB-ESKF, which adaptively estimates process and
+measurement noise covariance, enhancing filter adaptability
+for LiDAR-INS integrated navigation systems.
+However, conventional federated filter information alloca-
+tion strategies are insufficient for estimating swarm motion in
+complex environments. For high-dimensional nonlinear sys-
+tems, conventional EKF may fail to achieve sufficient accuracy
+and stability; PF [306] and UKF [307] provide better state
+estimation at the cost of increased computational complexity.
+In distributed federated filters, the information distribution
+principle among subfilters fundamentally affects integrated
+navigation accuracy and fault tolerance. Chen et al. [198]
+proposed a hybrid CN method combining factor graphs and
+KFs for UAV swarms, integrating GNSS and ranging infor-
+mation for improved distributed filter position estimation.
+Tang et al. [308] developed an information-geometric multi-
+source fusion approach for real-time UAV swarm localization,
+effectively suppressing abrupt errors and achieving rapid posi-
+tioning. Zhang et al. [309] introduced an adaptive fault-tolerant
+federated filtering method, fusing follower UAV states, leader
+UAV positions, and inter-UAV range measurements for CL.
+Moreover, cooperative systems often neglect external auxiliary
+information, such as aerodynamic coefficients for fixed-wing
+UAVs, which are difficult to measure directly.
+2) Prospects: Our previous work integrated aerodynamic
+information from leader UAVs and employed LSTM-based
+aerodynamic model predictions for navigation correction [20].
+Building upon the aforementioned multisource framework,
+each type of information can be regarded as a subsystem
+supporting fault-tolerant navigation through advanced filtering.
+Specifically, in cases of inaccurate main-node initialization or
+deviated state estimates, we proposed a multinode federated
+structure that leverages multisource information from a single
+UAV to achieve fault-tolerant processing, which was shown
+in Fig. 18. By adopting an IEKF with multiple subnodes, the
+system can compensate for dynamic subnode failures, thereby
+extending the concept of single-UAV multisource fusion to
+multi-UAV multisource fusion, and substantially improving the
+fault tolerance and robustness of CN.
+In summary, although these studies have enhanced CL
+accuracy, several open challenges remain as follows.
+1)
+Lightweight
+fault-tolerant
+architectures:
+Developing
+low-complexity and resource-efficient filtering and fusion
+algorithms will be critical for real-time implementation in
+UAV swarms with constrained onboard resources.
+2)
+Information
+selection
+and
+optimization:
+Intelligent
+selection of heterogeneous measurements, supported by opti-
+mization or learning-based strategies, could mitigate the
+problem of redundant observations while preserving estimation
+accuracy.
+3) Integration of learning and multisource information meth-
+ods: Conventional fault-tolerant navigation frameworks still
+rely primarily on standard sensors. Combining data-driven
+approaches such as DL with dynamic models may enhance
+navigation robustness at GNSS-denial conditions [310].
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.22]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3481
+Fig. 18. Fault-tolerant federated invariant Kalman algorithm concept.
+D. Different Levels of MSIF
+1) Limitations: As shown in Fig. 19, the architectures
+of MSIF can be categorized into data-level, feature-level,
+and decision-level fusion [311]. Classical information fusion
+theories are mainly based on statistical inference and math-
+ematical estimation methods, typically applied to handle
+incomplete data, including heterogeneous data types, low
+reliability, or partial information [312]. For radar and cam-
+era fusion strategies, three main approaches are commonly
+employed: data-level fusion, feature-level fusion, and decision-
+level fusion [313].
+Data-level fusion is performed at the lowest data layer
+and directly combines raw sensor measurements, such as
+radar and camera data [314]. In navigation systems, data-level
+fusion primarily addresses information uncertainty [315], data
+heterogeneity [316], and data correlation [317]. This approach
+preserves the original measurement information, achieving
+high accuracy, reliability, and low noise. However, it suffers
+from large data volume, poor real-time performance, and is
+limited to homogeneous data. Although data-level processing
+is easy to implement, its weak robustness necessitates carefully
+designed fusion algorithms, which may introduce new errors
+and uncertainties—a common challenge in our research.
+Feature-level fusion uses extracted features from sensor
+data as inputs, producing either refined features or higher
+level data, such as decisions [318]. Feature extraction typ-
+ically includes radar-derived position and velocity, as well
+as visual features like image edges and textures. Combining
+heterogeneous sensor features at this level leverages their
+complementary advantages, enhancing feature accuracy and
+richness [319]. In navigation, incorporating carrier dynamic
+features to capture motion characteristics influenced by spe-
+cific environments, tasks, and scenarios is also an effective
+multisource CN strategy. For example, Yang and Gao [320]
+proposed an adaptive KF approach, which quantifies the
+contribution of dynamic model information and observation
+model information to PNT fusion results, enabling multisource
+integration of dynamic and navigation information [321].
+Fig. 19. Three types of fusion architectures and their comparison [311].
+At the micro-level, multisource navigation systems contain
+diverse sensor devices and inherent dynamic subsystems, lead-
+ing to heterogeneous information evolution patterns. Accurate
+characterization of sensor and dynamic system information
+features can enhance system perception accuracy. Detailed and
+comprehensive feature extraction allows processing of both
+similar and heterogeneous sensor data, significantly reducing
+data volume but potentially increasing information loss.
+Decision-level fusion represents a further abstraction from
+feature-level fusion. It integrates preliminary decisions derived
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.23]
+3482
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+from heterogeneous data to produce a more comprehensive
+and accurate final result. Decision-level fusion can process
+similar or heterogeneous sensor information, requires low
+communication bandwidth, is robust to interference, and
+can effectively integrate and analyze heterogeneous data.
+To address low accuracy caused by threshold limitations in
+traditional decision-level methods, Wang et al. [321] proposed
+a DL approach based on attention mechanisms to fuse 3-D
+sensor information. From a PNT intelligence perspective,
+navigation systems typically convert their state behaviors
+into cognitive representations understandable by navigation
+agents, then translate navigation priors into “rules,” which are
+subsequently expressed in machine-readable form, ultimately
+providing intelligent PNT services [322].
+However, traditional information fusion methods rely on
+specific constraints, and inappropriate thresholds or settings
+may lead to missed or false decisions. Simple NNs often fail to
+effectively capture both local and global information, resulting
+in unsatisfactory performance when fusing at the boundaries
+of ambiguous or overlapping information regions. More-
+over, most existing studies focus on conventional navigation
+methods and rarely incorporate model-derived feature priors,
+limiting their capability to perform intelligent decision-making
+for complex, cross-scenario CN.
+2) Prospects: At the feature level, the focus is primarily
+on intelligent dynamic modeling, multisensor resilient fusion
+methods, and optimal node selection, aiming to enhance the
+detectability and reconfigurability of CN information and to
+enable effective feature extraction and evaluation of mul-
+tisource navigation data. Ultimately, a dynamic evaluation
+standard for MSIF can be established. Facing complex and
+heterogeneous information sources, especially in CN sys-
+tems, such an evaluation framework allows the system’s
+reliability to adapt to temporal and environmental variations.
+For example, the weights of individual information sources
+can be dynamically adjusted based on real-time assessment
+results, improving both the accuracy and robustness of the
+state estimation. Furthermore, the fusion results can be fed
+back into the navigation task evaluation process, allowing
+dynamic adjustment of source weights according to fusion
+accuracy, thereby realizing closed-loop control of the fusion
+process.
+Research can also focus on the self-learning capability
+of carrier-borne multisource information, emphasizing the
+reliability and completeness of navigation system decision-
+making [323]. By constructing different scoring matrices
+according to task-specific weights and importance and per-
+forming weighted fusion, an intelligent and trustworthy
+autonomous multisource navigation system can be realized
+with dynamic iterative optimization [324]. Given continuously
+changing environments, unpredictable faults and disturbances,
+and dynamically evolving navigation tasks, DL can leverage
+NNs to regress and fit sensor-predicted results, mitigating
+the limitations of traditional methods and handling incon-
+sistent data [325]. To this end, imitation learning can be
+employed, integrating CN information features into the learn-
+ing framework. By collecting navigation databases and training
+NNs, the system can generalize to other scenarios, enabling
+intelligent decision-making and dynamic iterative optimization
+of navigation behavior in complex environments.
+VI. CONCLUSION
+Building upon a comprehensive review of related literature,
+this article systematically analyzes the fundamental concepts
+and research significance of multi-UAV CN, with a particu-
+lar focus on navigation methods based on MSIF. From the
+perspectives of “multisource information” and “information
+fusion,” the study provides a thorough classification of multi-
+source information and, on this basis, summarizes the technical
+types employed in CN. Subsequently, the main research
+progress of MSIF algorithms is systematically reviewed.
+Considering current research trends, this article further
+analyzes and envisions the key issues in CN technology
+based on multisource information characteristics. On one hand,
+the resilience of fusion strategies is discussed with respect
+to the selection, switching, and fault-tolerant mechanisms
+among multisource data, multiple signal sources, and multiple
+subsystems. On the other hand, attention is given to the
+evolution of information fusion from the data level to feature
+and decision levels, highlighting the potential of multilevel
+fusion to enhance navigation robustness and intelligence.
+ACKNOWLEDGMENT
+The authors thank Zhang Ying and others for providing a
+lot of help in the review.
+REFERENCES
+[1] N. E.-D. Safwat, F. Newagy, and I. M. Hafez, “Air-to-ground channel
+model for UAVs in dense urban environments,” IET Commun., vol. 14,
+no. 6, pp. 1016–1021, Apr. 2020.
+[2] Z. Wang, N. Li, Z. Wang, F. Zhu, and X. Du, “An adaptive federated
+filter based on variational Bayes with application to multisource
+navigation,” IEEE Sensors J., vol. 23, no. 9, pp. 9859–9870, May 2023.
+[3] Q.
+Xie,
+J.
+Shi,
+F.
+Wen,
+and
+Z.
+Zheng,
+“Higher-order
+ten-
+sor
+decomposition
+for
+2D-DOD
+and
+2D-DOA
+estimation
+in
+bistatic
+MIMO
+radar,”
+Signal
+Process.,
+vol.
+238,
+Jan.
+2026,
+Art. no. 110196. [Online]. Available: https://www.sciencedirect.com/
+science/article/pii/S016516842500310X
+[4] F. Wen, J. Shi, G. Gui, C. Yuen, H. Sari, and F. Adachi, “Joint DOD
+and DOA estimation for NLOS target using IRS-aided bistatic MIMO
+radar,” IEEE Trans. Veh. Technol., vol. 73, no. 10, pp. 15798–15802,
+Oct. 2024.
+[5] K. N. McGuire, C. De Wagter, K. Tuyls, H. J. Kappen, and
+G. C. H. E. de Croon, “Minimal navigation solution for a swarm of
+tiny flying robots to explore an unknown environment,” Sci. Robot.,
+vol. 4, no. 35, p. 9710, Oct. 2019, doi: 10.1126/scirobotics.aaw9710.
+[6] C. Li, J. Wang, J. Liu, and J. Shan, “Cooperative visual–range–inertial
+navigation for multiple unmanned aerial vehicles,” IEEE Trans. Aerosp.
+Electron. Syst., vol. 59, no. 6, pp. 7851–7865, Dec. 2023.
+[7] I. Jarraya et al., “GNSS-denied unmanned aerial vehicle navigation:
+Analyzing computational complexity, sensor fusion, and localization
+methodologies,” Satell. Navigat., vol. 6, no. 1, p. 9, Dec. 2025.
+[8] J. Li, G. Yang, Q. Cai, H. Niu, and J. Li, “Cooperative navigation for
+UAVs in GNSS-denied area based on optimized belief propagation,”
+Measurement, vol. 192, Mar. 2022, Art. no. 110797.
+[9] H. Qiu, C. Wei, R. Dou, and Z. Zhou, “Fully autonomous flying: From
+collective motion in bird flocks to unmanned aerial vehicle autonomous
+swarms,” Sci. China Inf. Sci., vol. 58, no. 12, pp. 1–3, Dec. 2015.
+[10] X. Ouyang, F. Zeng, D. Lv, T. Dong, and H. Wang, “Cooperative
+navigation of UAVs in GNSS-denied area with colored RSSI measure-
+ments,” IEEE Sensors J., vol. 21, no. 2, pp. 2194–2210, Jan. 2021.
+[11] Y. Zhang, Y. Dang, N. Li, and Y. Huang, “A integrated navigation
+algorithm based on distributed Kalman filter,” in Proc. IEEE Int. Conf.
+Inf. Autom., Aug. 2015, pp. 2132–2135.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.24]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3483
+[12] R. M. Rogers, Applied Mathematics in Integrated Navigation Systems.
+Reston, VA, USA: AIAA, 2003, vol. 1.
+[13] R. Ming et al., “Laser tracking leader-follower automatic cooperative
+navigation system for UAVs,” Int. J. Agricult. Biol. Eng., vol. 15, no. 2,
+pp. 165–176, 2022.
+[14] A. R. Vetrella, G. Fasano, and D. Accardo, “Attitude estimation for
+cooperating UAVs based on tight integration of GNSS and vision
+measurements,” Aerosp. Sci. Technol., vol. 84, pp. 966–979, Jan. 2019.
+[15] R. Leishman, J. Macdonald, S. Quebe, J. Ferrin, R. Beard, and
+T. McLain, “Utilizing an improved rotorcraft dynamic model in
+state estimation,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst.,
+Sep. 2011, pp. 5173–5178.
+[16] S. Bijjahalli, R. Sabatini, and A. Gardi, “Advances in intelligent and
+autonomous navigation systems for small UAS,” Prog. Aerosp. Sci.,
+vol. 115, May 2020, Art. no. 100617.
+[17] G. Huang, “Visual-inertial navigation: A concise review,” in Proc. Int.
+Conf. Robot. Autom. (ICRA), May 2019, pp. 9572–9582.
+[18] M. Nazarahari and H. Rouhani, “40 years of sensor fusion for orien-
+tation tracking via magnetic and inertial measurement units: Methods,
+lessons learned, and future challenges,” Inf. Fusion, vol. 68, pp. 67–84,
+Apr. 2021.
+[19] C. Chen, B. Wang, C. X. Lu, N. Trigoni, and A. Markham, “A survey
+on deep learning for localization and mapping: Towards the age of
+spatial machine intelligence,” 2020, arXiv:2006.12567.
+[20] X. Ye, F. Song, Z. Zhang, and Q. Zeng, “A review of small UAV
+navigation system based on multisource sensor fusion,” IEEE Sensors
+J., vol. 23, no. 17, pp. 18926–18948, Sep. 2023.
+[21] S.-J. Chung, A. A. Paranjape, P. Dames, S. Shen, and V. Kumar, “A
+survey on aerial swarm robotics,” IEEE Trans. Robot., vol. 34, no. 4,
+pp. 837–855, Aug. 2018.
+[22] C.
+Toth
+and
+G.
+Jó´zków,
+“Remote
+sensing
+platforms
+and
+sensors:
+A
+survey,”
+ISPRS
+J.
+Photogramm.
+Remote
+Sens.,
+vol. 115, pp. 22–36, May 2016. [Online]. Available: https://www.
+sciencedirect.com/science/article/pii/S0924271615002270
+[23] Y. Gong, H. Xiong, M. Li, H. Wang, and X. Nian, “Reinforcement
+learning for multi-agent formation navigation with scalability,” Appl.
+Intell., vol. 53, no. 23, pp. 28207–28225, Dec. 2023.
+[24] H. Shorakaei, M. Vahdani, B. Imani, and A. Gholami, “Optimal
+cooperative path planning of unmanned aerial vehicles by a parallel
+genetic algorithm,” Robotica, vol. 34, no. 4, pp. 823–836, Apr. 2016.
+[25] X. Zhang and H. Duan, “An improved constrained differential evolution
+algorithm for unmanned aerial vehicle global route planning,” Appl.
+Soft Comput., vol. 26, pp. 270–284, Jan. 2015.
+[26] P. Hu, B. Chen, C. Zhang, and Q. Wu, “Correlation-averaging meth-
+ods and Kalman filter based parameter identification for a rotational
+inertial navigation system,” IEEE Trans. Ind. Informat., vol. 15, no. 3,
+pp. 1321–1328, Mar. 2019.
+[27] A. V. Derevyankin and A. I. Matasov, “Formalizing a sequential
+calibration scheme for a strapdown inertial navigation system,” Autom.
+Remote Control, vol. 79, no. 1, pp. 51–65, Jan. 2018.
+[28] C. Huang, G. Yi, Q. Zen, L. Hu, and Z. Xu, “A navigation accuracy
+evaluation method for multi-path platform inertial navigation system,”
+Instrum. Mesure Métrologie, vol. 18, no. 2, pp. 115–121, Jun. 2019.
+[29] M. K. Al-Sharman, B. J. Emran, M. A. Jaradat, H. Najjaran,
+R. Al-Husari, and Y. Zweiri, “Precision landing using an adaptive fuzzy
+multi-sensor data fusion architecture,” Appl. Soft Comput., vol. 69,
+pp. 149–164, Aug. 2018.
+[30] H. Huang, Y. Liu, X. Zhao, Z. Xu, and L. Guo, “Multi-layer
+multi-source information fusion algorithm for hovering uav height
+measurement,” J. Chin. Inertial Technol., vol. 26, no. 3, pp. 316–322,
+2018.
+[31] R. D. F. Tarazona, F. R. Lopera, and G. G. Sánchez, “Anti-collision
+system for navigation inside an UAV using fuzzy controllers and
+range sensors,” in Proc. XIX Symp. Image, Signal Process. Artif. Vis.,
+Sep. 2014, pp. 1–5.
+[32] L. Yan, L. FangFang, and Z. Wei, “A study on the sync guidance of the
+multi-lasers with the micro-vision,” in Proc. 26th Chin. Control Decis.
+Conf. (CCDC), May 2014, pp. 1449–1453.
+[33] V. Walter, N. Staub, A. Franchi, and M. Saska, “UVDAR system
+for visual relative localization with application to leader–follower
+formations of multirotor UAVs,” IEEE Robot. Autom. Lett., vol. 4,
+no. 3, pp. 2637–2644, Jul. 2019.
+[34] S. Lee and J.-B. Song, “Mobile robot localization using infrared
+light reflecting landmarks,” in Proc. Int. Conf. Control, Autom. Syst.,
+Oct. 2007, pp. 674–677.
+[35] Z. Kalal, K. Mikolajczyk, and J. Matas, “Tracking-learning-detection,”
+IEEE Trans. Pattern Anal. Mach. Intell., vol. 34, no. 7, pp. 1409–1422,
+Jul. 2012.
+[36] E. Fendri, R. R. Boukhriss, and M. Hammami, “Fusion of thermal
+infrared and visible spectra for robust moving object detection,” Pattern
+Anal. Appl., vol. 20, no. 4, pp. 907–926, Nov. 2017.
+[37] X. Jin et al., “A survey of infrared and visual image fusion methods,”
+Infr. Phys. Technol., vol. 85, pp. 478–501, Sep. 2017.
+[38] Y. Tang et al., “Vision-aided multi-UAV autonomous flocking in GPS-
+denied environment,” IEEE Trans. Ind. Electron., vol. 66, no. 1,
+pp. 616–626, Jan. 2019.
+[39] F. Lin, K. Peng, X. Dong, S. Zhao, and B. M. Chen, “Vision-based
+formation for UAVs,” in Proc. 11th IEEE Int. Conf. Control Autom.
+(ICCA), Jun. 2014, pp. 1375–1380.
+[40] H.-w. Park, I.-s. Choi, S.-k. Park, and J.-s. Choi, “Leader-follower
+formation control using infrared camera with reflective tag,” in Proc.
+10th Int. Conf. Ubiquitous Robots Ambient Intell. (URAI), Oct. 2013,
+pp. 321–324.
+[41] L. Zhang, Z. Zhai, L. He, P. Wen, and W. Niu, “Infrared-inertial nav-
+igation for commercial aircraft precision landing in low visibility and
+GPS-denied environments,” Sensors, vol. 19, no. 2, p. 408, Jan. 2019.
+[42] K. Lobos-Tsunekawa, F. Leiva, and J. Ruiz-del-Solar, “Visual naviga-
+tion for biped humanoid robots using deep reinforcement learning,”
+IEEE Robot. Autom. Lett., vol. 3, no. 4, pp. 3247–3254, Oct. 2018.
+[43] Z. S. Pershina, S. Y. Kazdorf, and V. A. Abrosimov, “Application of
+algorithms for object recognition based on deep convolutional neural
+networks for visual navigation of a mobile robot,” in Proc. 25th Saint
+Petersburg Int. Conf. Integr. Navigat. Syst. (ICINS), May 2018, pp. 1–2.
+[44] C. M. Sabo, A. Cope, K. Gurney, E. Vasilaki, and J. Marshall, “Bio-
+inspired visual navigation for a quadcopter using optic flow,” in Proc.
+AIAA Infotech @ Aerosp., Jan. 2016, p. 0404.
+[45] J. S. Pershina, S. Y. Kazdorf, and A. V. Lopota, “Methods of mobile
+robot visual navigation and environment mapping,” Optoelectronics,
+Instrum. Data Process., vol. 55, no. 2, pp. 181–188, Mar. 2019.
+[46] X. Zhou et al., “Swarm of micro flying robots in the wild,” Sci. Robot.,
+vol. 7, no. 66, May 2022, Art. no. eabm5954.
+[47] D. Yang, J. Yang, G. Li, Y. Zhou, and C. Tang, “Globalization highlight:
+Orbit determination using BeiDou inter-satellite ranging measure-
+ments,” GPS Solutions, vol. 21, no. 3, pp. 1395–1404, Jul. 2017.
+[48] J. Huang, Y. Su, W. Liu, and F. Wang, “Adaptive modulation and
+coding techniques for global navigation satellite system inter-satellite
+communication based on the channel condition,” IET Commun., vol. 10,
+no. 16, pp. 2091–2095, Nov. 2016.
+[49] K. Lee and J. Lee, “Design and evaluation of symmetric space–time
+adaptive processing of an array antenna for precise global naviga-
+tion satellite system receivers,” IET Signal Process., vol. 11, no. 6,
+pp. 758–764, Aug. 2017.
+[50] C. Zuffada, C. Chew, and S. V. Nghiem, “Global navigation satellite
+system reflectometry (GNSS-R) algorithms for wetland observations,”
+in Proc. IEEE Int. Geosci. Remote Sens. Symp. (IGARSS), Jul. 2017,
+pp. 1126–1129.
+[51] J. Xiong, Z. Xiong, Y. Yu, J. Xu, and Y. Wang, “Uwb-assisted relative
+navigation method for close-range UAV operations,” J. Chin. Inertial
+Technol., vol. 26, no. 3, pp. 346–351, 2018.
+[52] N. Wang, “Research on relative navigation techniques for small
+UAV formations based on inertial/GNSS/UWB information fusion,”
+M.S. thesis, Nanjing Univ. Aeronaut. Astronaut., Nanjing, China, 2019.
+[53] H. Xu, L. Wang, Y. Zhang, K. Qiu, and S. Shen, “Decentralized
+visual-inertial-UWB fusion for relative state estimation of aerial
+swarm,” in Proc. IEEE Int. Conf. Robot. Autom. (ICRA), May 2020,
+pp. 8776–8782.
+[54] S. Cortesi, C. Vogt, and M. Magno, “Comparison between an RSSI- and
+an MCPD-based BLE indoor localization system,” Computers, vol. 12,
+no. 3, p. 59, Mar. 2023.
+[55] Y. Wang, Q. Ye, J. Cheng, and L. Wang, “RSSI-based Bluetooth indoor
+localization,” in Proc. 11th Int. Conf. Mobile Ad-Hoc Sensor Netw.
+(MSN), Dec. 2015, pp. 165–171.
+[56] H. T. Friis, “A note on a simple transmission formula,” Proc. IRE,
+vol. 34, no. 5, pp. 254–256, May 1946.
+[57] Y.-C. Pu and P.-C. You, “Indoor positioning system based on BLE loca-
+tion fingerprinting with classification approach,” Appl. Math. Model.,
+vol. 62, pp. 654–663, Oct. 2018.
+[58] J. Dai, M. Wang, B. Wu, J. Shen, and X. Wang, “A survey of latest Wi-
+Fi assisted indoor positioning on different principles,” Sensors, vol. 23,
+no. 18, p. 7961, Sep. 2023.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.25]
+3484
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+[59] L. Fen et al., “Survey on WiFi-based indoor positioning techniques,”
+IET Commun., vol. 14, no. 9, pp. 1372–1383, 2020.
+[60] M. Sulaiman, A. A. S. AlQahtani, H. Liu, and M. Binalhaj, “Utilizing
+Wi-Fi access points for unmanned aerial vehicle localization for
+building indoor inspection,” in Proc. IEEE 12th Annu. Ubiquitous
+Comput., Electron. Mobile Commun. Conf. (UEMCON), Dec. 2021,
+pp. 0775–0779.
+[61] M. Sugano, T. Kawazoe, Y. Ohta, and M. Murata, “Indoor localization
+system using RSSI measurement of wireless sensor network based on
+ZigBee standard,” Wireless Opt. Commun., vol. 538, pp. 1–6, Jul. 2006.
+[62] S. Min and H. Nam, “A formation flight control of UAVs using
+ZigBee,” in Proc. 13th Int. Conf. Ubiquitous Robots Ambient Intell.
+(URAI), Aug. 2016, pp. 163–165.
+[63] J. Wahlström and I. Skog, “Fifteen years of progress at zero velocity:
+A review,” IEEE Sensors J., vol. 21, no. 2, pp. 1139–1151, Jan. 2021.
+[64] Y. S. Suh, “A smoother for attitude and position estimation using
+inertial sensors with zero velocity intervals,” IEEE Sensors J., vol. 12,
+no. 5, pp. 1255–1262, May 2012.
+[65] Z. Deng, Y. Cao, P. Wang, and B. Wang, “An improved heuristic drift
+elimination method for indoor pedestrian positioning,” Sensors, vol. 18,
+no. 6, p. 1874, Jun. 2018.
+[66] J. M. Hartzer, “Decentralized collaborative localization using ultra-
+wideband ranging,” Ph.D. dissertation, Texas A&M Univ., College
+Station, TX, USA, 2020.
+[67] J. B. Bancroft, “Multiple IMU integration for vehicular navigation,” in
+Proc. 22nd Int. Tech. Meeting Satell. Division Inst. Navigat., Sep. 2009,
+pp. 1828–1840.
+[68] M. Euston, P. Coote, R. Mahony, J. Kim, and T. Hamel, “A comple-
+mentary filter for attitude estimation of a fixed-wing UAV,” in Proc.
+IEEE/RSJ Int. Conf. Intell. Robots Syst., Sep. 2008, pp. 340–345.
+[69] X. Zhu, J. Lai, and S. Chen, “Cooperative location method for leader-
+follower UAV formation based on follower UAV’s moving vector,”
+Sensors, vol. 22, no. 19, p. 7125, Sep. 2022.
+[70] P. Lyu, J. Lai, J. Liu, H. H. T. Liu, and Q. Zhang, “A thrust model
+aided fault diagnosis method for the altitude estimation of a quadrotor,”
+IEEE Trans. Aerosp. Electron. Syst., vol. 54, no. 2, pp. 1008–1019,
+Apr. 2018.
+[71] S.
+Liu,
+P.
+Lyu,
+J.
+Lai,
+C.
+Yuan,
+and
+B.
+Wang,
+“A
+fault-
+tolerant attitude estimation method for quadrotors based on ana-
+lytical redundancy,” Aerosp. Sci. Technol., vol. 93, Oct. 2019,
+Art. no. 105290. [Online]. Available: https://www.sciencedirect.com/
+science/article/pii/S1270963819302652
+[72] H. Nobahari and H. Mohammadkarimi, “Application of model aided
+inertial navigation for precise altimetry of unmanned aerial vehicles
+in ground proximity,” Aerosp. Sci. Technol., vol. 69, pp. 650–658,
+Oct. 2017.
+[73] P. Crocoll and G. F. Trommer, “Quadrotor inertial navigation aided
+by a vehicle dynamics model with in-flight parameter estimation,” in
+Proc. 27th Int. Tech. Meeting Satell. Division Inst. Navigat., Jan. 2014,
+pp. 1784–1795.
+[74] X. Ye, F. Song, M. Tang, Y. Guo, and Q. Zeng, “GNSS-INS-dynamic
+fusion with robustness to outliers based on external force state estima-
+tion,” Meas. Sci. Technol., vol. 35, no. 1, Jan. 2024, Art. no. 015113.
+[75] Y. Xiaoyu, S. Fujun, Z. Zongyu, Z. Rui, and Z. Qinghua, “Semi-
+aerodynamic model-aided invariant Kalman filtering for UAV full-state
+estimation,” IEEE Sensors J., vol. 24, no. 16, pp. 25920–25939,
+Aug. 2024.
+[76] Y. Lv, H. Zhang, Z. Wang, and H. Yan, “Distributed localization for
+multi-agent systems with random noise based on iterative learning,”
+IEEE Trans. Neural Netw. Learn. Syst., vol. 35, no. 1, pp. 952–960,
+Jan. 2024.
+[77] X. Liu and S. Xu, “Multi-UAV cooperative navigation algorithm based
+on federated filtering structure,” in Proc. IEEE CSAA Guid., Navigat.
+Control Conf. (CGNCC), Aug. 2018, pp. 1–5.
+[78] Y. Hu, F. Zhang, T. Tian, and D. Ma, “Placement optimisation method
+for multi-UAV relay communication,” IET Commun., vol. 14, no. 6,
+pp. 1005–1015, Apr. 2020.
+[79] K. Ali, M. Tahir, and S. S. Afzal, “An ensemble FIR filtering framework
+for inter-vehicular range estimation using GNSS signals,” in Proc. IEEE
+88th Veh. Technol. Conf. (VTC-Fall), Aug. 2018, pp. 1–5.
+[80] W. Hedgecock, M. Maroti, J. Sallai, P. Volgyesi, and A. Ledeczi, “High-
+accuracy differential tracking of low-cost GPS receivers,” in Proc. 11th
+Annu. Int. Conf. Mobile Syst., Appl., Services, Jun. 2013, pp. 221–234.
+[81] J. Hardy et al., “Unmanned aerial vehicle relative navigation in GPS
+denied environments,” in Proc. IEEE/ION Position, Location Navigat.
+Symp. (PLANS), Apr. 2016, pp. 344–352.
+[82] Y. Wang, S. Yang, H. Hu, K. Chen, and Q. Ji, “Relative navigation
+algorithm based on robust filter for UAV formation flight,” in Proc.
+Int. Conf. Control Eng. Commun. Technol., Dec. 2012, pp. 249–252.
+[83] A. S. C. R. Irigireddy and H. Moncayo, “Vision based relative
+navigation for close-formation flight missions,” in Proc. AIAA Scitech
+Forum, Jan. 2020, p. 989, doi: 10.2514/6.2020-0989.
+[84] M. Ding, W. Li, and B. Wang, “Vision-based estimation of relative
+pose in autonomous aerial refueling,” Chin. J. Aeronaut., vol. 24, no. 6,
+pp. 807–815, Dec. 2011.
+[85] D. Sakai, H. Fukushima, and F. Matsuno, “Leader–follower navigation
+in obstacle environments while preserving connectivity without data
+transmission,” IEEE Trans. Control Syst. Technol., vol. 26, no. 4,
+pp. 1233–1248, Jul. 2018.
+[86] G. Shao, Y. Ma, R. Malekian, X. Yan, and Z. Li, “A novel cooperative
+platform design for coupled USV–UAV systems,” IEEE Trans. Ind.
+Informat., vol. 15, no. 9, pp. 4913–4922, Sep. 2019.
+[87] Y. Liu, Y. Wang, Y. Shen, and X. Shi, “Hybrid TOA-AOA WLS
+estimator for aircraft network decentralized cooperative localization,”
+IEEE Trans. Veh. Technol., vol. 72, no. 7, pp. 9670–9675, Jul. 2023.
+[88] J. Shen, S. Wang, Y. Zhai, and X. Zhan, “Cooperative relative nav-
+igation for multi-UAV systems by exploiting GNSS and peer-to-peer
+ranging measurements,” IET Radar, Sonar Navigat., vol. 15, no. 1,
+pp. 21–36, Jan. 2021.
+[89] I. Sarras, J. Marzat, S. Bertrand, and H. Piet-Lahanier, “Collaborative
+multiple micro air vehicles’ localization and target tracking in GPS-
+denied environment from range–velocity measurements,” Int. J. Micro
+Air Vehicles, vol. 10, no. 2, pp. 225–239, Jun. 2018.
+[90] K. Guo, Z. Qiu, W. Meng, L. Xie, and R. Teo, “Ultra-wideband based
+cooperative relative localization algorithm and experiments for multiple
+unmanned aerial vehicles in GPS denied environments,” Int. J. Micro
+Air Vehicles, vol. 9, no. 3, pp. 169–186, Sep. 2017.
+[91] M. Dehghani and M. Menhaj, “Stability of cooperative unmanned aerial
+vehicles based on relative measurements,” Proc. Inst. Mech. Eng., G,
+J. Aerosp. Eng., vol. 232, no. 15, pp. 2784–2792, Dec. 2018.
+[92] L. Ruan et al., “Cooperative relative localization for UAV swarm in
+GNSS-denied environment: A coalition formation game approach,”
+IEEE Internet Things J., vol. 9, no. 13, pp. 11560–11577, Jul. 2022.
+[93] R. Chen, B. Yang, and W. Zhang, “Distributed and collaborative
+localization for swarming UAVs,” IEEE Internet Things J., vol. 8, no. 6,
+pp. 5062–5074, Mar. 2021.
+[94] F. Song, Q. Zeng, R. Zhang, X. Zhu, H. Zhou, and X. Ye, “Double-
+stage filtering fusion navigation algorithm based on multisource
+optimal selection,” IEEE Sensors J., vol. 25, no. 13, pp. 24675–24692,
+Jul. 2025.
+[95] J. Chen et al., “A multi-leader multi-follower Stackelberg game for
+coalition-based UAV MEC networks,” IEEE Wireless Commun. Lett.,
+vol. 10, no. 11, pp. 2350–2354, Nov. 2021.
+[96] Z. Lichuan, X. Demin, and L. Mingyong, “Cooperative navigation
+algorithm for two leaders GUUV,” in Proc. 4th Int. Conf. Intell.
+Comput. Technol. Autom., vol. 2, Mar. 2011, pp. 970–973.
+[97] R. Wang, J. Du, Z. Xiong, X. Chen, and J. Liu, “Hierarchical collab-
+orative navigation method for UAV swarm,” J. Aerosp. Eng., vol. 34,
+no. 1, Jan. 2021, Art. no. 04020097.
+[98] S. J. Julier and J. K. Uhlmann, “A non-divergent estimation algorithm
+in the presence of unknown correlations,” in Proc. Amer. Control Conf.,
+Jun. 1997, pp. 2369–2373.
+[99] L. C. Carrillo-Arce, E. D. Nerurkar, J. L. Gordillo, and S. I.
+Roumeliotis, “Decentralized multi-robot cooperative localization using
+covariance intersection,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots
+Syst. (IROS), Tokyo, Japan, Nov. 2013, pp. 1412–1417.
+[100] T. Bailey and H. Durrant-Whyte, “Decentralised data fusion with
+delayed states for consistent inference in mobile ad hoc networks,”
+Austral. Centre Field Robot., Univ. Sydney, Sydney, Australia,
+Tech. Rep. 1, 2007.
+[101] A. Gopalakrishnan, N. S. Kaisare, and S. Narasimhan, “Incorporat-
+ing delayed and infrequent measurements in extended Kalman filter
+based nonlinear state estimation,” J. Process Control, vol. 21, no. 1,
+pp. 119–129, Jan. 2011.
+[102] G. Inalhan, D. M. Stipanovic, and C. J. Tomlin, “Decentralized opti-
+mization, with application to multiple aircraft coordination,” in Proc.
+41st IEEE Conf. Decis. Control, vol. 1, Dec. 2002, pp. 1147–1155.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.26]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3485
+[103] S. Thrun, “Probabilistic robotics,” Commun. ACM, vol. 45, no. 3,
+pp. 52–57, 2002.
+[104] K. Jo, J. Lee, and J. Kim, “Cooperative multi-robot localization using
+differential position data,” in Proc. IEEE/ASME Int. Conf. Adv. Intell.
+Mechatronics, Sep. 2007, pp. 1–6.
+[105] G. Zhang, Y. Cheng, C. Cheng, F. Yang, and B. Lei, “Multi-platform
+ins error joint correction method based on relative navigation,” Acta
+Aeronautica et Astronautica Sinica, vol. 32, no. 2, pp. 271–280, 2011.
+[106] W. Li, M. Liu, L. Zhang, and F. Liu, “Cooperative navigation of
+multiple autonomous underwater vehicles for relative displacement
+measurement with a single navigator,” J. Ordnance Eng., vol. 32, no. 8,
+pp. 1002–1007, 2011.
+[107] N. Mitrovic, G. Mladenovic, and A. Mitrovic, “Experimental and
+computational investigations in engineering,” in Proc. Int. Conf. Exp.
+Numer. Investigations New Technol. (CNNTech), vol. 153. Cham,
+Switzerland: Springer, 2020, pp. 1–19.
+[108] I. V. Melnyk, J. A. Hesch, and S. I. Roumeliotis, “Cooperative vision-
+aided inertial navigation using overlapping views,” in Proc. IEEE Int.
+Conf. Robot. Autom., May 2012, pp. 936–943.
+[109] Y. Xu, D. Wan, S. Bi, H. Guo, and Y. Zhuang, “A FIR filter
+assisted with the predictive model and ELM integrated for UWB-based
+quadrotor aircraft localization,” Satell. Navigat., vol. 4, no. 1, p. 2,
+Dec. 2023.
+[110] C.-L. Wang, T.-M. Wang, J.-H. Liang, Y.-C. Zhang, and Y. Zhou,
+“Bearing-only visual SLAM for small unmanned aerial vehicles in
+GPS-denied environments,” Int. J. Autom. Comput., vol. 10, no. 5,
+pp. 387–396, Oct. 2013.
+[111] K. Saadeddin, M. F. Abdel-Hafez, M. A. Jaradat, and M. A. Jarrah,
+“Optimization of intelligent approach for low-cost INS/GPS navigation
+system,” J. Intell. Robotic Syst., vol. 73, nos. 1–4, pp. 325–348,
+Jan. 2014.
+[112] K. Sun et al., “Robust stereo visual inertial odometry for fast
+autonomous flight,” IEEE Robot. Autom. Lett., vol. 3, no. 2,
+pp. 965–972, Apr. 2018.
+[113] M. Brossard, A. Barrau, and S. Bonnabel, “Exploiting symmetries to
+design EKFs with consistency properties for navigation and SLAM,”
+IEEE Sensors J., vol. 19, no. 4, pp. 1572–1579, Feb. 2019.
+[114] T. M. Nguyen, A. H. Zaini, C. Wang, K. Guo, and L. Xie, “Robust
+target-relative localization with ultra-wideband ranging and communi-
+cation,” in Proc. IEEE Int. Conf. Robot. Autom. (ICRA), May 2018,
+pp. 2312–2319.
+[115] Y. Han, C. Wei, R. Li, J. Wang, and H. Yu, “A novel cooperative
+localization method based on IMU and UWB,” Sensors, vol. 20, no. 2,
+p. 467, Jan. 2020.
+[116] I.-F. Kenmogne, V. Drevelle, and É. Marchand, “Using constraint
+propagation for cooperative UAV localization from vision and ranging,”
+in Decis. Making Under Constraints, 2020, pp. 133–138.
+[117] J. S. Russell, M. Ye, B. D. O. Anderson, H. Hmam, and P. Sarunic,
+“Cooperative localisation of a GPS-denied UAV in 3-Dimensional
+space using direction of arrival measurements,” IFAC-PapersOnLine,
+vol. 50, no. 1, pp. 8019–8024, Jul. 2017.
+[118] Q. Xie, Z. Wang, F. Wen, J. He, and T.-K. Truong, “Coarray tensor
+train decomposition for bistatic MIMO radar with uniform planar
+array,” IEEE Trans. Antennas Propag., vol. 73, no. 8, pp. 5310–5323,
+Aug. 2025.
+[119] A. Gupta and X. Fernando, “Simultaneous localization and mapping
+(SLAM) and data fusion in unmanned aerial vehicles: Recent advances
+and challenges,” Drones, vol. 6, no. 4, p. 85, Mar. 2022.
+[120] T.-M. Nguyen, A. Zaini, K. Guo, and L. Xie, “An ultra-wideband-based
+multi-UAV localization system in GPS-denied environments,” in Proc.
+Int. Micro Air Vehicle Conf. Competition, 2016, pp. 1–15.
+[121] S. Zhuge, X. Xu, Y. He, B. Lin, S. Gan, and X. Zhang, “3-D motion
+trajectory measurement for the target through a multi-UAVs system,”
+Measurement, vol. 204, Nov. 2022, Art. no. 112088.
+[122] G. Elghazaly, R. Frank, S. Harvey, and S. Safko, “High-definition
+maps: Comprehensive survey, challenges, and future perspectives,”
+IEEE Open J. Intell. Transp. Syst., vol. 4, pp. 527–550, 2023.
+[123] L. Gao, X. Xia, Z. Zheng, and J. Ma, “GNSS/IMU/LiDAR fusion
+for vehicle localization in urban driving environments within a con-
+sensus framework,” Mech. Syst. Signal Process., vol. 205, Dec. 2023,
+Art. no. 110862.
+[124] J. Ge, J. Cheng, and B. Qi, “A non-rigid terrain transformation par-
+ticle filter suitable for terrain-aided navigation without sound velocity
+profile,” Ocean Eng., vol. 294, Feb. 2024, Art. no. 116858.
+[125] Y. Cui et al., “A novel positioning method for UAV in GNSS-
+denied environments based on mechanical antenna,” IEEE Trans. Ind.
+Electron., vol. 71, no. 10, pp. 13461–13469, Oct. 2024.
+[126] D. M. Rakovi´c, A. Simonovi´c, and A. M. Grbovi´c, “UAV positioning
+and navigation-review,” in Proc. Int. Conf. Experim. Numer. Investiga-
+tions New Technol. Cham, Switzerland: Springer, 2020, pp. 220–256.
+[127] K. S. Nagla and S. Yadav, “SONAR sensor advancements,” in Hand-
+book Vibroacoustics, Noise Harshness. Cham, Switzerland: Springer,
+2024, pp. 1031–1050.
+[128] C. Yang, J. Strader, Y. Gu, A. Hypes, A. Canciani, and K. Brink,
+“Cooperative UAV navigation using inter-vehicle ranging and magnetic
+anomaly measurements,” in Proc. AIAA Guid., Navigat., Control Conf.,
+Jan. 2018, p. 1595.
+[129] H. Goforth and S. Lucey, “GPS-denied UAV localization using pre-
+existing satellite imagery,” in Proc. Int. Conf. Robot. Autom. (ICRA),
+May 2019, pp. 2974–2980.
+[130] T. Wang and A. K. Somani, “Aerial-DEM geolocalization for GPS-
+denied UAS navigation,” Mach. Vis. Appl., vol. 31, nos. 1–2, p. 3,
+Feb. 2020.
+[131] J. Lee, C.-K. Sung, J. Oh, K. Han, S. Lee, and M.-J. Yu, “A pragmatic
+approach to the design of advanced precision terrain-aided navigation
+for UAVs and its verification,” Remote Sens., vol. 12, no. 9, p. 1396,
+Apr. 2020.
+[132] C. Lindstrom, R. Christensen, J. Gunther, and S. Jenkins, “GPS-denied
+navigation aided by synthetic aperture radar using the range-Doppler
+algorithm,” NAVIGATION, J. Inst. Navigat., vol. 69, no. 3, 2022,
+Art. no. navi.533.
+[133] Q. Wang, C. Zheng, P. Wu, and X. Wang, “Geomagnetic/inertial
+navigation integrated matching navigation method,” Heliyon, vol. 8,
+no. 11, Nov. 2022, Art. no. e11249.
+[134] Y. Cao, K. Ren, and Q. Chen, “Template matching based on convo-
+lution neural network for UAV visual localization,” Optik, vol. 283,
+Jul. 2023, Art. no. 170920.
+[135] W. Guangcai, X. Xu, and T. Zhang, “M-M estimation-based robust
+cubature Kalman filter for INS/GPS integrated navigation system,”
+IEEE Trans. Instrum. Meas., vol. 70, pp. 1–11, 2021.
+[136] R.
+Vázquez-Martín,
+P.
+Núñez,
+A.
+Bandera,
+and
+F.
+Sandoval,
+“Curvature-based environment description for robot navigation using
+laser range sensors,” Sensors, vol. 9, no. 8, pp. 5894–5918, Jul. 2009.
+[137] T. Ziegler, M. Karrer, P. Schmuck, and M. Chli, “Distributed formation
+estimation via pairwise distance measurements,” IEEE Robot. Autom.
+Lett., vol. 6, no. 2, pp. 3017–3024, Apr. 2021.
+[138] L. Paull, G. Huang, M. Seto, and J. J. Leonard, “Communication-
+constrained multi-AUV cooperative SLAM,” in Proc. IEEE Int. Conf.
+Robot. Autom. (ICRA), May 2015, pp. 509–516.
+[139] F. Andert, S. Lorenz, L. Mejias, and D. Bratanov, “Radar-aided optical
+navigation for long and large-scale flights over unknown and non-flat
+terrain,” in Proc. Int. Conf. Unmanned Aircr. Syst. (ICUAS), Jun. 2016,
+pp. 465–474.
+[140] J.-C. Trujillo, R. Munguia, E. Guerra, and A. Grau, “Cooperative
+monocular-based SLAM for multi-UAV systems in GPS-denied envi-
+ronments,” Sensors, vol. 18, no. 5, p. 1351, Apr. 2018.
+[141] J. N. Gross, Y. Gu, and M. B. Rhudy, “Robust UAV relative navigation
+with DGPS, INS, and peer-to-peer radio ranging,” IEEE Trans. Autom.
+Sci. Eng., vol. 12, no. 3, pp. 935–944, Jul. 2015.
+[142] F. Kendoul and K. Nonami, “A visual navigation system for
+autonomous flight of micro air vehicles,” in Proc. IEEE/RSJ Int. Conf.
+Intell. Robots Syst., Oct. 2009, pp. 3888–3893.
+[143] M. S. Batson, J. C. McEachen, and M. Tummala, “A method for fast
+radio frequency direction finding using wireless sensor networks,” in
+Proc. 41st Annu. Hawaii Int. Conf. Syst. Sci. (HICSS), Jan. 2008,
+p. 495.
+[144] D. Caratelli, I. Liberal, and A. Yarovoy, “Design and full-wave analysis
+of conformal ultra-wideband radio direction finders,” IET Microw.,
+Antennas Propag., vol. 5, no. 10, pp. 1164–1174, Jul. 2011.
+[145] T. H. Nguyen, T.-M. Nguyen, and L. Xie, “Flexible and resource-
+efficient multi-robot collaborative visual-inertial-range localization,”
+IEEE Robot. Autom. Lett., vol. 7, no. 2, pp. 928–935, Apr. 2022.
+[146] C. Gentner, M. Ulmschneider, and T. Jost, “Cooperative simultaneous
+localization and mapping for pedestrians using low-cost ultra-wideband
+system and gyroscope,” in Proc. IEEE/ION Position, Location Navigat.
+Symp. (PLANS), Apr. 2018, pp. 1197–1205.
+[147] J. Liu, J. Pu, L. Sun, and Z. He, “An approach to robust INS/UWB
+integrated positioning for autonomous indoor mobile robots,” Sensors,
+vol. 19, no. 4, p. 950, Feb. 2019.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.27]
+3486
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+[148] M. F. Fallon, G. Papadopoulos, J. J. Leonard, and N. M. Patrikalakis,
+“Cooperative AUV navigation using a single maneuvering surface
+craft,” Int. J. Robot. Res., vol. 29, no. 12, pp. 1461–1474, Oct. 2010.
+[149] V. O. Sivaneri and J. N. Gross, “UGV-to-UAV cooperative ranging
+for robust navigation in GNSS-challenged environments,” Aerosp. Sci.
+Technol., vol. 71, pp. 245–255, Dec. 2017.
+[150] F. Causa, A. R. Vetrella, G. Fasano, and D. Accardo, “Multi-UAV
+formation geometries for cooperative navigation in GNSS-challenging
+environments,” in Proc. IEEE/ION Position, Location Navigat. Symp.
+(PLANS), Apr. 2018, pp. 775–785.
+[151] A. Kushleyev, D. Mellinger, C. Powers, and V. Kumar, “Towards
+a swarm of agile micro quadrotors,” Auto. Robots, vol. 35, no. 4,
+pp. 287–300, Nov. 2013.
+[152] V. Ghadiok, J. Goldin, and W. Ren, “On the design and development
+of attitude stabilization, vision-based navigation, and aerial gripping
+for a low-cost quadrotor,” Auto. Robots, vol. 33, nos. 1–2, pp. 41–68,
+Aug. 2012.
+[153] D. Abeywardena, S. Kodagoda, G. Dissanayake, and R. Munasinghe,
+“Improved state estimation in quadrotor MAVs: A novel drift-free
+velocity estimator,” IEEE Robot. Autom. Mag., vol. 20, no. 4,
+pp. 32–39, Dec. 2013.
+[154] F. Causa and G. Fasano, “Improving navigation in GNSS-challenging
+environments: Multi-UAS cooperation and generalized dilution of
+precision,” IEEE Trans. Aerosp. Electron. Syst., vol. 57, no. 3,
+pp. 1462–1479, Jun. 2021.
+[155] A. Marut, P. Wojciechowski, K. Wojtowicz, and K. Falkowski,
+“Visual-based landing system of a multirotor UAV in GNSS denied
+environment,” in Proc. IEEE 10th Int. Workshop Metrol. Aerosp.
+(MetroAeroSpace), Jun. 2023, pp. 308–313.
+[156] H. Lu, H. Shen, B. Tian, X. Zhang, Z. Yang, and Q. Zong,
+“Flight in GPS-denied environment: Autonomous navigation system
+for micro-aerial vehicle,” Aerosp. Sci. Technol., vol. 124, May 2022,
+Art. no. 107521.
+[157] A. I. Mourikis and S. I. Roumeliotis, “A multi-state constraint Kalman
+filter for vision-aided inertial navigation,” in Proc. IEEE Int. Conf.
+Robot. Autom., Apr. 2007, pp. 3565–3572.
+[158] J. Yin, F. Yan, Y. Liu, G. He, and Y. Zhuang, “An overview of
+simultaneous localisation and mapping: Towards multi-sensor fusion,”
+Int. J. Syst. Sci., vol. 55, no. 3, pp. 550–568, Feb. 2024.
+[159] P. Tong, X. Yang, Y. Yang, W. Liu, and P. Wu, “Multi-UAV col-
+laborative absolute vision positioning and navigation: A survey and
+discussion,” Drones, vol. 7, no. 4, p. 261, Apr. 2023.
+[160] S. H. Vemprala and S. Saripalli, “Collaborative localization for
+micro aerial vehicles,” IEEE Access, vol. 9, pp. 63043–63058,
+2021.
+[161] Z. Zhang, J. Zhao, C. Huang, and L. Li, “Learning visual semantic map-
+matching for loosely multi-sensor fusion localization of autonomous
+vehicles,” IEEE Trans. Intell. Vehicles, vol. 8, no. 1, pp. 358–367,
+Jan. 2023.
+[162] N. Cui, X. Wang, and J. Guo, “Research on ins/vision relative navi-
+gation method based on sigma-point Kalman filter,” Acta Astronautica
+Sinica, vol. 30, no. 6, pp. 2220–2225, 2009.
+[163] D. B. Wilson, A. H. Göktogan, and S. Sukkarieh, “A vision based
+relative navigation framework for formation flight,” in Proc. IEEE Int.
+Conf. Robot. Autom. (ICRA), May 2014, pp. 4988–4995.
+[164] J. Y. Lee, H. S. Kim, K. H. Choi, J. Lim, S. Chun, and H. K. Lee,
+“Adaptive GPS/INS integration for relative navigation,” GPS Solutions,
+vol. 20, no. 1, pp. 63–75, Jan. 2016.
+[165] S.-M. Oh and E. Johnson, “Relative motion estimation for vision-based
+formation flight using unscented Kalman filter,” in Proc. AIAA Guid.,
+Navigat. Control Conf. Exhib., Aug. 2007, p. 6866.
+[166] P. Zhu, Y. Yang, W. Ren, and G. Huang, “Cooperative visual-inertial
+odometry,” in Proc. IEEE Int. Conf. Robot. Autom. (ICRA), Xi’an,
+China, May 2021, pp. 13135–13141.
+[167] P. Zhu, P. Geneva, W. Ren, and G. Huang, “Distributed visual-inertial
+cooperative localization,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots
+Syst. (IROS), Xi’an, China, Sep. 2021, pp. 8714–8721.
+[168] N.
+Y.
+Ko,
+I.
+H.
+Choi,
+G.
+Song,
+and
+W.
+Youn,
+“Three-
+dimensional
+dynamic-model-aided
+navigation
+of
+multirotor
+unmanned aerial vehicles,” IEEE Access, vol. 7, pp. 170715–170732,
+2019.
+[169] M. Khaghani and J. Skaloud, “VDM-based UAV attitude determina-
+tion in absence of IMU data,” in Proc. Eur. Navigat. Conf. (ENC),
+May 2018, pp. 84–90.
+[170] M. Koifman and I. Y. Bar-Itzhack, “Inertial navigation system aided by
+aircraft dynamics,” IEEE Trans. Control Syst. Technol., vol. 7, no. 4,
+pp. 487–493, Jul. 1999.
+[171] H. Mohammadkarimi and H. Nobahari, “A model aided inertial nav-
+igation system for automatic landing of unmanned aerial vehicles,”
+Navigation, vol. 65, no. 2, pp. 183–204, Jun. 2018.
+[172] R. C. Leishman, J. C. Macdonald, R. W. Beard, and T. W. McLain,
+“Quadrotors and accelerometers: State estimation with an improved
+dynamic model,” IEEE Control Syst. Mag., vol. 34, no. 1, pp. 28–41,
+Feb. 2014.
+[173] X. Sun, J. Lai, P. Lyu, H. Tian, and Y. Shen, “Fault-tolerant navigation
+method aided by dynamics model of quadrotors based on federated
+unscented Kalman filter on lie group manifold,” IEEE Sensors J.,
+vol. 24, no. 21, pp. 34828–34842, Nov. 2024.
+[174] N. Dadkhah, B. Mettler, and D. Gebre-Egziabher, “A model-aided
+AHRS for micro aerial vehicle application,” in Proc. 21st Int.
+Tech. Meeting Satell. Division Inst. Navigat., Sep. 2008, pp. 545–553.
+[175] W. Youn et al., “Model-aided synthetic airspeed estimation of UAVs
+for analytical redundancy,” IEEE Robot. Autom. Lett., vol. 6, no. 3,
+pp. 5841–5848, Jul. 2021.
+[176] M. Hamandi, M. Tognon, and A. Franchi, “Direct acceleration feedback
+control of quadrotor aerial vehicles,” in Proc. IEEE Int. Conf. Robot.
+Autom. (ICRA), May 2020, pp. 5335–5341.
+[177] D. Engelsman and I. Klein, “Information-aided inertial navigation: A
+review,” IEEE Trans. Instrum. Meas., vol. 72, pp. 1–18, 2023.
+[178] Y. Zhou, J. Zhao, Q. Shi, and A. El Kamel, “Multiagent navigation
+based on PHD and CPHD filters,” IEEE Sensors J., vol. 24, no. 21,
+pp. 34999–35007, Nov. 2024.
+[179] A. Karmozdi, M. Hashemi, H. Salarieh, and A. Alasty, “Implementa-
+tion of translational motion dynamics for INS data fusion in DVL
+outage in underwater navigation,” IEEE Sensors J., vol. 21, no. 5,
+pp. 6652–6659, Mar. 2021.
+[180] G. Taimuri, J. Matusiak, T. Mikkola, P. Kujala, and S. Hirdaris, “A
+6-DoF maneuvering model for the rapid estimation of hydrodynamic
+actions in deep and shallow waters,” Ocean Eng., vol. 218, Dec. 2020,
+Art. no. 108103.
+[181] S. Bijjahalli and R. Sabatini, “A high-integrity and low-cost navigation
+system for autonomous vehicles,” IEEE Trans. Intell. Transp. Syst.,
+vol. 22, no. 1, pp. 356–369, Jan. 2021.
+[182] S. I. Roumeliotis and G. A. Bekey, “Distributed multi-robot localiza-
+tion,” in Distributed Autonomous Robotic Systems. Cham, Switzerland:
+Springer, 2000, pp. 179–188.
+[183] E. D. Nerurkar, S. I. Roumeliotis, and A. Martinelli, “Distributed
+maximum a posteriori estimation for multi-robot cooperative localiza-
+tion,” in Proc. IEEE Int. Conf. Robot. Automat. (ICRA), Kobe, Japan,
+May 2009, pp. 1402–1409.
+[184] M. U. de Haag, M. Martens, and S. Huschbeck, “Urban swarm
+navigation exploiting sUAS collaboration and cognition,” in Proc. Int.
+Conf. Unmanned Aircr. Syst. (ICUAS), Jun. 2022, pp. 319–328.
+[185] S. Tomic, M. Beko, R. Dinis, and P. Montezuma, “Distributed algorithm
+for target localization in wireless sensor networks using RSS and
+AoA measurements,” Pervas. Mobile Comput., vol. 37, pp. 63–77,
+Jun. 2017.
+[186] Y. Liu, Y. Shen, and M. Z. Win, “Single-anchor localization and
+synchronization of full-duplex agents,” IEEE Trans. Commun., vol. 67,
+no. 3, pp. 2355–2367, Mar. 2019.
+[187] M. W. Khan, N. Salman, and A. H. Kemp, “Optimised hybrid localisa-
+tion with cooperation in wireless sensor networks,” IET Signal Process.,
+vol. 11, no. 3, pp. 341–348, May 2017.
+[188] S. Tomic, M. Beko, and M. Tuba, “A linear estimator for network
+localization using integrated RSS and AOA measurements,” IEEE
+Signal Process. Lett., vol. 26, no. 3, pp. 405–409, Mar. 2019.
+[189] P. Zhu and W. Ren, “Fully distributed joint localization and target
+tracking with mobile robot networks,” IEEE Trans. Control Syst.
+Technol., vol. 29, no. 4, pp. 1519–1532, Jul. 2021.
+[190] J. Knuth and P. Barooah, “Distributed collaborative localization of
+multiple vehicles from relative pose measurements,” in Proc. 47th
+Annu. Allerton Conf. Commun., Control, Comput. (Allerton), Sep. 2009,
+pp. 314–321.
+[191] A. Barrau and S. Bonnabel, “Invariant Kalman filtering,” Annu. Rev.
+Control, vol. 1, no. 1, pp. 237–257, 2017.
+[192] G. Kulathunga and A. Klimchik, “Motion planning for multirotor
+aerial vehicles in plan-based control paradigm: A review,” 2022,
+arXiv:2208.14647.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.28]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3487
+[193] K. lassoued, P. Bonnifait, and I. Fantoni, “Cooperative localization
+with reliable confidence domains between vehicles sharing GNSS
+pseudoranges errors with no base station,” IEEE Intell. Transp. Syst.
+Mag., vol. 9, no. 1, pp. 22–34, Spring. 2017.
+[194] C. J. Taylor and J. Spletzer, “A bounded uncertainty approach to
+cooperative localization using relative bearing constraints,” in Proc.
+IEEE/RSJ Int. Conf. Intell. Robots Syst., Oct. 2007, pp. 2500–2506.
+[195] A. Gienger and O. Sawodny, “Data-based process monitoring and
+iterative fault diagnosis using factor graphs,” in Proc. IEEE Int. Conf.
+Ind. Technol. (ICIT), Feb. 2020, pp. 35–40.
+[196] L. Jiang, M. Cheng, and T. Matsumoto, “A TOA-DOA hybrid factor
+graph-based technique for multi-target geolocation and tracking,” IEEE
+Access, vol. 9, pp. 14203–14215, 2021.
+[197] W. Li, X. Cui, and M. Lu, “A robust graph optimization realization of
+tightly coupled GNSS/INS integrated navigation system for urban vehi-
+cles,” Tsinghua Sci. Technol., vol. 23, no. 6, pp. 724–732, Dec. 2018.
+[198] M. Chen, Z. Xiong, J. Xiong, and R. Wang, “A hybrid coopera-
+tive navigation method for UAV swarm based on factor graph and
+Kalman filter,” Int. J. Distrib. Sensor Netw., vol. 18, no. 1, Jan. 2022,
+Art. no. 155014772110647.
+[199] J. A. Guerrero, I. Fantoni, S. Salazar, and R. Lozano, “Flight formation
+of multiple mini rotorcraft via coordination control,” in Proc. IEEE Int.
+Conf. Robot. Autom., May 2010, pp. 620–625.
+[200] I. Shames, B. Fidan, B. D. O. Anderson, and H. Hmam, “Cooperative
+self-localization of mobile agents,” IEEE Trans. Aerosp. Electron. Syst.,
+vol. 47, no. 3, pp. 1926–1947, Jul. 2011.
+[201] X. Zhu, J. Lai, B. Zhou, P. Lv, and S. Chen, “Weight factor graph
+co-location method for UAV formation based on navigation perfor-
+mance evaluation,” IEEE Sensors J., vol. 23, no. 12, pp. 13037–13051,
+Jun. 2023.
+[202] D. Wang, B. Lian, Y. Liu, B. Gao, and S. Zhang, “Resilient cooperative
+localization based on factor graphs for multirobot systems,” Remote
+Sens., vol. 16, no. 5, p. 832, Feb. 2024.
+[203] N. El-Sheimy and A. Youssef, “Inertial sensors technologies for navi-
+gation applications: State of the art and future trends,” Satell. Navigat.,
+vol. 1, no. 1, p. 2, Dec. 2020.
+[204] Q. Li, F. Gama, A. Ribeiro, and A. Prorok, “Graph neural networks for
+decentralized multi-robot path planning,” in Proc. IEEE/RSJ Int. Conf.
+Intell. Robots Syst. (IROS), Oct. 2020, pp. 11785–11792.
+[205] H. Wymeersch, J. Lien, and M. Z. Win, “Cooperative localization in
+wireless networks,” Proc. IEEE, vol. 97, no. 2, pp. 427–450, 2009.
+[206] J. Liu, J. Guo, Z. Meng, and J. Xue, “ReVoLT: Relational reasoning
+and Voronoi local graph planning for target-driven navigation,” 2023,
+arXiv:2301.02382.
+[207] J. Y. Lee and H. Choset, “Sensor-based exploration for convex bodies:
+A new roadmap for a convex-shaped robot,” IEEE Trans. Robot.,
+vol. 21, no. 2, pp. 240–247, Apr. 2005.
+[208] P. Wu et al., “VoroNav: Voronoi-based zero-shot object navigation with
+large language model,” 2024, arXiv:2401.02695.
+[209] J. Xu, E. Song, Y. Luo, and Y. Zhu, “Optimal distributed Kalman
+filtering fusion algorithm without invertibility of estimation error and
+sensor noise covariances,” IEEE Signal Process. Lett., vol. 19, no. 1,
+pp. 55–58, Jan. 2012.
+[210] X. Hu, X. Pan, L. Zhu, and Y. Han, “Robust adaptive UKF algorithm
+and its application in GNSS/SINS integrated navigation system,” J.
+Electron. Meas. Instrum., vol. 36, no. 12, pp. 153–160, 2023.
+[211] D. Elsner. (2012). Universal Plug-N-Play Sensor Integration for
+Advanced Navigation. [Online]. Available: https://api.semanticscholar.
+org/CorpusID:58037651
+[212] W. Sun and J. Liu, “Design of robust cubature fission particle filter
+algorithm in multi-source cooperative navigation,” Sci. Rep., vol. 12,
+no. 1, p. 4210, Mar. 2022.
+[213] Z. Li, W. Yang, D. Ding, and Y. Liao, “Distributed cooperative
+navigation filtering algorithm for multi-satellite cooperation targets,” J.
+Beijing Univ. Aeronaut. Astronaut., vol. 44, no. 3, pp. 462–469, 2018.
+[214] G. Battistelli and L. Chisci, “Stability of consensus extended Kalman
+filtering for distributed state estimation,” IFAC Proc. Volumes, vol. 47,
+no. 3, pp. 5520–5525, 2014.
+[215] Y. Tian, Z. Chen, and F. Yin, “Distributed IMM-unscented Kalman filter
+for speaker tracking in microphone array networks,” IEEE/ACM Trans.
+Audio, Speech, Language Process., vol. 23, no. 10, pp. 1637–1647,
+Oct. 2015.
+[216] H. Su, Z. Li, and Y. Ye, “Event-triggered Kalman-consensus filter for
+two-target tracking sensor networks,” ISA Trans., vol. 71, pp. 103–111,
+Nov. 2017.
+[217] X. Liu, R. Li, and S. Xu, “UAV cooperative navigation algorithm based
+on ranging and velocity measurements,” Tactical Missile Technol.,
+vol. 2, no. 2, pp. 73–77, 2019.
+[218] R. Jung, C. Brommer, and S. Weiss, “Decentralized collaborative state
+estimation for aided inertial navigation,” in Proc. IEEE Int. Conf.
+Robot. Automat. (ICRA), Paris, France, May 2020, pp. 4673–4679.
+[219] E. J. Lefferts, F. L. Markley, and M. D. Shuster, “Kalman filtering for
+spacecraft attitude estimation,” J. Guid., Control, Dyn., vol. 5, no. 5,
+pp. 417–429, Sep. 1982.
+[220] J. E. Bremnes, A. H. Brodtkorb, and A. J. Sørensen, “Hybrid observer
+concept for sensor fusion of sporadic measurements for underwater
+navigation,” Int. J. Control, Autom. Syst., vol. 19, no. 1, pp. 137–144,
+Jan. 2021.
+[221] E. R. Potokar, K. Norman, and J. G. Mangelson, “Invariant extended
+Kalman filtering for underwater navigation,” IEEE Robot. Autom. Lett.,
+vol. 6, no. 3, pp. 5792–5799, Jul. 2021.
+[222] J. H. Hwang, J. Cha, and C. G. Park, “A novel federated structure of
+invariant EKF using left-/right-invariant observations,” IEEE Sensors
+J., vol. 22, no. 21, pp. 20645–20654, Nov. 2022.
+[223] A. Valade, P. Acco, P. Grabolosa, and J.-Y. Fourniols, “A study about
+Kalman filters applied to embedded sensors,” Sensors, vol. 17, no. 12,
+p. 2810, Dec. 2017.
+[224] C. Pan, J. Gao, Z. Li, N. Qian, and F. Li, “Multiple fading factors-
+based strong tracking variational Bayesian adaptive Kalman filter,”
+Measurement, vol. 176, May 2021, Art. no. 109139.
+[225] S. Dajun, Z. Yinan, H. Yunfeng, and Z. Jucheng, “Preliminary study
+on cooperative localization for AUVs,” in Proc. IEEE Int. Conf. Signal
+Process., Commun. Comput. (ICSPCC), Oct. 2017, pp. 1–4.
+[226] K. Salahshoor, M. Mosallaei, and M. Bayat, “Centralized and decen-
+tralized process and sensor fault monitoring using data fusion based
+on adaptive extended Kalman filter algorithm,” Measurement, vol. 41,
+no. 10, pp. 1059–1076, Dec. 2008.
+[227] Y. Huang, Y. Zhang, B. Xu, Z. Wu, and J. A. Chambers, “A new
+adaptive extended Kalman filter for cooperative localization,” IEEE
+Trans. Aerosp. Electron. Syst., vol. 54, no. 1, pp. 353–368, Feb. 2018.
+[228] N. Li, Z. W. Kang, J. Liu, and X. M. Xu, “An adaptive filtering method
+based on EMD for X-ray pulsar navigation with uncertain measurement
+noise,” MATEC Web Conf., vol. 114, Jan. 2017, Art. no. 04017.
+[229] L. Zhang, W. Shaoping, M. S. Selezneva, and K. A. Neusypin, “A new
+adaptive Kalman filter for navigation systems of carrier-based aircraft,”
+Chin. J. Aeronaut., vol. 35, no. 1, pp. 416–425, Jan. 2022.
+[230] W. Ding, J. Wang, C. Rizos, and D. Kinlyside, “Improving adaptive
+Kalman estimation in GPS/INS integration,” J. Navigat., vol. 60, no. 3,
+pp. 517–529, Sep. 2007.
+[231] S. J. Julier and J. K. Uhlmann, “Unscented filtering and nonlinear
+estimation,” Proc. IEEE, vol. 92, no. 3, pp. 401–422, Mar. 2004.
+[232] M. Kumar and S. Mondal, “A fuzzy-based adaptive unscented Kalman
+filter for state estimation of three-dimensional target tracking,” Int. J.
+Control, Autom. Syst., vol. 21, no. 11, pp. 3804–3812, Nov. 2023.
+[233] F. Deng, H.-L. Yang, and L.-J. Wang, “Adaptive unscented Kalman
+filter based estimation and filtering for dynamic positioning with model
+uncertainties,” Int. J. Control, Autom. Syst., vol. 17, no. 3, pp. 667–678,
+Mar. 2019.
+[234] H. Li, J. Luo, L. Li, J. Tong, and S. Xie, “Coordinated control and
+localizing target system for multi-UAVs based on adaptive UKF,” in
+Proc. Int. Conf. Intell. Comput. Inf. Sci., 2010, pp. 249–258.
+[235] M. Khaghani and J. Skaloud, “Assessment of VDM-based autonomous
+navigation of a UAV under operational conditions,” Robot. Auto. Syst.,
+vol. 106, pp. 152–164, Aug. 2018.
+[236] T. Guo, S. Chen, and J. Tan, “Research on multi-source fusion
+integrated navigation algorithm of SINS/GNSS/OD/altimeter based
+on federated filtering,” Navig. Position. Timing, vol. 8, pp. 20–26,
+Jan. 2021.
+[237] S. Bao, J. Lai, Z. Chen, P. Lyu, and W. Chen, “Aerodynamic
+model/INS/GPS failure-tolerant navigation method for multirotor UAVs
+based on federated Kalman filter,” in Proc. Chin. Autom. Congr. (CAC),
+Oct. 2017, pp. 1121–1125.
+[238] X. Xu et al., “An indoor mobile robot positioning algorithm based on
+adaptive federated Kalman filter,” IEEE Sensors J., vol. 21, no. 20,
+pp. 23098–23107, Oct. 2021.
+[239] K. Zhang, H.-P. Liu, H.-N. Li, and S. Qian, “SINS/GPS/CNS integrated
+navigation federal filtering algorithm,” Zhongguo Guanxing Jishu Xue-
+bao, vol. 21, no. 2, pp. 226–230, 2013.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.29]
+3488
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+[240] A. Prorok, A. Bahr, and A. Martinoli, “Low-cost collaborative local-
+ization for large-scale multi-robot systems,” in Proc. IEEE Int. Conf.
+Robot. Autom., May 2012, pp. 4236–4241.
+[241] Z. Zhou, M. Zhou, and J. Li, “Object tracking method based on
+hybrid particle filter and sparse representation,” Multimedia Tools Appl.,
+vol. 76, no. 2, pp. 2979–2993, Jan. 2017.
+[242] H.-l. Wang, B. Wang, Z.-F. Gao, Z.-Q. Zhou, and S. Li, “Sparse rep-
+resentation and particle filter based online object tracking algorithm,”
+Trans. Beijing Inst. Technol., vol. 36, no. 6, pp. 635–640, 2016.
+[243] M. Mahrishi, K. K. Hiran, G. Meena, and P. Sharma, Machine Learning
+and Deep Learning in Real-Time Applications. Hershey, PA, USA: IGI
+Global, 2020.
+[244] K.-W. Chiang, A. Noureldin, and N. El-Sheimy, “Multisensor inte-
+gration using neuron computing for land-vehicle navigation,” GPS
+Solutions, vol. 6, no. 4, pp. 209–218, Mar. 2003.
+[245] A. Noureldin, A. Osman, and N. El-Sheimy, “A neuro-wavelet method
+for multi-sensor system integration for vehicular navigation,” Meas.
+Sci. Technol., vol. 15, no. 2, pp. 404–412, Feb. 2004.
+[246] A. Noureldin, A. El-Shafie, and M. Bayoumi, “GPS/INS integration uti-
+lizing dynamic neural networks for vehicular navigation,” Inf. Fusion,
+vol. 12, no. 1, pp. 48–57, Jan. 2011.
+[247] D. Bianchi, N. Epicoco, M. Di Ferdinando, S. Di Gennaro, and P. Pepe,
+“Physics-informed neural networks for unmanned aerial vehicle system
+estimation,” Drones, vol. 8, no. 12, p. 716, Nov. 2024.
+[248] J. Zhang, W. Zhou, and X. Wang, “UAV swarm navigation using
+dynamic adaptive Kalman filter and network navigation,” Sensors,
+vol. 21, no. 16, p. 5374, Aug. 2021.
+[249] J. Wang, W. Ding, and J. Wang, “Improving adaptive Kalman filter
+in GPS/SDINS integration with neural network,” in Proc. 20th Int.
+Tech. Meeting Satell. Division Inst. Navigat. (ION GNSS), 2007,
+pp. 571–578.
+[250] M. Malleswaran, V. Vaidehi, A. Saravanaselvan, and M. Mohankumar,
+“Performance analysis of various artificial intelligent neural net-
+works for GPS/INS integration,” Appl. Artif. Intell., vol. 27, no. 5,
+pp. 367–407, May 2013.
+[251] X. Chen, C. Shen, W.-B. Zhang, M. Tomizuka, Y. Xu, and K. Chiu,
+“Novel hybrid of strong tracking Kalman filter and wavelet neural
+network for GPS/INS during GPS outages,” Measurement, vol. 46,
+no. 10, pp. 3847–3854, Dec. 2013.
+[252] Z. Feng et al., “Approximating Nash equilibrium for anti-UAV jamming
+Markov game using a novel event-triggered multi-agent reinforcement
+learning,” Neural Netw., vol. 161, pp. 330–342, Apr. 2023.
+[253] J. Hu, L. Wang, T. Hu, C. Guo, and Y. Wang, “Autonomous maneuver
+decision making of dual-UAV cooperative air combat based on deep
+reinforcement learning,” Electronics, vol. 11, no. 3, p. 467, Feb. 2022.
+[254] X. Wei, L. Yang, G. Cao, T. Lu, and B. Wang, “Recurrent MADDPG
+for object detection and assignment in combat tasks,” IEEE Access,
+vol. 8, pp. 163334–163343, 2020.
+[255] H. Kang, X. Chang, J. Miši´c, V. B. Miši´c, J. Fan, and Y. Liu, “Cooper-
+ative UAV resource allocation and task offloading in hierarchical aerial
+computing systems: A MAPPO-based approach,” IEEE Internet Things
+J., vol. 10, no. 12, pp. 10497–10509, Jun. 2023.
+[256] D. Sheng, J. Cheng, F. Li, and M. Hao, “Status and application
+of artificial intelligence-based cooperative positioning and navigation
+technology for UAV clusters,” in Proc. Int. Conf. Auto. Unmanned
+Syst., 2024, pp. 196–206.
+[257] L. Ma, D. Meng, X. Huang, and S. Zhao, “Vision-based formation
+control for an outdoor UAV swarm with hierarchical architecture,”
+IEEE Access, vol. 11, pp. 75134–75151, 2023.
+[258] F. Zhu, Y. Zhu, V. CS Lee, X. Liang, and X. Chang, “Deep learning
+for embodied vision navigation: A survey,” 2021, arXiv:2108.04097.
+[259] D. C. Guastella and G. Muscato, “Learning-based methods of percep-
+tion and navigation for ground vehicles in unstructured environments:
+A review,” Sensors, vol. 21, no. 1, p. 73, Dec. 2020.
+[260] A. A. Golroudbari and M. H. Sabour, “Recent advancements in
+deep learning applications and methods for autonomous navigation:
+A comprehensive review,” 2023, arXiv:2302.11089.
+[261] A. Cuenca, H. Moncayo, and G. Gavilanez, “Artificial-intelligence-
+assisted geomagnetic navigation framework,” IEEE Trans. Aerosp.
+Electron. Syst., vol. 61, no. 2, pp. 2477–2490, Apr. 2025.
+[262] K. Amer, M. Samy, M. Shaker, and M. Elhelw, “Deep convolutional
+neural network based autonomous drone navigation,” in Proc. 13th Int.
+Conf. Mach. Vis., Jan. 2021, pp. 16–24.
+[263] A. Tabatabaei and M. R. Mosavi, “Robust adaptive joint tracking
+of GNSS signal code phases in urban canyons,” IET Radar, Sonar
+Navigat., vol. 11, no. 6, pp. 987–993, Jun. 2017.
+[264] A. S. Saeed, A. B. Younes, S. Islam, J. Dias, L. Seneviratne, and G. Cai,
+“A review on the platform design, dynamic modeling and control of
+hybrid UAVs,” in Proc. Int. Conf. Unmanned Aircr. Syst. (ICUAS),
+Jun. 2015, pp. 806–815.
+[265] Y. Pang, X. Pan, N. Song, and Q. Cai, “A novel cooperative
+navigation method applied to single-leader mode with insufficient
+observation information,” IEEE Trans. Ind. Informat., vol. 20, no. 10,
+pp. 12231–12240, Oct. 2024.
+[266] X. Wang, Z. Quan, J. Zhang, and H. Liu, “Distributed collaborative
+navigation based on rank-defect free network,” Adv. Space Res., vol. 70,
+no. 8, pp. 2424–2442, Oct. 2022.
+[267] B. Xu, S. Li, A. A. Razzaqi, Y. Guo, and L. Wang, “A novel
+measurement information anomaly detection method for cooperative
+localization,” IEEE Trans. Instrum. Meas., vol. 70, pp. 1–18, 2021.
+[268] S. I. Roumeliotis and G. A. Bekey, “Distributed multirobot local-
+ization,” IEEE Trans. Robot. Autom., vol. 18, no. 5, pp. 781–795,
+Oct. 2002.
+[269] J. W. Cheong, E. Glennon, A. Dempster, D. Serant, and T. Calmettes,
+“Modelling and mitigating multipath and NLOS for cooperative posi-
+tioning in urban canyons,” in Proc. Int. GNSS Soc. Symp., Jul. 2015,
+pp. 1–15.
+[270] X. Wang, N. Cui, and J. Guo, “INS/VisNav/GPS relative navigation
+system for UAV,” Aerosp. Sci. Technol., vol. 28, no. 1, pp. 242–248,
+Jul. 2013.
+[271] S. Cao, H. Qin, L. Cong, and Y. Huang, “TDMA datalink cooperative
+navigation algorithm based on INS/JTIDS/BA,” Electronics, vol. 10,
+no. 7, p. 782, Mar. 2021.
+[272] L.-T. Hsu, Y. Gu, and S. Kamijo, “3D building model-based
+pedestrian positioning method using GPS/GLONASS/QZSS and its
+reliability calculation,” GPS Solutions, vol. 20, no. 3, pp. 413–428,
+Jul. 2016.
+[273] X. Bai, W. Wen, and L.-T. Hsu, “Using sky-pointing fish-eye camera
+and LiDAR to aid GNSS single-point positioning in urban canyons,”
+IET Intell. Transp. Syst., vol. 14, no. 8, pp. 908–914, Aug. 2020.
+[274] W. W. Wen, G. Zhang, and L.-T. Hsu, “GNSS NLOS exclusion based
+on dynamic object detection using LiDAR point cloud,” IEEE Trans.
+Intell. Transp. Syst., vol. 22, no. 2, pp. 853–862, Feb. 2021.
+[275] L. Chang, K. Li, and B. Hu, “Huber’s M-estimation-based process
+uncertainty robust filter for integrated INS/GPS,” IEEE Sensors J.,
+vol. 15, no. 6, pp. 3367–3374, Jun. 2015.
+[276] J. Al Hage, M. E. El Najjar, and D. Pomorski, “Multi-sensor fusion
+approach with fault detection and exclusion based on the Kullback–
+Leibler divergence: Application on collaborative multi-robot system,”
+Inf. Fusion, vol. 37, pp. 61–76, Sep. 2017.
+[277] E. Daeipour and Y. Bar-Shalom, “An interacting multiple model
+approach for target tracking with glint noise,” IEEE Trans. Aerosp.
+Electron. Syst., vol. 31, no. 2, pp. 706–715, Apr. 1995.
+[278] E. Mazor, A. Averbuch, Y. Bar-Shalom, and J. Dayan, “Interacting
+multiple model methods in target tracking: A survey,” IEEE Trans.
+Aerosp. Electron. Syst., vol. 34, no. 1, pp. 103–123, Jan. 1998.
+[279] L. A. Johnston and V. Krishnamurthy, “An improvement to the inter-
+acting multiple model (IMM) algorithm,” IEEE Trans. Signal Process.,
+vol. 49, no. 12, pp. 2909–2923, Dec. 2001.
+[280] Q. Meng and L.-T. Hsu, “Resilient interactive sensor-independent-
+update fusion navigation method,” IEEE Trans. Intell. Transp. Syst.,
+vol. 23, no. 9, pp. 16433–16447, Sep. 2022.
+[281] Y. Xiaoyu, S. Fujun, Z. Xiaohu, and Z. Qinghua, “Multi-source
+interactive
+resilient
+fusion
+algorithm
+based
+on
+RIEKF,”
+2024,
+arXiv:2403.01134.
+[282] T. Grigorie, R. Botez, and D. Sandu, “Experimental testing of a data
+fusion algorithm for miniaturized sensors in redundant configurations,”
+in Proc. Int. Conf. Math. Methods, Math. Models Simulation Sci. Eng.,
+Feb. 2014, pp. 116–122.
+[283] A. Waegli, S. Guerrier, and J. Skaloud, “Redundant MEMS-IMU
+integrated with GPS for performance assessment in sports,” in
+Proc. IEEE/ION Position, Location Navigat. Symp., May 2008,
+pp. 1260–1268.
+[284] I.
+Colomina,
+M.
+Giménez,
+J.
+J.
+Rosales,
+A.
+Gómez,
+and
+P. Miguelsanz. (2004). Redundant IMUS for Precise Trajectory
+Determination.
+[Online].
+Available:
+https://api.semanticscholar.org/
+CorpusID:16834739
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.30]
+SONG et al.: MULTI-UAV COOPERATIVE NAVIGATION BASED ON MSIF: A REVIEW
+3489
+[285] H. Huang, H. Zhang, and L. Jiang, “An optimal fusion method
+of multiple inertial measurement units based on measurement noise
+variance estimation,” IEEE Sensors J., vol. 23, no. 3, pp. 2693–2706,
+Feb. 2023.
+[286] A. Waegli, J. Skaloud, S. Guerrier, M. E. Parés, and I. Colomina,
+“Noise reduction and estimation in multiple micro-electro-mechanical
+inertial systems,” Meas. Sci. Technol., vol. 21, no. 6, Apr. 2010,
+Art. no. 065201, doi: 10.1088/0957-0233/21/6/065201.
+[287] Y. Xiaoyu, Z. Xiaohu, S. Fujun, H. Duojia, and H. Zongke, “Multi-
+source interactive resilient fusion algorithm based on RIEKF,” IEEE
+Sensors J., vol. 25, no. 13, pp. 24634–24648, May 2025.
+[288] F. Song, Q. Zeng, R. Zhang, X. Zhu, H. Zhou, and X. Ye, “RIEKF-
+based resilient interactive fusion algorithm for cooperative navigation,”
+Meas. Sci. Technol., vol. 36, no. 7, Jul. 2025, Art. no. 076301.
+[289] M. Kazerooni, F. Shabaninia, M. Vaziri, and S. Vadhva, “Federated
+ensemble Kalman filter in no reset mode design,” in Proc. IEEE 14th
+Int. Conf. Inf. Reuse Integr. (IRI), San Francisco, CA, USA, Aug. 2013,
+pp. 712–716.
+[290] J. Xiong, Z. Xiong, Y. Zhuang, J. W. Cheong, and A. G. Dempster,
+“Fault-tolerant cooperative positioning based on hybrid robust Gaussian
+belief propagation,” IEEE Trans. Intell. Transp. Syst., vol. 24, no. 6,
+pp. 6425–6431, Jun. 2023.
+[291] Z. Yue, B. Lian, C. Tang, and K. Tong, “A novel adaptive federated
+filter for GNSS/INS/VO integrated navigation system,” Meas. Sci.
+Technol., vol. 31, no. 8, Aug. 2020, Art. no. 085102.
+[292] A. Q. Khan, M. Abid, and S. X. Ding, “Fault detection filter design
+for discrete-time nonlinear systems—A mixed optimization,” Syst.
+Control Lett., vol. 67, pp. 46–54, May 2014. [Online]. Available:
+https://www.sciencedirect.com/science/article/pii/S0167691114000425
+[293] C. He, C. Tang, and C. Yu, “A federated derivative cubature Kalman
+filter for IMU-UWB indoor positioning,” Sensors, vol. 20, no. 12,
+p. 3514, Jun. 2020.
+[294] V. A. Tupysev and Y. A. Litvinenko, “Methods of federated filtering
+in the problems of navigation data processing,” IOP Conf. Ser., Mater.
+Sci. Eng., vol. 984, no. 1, Nov. 2020, Art. no. 012004.
+[295] S. Gao, Y. Zhong, X. Zhang, and B. Shirinzadeh, “Multi-sensor optimal
+data fusion for INS/GPS/SAR integrated navigation system,” Aerosp.
+Sci. Technol., vol. 13, nos. 4–5, pp. 232–237, Jun. 2009.
+[296] Q. Wang, X. Cui, Y. Li, and F. Ye, “Performance enhancement of
+a USV INS/CNS/DVL integration navigation system based on an
+adaptive information sharing factor federated filter,” Sensors, vol. 17,
+no. 2, p. 239, Feb. 2017.
+[297] M. Guo, X. Zhou, C. Guo, Y. Liu, C. Zhang, and W. Bai, “Adaptive
+federated filter–combined navigation algorithm based on observability
+sharing factor for maritime autonomous surface ships,” J. Mar. Eng.
+Technol., vol. 23, no. 2, pp. 98–112, Mar. 2024.
+[298] Z. Peng, Y. Li, and G. Hao, “The research on distributed fusion
+estimation
+based
+on
+machine
+learning,”
+IEEE
+Access,
+vol.
+8,
+pp. 38174–38184, 2020.
+[299] M. Bai, Y. Huang, Y. Zhang, and J. Chambers, “Statistical similarity
+measure-based adaptive outlier-robust state estimator with applica-
+tions,” IEEE Trans. Autom. Control, vol. 67, no. 8, pp. 4354–4361,
+Aug. 2022.
+[300] J. Duník, O. Straka, O. Kost, and J. Havlík, “Noise covariance
+matrices in state-space models: A survey and comparison of estimation
+methods—Part I,” Int. J. Adapt. Control Signal Process., vol. 31, no. 11,
+pp. 1505–1543, Nov. 2017.
+[301] G. Xu, Y. Huang, Z. Gao, and Y. Zhang, “A computationally efficient
+variational adaptive Kalman filter for transfer alignment,” IEEE Sensors
+J., vol. 20, no. 22, pp. 13682–13693, Nov. 2020.
+[302] X. Gao, D. You, and S. Katayama, “Seam tracking monitoring based on
+adaptive Kalman filter embedded Elman neural network during high-
+power fiber laser welding,” IEEE Trans. Ind. Electron., vol. 59, no. 11,
+pp. 4315–4325, Nov. 2012.
+[303] X. Liu, X. Liu, Y. Yang, Y. Guo, and W. Zhang, “Variational
+Bayesian-based robust cubature Kalman filter with application on
+SINS/GPS integrated navigation system,” IEEE Sensors J., vol. 22,
+no. 1, pp. 489–500, Jan. 2022.
+[304] H. Huang, J. Tang, C. Liu, B. Zhang, and B. Wang, “Variational
+Bayesian-based filter for inaccurate input in underwater navigation,”
+IEEE Trans. Veh. Technol., vol. 70, no. 9, pp. 8441–8452, Sep. 2021.
+[305] T. Chang, L. Zhao, Q. Zeng, Y. Hu, X. Tao, and X. Ji, “Variational
+Bayesian-based adaptive error-state Kalman filter with application on
+LiDAR-inertial integrated navigation system,” IEEE Sensors J., vol. 24,
+no. 13, pp. 21331–21338, Jul. 2024.
+[306] L. Chang, J. Di, and F. Qin, “Inertial-based integration with transformed
+INS mechanization in Earth frame,” IEEE/ASME Trans. Mechatronics,
+vol. 27, no. 3, pp. 1738–1749, Jun. 2022.
+[307] L. Chang, F. Qin, and J. Xu, “Strapdown inertial navigation system
+initial alignment based on group of double direct spatial isometries,”
+IEEE Sensors J., vol. 22, no. 1, pp. 803–818, Jan. 2022.
+[308] C. Tang, Y. Wang, L. Zhang, Y. Zhang, and H. Song, “Multisource
+fusion UAV cluster cooperative positioning using information geome-
+try,” Remote Sens., vol. 14, no. 21, p. 5491, Oct. 2022.
+[309] P. Zhang, Z. Ma, Y. He, Y. Li, and W. Cheng, “Cooperative positioning
+method of a multi-UAV based on an adaptive fault-tolerant federated
+filter,” Sensors, vol. 23, no. 21, p. 8823, Oct. 2023.
+[310] Y. Yang, X. Liu, X. Liu, Y. Guo, and W. Zhang, “Model-free integrated
+navigation of small fixed-wing UAVs full state estimation in wind dis-
+turbance,” IEEE Sensors J., vol. 22, no. 3, pp. 2771–2781, Feb. 2022.
+[311] L. Xinde, F. Dunkin, and J. Dezert, “Multi-source information fusion:
+Progress and future,” Chin. J. Aeronaut., vol. 37, no. 7, pp. 24–58,
+Jul. 2024.
+[312] P. K. Varshney, “Multisensor data fusion,” in Springer Handbook of
+Robotics, vol. 9. Cham, Switzerland: Springer, 1997, pp. 245–253.
+[313] Z. Wang, J. Zhan, C. Duan, X. Guan, P. Lu, and K. Yang, “A review
+of vehicle detection techniques for intelligent vehicles,” IEEE Trans.
+Neural Netw. Learn. Syst., vol. 34, no. 8, pp. 3811–3831, Aug. 2023.
+[314] Y. Zhou, Y. Dong, F. Hou, and J. Wu, “Review on millimeter-wave
+radar and camera fusion technology,” Sustainability, vol. 14, no. 9,
+p. 5114, Apr. 2022.
+[315] B. Jiang, S. Chen, B. Wang, and B. Luo, “MGLNN: Semi-supervised
+learning via multiple graph cooperative learning neural networks,”
+Neural Netw., vol. 153, pp. 204–214, Sep. 2022.
+[316] J.-T. Lin, D. Dai, and L. V. Gool, “Depth estimation from monocular
+images and sparse radar data,” in Proc. IEEE/RSJ Int. Conf. Intell.
+Robots Syst. (IROS), Oct. 2020, pp. 10233–10240.
+[317] N. Salameh, G. Challita, S. Mousset, A. Bensrhair, and S. Ramaswamy,
+“Collaborative positioning and embedded multi-sensors fusion cooper-
+ation in advanced driver assistance system,” Transp. Res. C, Emerg.
+Technol., vol. 29, pp. 197–213, Apr. 2013.
+[318] M. Mu and L. Zhao, “Distributed elastic fusion navigation method
+for vehicle GNSS/SINS/odometer integration,” J. Geodesy Geomatics,
+vol. 53, no. 3, pp. 425–434, 2024.
+[319] Y. Liu, S. Chang, Z. Wei, K. Zhang, and Z. Feng, “Fusing mmWave
+radar with camera for 3-D detection in autonomous driving,” IEEE
+Internet Things J., vol. 9, no. 20, pp. 20408–20421, Oct. 2022.
+[320] Y. Yang and W. Gao, “An optimal adaptive Kalman filter,” J. Geodesy,
+vol. 80, no. 4, pp. 177–183, Jul. 2006.
+[321] W. Wang, F. Meng, X. Xu, W. Chu, and Z. Wu, “Intelligent multi-
+source autonomous navigation method integrating carrier dynamics
+features,” Acta Astronautica Sinica, vol. 45, no. 4, pp. 550–559, 2024.
+[322] Y. Yang, C. Yang, and X. Ren, “Intelligent PNT services,” J. Geodesy
+Geomatics, vol. 50, no. 8, pp. 1006–1012, 2021.
+[323] W. Wang, Z. Wu, F. Meng, X. Xu, and S. Wu, “Research on dependabil-
+ity of multi-source autonomous navigation system,” Navigat. Control,
+vol. 10, no. 2, pp. 1–9, 2023.
+[324] D. Ciuonzo, A. Buonanno, M. D’Urso, and F. A. N. Palmieri, “Dis-
+tributed classification of multiple moving targets with binary wireless
+sensor networks,” in Proc. 14th Int. Conf. Inf. Fusion, Jul. 2011,
+pp. 1–8.
+[325] P. Zhang et al., “Multi-source information fusion based on rough set
+theory: A review,” Inf. Fusion, vol. 68, pp. 85–117, Apr. 2021.
+Fujun Song received the B.Eng. and master’s
+degrees from the Naval Architecture and Ocean
+Engineering College, Dalian Maritime University,
+Dalian, China, in 2019 and 2022, respectively.
+He is pursuing the Ph.D. degree with the School
+of Aeronautics and Astronautics, Sun Yat-sen
+University, Shenzhen, China.
+His research interests include collaborative
+UAVs navigation algorithms and data fusion
+technology.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+[p.31]
+3490
+IEEE SENSORS JOURNAL, VOL. 26, NO. 3, 1 FEBRUARY 2026
+Qinghua
+Zeng
+received
+the
+Ph.D.
+degree
+in aerospace science and engineering from
+the National University of Defense Technology,
+Changsha, China, in 2003.
+He is currently a Professor with Sun Yat-sen
+University, Shenzhen, China. His research inter-
+ests include aircraft control system design and
+simulation and navigation guidance and control.
+Rui Zhang received the M.S. degree from the
+School of Intelligent Science and Engineering,
+Harbin Engineering University, Harbin, China,
+in 2023. He is currently pursuing the Ph.D.
+degree in aerospace science and technology
+with Sun Yat-sen University, Shenzhen, China.
+His current research interests include UAV
+navigation and multisensor fusion.
+Xiaohu Zhu received the bachelor’s degree
+in automation degree from Wuhan University
+of Science and Technology, Wuhan, China,
+in 2008, the master’s degree in control science
+and technology from Central South University,
+Changsha, China, in 2011, and the Ph.D. degree
+from the School of Aeronautics and Astronau-
+tics, Sun Yat-sen University, Shenzhen, China,
+in 2024.
+His research interests include UAV swarm
+algorithms and task planning algorithms.
+Xiaoyu Ye received the B.S. degree in detection
+guidance and control from the School of Astro-
+nautics, Northwestern Polytechnical University,
+Xi’an, China, in 2019, and the Ph.D. degree
+in aerospace science and technology from the
+School of Aeronautics and Astronautics, Sun
+Yat-sen University, Shenzhen, China, in 2024.
+He is now working with China Electronic
+Product Reliability and Environmental Testing
+Research Institute, Guangzhou, China. His cur-
+rent research interests include the reliability and
+safety of unmanned aerial vehicles and multisensor fusion.
+Zongyu Zhang received the Ph.D. degree from
+the School of Astronautics, Aerospace Sci-
+ence and Technology, Sun Yat-sen University,
+Shenzhen, China, in 2024.
+He is currently a Lecturer with Dalian Maritime
+University, Dalian, China. His current research
+interests include aircraft control system design
+and simulation and solid ducted ramjet control
+technology.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:05:55 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

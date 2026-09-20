@@ -1,0 +1,651 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0409.pdf
+sha256: AA7B92C784C7EF57F11A58B44C85E9D98461C48140A6BA9F19CEE09E64AF0B91
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+Dust-Resilient Autonomous Navigation and Mapping for UAVs in
+GNSS-Denied Underground Tunnels
+Marco A. Montes-Grova1, Jos´e M. Gonz´alez-Mar´ın1, Francisco J. P´erez-Grau1 and Antidio Viguria1
+Abstract—Autonomous UAVs enable safe inspection of haz-
+ardous underground environments, but simultaneous GNSS
+denial and visibility degradation from airborne dust present
+critical navigation challenges. Conventional visual odometry
+fails under feature scarcity, while LiDAR-based methods suffer
+from noise artifacts as suspended particles are misinterpreted
+as obstacles. This paper presents a UAV system for autonomous
+mapping in dust-laden, GNSS-Denied tunnels. LiDAR-Inertial
+odometry was integrated with IMU pre-integration to achieve
+100 Hz state estimation for responsive control in confined spaces.
+An intensity-based dust filtering algorithm removes point cloud
+contamination in real-time, enabling autonomous capabilities
+despite visibility degradation. Experimental validation in a real
+mining tunnel under controlled visually degraded conditions
+demonstrates autonomous operation. The system completes
+exploration and mapping in 480 seconds, achieving 0.19 m mean
+mapping accuracy and 0.60 m RMS error against Total Station
+ground truth. Results establish quantitative benchmarks for
+UAV deployment in underground construction and emergency
+response scenarios where human access is restricted.
+I. INTRODUCTION
+Unmanned Aerial Vehicles (UAVs) offer a safe and ef-
+ficient solution for inspection and mapping in underground
+environments such as tunnels and mines, where human ac-
+cess is limited by safety, accessibility, or operational con-
+straints [1]. In these settings, accurate and timely 3D maps are
+essential for construction progress monitoring, structural as-
+sessment, and post-blast safety evaluation. Global Navigation
+Satellite System (GNSS) provides absolute positioning for
+aerial vehicles in open environments; however, underground
+settings block these signals entirely, forcing the system to
+rely solely on onboard sensing for localization. Autonomous
+UAV operation underground therefore remains challenging
+due to this simultaneous absence of GNSS and severe per-
+ception degradation caused by airborne dust and low or zero
+illumination [2].
+In post-blast tunnel construction scenarios, suspended par-
+ticulate matter significantly degrades sensor performance.
+Visual odometry rapidly fails due to feature loss and motion
+blur, while LiDAR-based perception suffers from spurious
+returns as airborne particles are incorrectly interpreted as
+obstacles. Although LiDAR–Inertial Odometry (LIO) - a state
+estimation approach that fuses high-rate IMU measurements
+with LiDAR scan matching to estimate the robot’s ego-
+motion - has demonstrated robustness in GNSS-Denied en-
+vironments, existing systems are typically evaluated under
+clean atmospheric conditions or rely on manual piloting,
+1CATEC (Advanced Center for Aerospace Technologies), Calle Wilbur
+y Orville Wright, 19, La Rinconada, 41309 Sevilla, Spain; [mmontes,
+jmgonzalez, fjperez, aviguria]@catec.aero
+Fig. 1. Aerial robot navigating autonomously inside the tunnel
+leaving the problem of fully autonomous exploration under
+active dust contamination largely unaddressed.
+Recent advances in LIO frameworks have improved local-
+ization robustness in geometrically degenerate environments
+such as tunnels [3]–[5]. Methods incorporating IMU pre-
+integration and intensity-augmented correspondences have
+shown strong performance in feature-sparse scenarios. How-
+ever, prior tunnel-focused evaluations have been limited to
+clean environments and teleoperated flights, without address-
+ing the coupled challenges of real-time dust mitigation,
+autonomous exploration, and high-speed onboard state es-
+timation required for safe operation in confined spaces.
+Dust mitigation has been explored in ground robotics
+and automotive applications, where filtering techniques and
+learning-based approaches have been proposed to remove
+weather- or debris-induced artifacts from LiDAR data [6]–
+[8]. Nevertheless, underground construction dust differs sig-
+nificantly in particle size, density, and reflectivity, and aerial
+platforms further exacerbate the problem through propeller
+downwash that continuously re-suspends settled material.
+As a result, existing solutions do not directly translate to
+autonomous UAV operation in post-blast tunnel environ-
+ments [9], [10].
+This paper addresses these limitations by presenting a fully
+autonomous UAV system for exploration and 3D mapping
+in dust-laden, GNSS-Denied underground tunnels. Building
+upon a robust LiDAR–Inertial localization backbone, the sys-
+tem integrates real-time intensity-based dust filtering, reactive
+exploration planning, and onboard guidance and control to
+enable end-to-end autonomous operation without operator
+intervention. The proposed approach is experimentally val-
+idated in a real mining tunnel under simulated post-blast
+visibility conditions, with quantitative accuracy assessment
+2026 International Conference on Unmanned Aircraft Systems (ICUAS)
+June 15-18, 2026. Corfu, Greece
+979-8-3315-9316-2/26/$31.00 ©2026 IEEE
+259
+2026 International Conference on Unmanned Aircraft Systems (ICUAS) | 979-8-3315-9316-2/26/$31.00 ©2026 IEEE | DOI: 10.1109/ICUAS69441.2026.11598747
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+against surveying-grade Total Station ground truth. The main
+contributions of this work are:
+• A dust-resilient autonomous UAV system integrat-
+ing a novel real-time intensity-based LiDAR filter-
+ing stage with LiDAR–Inertial odometry, factor-graph
+global mapping with loop closure, and hierarchical
+exploration planning, enabling fully autonomous opera-
+tion in GNSS-denied underground environments under
+visually degraded conditions.
+• Quantitative experimental validation in a real 500 m
+mining tunnel under simulated post-blast conditions,
+demonstrating autonomous exploration and return in 480
+seconds and achieving 0.19 m mean mapping accuracy
+(RMS: 0.60 m) validated against LEICA Total Station
+ground Gruth.
+The remainder of this paper is organized as follows:
+Section II describes the aerial robot used for the experiments,
+Section III exposes the software architecture, Section IV
+presents results and analysis, and Section V concludes with
+future directions.
+II. UAV PLATFORM
+The aerial platform, shown in Fig. 2, is a custom-built
+quadrotor specifically designed for autonomous operation
+in confined, GNSS-Denied underground environments. The
+airframe incorporates protective rotor guards to prevent col-
+lisions with tunnel walls and a fairing system that protects
+onboard equipment from dust and moisture in tunnels. In
+addition, an onboard LED lighting system has been incorpo-
+rated to improve visibility in low-light conditions and make
+it easier to see the drone. The propulsion system uses sealed
+motors with protective covers to prevent dust ingress into
+the motor coils, ensuring reliable operation in contaminated
+environments. The total takeoff weight is approximately
+5.2 kg, with a flight endurance of 12 minutes under typical
+tunnel inspection missions.
+The perception system integrates complementary sensors
+optimized for harsh underground conditions. The primary
+ranging sensor is an Ouster OS0-128 3D LiDAR providing
+128-channel point clouds at 10 Hz with 90° vertical field
+of view, configured in dual-return mode to reject airborne
+particles and mounted in a side-facing orientation for hor-
+izontal tunnel mapping. To capture data from inside the
+tunnels a FLIR Hadron 640R dual-sensor system combining
+a 640×512 LWIR thermal image with a 1080p RGB camera,
+integrated on a Gremsy G-Hadron 3-axis gimbal for stabiliza-
+tion. The Pixhawk Orange Cube autopilot integrates a high-
+performance IMU (ICM-20948) streaming raw measurements
+at 100 Hz for tightly-coupled LiDAR-inertial odometry.
+All perception and navigation algorithms execute onboard
+using an Intel NUC 10 Performance (i7-10710U, 16 GB
+RAM) running Ubuntu 20.04 and ROS Noetic. The computa-
+tional architecture supports real-time processing of LiDAR-
+inertial odometry, dust filtering, real time mapping with loop
+closure capabilities and exploration planning.
+3D LiDAR
+OnBoard PC
+Autopilot
+G-Hadron
+Fig. 2. Aerial robot with its onboard sensors (Left: Real image; Right: CAD
+where can be seen the inside of the fairing).
+III. SOFTWARE ARCHITECTURE
+Fig. 3 shows the architecture of the software that runs on
+the companion aboard the aircraft to perform autonomous
+operations in the tunnel. It is important to note that all of
+this can be executed without operator intervention, as the
+system operates fully autonomously. A communication link
+to a control station outside the tunnel is maintained solely
+for monitoring purposes.
+A. Point Cloud Pre-processing & Dust Removal
+The data processing pipeline begins with a dust removal
+module designed to clean the raw point cloud data before
+it reaches downstream components. Beyond configuring the
+LiDAR to operate in dual-return mode, a multi-stage fil-
+tering approach was implemented. First, an intensity-based
+clustering threshold was established through the manual
+examination of extensive test flights and field data. This
+threshold aims to eliminate residual noisy points generated by
+airborne particulates (dust) while preserving legitimate low-
+intensity measurements. Second, to optimize computational
+efficiency and filter near-field artifacts, a spatial filter was
+applied to a specific Region of Interest (ROI) surrounding
+the sensor, as observations indicated that dust-induced noise
+appeared predominantly at specific radial distances.
+B. GNSS-Denied Localization & Mapping
+In this implementation, the system addresses the challenge
+of drift accumulation inherent to dead-reckoning systems
+by decoupling the high-frequency odometry estimation from
+the global mapping optimization. For real-time ego-motion,
+COIN-LIO [11] is employed, a tightly coupled LiDAR-
+Inertial odometry framework. This algorithm was specifically
+selected for its robustness in geometrically degenerate envi-
+ronments (e.g., featureless tunnels or symmetrical structures)
+where traditional geometric-only methods struggle. COIN-
+LIO integrates LiDAR intensity gradients with point-to-plane
+registration, enabling the system to maintain accurate track-
+ing by leveraging photometric information when geometric
+features are insufficient. To generate a precise, drift-free
+global point cloud, a back-end optimization stage is executed
+asynchronously. The GTSAM [12] framework is used to
+construct and solve a factor graph, where odometry poses
+form the backbone of the graph. To mitigate drift, loop
+260
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+Ouster LiDAR 0S0
+Relative Localization
+Real-Time 3D Mapping
+IMU 
+(On autopilot)
+RGB/IR Recorder
+Gremsy 
+G-Hadron
+Surveillance Subsystem
+Global Planner
+Local Planner
+Reactive & Autonomous Navigation
+GNSS-Denied Localization & Mapping
+Cloud Dust Remover
+PointCloud
+PointCloud
+PointCloud
+Pixhawk 
+Orange Cube
+PointCloud
+Guidance & Control
+Fig. 3. UAV software architecture: data flow from sensors (Ouster OS0 LiDAR, IMU, Gremsy camera) through GNSS-Denied Localization, 3D Mapping,
+Reactive and Autonomous Navigation modules, to Guidance and Control on the Pixhawk Orange Cube autopilot.
+closure detection is performed using KISS-Matcher [13],
+which provides a robust initial alignment even under large
+deviations. This is subsequently refined by a Point-to-Plane
+ICP (Iterative Closest Point) registration. The optimization of
+this factor graph corrects the trajectory globally, ensuring the
+consistency of the final map.
+C. Reactive & Autonomous Navigation
+The navigation stack is designed as a hierarchical archi-
+tecture, ensuring both efficient local reaction and optimal
+global exploration. To handle the computational constraints
+of onboard processing, ROG-Map [14] is used, a robocentric
+occupancy grid mapping framework. ROG-Map maintains
+a sliding-window local map that moves with the robot,
+providing a high-resolution representation of the immediate
+environment while discarding geographically distant data to
+limit memory usage. This efficient data structure supports
+real-time query operations essential for the planning layers.
+1) Global Planner: For autonomous decision-making in
+unknown environments, the GBPlanner (Graph-based Plan-
+ner) [15] is employed. This planner operates on a bifurcated
+architecture: a local layer builds a random graph within a
+sliding window to identify paths that maximize exploration
+gain (volumetric coverage), while a global layer maintains
+the overall topological graph to guide the robot out of dead-
+ends or towards unexplored frontiers, while also maintaining
+a safe return-to-home path in case of emergency.
+2) Local Planner: To execute the high-level paths gener-
+ated by the exploration module, Fast-Planner [16], has been
+integrated. This module converts the waypoints into smooth,
+dynamically feasible trajectories. It utilizes a topological [17]
+path searching frontend followed by a B-spline optimization
+backend, ensuring that the generated flight paths respect the
+robot’s physical limits (velocity, acceleration) while safely
+avoiding obstacles detected. Notably, while the original Fast-
+Planner implementation includes its own occupancy mapping
+module, a custom integration was developed to utilize ROG-
+Map as the underlying world representation. This decoupled
+approach not only enhances computational efficiency by
+leveraging ROG-Map’s robocentric scrolling properties but
+also grants the end-user greater flexibility to fine-tune map
+resolution and performance parameters independently from
+the planning logic.
+3) Guidance & Control: To bridge the gap between the
+local planning layer and the physical platform, LUCAS
+framework [18], has been integrated. This open-source ar-
+chitecture provides a robust abstraction layer that decouples
+high-level autonomy from low-level flight control through
+two core components:
+• Control Manager Finite-State-Machine (FSM): This
+module
+orchestrates
+the
+operational
+logic
+of
+the
+UAV. It manages transitions between multiple control
+states—such as autonomous takeoff, trajectory tracking,
+and emergency contingencies—ensuring that the system
+remains in a safe and predictable mode throughout the
+mission.
+• Cascade PID Controller: This component handles the
+interface with the low-level autopilot. It receives the dy-
+namically feasible trajectory commands from the local
+planner layer and processes them through a cascaded
+control architecture to generate precise setpoints. This
+ensures that the UAV accurately follows the planned
+paths while maintaining stability, even in the presence
+of external disturbances or aerodynamic effects.
+By leveraging this dual-component structure, the system
+achieves a high degree of reliability, allowing the exploration
+and mapping modules to operate seamlessly across different
+hardware configurations.
+261
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+D. Surveillance Subsystem
+This surveillance system was created with the aim of
+capturing information on the state of the interior of the tunnel
+after the detonation. In addition to allowing visibility through
+smoke under visually degraded conditions, it will enable
+the detection of hot, undetonated explosives in the tunnel
+environment, so that alerts and markers can be generated on
+the map created to inform operators. It is important to note
+that the RGB/IR camera is part of the surveillance subsystem
+exclusively and plays no role in the navigation or mapping
+pipeline.
+IV. EXPERIMENTAL VALIDATION
+To validate the proposed system, a center in Spain spe-
+cializing in research, training, and testing activities in the
+field of underground works and mining operations was used.
+Although there are two tunnels adjacent only one of them has
+been chosen to carry out the experiments, with a straight-line
+length of around 500 meters.
+It should be noted that ground-truth measurements cannot be
+obtained due to the real-world environment; however, a map
+generated by a surveying tool over two days is available,
+which will be assumed as ground-truth going forward.
+In order to monitor the mission, a mesh communications
+network has been installed throughout the selected tunnel.
+This mesh network has been created using TP-Link EAP225
+access points and controlled by TP-Link Omada OC200.
+Adhesive directional antennas have been placed on the front
+and rear of the aerial robot to maximize communication
+quality at any location in the tunnel.
+To simulate the degraded visibility conditions in which the
+aircraft must operate, no actual detonation was carried out.
+To generate this atmosphere, the ANTARI Z-3000II R smoke
+machine was used. In addition, it should be noted that there
+are no lighting installations along most of the length of the
+tunnel.
+Next, the results of the two main functionalities of the
+system will be evaluated: On the one hand, the capability to
+explore in a fully autonomous way an environment without
+GNSS positioning that has not been previously visited, i.e.,
+completely unknown, in conditions of degraded visibility.
+On the other hand, the real-time mapping algorithm will be
+evaluated. This will be an indirect measure of the quality of
+the deployed localization algorithm, as the map is dependent
+on the location in the environment.
+A. Autonomous exploration with visually degraded condi-
+tions
+During the autonomous mission inside the tunnel, there
+will be two distinct phases of operation: a first phase of
+pure exploration, where the environment will be surveyed
+and mapped, and a second phase of return, where instead of
+exploring, the safest route back to the takeoff point will be
+planned using the map created. The trigger for returning to
+the take-off point can be for several main reasons: the drone
+detects that the battery level is at the safe limit to be able to
+exit the tunnel, or it detects that there are no new areas to
+explore because the map is completely closed. In both cases,
+the trigger will be autonomous; or the operator requests a
+return to the take-off point.
+For safety reasons, the maximum exploration path length
+was set to 8 meters, ensuring the UAV maintained adequate
+clearance from walls and obstacles while keeping its trajec-
+tory centered within the tunnel. To minimize exploration time
+and sustain high speeds, each subsequent path was generated
+several meters before the UAV completed the current one.
+After repeating the experiment a number of times with
+satisfactory results, it has been found that the most efficient
+way in terms of movement dynamics is a speed of 1.5m/s
+and an acceleration of 0.75m/s2 during the exploration
+phase. During the return phase, given that the environment is
+assumed to be familiar and there is less chance of obstacles
+appearing, the decision is made to navigate faster, specifically
+at a speed of 2.5m/s and an acceleration of 1.25m/s2. These
+dynamic conditions mean that the aircraft travels from the
+outside of the tunnel in exploration conditions to the end of
+the tunnel, at the excavation front, in 310 seconds. As for the
+exit, again, it is completed in around 170 seconds. This means
+that the entire operation, from the moment the drone enters
+the tunnel until it exits, completely autonomously, takes 480
+seconds.
+Fig. 4 depicts a moment during autonomous operation
+inside the tunnel under these visibility conditions. The left
+image shows the filtered point cloud in red and the removed
+dust points in green, while the right image shows the aerial
+robot, highlighted in red, operating within the dust-laden
+environment as observed from outside the tunnel.
+Fig. 4.
+Visualization of a moment during autonomous navigation with
+degraded visibility conditions
+In Fig. 5 is shown the route generated by the global
+planning system in the second phase of the mission, the return
+to the takeoff point.
+B. Real-Time 3D Mapping
+A further strength of the proposed work is its ability to
+generate real-time 3D maps of the environment, allowing the
+operator to make use of them when the aerial robot exits the
+tunnel. In Fig. 6 is shown an overlapping between Ground-
+Truth cloud and the one generated by the aerial robot.
+To further quantify the geometric fidelity of the UAV-
+generated map, a cloud-to-cloud (C2C) distance analysis
+was performed against the LEICA Total Station reference
+model. This metric computes, for every point in the UAV
+cloud, the Euclidean distance to its nearest neighbour in the
+ground-truth model, thereby providing a per-point measure
+262
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+Fig. 5. Visualization of the return path to the takeoff point when the aircraft
+reaches the end of the tunnel. (Pink line inside the 3D tunnel map)
+of the spatial deviation between the reconstructed and the
+reference geometry. The resulting error distribution yields a
+mean accuracy of 0.19 m, a root-mean-square (RMS) error
+of 0.60 m, and a standard deviation of 0.57 m. In Fig. 7,
+each point is colour-coded according to this distance, where
+green denotes low error and red indicates higher deviations;
+the colour scale is clamped at the 95th percentile to enhance
+contrast in the dominant error range. The heatmap reveals
+that the central sections of the gallery exhibit consistently
+low deviations, benefiting from the strong geometric priors
+provided by the tunnel walls to the odometry algorithm. In
+contrast, the two regions with the highest error correspond to
+the tunnel entrance and the excavation front, each attributable
+to a distinct cause.
+At the tunnel entrance, the increase in error is due to
+vegetation and surrounding objects that were captured by the
+UAV’s LiDAR scanner but do not appear in the total station
+model, as the environment at the tunnel entrance has changed
+due to the time difference of a couple of years between the
+two maps. At the excavation front, the discrepancy originates
+from the temporal gap between the two surveys: the ground-
+truth model was generated approximately two years prior to
+the UAV mission, during which period the tunnel advanced
+beyond the geometry recorded by the Total Station. Conse-
+quently, the excavation front captured by the UAV has no cor-
+responding reference surface, producing large C2C distances
+that do not reflect an actual mapping inaccuracy but rather
+a genuine geometric change in the environment. Excluding
+these two boundary regions, the core tunnel reconstruction
+demonstrates a high degree of geometric consistency with the
+reference model, confirming that autonomous aerial scanning
+provides sufficient precision for progress monitoring in drill-
+and-blast tunneling operations.
+It is important to note that, in addition to the metrics
+obtained, the total station map took approximately two days
+to capture the data and generate the 3D map, while the map
+generated by the drone was available as soon as the aircraft
+left the tunnel. In other words, the time it takes to generate
+the map with the UAV is the same as the time it takes to
+perform the scan, which in this case is around 480 seconds.
+V. CONCLUSIONS
+This paper presented a fully autonomous UAV system
+capable of exploration and high-fidelity 3D mapping in
+GNSS-Denied underground tunnels under severe visibility
+degradation caused by airborne dust. By tightly integrating
+LiDAR–inertial odometry, real-time intensity-based dust fil-
+tering, reactive exploration planning, and onboard guidance
+and control, the system demonstrated reliable autonomous
+operation in conditions where both visual and conventional
+LiDAR-based approaches typically fail. Experimental valida-
+tion in a real mining tunnel under simulated post-blast con-
+ditions confirmed the robustness of the proposed approach.
+The system achieved a mean geometric accuracy of 0.19
+m with respect to surveying-grade Total Station ground truth,
+while completing a full autonomous exploration and return
+mission in under eight minutes. Compared to traditional
+surveying workflows requiring days of on-site work and
+human exposure, the proposed UAV-based solution provides
+near-immediate availability of dense 3D tunnel maps. This
+capability is particularly relevant for underground construc-
+tion and mining industries, where accurate and timely digital
+representations of tunnel geometry are critical for progress
+monitoring, safety assessment, and decision-making during
+post-blast operations.
+Future work will focus on extending the system to more
+complex tunnel networks with branches and intersections,
+as well as increasing robustness under even denser par-
+ticulate conditions. Additional research will also address
+long-duration missions through multi-robot cooperation and
+improved energy management, and the integration of se-
+mantic mapping to enrich geometric reconstructions with
+structural and safety-related information. These developments
+aim to further advance autonomous aerial inspection as a
+practical tool for routine deployment in active underground
+construction environments.
+ACKNOWLEDGMENTS
+This paper and the research behind it would not have
+been possible without all the work of assembly and design
+of the aerial platform developed by CATEC technicians
+and engineers. Also, we thank Jos´e Ignacio Murillo for his
+work during the integration tests and his support during all
+this development. Finally, I also would like to express my
+gratitude to CATEC’s safety pilot Manuel Barbero. This work
+has been carried out within the context of the BEEYONDERS
+project, funded by the European Commission under contract
+101058548.
+SUPPLEMENTARY MATERIAL
+The accompanying video demonstrates the capability of
+autonomous exploration under visually degraded conditions
+and mapping, covering the experiments detailed in Sec-
+tion IV. It is available at: https://youtu.be/9VqQY5X15tA.
+263
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+0
+50
+100
+150
+200
+250
+300
+350
+400
+Depth from entrance (m)
+−20
+0
+20
+40
+60
+Lateral position (m)
+UAV Map
+Total Station (GT)
+Fig. 6. Top view overlay of the UAV-generated 3D map (red) and the LEICA Total Station ground truth (blue). The tunnel entrance is on the right. The
+additional geometry captured by the UAV on the right beyond the ground-truth boundary corresponds to the tunnel advance between both surveys.
+0
+50
+100
+150
+200
+250
+300
+350
+Depth from entrance (m)
+−25
+0
+25
+Lateral position (m)
+(a) Top View — Accuracy Error
+0
+50
+100
+150
+200
+250
+300
+350
+Depth from entrance (m)
+0
+10
+Vertical position (m)
+(b) Side View — Accuracy Error
+0,0
+0,1
+0,2
+0,3
+0,4
+0,5
+Distance to ground truth (m)
+Fig. 7. Cloud-to-cloud accuracy error between the UAV map and the ground
+truth. Top: plan view; bottom: longitudinal profile.
+REFERENCES
+[1] Ruodan Zhang, Guoliang Hao, Kangle Zhang, and Zhanxiao Li.
+Reactive uav-based automatic tunnel surface defect inspection with
+a field test. Automation in Construction, 163:105424, 2024.
+[2] H´ector Azp´urua, Maur´ıcio Saboia, Gustavo M Freitas, Lillian Clark,
+Ali-akbar Agha-mohammadi, Gustavo Pessin, Mario FM Campos,
+and Douglas G Macharet. A survey on the autonomous exploration
+of confined subterranean spaces: Perspectives from real-world and
+industrial robotic deployments.
+Robotics and Autonomous Systems,
+160:104304, 2023.
+[3] Tixiao Shan, Brendan Englot, Drew Meyers, Wei Wang, Carlo Ratti,
+and Daniela Rus. Lio-sam: Tightly-coupled lidar inertial odometry via
+smoothing and mapping. In IEEE/RSJ International Conference on
+Intelligent Robots and Systems (IROS), pages 5135–5142, 2020.
+[4] Wei Xu, Yixi Cai, Dongjiao He, Jiarong Lin, and Fu Zhang. Fast-lio2:
+Fast direct lidar-inertial odometry.
+IEEE Transactions on Robotics,
+38(4):2053–2073, 2022.
+[5] Patrick Pfreundschuh, Helen Oleynikova, Cesar Cadena, Roland Sieg-
+wart, and Olov Andersson.
+Coin-lio: Complementary intensity-
+augmented lidar inertial odometry. In IEEE International Conference
+on Robotics and Automation (ICRA), pages 1730–1737, 2024.
+[6] Danilo Tardioli, Luis Riazuelo, Teresa Seco, Jorge Espelos´ın, Juan
+Lalana, Jos´e Luis Villarroel, and Luis Montano. A robotized dumper
+for debris removal in tunnels under construction. In ROBOT 2017:
+Third Iberian Robotics Conference, pages 126–139. Springer, 2018.
+[7] Manuel Mascar´o, Ignacio Parra-Tsunekawa, C´esar Tampier, and Javier
+Ruiz-del Solar.
+Topological navigation and localization in tun-
+nels—application to autonomous load-haul-dump vehicles operating
+in underground mines. Applied Sciences, 11(14):6547, 2021.
+[8] Robin Heinzler, Florian Piewak, Philipp Schindler, and Wilhelm Stork.
+Cnn-based lidar point cloud de-noising in adverse weather.
+IEEE
+Robotics and Automation Letters, 5(2):2514–2521, 2020.
+[9] Marco Tranzatto, Frank Mascarich, Shehryar Khattak, Timon Dang,
+Christos Papachristos, Kostas Alexis, and Roland Siegwart.
+Het-
+erogeneous ground and air platforms, homogeneous sensing: Team
+cerberus wins the darpa subterranean challenge.
+arXiv preprint
+arXiv:2207.04914, 2022.
+[10] Ruodan Zhang, Andong Ouyang, and Zhanxiao Li.
+Automatic uav
+inspection of tunnel infrastructure in gps-denied underground envi-
+ronment.
+In International Conference on Smart Infrastructure and
+Construction, pages 519–526, 2023.
+[11] Patrick Pfreundschuh, Helen Oleynikova, Cesar Cadena, Roland Sieg-
+wart, and Olov Andersson.
+Coin-lio: Complementary intensity-
+augmented lidar inertial odometry.
+In 2024 IEEE International
+Conference on Robotics and Automation (ICRA), pages 1730–1737,
+2024.
+[12] Frank Dellaert and GTSAM Contributors. borglab/gtsam, May 2022.
+[13] Hyungtae Lim, Daebeom Kim, Gunhee Shin, Jingnan Shi, Ignacio
+Vizzo, Hyun Myung, Jaesik Park, and Luca Carlone. KISS-Matcher:
+Fast and Robust Point Cloud Registration Revisited. In Proc. IEEE
+Int. Conf. Robot. Automat., 2025. Accepted. To appear.
+[14] Yunfan Ren, Yixi Cai, Fangcheng Zhu, Siqi Liang, and Fu Zhang.
+Rog-map: An efficient robocentric occupancy grid map for large-scene
+and high-resolution lidar-based motion planning. In 2024 IEEE/RSJ
+International Conference on Intelligent Robots and Systems (IROS),
+pages 8119–8125, 2024.
+[15] Tung Dang, Frank Mascarich, Shehryar Khattak, Christos Papachris-
+tos, and Kostas Alexis. Graph-based path planning for autonomous
+robotic exploration in subterranean environments. In 2019 IEEE/RSJ
+International Conference on Intelligent Robots and Systems (IROS),
+pages 3105–3112, 2019.
+[16] Boyu Zhou, Fei Gao, Luqi Wang, Chuhao Liu, and Shaojie Shen. Ro-
+bust and efficient quadrotor trajectory generation for fast autonomous
+flight. IEEE Robotics and Automation Letters, 4(4):3529–3536, 2019.
+[17] Boyu Zhou, Fei Gao, Jie Pan, and Shaojie Shen. Robust real-time uav
+replanning using guided gradient-based optimization and topological
+paths. arXiv preprint arXiv:1912.12644, 2019.
+[18] J.I. Murillo, M.A. Montes, R. Zahinos, M.A. Trujillo, A. Viguria,
+and G. Heredia.
+Simplifying autonomous aerial operations: Lucas,
+a lightweight framework for uav control and supervision.
+In 2025
+International Conference on Unmanned Aircraft Systems (ICUAS),
+pages 854–861, 2025.
+264
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:06 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

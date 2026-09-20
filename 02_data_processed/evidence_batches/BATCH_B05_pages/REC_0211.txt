@@ -1,0 +1,1436 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0211.pdf
+sha256: E5BF7072E4E51BD61C1F5E4DA2543C8E3186D8F5F133989B01A12695C286AC2F
+library: pymupdf (fitz) v1.28.2
+pages: 12
+=== BEGIN ===
+[p.1]
+14570
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 7, 1 APRIL 2026
+SIA-KalmanNet: A Structurally Integrated Attention
+Kalman Filter for Multi-UAV Localization in
+Partially GNSS-Denied Environments
+Xiuli Xin , Hongyu Zhou , Xiaoxue Feng , Feng Pan , Jiacheng Wang , and Zhenxu Li
+Abstract—Cooperative localization is an essential task in
+multiple uncrewed aerial vehicle (UAV) networks, especially
+in environments with partial global navigation satellite system
+(GNSS) denial. By eﬀectively integrating low-precision inertial
+navigation system (INS)-derived priors, inter-UAV relative dis-
+tances, and sparse anchor-based measurements, the extended
+Kalman ﬁlter (EKF) can be employed for UAV localization.
+However, localization accuracy suﬀers under nonlinear dynam-
+ics and inaccurate knowledge of process and measurement
+noise statistics. To address these challenges, this article pro-
+poses a structurally integrated attention Kalman ﬁlter called
+SIA-KalmanNet for accurate and robust state estimation. By
+combining state-space models with attention-based neural net-
+works in the Kalman ﬂow, the estimator preserves the data
+eﬃciency and interpretability of traditional model-driven meth-
+ods while implicitly learning second-order covariance matrices
+from data. Speciﬁcally, two networks are devised to learn the
+Kalman gain: the self-attention residual masked network (SA-
+RMN) and the self-cross attention residual masked network
+(SCA-RMN). Among them, SA-RMN is a lightweight network for
+end-to-end state estimation. SCA-RMN introduces masked cross-
+attention to adaptively fuse forward state features and backward
+historical correction information to obtain a more precise state
+estimate. Furthermore, a practical training strategy based on
+sliding window and causal masking is developed to ensure eﬃ-
+cient training and real-time inference. The experimental results
+show that the proposed algorithm achieves superior localization
+performance compared to the traditional EKF and KalmanNets.
+Moreover, it exhibits strong robustness against INS drift and
+non-line-of-sight (NLOS)-induced distance errors, even in harsh
+environments where only a limited number of UAVs can access
+GNSS signals.
+Index Terms—Cooperative localization, deep learning, Kalman
+ﬁlter, multisource information fusion, Transformer.
+I. INTRODUCTION
+M
+ULTIPLE uncrewed aerial vehicle (Multi-UAV) net-
+works have wide applications in ﬁelds such as disaster
+response [1], smart agriculture [2], and communication relay
+[3], [4]. Accurate and robust localization of UAVs is critical
+for the safe execution of follow-up tasks [5]. The most
+Received 24 October 2025; revised 8 December 2025; accepted 25 Decem-
+ber 2025. Date of publication 1 January 2026; date of current version 26 March
+2026. This work was supported by the National Natural Science Foundation
+of China under Grant 62261160575, Grant 61991414, and Grant 61973036.
+(Corresponding authors: Feng Pan; Xiaoxue Feng.)
+Xiuli Xin, Hongyu Zhou, Xiaoxue Feng, Feng Pan, and Jiacheng Wang
+are with the School of Automation, Beijing Institute of Technology, Beijing
+100081, China (e-mail: 3220235116@bit.edu.cn; 3120230778@bit.edu.cn;
+fengxiaoxue@bit.edu.cn; panfeng@bit.edu.cn; 3220225163@bit.edu.cn).
+Zhenxu Li is with SDIC Yunnan Dachaoshan Hydropower Company Ltd.,
+Kunming 650021, China (e-mail: 441592630@qq.com).
+Digital Object Identiﬁer 10.1109/JIOT.2026.3650118
+widely used localization technique for UAVs relies on the
+global navigation satellite system (GNSS). However, in harsh
+environments such as urban canyons, dense forests, or disaster
+zones with collapsed buildings, reliable GNSS signals for
+every UAV are not guaranteed [5], [6], [7]. In addition, in sce-
+narios involving GNSS spooﬁng attacks, only a limited number
+of UAVs may retain reliable positioning, while the rest must
+rely on inter-UAV communication links to exchange relative
+measurements and estimate their positions [8]. This hetero-
+geneity motivates the development of multi-UAV cooperative
+localization [9], [10], which fuses multisensor information
+across UAVs.
+The Bayesian ﬁlters have been widely employed in coop-
+erative localization for multi-UAV networks. These methods
+aim to extract a hidden state from indirect and uncertain
+measurements, with the primary objective of minimizing
+state estimation errors while counteracting uncertainties and
+perturbations [11]. To mention a few, Qu and Zhang [12]
+developed a cooperative localization algorithm based on inter-
+UAV relative distances, which employs an adaptive Kalman
+ﬁlter to select the optimal reference point for minimizing
+the horizontal dilution of precision (HDOP), thus enhanc-
+ing accuracy in GNSS-denied environments. The method
+in [13] introduced a robust decentralized cooperative local-
+ization (RDCL) framework, which enhances the extended
+Kalman ﬁlter (EKF) by adaptively fusing measurement data
+contaminated by outliers, thus bolstering both accuracy and
+robustness in multirobot systems facing measurement anoma-
+lies. Song et al. [14] proposed a cooperative localization
+method that combines manifold gradient ﬁltering with geomet-
+ric dilution of precision (GDOP)-based rate regulation, thereby
+improving adaptability in challenging environments.
+These ﬁltering-based approaches are supported by solid
+theoretical foundations. However, they depend on precise
+dynamic models and idealized assumptions, making them
+vulnerable to model mismatch and sensor failures [15]. In
+multi-UAV cooperative networks with partial GNSS signal
+loss, system dynamics are often highly nonlinear and uncer-
+tain, challenging the applicability of model-based ﬁlters [16],
+particularly when considering the long-term correlated and
+cross-node error behaviors inherent to distributed navigation
+systems [17]. Furthermore, inertial navigation systems (INSs)
+accumulate drift overextended ﬂights, and wireless localiza-
+tion techniques such as time of arrival (TOA) and time
+diﬀerence of arrival (TDOA) perform poorly in obstructed
+or non-line-of-sight (NLOS) environments [18], revealing
+the limitations in robustness. To enhance the accuracy and
+2327-4662 © 2026 IEEE. All rights reserved, including rights for text and data mining, and training of artiﬁcial intelligence and
+similar technologies. Personal use is permitted, but republication/redistribution requires IEEE permission.
+See https://www.ieee.org/publications/rights/index.html for more information.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:41 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+XIN et al.: SIA-KalmanNet FOR MULTI-UAV LOCALIZATION IN PARTIALLY GNSS-DENIED ENVIRONMENTS
+14571
+robustness of the estimation, advanced variants such as particle
+and manifold-based ﬁlters have been developed. Nevertheless,
+their substantial computational and communication demands
+[19] restrict scalability to large UAV swarms [20], [21].
+Consequently, conventional Bayesian ﬁlters struggle to deliver
+reliable performance once idealized assumptions are relaxed.
+This underscores the need for methods that remain eﬀective in
+nonlinear, uncertain, and degraded sensing environments [22].
+In recent years, deep learning-based methods have gradually
+achieved empirical success in real-world applications [23].
+These methods eliminate the reliance on precise mathematical
+descriptions of system dynamics and the characteristics of
+noise distribution through end-to-end data-driven neural net-
+works, thereby mitigating performance degradation caused by
+model assumption deviations and inaccurate noise statistics in
+traditional ﬁlter-based methods [24]. Considerable deep learn-
+ing approaches have been devoted to multi-UAV localization.
+For instance, Li et al. [25] proposed a self-supervised monoc-
+ular vision framework for multirobot relative localization that
+uses training data from ultrawideband (UWB) to enable the
+neural network to predict 3-D relative positions, thus sup-
+porting scalable localization in GNSS-denied environments.
+In [26], a multi-UAV cooperative tracking algorithm based on
+deep neural networks (DNNs) was introduced, which actively
+selects the most informative regions in images to enhance the
+detection accuracy of small-scale and distant targets, achieving
+eﬃcient and continuous aerial visual tracking. Additionally, Lu
+et al. [27] presented a communication-constrained multirobot
+intelligent collaborative exploration (CMICE) framework that
+reduces bandwidth usage via a nonessential noncommunica-
+tion (NENC) mechanism, thereby improving the eﬃciency and
+adaptability of cooperative exploration under communication
+constraints. However, these end-to-end approaches are often
+viewed as “models with limited interpretability,” as they
+rely on statistical correlations rather than explicit physical
+models, leading to limited interpretability and generalization
+and increased sensitivity to dynamic or noise variations [24].
+The limitations of both ﬁltering-based and deep learning-
+based methods have motivated the development of hybrid
+approaches. By combining the interpretability of ﬁltering
+with the model-free nature of deep learning, these methods
+achieve superior performance. The most representative method
+is KalmanNet [22], [28], [29], [30], [31], which uses DNNs
+to learn the Kalman gain for state estimation in partially
+nonlinear dynamic systems. For instance, [22] introduced
+a KalmanNet algorithm that integrates gated recurrent unit
+(GRU) [32] with a Kalman ﬁlter, enhancing adaptability
+to model mismatch and nonlinearity. The Split-KalmanNet
+algorithm [30] employed a split-structure recurrent neural
+network (RNN) to adaptively learn both prior state estimates
+and an innovation covariance matrix, thereby compensating for
+model mismatches and signiﬁcantly improving state estimation
+accuracy. In [31], the RKFNet method integrated a robust
+Kalman ﬁlter with deep learning, using a neural network and
+unsupervised scheduling sampling (USS) to enhance estima-
+tion stability and accuracy under heavy-tailed noise.
+It is worth noting that most KalmanNet methods com-
+bine RNNs with Kalman ﬁltering to enhance temporal data
+processing. However, vanishing gradients [33] and opaque
+hidden states limit their ability to capture complex long-term
+interactions in multi-UAV systems [34]. Beyond algorithmic
+limitations, multi-UAV interactions in partially GNSS-denied
+environments are further shaped by system-level constraints,
+including heterogeneous capabilities [35], [36], intermit-
+tent communication [37], and limited resources [38]. These
+constraints give rise to asynchronous, context-dependent inter-
+actions that classical RNN-based KalmanNet architectures
+struggle to capture.
+In contrast, the Transformer architecture [39] is more suit-
+able for modeling the complex interactions challenging for the
+aforementioned architectures. By leveraging self-attention and
+cross-attention mechanisms [40], this architecture eﬀectively
+captures long-range temporal correlations, thereby strength-
+ening sequential information modeling and facilitating robust
+interactive feature extraction [41]. Moreover, although most
+deep learning-assisted ﬁltering methods typically rely on
+supervised learning, the limited availability of ground-truth
+data in mission-critical environments can be mitigated through
+pretraining [42] and online adaptation [43], suggesting that
+such hybrid architectures remain broadly applicable. For
+instance, FormerReckoning [44] combined physics-informed
+priors with a Transformer to enhance inertial localization,
+though its performance remains constrained by IMU data
+limitations. A-KIT [45] integrated a Transformer with the
+EKF to adaptively learn process noise in real time, improving
+fusion accuracy but exhibiting limited generalization to unseen
+conditions. KalmanFormer [46] introduced a Transformer-
+based model that learns the Kalman gain directly from data
+without prior noise parameters, but its end-to-end regression
+design lacks second-order covariance propagation constraints,
+resulting in a higher level of abstraction. Therefore, exploring
+the eﬀective integration of Kalman ﬁltering and Transformer-
+based attention mechanisms is a promising research direction
+for accurate and robust multi-UAV localization in partially
+GNSS-denied environments.
+According
+to
+the
+issues
+mentioned
+above,
+we
+pro-
+pose a structurally-integrated attention Kalman ﬁlter (SIA-
+KalmanNet) for cooperative localization in partially GNSS-
+denied environments. This algorithm leverages low-precision
+attitude and velocity data from the INS to produce prior
+estimates and determines each UAV’s position based on rela-
+tive distances and the position information of several anchor
+UAVs. To achieve high-quality Kalman information gain, we
+have designed two novel network architectures: the lightweight
+self-attention residual masked network (SA-RMN) and the
+high-precision self-cross attention residual masked network
+(SCA-RMN), which enhance the model’s ability to capture
+interaction features and temporal information. This method
+enables an accurate state estimate for nonlinear dynamical
+systems without relying on the explicit modeling of process or
+measurement noise distributions. The main contributions are
+summarized as follows.
+1) Attentive Kalman Gain Computation: To overcome the
+limitations of RNN hidden states in handling long-term
+timing information and inter-UAV interaction features,
+the proposed SIA-KalmanNet directly and interpretably
+associates all the state evolution process and the uncer-
+tainty in state estimation via attention weights, enabling
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:41 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+14572
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 7, 1 APRIL 2026
+Fig. 1. Principle of multi-UAV localization system in partially GNSS-denied environments.
+accurate and robust localization without explicit noise
+modeling.
+2) Structurally Constrained Self–Cross Attention Network:
+The SCA-RMN is designed to use masked self-
+cross attention modules in the Kalman gain estimation
+while aligning with the information ﬂow of EKF.
+This design adaptively fuses forward state features
+and backward historical information, preserving the
+interpretability of covariance propagation while achiev-
+ing more accurate state estimates under nonlinear
+dynamics.
+3) Sliding-Window–Causal Masked Training Framework:
+A temporally structured training framework for learning
+the Kalman gain is developed by integrating sliding-
+window segmentation with causal masking, ensuring
+temporal causality and consistency with the estimation
+process. This design improves training stability and
+computational eﬃciency, leading to enhanced conver-
+gence stability under varying data quality and quantity
+conditions.
+The remainder of this article is organized as follows. The
+problem statement and preliminaries are introduced in Sec-
+tion II, and the proposed localization algorithm is given in
+Section III. Experiment results are provided in Section IV,
+and Section V is a summary.
+II. PROBLEM STATEMENT AND PRELIMINARIES
+Consider a UAV swarm with N UAVs, where n1 UAVs have
+their own position information and are called anchor UAVs.
+The remaining n2 = N −n1 UAVs are in an environment
+where GNSS signals are lost, referred to as unknown UAVs.
+Let ν and ξ represent their respective sets. Thus, we can
+describe i ∈ν, i ∈ξ. Assume that at time t, the state of
+the ith UAV is denoted as xi,t = [pxi,t, pyi,t, pzi,t]T, con-
+taining the UAV’s position information in a 3-D coordinate
+system. The global spatial conﬁguration of the UAVs is
+Ω= col(x1,t, x2,t, . . . , xN,t) ∈R3N, which varies with time.
+A. Dynamic Model
+As illustrated in Fig. 1, for the above system composed of
+N UAVs, the discrete state kinematic equation for the ith UAV
+is
+xi,t = f
+ xi,t−1, ui,t
+
++ wi,t
+=
+2
+4
+pxi,t−1 + vi,t cos θi,t cos ψi,t∆t
+pyi,t−1 + vi,t cos θi,t sin ψi,t∆t
+pzi,t−1 + vi,t sin θi,t∆t
+3
+5 + wi,t
+(1)
+where ui,t = [vi,t, θi,t, ψi,t]T represents the control vector of the
+ith UAV at time t, containing linear velocity vi,t, yaw angle
+θi,t, and pitch angle ψi,t. ∆t represents the time step, and wi,t
+is the process noise with unknown distribution.
+B. Measurement Model
+In a multi-UAV system, anchor UAVs can obtain accurate
+GNSS observations to serve as global position References.
+Unknown UAVs that cannot access GNSS signals update their
+positions by measuring distances to anchor UAVs with known
+locations.
+The GNSS observation equation for anchor UAV n1 ∈ν at
+time t is as follows:
+yn1,t = h
+ xn1,t
+
++ ζn1,t =
+2
+4
+1
+0
+0
+0
+1
+0
+0
+0
+1
+3
+5 xn1,t + ζn1,t.
+(2)
+For a UAV n2 ∈ξ without GNSS access, relative-distance
+observations dn12 can be obtained from neighboring anchor
+UAVs n1
+∈ν within its communication radius rn2. The
+neighbor set is deﬁned as Υn2 = { n2 ∈ν, n2 , n1 ∪dn12 < rn2 }.
+The distance observation equation for UAV n2 with respect to
+neighbor n1 ∈Υn2 is expressed as
+yn12,t = h
+ xn2,t
+
++ µn2,t
+=
+
+
+xn1,t −xn2,t
+
+
+ + µn2,t
+(3)
+where µn2,t represents the distance measurement noise and
+∥·∥represents the Euclidean norm. For UAV n2, the distance
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:41 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+XIN et al.: SIA-KalmanNet FOR MULTI-UAV LOCALIZATION IN PARTIALLY GNSS-DENIED ENVIRONMENTS
+14573
+Fig. 2. Schematic of EKF for sensor fusion.
+measurement vector with neighboring anchor UAVs at time t
+is denoted as yn2,t = { yn12,t : n2 ∈ξ, n1 ∈Υn2}.
+C. Preliminaries: EKF
+The EKF is a state estimator widely used in multisensor
+fusion applications. Based on the aforementioned state-space
+model, the ﬁlter can be divided into prediction and update
+phases. As shown in Fig. 2, during the prediction phase,
+the system obtains prior information by fusing attitude and
+velocity information provided by the INS. During the update
+phase, the system corrects position using high-precision sensor
+information (e.g., GNSS or interaircraft ranging). In practice,
+such sensors are low frequency but high precision, constituting
+a widely used loosely coupled localization scheme that com-
+plements the high-frequency yet drift-prone INS prior [24].
+The state estimation process comprises two stages: prediction
+and update.
+In the prediction phase, the control input ui,t, the prior
+estimate ˆxi,t−1|t−1, and its covariance Pi,t−1|t−1 are used to predict
+the state vector ˆxi,t|t−1 and covariance Pi,t|t−1, as shown in the
+following:
+ˆxi,t|t−1 = f
+ ˆxi,t−1|t−1, ui,t
+
+(4a)
+Pi,t|t−1 = Fi,tPi,t−1|t−1FT
+i,t + Qi,t
+(4b)
+where Fi,t is the Jacobian matrix of f(·) at ˆxi,t|t−1 and Qi,t is
+the process noise covariance matrix.
+In the update stage, the updated state estimate ˆxi,t|t and
+covariance Pi,t|t are calculated as follows:
+ˆyi,t|t−1 = h
+ ˆxi,t|t−1
+
+(5a)
+Si,t = Hi,tPi,t|t−1HT
+i,t + Ri,t
+(5b)
+Ki,t = Pi,t|t−1HT
+i,tS−1
+i,t
+(5c)
+ˆxi,t|t = ˆxi,t|t−1 + Ki,t
+ yi,t −ˆyi,t|t−1
+
+(5d)
+Pi,t|t =
+ I −Ki,tHi,t
+
+Pi,t|t−1
+(5e)
+where Si,t is the measurement innovation covariance, Hi,t is
+the Jacobian matrix of h(·) at ˆxi,t|t−1, Ri,t is the measurement
+noise covariance matrix, and Ki,t is the Kalman gain.
+Through the two stages of prediction and update, the EKF
+can achieve eﬃcient state estimation. However, it requires a
+Fig. 3. Schematic of SIA-KalmanNet for sensor fusion. At time step t, the
+available statistical information for state features includes ∆exi,t−1 and ∆ˆxi,t−1.
+full understanding of the underlying model. When the model
+exhibits high nonlinearity, the local linearity approximation
+and the modeling of the second-order covariance matrix may
+become insuﬃcient, potentially leading to a degradation in the
+EKF’s performance. Therefore, without relying on measure-
+ment noise and process noise modeling, this article proposes
+an SIA-KalmanNet framework aiming at accurate and robust
+UAV localization under nonlinear dynamics in partially GNSS-
+denied environments.
+III. PROPOSED LOCALIZATION MODEL
+A. Information Flow of SIA-KalmanNet
+In this section, a hybrid, interpretable, data-driven SIA-
+KalmanNet framework is proposed for the state estimate
+of nonlinear dynamic systems. As illustrated in Fig. 3, the
+algorithm comprises two stages: prediction and update. In
+the prediction part, similar to the classical EKF, the state
+vector ˆxi,t|t−1 and measurement prior ˆyi,t|t−1 are calculated
+through (4a) and (5a). The state transition equation f(·) and
+the observation model h(·) are assumed to be known, although
+they may not be completely accurate. In the update part, the
+traditional EKF requires covariance matrices to update the
+Kalman gain. In contrast, the proposed SIA-KalmanNet lever-
+ages the learning capability of attention-based neural networks
+to learn the diﬀerences between prior values and observations,
+thereby obtaining appropriate Kalman gain ˆKi,t(Θ). Θ is the
+set of trainable neural network parameters. This data-driven
+approach does not require precise modeling of covariance
+matrices, which is its key distinguishing feature from tradi-
+tional ﬁltering methods. Finally, the state is calculated as
+ˆxi,t|t = ˆxi,t|t−1 + ˆKi,t (Θ)
+ yi,t −ˆyi,t|t−1
+
+.
+(6)
+By integrating Kalman ﬁltering with an attention-based
+neural network, the proposed model combines model-based
+reasoning with data-driven adaptability. The Kalman frame-
+work preserves the physically interpretable propagation of
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:41 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+14574
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 7, 1 APRIL 2026
+states and uncertainties, while the attention network adaptively
+captures complex and time-varying noise characteristics that
+are diﬃcult to model analytically. This synergy enables the
+estimator to achieve both interpretability and robustness under
+nonlinear and uncertain conditions.
+B. Design of Input Features
+SIA-KalmanNet learns more accurate Kalman gains through
+neural networks. Therefore, designing high-quality features
+is crucial for improving the model’s learning capability. The
+Kalman gain determines the weighting between predicted and
+measured values. To this end, SIA-KalmanNet employs four
+diﬀerential features as inputs: observation diﬀerence ∆eyi,t,
+innovation diﬀerence ∆yi,t, forward evolution diﬀerence ∆exi,t,
+and forward update diﬀerence ∆ˆxi,t. These features form the
+input vector φi,t = {∆eyi,t, ∆yi,t, ∆exi,t, ∆ˆxi,t}, which estimates
+the Kalman gain Ki,t while implicitly learning the covariance
+matrices Q, R, and P
+∆exi,t = ˆxi,t|t −ˆxi,t−1|t−1,
+∆ˆxi,t = ˆxi,t|t −ˆxi,t|t−1
+(7a)
+∆eyi,t = yi,t −yi,t−1,
+∆yi,t = yi,t −ˆyi,t|t−1.
+(7b)
+For state features at time t, the available feature information
+includes ∆exi,t−1 and ∆ˆxi,t−1. Among the four designed features,
+∆eyi,t and ∆exi,t contain information about the state evolution
+process, while ∆yi,t and ∆ˆxi,t−1 reﬂect the uncertainty in state
+estimation.
+In multi-UAV cooperative localization under partial GNSS
+denial, the position of UAVs at the next moment can be
+aﬀected by their historical motion state. Therefore, to better
+capture the UAVs’ hidden motion states, we introduce a time-
+window feature information with length w(w > 0), which is
+expressed as φhis
+i,t
+= {φi,t−w+1, φi,t−w+2, . . . , φi,t}. This design
+trades reasonable storage overhead for richer historical infor-
+mation for neural network learning.
+C. Network Structure
+Leveraging the designed input characteristics, we have
+devised two architectures for computing the Kalman gain.
+First, to achieve a lightweight design, we have developed the
+SA-RMN algorithm for end-to-end learning of the Kalman
+gain. Second, the SCA-RMN algorithm is introduced to
+enhance the interpretability of the model. By fusing forward
+dynamic features with backward correction information from
+historical observations, the network achieves improved accu-
+racy in state estimation.
+1) Architecture 1: As shown in Fig. 4, the SA-RMN
+structure employs a self-attention mechanism to calculate the
+Kalman gain through implicit joint learning of second-order
+statistical moments. First, the historical feature information
+φhis
+i,t of the ith UAV is input to the network, which contains state
+uncertainty {∆exi,τ, ∆ˆxi,τ}t
+τ=t−w+1 and measurement uncertainty
+{∆eyi,τ, ∆yi,τ}t
+τ=t−w+1. These features are processed through a
+perceptron consisting of fully connected layers and ReLU acti-
+vation functions to generate features ci = {ci
+τ}t
+τ=t−w+1, which
+are then input to the masked multihead self-attention (MMSA)
+layer containing M self-attention heads. The dimension of
+the hidden layer is set to 30 + 4n1, which is divisible by
+M. n1 denotes the number of anchor UAVs. Through matrix
+Fig. 4. Structure of the SA-RMN network.
+concatenation and multilayer neural networks, it generates a
+query vector Qi
+m, key vector Ki
+m, and value vector Vi
+m for the
+mth self-attention head. The calculations are as follows:
+Qi
+m = ciWQ
+m,
+Ki
+m = ciWK
+m,
+Vi
+m = ciWV
+m
+(8)
+where WQ
+m, WK
+m, WV
+m ∈Rdk×dk are learnable weight matrices of
+the mth self attention head.
+Based on the query vector Qi
+m, key vector Ki
+m, and value
+vector Vi
+m, the attention scores for the mth head are calculated
+as follows:
+Am
+ Qi
+m, Ki
+m, Vi
+m
+
+= softmax
+ 
+Qi
+m
+ Ki
+m
+T
+√dk
++ Mi
+!
+Vi
+m
+(9)
+where Mi is a p × p masking matrix that ensures SA-RMN can
+only utilize the current and historical feature information of
+the UAV at time τ, thus preventing future information leakage.
+It is expressed as follows:
+(Mi)r,s =
+(
+−∞,
+s > r
+0,
+elsewhere
+(10)
+where r and s are, respectively, the rows and columns of Mi.
+Based on the concatenation of outputs from M attention
+heads, the ﬁnal attention result is obtained through a linear
+transformation
+MSA
+ ci
+= cat (A1, A2, . . . , AM) Wo
+i
+(11)
+where Wo
+i is a learnable linear transformation matrix.
+To mitigate the gradient vanishing problem and accelerate
+model convergence, a residual connection and layer normal-
+ization are applied between the input and output of the MMSA
+module. Subsequently, the estimated Kalman gain
+ˆKi,t is
+produced through a perceptron.
+Remark 1: The standard softmax operation in (9) is chosen
+over linear attention for its numerical stability and probabilistic
+alignment. Its exponential normalization ensures numerical
+stability by sharpening key correlations, which is crucial for
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:41 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+XIN et al.: SIA-KalmanNet FOR MULTI-UAV LOCALIZATION IN PARTIALLY GNSS-DENIED ENVIRONMENTS
+14575
+Fig. 5.
+Structure of the SCA-RMN network. The architecture consists of
+forward and backward information ﬂows. In the forward ﬂow, state evolution
+features generate predictive candidates of the covariance matrices ˆQi,t, ˆPi,t|t−1,
+and ˆSi,t, in a manner consistent with the Kalman information ﬂow. In the
+backward ﬂow, historical information from previous windows is incorporated
+through the MMCA module to reﬁne ˆPi,t|t−1.
+learning the Kalman gain. Furthermore, its output forms a
+valid probability distribution, making the learning process
+interpretable within the Kalman ﬁlter’s Bayesian framework.
+2) Architecture 2: As shown in Fig. 5, the SCA-RMN
+network structure uses independent attention modules to learn
+each second-order statistical moment. Motivated by princi-
+ples of structured estimation and hierarchical information
+propagation [47], [48], the network combines interconnected
+attention modules and fully connected layers. Speciﬁcally,
+the MMSA1 module tracks unknown state noise covariance
+ˆQi,t by learning the input state features {∆ˆxi,τ}t
+τ=t−w+1. The
+masked multihead cross-attention (MMCA) module tracks the
+estimated covariance ˆPi,t|t−1, while the MMSA2 module tracks
+the measurement innovation covariance ˆSi,t. This modular and
+decoupled design enables explicit learning of second-order
+moments, thereby enhancing the interpretability of the overall
+inference process.
+To follow the state-space equations and the model-based
+EKF information ﬂow, the attention modules are intercon-
+nected along the forward and backward information paths. In
+the forward information ﬂow, the learned matrix ˆQi,t is used to
+estimate the matrix ˆPi,t|t−1, which is then used to estimate ˆSi,t.
+Subsequently, ˆPi,t|t−1 and ˆSi,t jointly generate the Kalman gain
+ˆKi,t. In the backward information ﬂow, the generated ˆKi,t, com-
+bined with the second-order covariance matrices ˆPi,t|t−1 and ˆSi,t
+from the forward ﬂow, serves as historical information to reﬁne
+the estimate of ˆPi,t|t−1. This interconnected design mirrors the
+recursive information propagation of the EKF, providing a
+structural correspondence with the Kalman information ﬂow.
+To eﬀectively fuse the latest state evolution features with
+historical correction information, the MMCA module incor-
+porates an inductive bias aligned with the Bayesian update
+principle underlying Kalman ﬁltering. Speciﬁcally, for the
+state evolution information of the current window ci
+c
+=
+{ci
+τ}t
+τ=t−w+1, the query vector for the cth head is generated as
+Qi
+c = ci
+cWQ
+c
+(12)
+where Qi
+c encodes a prior-oriented hypothesis of the estimate
+covariance ˆPi,t|t−1. WQ
+c
+∈Rdc×dc is a learnable parameter
+matrix. For the correction information ci
+his = {ci
+τ}p
+τ=1 from the
+historical window, the key and value vectors are computed as
+Ki
+c = ci
+hisWK
+c ,
+Vi
+c = ci
+hisWV
+c
+(13)
+where Ki
+c and Vi
+c capture historical corrections of ˆPi,t|t−1 from
+past windows and WK
+c , WV
+c ∈Rdc×dc are learnable matrices.
+The cross-attention mechanism fuses state evolution features
+with historical correction information
+Ac
+ Qi
+c, Ki
+c, Vi
+c
+
+= softmax
+ 
+Qi
+cKi
+c
+T
+√dc
++ Mi
+!
+Vi
+c.
+(14)
+The cross-attention formulation in (12)–(14) provides a
+functional analogy to the information aggregation process
+in message-passing strategies [49], where prior-oriented pre-
+dictions are adaptively weighted and fused with historical
+correction information for covariance reﬁnement. While this
+mechanism is inspired by the Bayesian update principle, its
+eﬀectiveness in facilitating multimodal information fusion and
+improving estimation accuracy is conﬁrmed by the experimen-
+tal results in Section IV-D.
+As in MMSA, the outputs of all attention heads are concate-
+nated and linearly transformed. This overall network design
+enforces a structural correspondence with the Kalman infor-
+mation ﬂow, improving both the interpretability of the network
+and the accuracy of the predicted Kalman gain compared to
+the SA-RMN framework.
+D. Training Strategy
+In the multi-UAV cooperative localization network, the
+ground truth of the Kalman gain cannot be directly obtained.
+However, the state information of each UAV is accessible.
+Following prior KalmanNet work [22], [28], [29], [30], which
+demonstrates strong empirical performance, the diﬀerence
+between the estimated state and the ground truth of the ith
+UAV’s state is taken as the constraint optimization objective
+of the loss function, which can be expressed as follows:
+L(i) =
+
+
+xi,t −ˆxi,t|t
+
+
+2 .
+(15)
+This loss function enables backpropagation of the Kalman
+gain loss to facilitate supervised training of KalmanNet
+∂L(i)
+∂Ki,t
+= ∂
+
+
+Ki,t∆yi,t −∆xi,t
+
+
+2
+∂Ki,t
+= 2
+ Ki,t∆yi,t −∆xi,t
+
+∆yT
+i,t
+(16)
+where ∆xi,t ≜xi,t −ˆxi,t|t−1. Gradient calculation demonstrates
+that Kalman gain can be learned through end-to-end training
+of the Kalman network using a squared-error loss, without
+requiring access to the ground truth of the Kalman gain.
+To ensure stability of the Kalman gain and prevent extreme
+updates that may lead to divergence, we introduce an adaptive
+bounded mapping for the network output
+Ki,t = α · tanh
+  ˆKi,t
+
+(17)
+where ˆKi,t denotes the raw network output and α is a trainable
+scaling factor.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:41 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+14576
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 7, 1 APRIL 2026
+Fig. 6. Schematic of sliding window operation with causal masking.
+To preserve temporal causality during parallel training, a
+causal masking mechanism is employed, ensuring that only the
+current and past information can be accessed at each time step
+t. Furthermore, to mitigate the computational overhead (O(n2))
+of directly applying attention mechanisms to long trajectories
+of length n, sliding-window operations partition the trajectories
+into multiple overlapping local windows. This strategy reduces
+the computational complexity to O(n × w), scaling linearly
+with the trajectory length and making it more eﬃcient for
+long-trajectory processing. Fig. 6 shows the sliding window
+operation with causal masking.
+For a cluster Ωof N UAVs observed over T time steps,
+a sliding window with width w and step size k yields Nw
+overlapping segments. The proposed algorithm processes all
+segments in parallel. For the jth window j ∈[1, Nw], the loss
+of localization error is
+L(j) =
+1
+wN
+(j−1)k+w
+X
+t=(j−1)k+1
+N
+X
+i=1
+
+
+xi,t −ˆxi,t|t
+
+
+2 .
+(18)
+Let W denote the trainable parameters of the network and λ
+the regularization coeﬃcient. Averaging L(j) over all windows
+and adding an ℓ2 penalty on W yields the epoch loss
+Lepoch = 1
+Nw
+Nw
+X
+j=1
+0
+@ 1
+wN
+( j−1)k+w
+X
+t=( j−1)k+1
+N
+X
+i=1
+
+
+xi,t −ˆxi,t|t
+
+
+2
+1
+A
++ λ ∥W∥2 .
+(19)
+Within each epoch, the loss function is computed by averag-
+ing over all sliding windows and incorporating a regularization
+term, which balances data-ﬁtting error against parameter mag-
+nitude and enhances generalization.
+This article uses the ADAM optimizer and applies gradient
+clipping during training to prevent unstable updates. The
+trained model is applied to the test set to produce state
+estimates for the multi-UAV network. The execution process
+of UAV localization is shown in Fig. 7.
+E. Network Complexity Analysis
+We conduct an asymptotic computational complexity analy-
+sis of the proposed SA-RMN and SCA-RMN architectures. Let
+w, dSA, dSCA, M, and C denote the sliding-window length, the
+feature dimensions of SA-RMN and SCA-RMN, the number
+Fig. 7. Execution ﬂow of the proposed SIA-KalmanNet.
+of self-attention heads, and the number of cross-attention
+heads in SCA-RMN, respectively. The SA-RMN contains one
+MMSA module and fSA feedforward layers, resulting in a
+per-window complexity of O(Mw2dSA + fSAwd2
+SA). The SCA-
+RMN includes two MMSA modules, one MMCA module,
+and fSCA feedforward layers, leading to O((2M +C)w2dSCA +
+fSCAwd2
+SCA). Both networks share the same asymptotic order
+O(w2d + wd2), where d denotes the feature dimension.
+Meanwhile, SCA-RMN incurs a higher constant factor due
+to its additional attention modules.
+IV. EXPERIMENT AND ANALYSIS
+A. Setups
+To evaluate the eﬀectiveness of the proposed algorithm,
+we construct a localization dataset for a UAV network based
+on public trajectory data [50]. Fig. 8 illustrates the swarm
+trajectories, which exhibit variability in motion behaviors
+and spatial distributions. At the initial time step, the UAV
+network consists of 18 UAVs ﬂying within a 3-D space of
+500 × 500 × 500 m, including 8 anchor UAVs with GNSS
+capability and 10 UAVs without GNSS, where the GNSS
+availability of each UAV evolves according to a state transition
+matrix P =
+0.9 0.1
+0.1 0.9
+
+between GNSS-available and GNSS-
+unavailable states. The dataset contains inertial navigation data
+sampled at 100 Hz, relative-distance measurements between
+neighboring UAVs sampled at 5 Hz, GNSS observations for
+anchor UAVs sampled at 5 Hz, and ground-truth position
+labels. The GNSS observation noise standard deviation for
+anchor UAVs is 10 m, and the relative-distance observation
+noise standard deviation between neighboring UAVs is 3 m;
+both follow zero-mean Gaussian distributions. The measure-
+ment noise standard deviations for velocity and attitude angles
+are 1 m/s and 0.5◦, respectively. Neighboring UAV pairs
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:41 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+XIN et al.: SIA-KalmanNet FOR MULTI-UAV LOCALIZATION IN PARTIALLY GNSS-DENIED ENVIRONMENTS
+14577
+Fig. 8. Schematic of UAV ﬂight trajectories in a 500 × 500 × 500 m3 space.
+Each subplot shows the trajectory of one UAV, with the start marked by a
+green circle and the end by a blue triangle.
+are determined by a communication radius of 350 m. After
+resampling at 1 Hz, the trajectories are segmented using a
+sliding window of length 200, yielding 27 short trajectories per
+UAV and a total of 5400 time steps. The dataset is randomly
+partitioned into 21 trajectories for training, 2 for validation,
+and 4 for testing.
+All neural network-based methods are trained under an iden-
+tical hyperparameter conﬁguration to ensure a fair comparison.
+Models are trained for 150 epochs using the ADAM optimizer
+with an initial learning rate of 0.001 and a batch size of 32.
+Sequence inputs are processed with a sliding window of length
+8 and stride 4, and the attention mechanism employs four
+heads. All experiments are conducted on a server with an
+AMD Ryzen 7 PRO 4750U 1.7-GHz CPU and 16-GB memory,
+using the PyTorch framework.
+To verify the eﬀectiveness of the proposed localization
+algorithm, the accuracy of UAV positions is evaluated using
+Euclidean distance error and root-mean-square error (RMSE),
+which can be deﬁned as follows:
+Errort = 1
+N
+N
+X
+i=1
+
+
+xi,t −ˆxi,t|t
+
+
+
+(20)
+RMSE =
+v
+u
+u
+t1
+τ
+τ
+X
+t=1
+(Errort)2
+(21)
+where τ denotes the total number of samples in the testing set.
+Fig. 9. Localization error over time for diﬀerent methods.
+The proposed method is compared with both classical and
+deep learning-based hybrid baselines, including the EKF as
+described in Section II-C, KalmanNet [22] using Architecture
+#1 under setting C2 (KalmanNet A1) and Architecture #2
+under setting C4 (KalmanNet A2), as well as KalmanFormer
+[46]. Among these, EKF represents a classical model-based
+approach and relies on system dynamics for state estimation.
+To ensure stability under model uncertainty, the process and
+observation noise covariance matrices are typically tuned via
+grid search to mitigate inaccurate uncertainty propagation from
+nonlinear approximations and prevent divergence. In contrast,
+the deep learning-based baselines incorporate neural network
+modules into the Kalman ﬁltering framework. KalmanNet A1
+and KalmanNet A2 employ GRU-based architectures to
+enhance estimation performance, while KalmanFormer lever-
+ages a Transformer to learn Kalman Gain directly from data
+without requiring prior knowledge of noise parameters.
+B. Algorithm Performance Statistics and Analysis
+To
+validate
+the
+eﬀectiveness
+of
+the
+proposed
+SIA-
+KalmanNet algorithms based on the SA-RMN and SCA-RMN
+architectures, comparative experiments are performed against
+the EKF, KalmanNet A1, KalmanNet A2, and Kalman-
+Former. The error trend of UAV localization over 200 time
+steps across four test trajectories is illustrated in Fig. 9. As
+shown, the SCA-RMN achieves the best localization accuracy
+among all methods. This improvement can be attributed to its
+ability to capture the constraints between second-order covari-
+ance matrices within the Kalman information ﬂow, thereby
+enabling more precise Kalman gain estimation through the
+weighted fusion of forward state features and backward his-
+torical correction information. Furthermore, even the simpler
+SA-RMN demonstrates competitive performance, achieving
+localization accuracy comparable to the three KalmanNet
+conﬁgurations.
+Table I summarizes a detailed comparison of our method
+with other methods, considering indicators such as error and
+model complexity. As presented in the table, the proposed
+SCA-RMN algorithm demonstrates notable advantages in
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:41 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+14578
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 7, 1 APRIL 2026
+TABLE I
+QUANTITATIVE ANALYSIS AND COMPARISON OF LOCALIZATION ERRORS FOR DIFFERENT METHODS
+Fig. 10. Training loss error curves for neural network-based methods.
+localization accuracy, achieving an average error of 8.576
+m, which represents a 11.8% improvement over Kalman-
+Net A2 and a 47.0% enhancement compared to the EKF.
+Moreover, it attains the lowest standard deviation, highlighting
+its superior consistency and robustness against sensor noise.
+Compared with KalmanFormer, which employs a general-
+purpose Transformer-based regressor without explicit model
+structure, the superior localization accuracy of our SCA-
+RMN is achieved by virtue of its architecture that explicitly
+embeds the prior-and-update cycle of the Kalman ﬁlter.
+Moreover, computational eﬃciency depends on the inherent
+computational load and parallelism, not merely the parameter
+count. The EKF is hindered by inherently sequential opera-
+tions like Jacobian calculations and matrix inversions, while
+our networks consist of ﬁxed, parallelizable operations. This
+architectural advantage enables SA-RMN’s superior execu-
+tion speed, making it ideal for onboard UAV deployment.
+Overall, both SA-RMN and SCA-RMN demonstrate supe-
+rior learning of measurement information without relying on
+second-order moment modeling, exhibiting greater robustness
+in local GNSS-denied environments under nonlinear dynamics.
+Fig. 10 shows the loss function curves of the proposed
+SIA-KalmanNet models and the baseline methods during the
+training process. All networks gradually converge as training
+progresses, but the loss curves of SA-RMN and SCA-RMN
+remain consistently lower, demonstrating superior training
+stability. It is also observed that SCA-RMN, owing to its more
+complex network structure, converges faster and achieves a
+Fig. 11. Inﬂuence of attitude noise on localization performance with standard
+deviation shading.
+lower ﬁnal loss, whereas the lighter SA-RMN shows slightly
+higher loss but beneﬁts from reduced model complexity and
+faster training eﬃciency.
+C. Training Data Quality and Quantity Analysis
+1) Data Quality Sensitivity: We ﬁrst examine the impact
+of training data quality by conducting sensitivity experiments
+under varying sensor noise levels and anchor UAV quan-
+tity, simulating degraded measurement conditions commonly
+encountered in practical UAV networks.
+To investigate the impact of range noise and attitude noise
+on localization accuracy, diﬀerent levels of noise are applied to
+the attitude and range data separately. The localization perfor-
+mance across algorithms is compared, with results depicted
+in Figs. 11 and 12. The experimental results indicate that
+as the variance of sensor noise increases, the localization
+error also rises. In comparison with the EKF, KalmanNet A1,
+KalmanNet A2, and KalmanFormer algorithms, the Kalman
+estimator within the proposed SCA-RMN algorithm attains
+the highest localization accuracy and exhibits superior noise
+robustness. This advantage stems from SCA-RMN’s capability
+to adaptively model the statistical properties of both process
+noise and measurement noise, enabling a more eﬀective spa-
+tiotemporal noise collaborative suppression mechanism than
+EKF and other KalmanNet algorithms. Furthermore, SA-RMN
+features a more lightweight structure. Although its accuracy
+is slightly inferior to that of SCA-RMN, it still maintains a
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:41 UTC from IEEE Xplore.  Restrictions apply. 
+[p.10]
+XIN et al.: SIA-KalmanNet FOR MULTI-UAV LOCALIZATION IN PARTIALLY GNSS-DENIED ENVIRONMENTS
+14579
+Fig. 12. Inﬂuence of distance noise on localization performance with standard
+deviation shading.
+Fig. 13. Inﬂuence of the number of anchors on the algorithm’s performance.
+satisfactory level of precision and is capable of meeting the
+demands for real-time inference.
+On the other hand, to analyze the impact of anchor UAV
+quantity on localization accuracy of UAV network, we varied
+the number of anchor UAVs while maintaining a constant
+total number of UAVs and compared the resulting localization
+errors, as illustrated in Fig. 13. As the number of anchor
+UAVs increases, the geometric diversity of the local network
+improves signiﬁcantly, resulting in a decline in localization
+error. Compared with the other algorithms, the proposed
+SCA-RMN algorithm maintains optimal localization accuracy
+across varying anchor ratios. For instance, even when the
+number of anchor UAVs is reduced to four, the SCA-RMN
+algorithm exhibits a localization error of 14.89 m, representing
+a 30.1% improvement over the EKF algorithm. Additionally,
+the SA-RMN algorithm features a simpler architecture while
+achieving performance comparable to KalmanNet A2, par-
+ticularly advantageous under resource-constrained conditions.
+TABLE II
+TEST RMSE UNDER VARYING TRAINING DATA QUANTITIES
+Consequently, our algorithms are eﬀective and suitable for
+deployment in scenarios with partial GNSS signal loss.
+2) Data Quantity Inﬂuence: To assess the sample eﬃciency
+of learning-based localization methods, we vary the number
+of training trajectories while keeping validation and test sets
+ﬁxed. Three training regimes are considered: full data (21
+trajectories), medium data (15 trajectories), and low data (10
+trajectories). Table II summarizes the corresponding average
+RMSE over ten runs for the test set. Since EKF is purely
+model-based and does not rely on training data, it is excluded
+from this comparison.
+From these results, all learning-based approaches exhibit
+performance degradation as training data decreases. Among
+them, the proposed SCA-RMN demonstrates the best perfor-
+mance stability under limited data, with RMSE increasing
+by only 3.34 m when reducing the training set from 21
+to 10 trajectories. The lightweight SA-RMN also maintains
+relatively stable performance, with RMSE increasing by 4.20
+m. In comparison, baseline models degrade more notice-
+ably: KalmanNet A1 increases by 4.13 m, KalmanNet A2
+increases by 4.35 m, and KalmanFormer increases by 5.02
+m. These results indicate that SA-RMN oﬀers a lightweight
+alternative with acceptable performance stability under limited
+training data, while SCA-RMN not only achieves higher
+absolute accuracy but also exhibits superior data eﬃciency.
+D. Ablation Study of Key Modules Under Realistic Noise
+To validate the contribution of key modules in SCA-
+RMN and SA-RMN, we conduct ablation experiments by
+selectively removing the MMSA and residual modules from
+SA-RMN, and the MMSA, MMCA, and residual modules
+from SCA-RMN. The performance of each conﬁguration is
+assessed under realistic observation errors guided by [51],
+[52], including INS drift and NLOS interference in distance
+measurements. Speciﬁcally, the gyroscope exhibits a bias of
+5◦/h and an angular random walk of 0.2◦/(h)1/2, while the
+accelerometer has a bias of 1 mg and an angular random walk
+of 0.3 mg/(Hz)1/2. Distance measurements include a nominal
+bias of 20 m and a standard deviation of 5 m to account for
+NLOS eﬀects.
+Based on the above settings, four representative validation
+scenarios are designed to progressively increase the experi-
+mental diﬃculty and analyze the role of individual modules
+under diﬀerent conditions. S1 (IMU ideal + LOS) represents
+the baseline scenario, where INS data are free of drift and
+all distance measurements are LOS, serving to evaluate model
+performance under ideal conditions. S2 (IMU drift + LOS)
+introduces INS drift while maintaining LOS measurements,
+which is used to examine the impact of inertial errors on
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:41 UTC from IEEE Xplore.  Restrictions apply. 
+[p.11]
+14580
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 7, 1 APRIL 2026
+TABLE III
+RMSE RESULTS OF ABLATION STUDY UNDER DIFFERENT SCENARIOS (S1–S4)
+pose estimation. S3 (IMU ideal + NLOS) removes INS drift
+but incorporates NLOS interference in distance measurements,
+allowing for analysis of degraded ranging conditions. S4
+(IMU drift + NLOS) combines both INS drift and NLOS
+disturbances, thus representing the most challenging setting to
+assess the robustness of the models in complex and realistic
+environments.
+Table III presents the ablation results for SCA-RMN and
+SA-RMN across the four scenarios (S1–S4). Under Scenario
+S1, residual connections are crucial for both architectures,
+as their removal increases RMSE by 27.9% in SCA-RMN
+and 5.1% in SA-RMN, highlighting their role in stabilizing
+training and mitigating error propagation. In SCA-RMN, the
+MMCA block, which facilitates multimodal fusion, exhibits
+an even stronger eﬀect, with its ablation leading to a 44.7%
+RMSE increase under S1. Similarly, ablating the MMSA
+module in SA-RMN or either MMSA branch in SCA-RMN
+leads to moderate RMSE degradations from 10.2% to 15.7%,
+demonstrating their contribution to robustness against sensor
+noise and signal degradation.
+To further assess the impact of architectural choices, we also
+evaluate SA-RMN-Only across all scenarios. This model is
+trained without hybrid model integration, whereas SCA-RMN
+is tightly coupled with the second-order statistical moment
+information ﬂow and cannot be trained in a purely end-to-
+end manner. The results show that SA-RMN-Only consistently
+underperforms the hybrid approach, with the largest degrada-
+tion observed under S4, where RMSE increases by 59.1%.
+This demonstrates the eﬀectiveness of combining model-based
+and data-driven learning.
+Building on these component- and model-level comparisons,
+we analyze the eﬀects of diﬀerent interference scenarios on
+the complete models. The results indicate that INS drift has
+a stronger impact than NLOS interference. In SCA-RMN,
+RMSE increases by 31.0% from S1 to S2, but only by 15.7%
+from S1 to S3. In SA-RMN, the corresponding increases are
+35.1% and 16.5%. The combined case S4 produces the largest
+degradation, with RMSE rising by 60.0% relative to S1 in
+SCA-RMN and by 42.9% in SA-RMN. These ﬁndings conﬁrm
+that drift errors dominate accuracy loss, while both models
+remain resilient to NLOS eﬀects, with SCA-RMN consistently
+achieving lower errors across all scenarios. Overall, SCA-
+RMN exhibits superior robustness, whereas SA-RMN trades
+performance for eﬃciency.
+V. CONCLUSION
+This article proposes the SIA-KalmanNet algorithm to
+address the cooperative localization problem of dynamic multi-
+UAV networks under partial GNSS signal loss conditions. The
+method combines the learning capabilities of DNNs with the
+low complexity and analytical capabilities of ﬁlters, making
+it particularly suitable for state estimation with inaccurate
+knowledge of process and measurement noise statistics under
+nonlinear dynamics. Followed by the information ﬂow of the
+EKF, two structures are designed to learn Kalman gain: a
+lightweight SA-RMN for eﬃcient estimation and a highly
+interpretable SCA-RMN for performance enhancement. A
+dedicated multi-UAV cooperative localization dataset and tai-
+lored training strategies are also developed to support practical
+implementation. Experimental results demonstrate that SIA-
+KalmanNet consistently outperforms existing methods in both
+accuracy and robustness across partial GNSS loss scenarios.
+In future work, we will further investigate the theoretical
+foundations of the SIA-KalmanNet, with particular emphasis
+on stability analysis of the hybrid architecture. Moreover, real-
+world UAV ﬂight experiments are planned to validate the
+proposed framework and to evaluate its eﬀectiveness under
+practical IoT deployment conditions.
+REFERENCES
+[1]
+P. Wan, G. Xu, J. Chen, and Y. Zhou, “Deep reinforcement learn-
+ing enabled multi-UAV scheduling for disaster data collection with
+time-varying value,” IEEE Trans. Intell. Transp. Syst., vol. 25, no. 7,
+pp. 6691–6702, Jul. 2024.
+[2]
+A. M. Farid, J. Roshanian, and M. Mouhoub, “Multiple aerial/ground
+vehicles coordinated spraying using reinforcement learning,” Eng. Appl.
+Artif. Intell., vol. 151, Jul. 2025, Art. no. 110686.
+[3]
+J. Wang, Z. Na, and X. Liu, “Collaborative design of multi-UAV
+trajectory and resource scheduling for 6G-enabled Internet of Things,”
+IEEE Internet Things J., vol. 8, no. 20, pp. 15096–15106, Oct. 2021.
+[4]
+Y. Zeng, R. Zhang, and T. J. Lim, “Wireless communications with
+unmanned aerial vehicles: Opportunities and challenges,” IEEE Com-
+mun. Mag., vol. 54, no. 5, pp. 36–42, May 2016.
+[5]
+L. Ruan et al., “Cooperative relative localization for UAV swarm in
+GNSS-denied environment: A coalition formation game approach,”
+IEEE Internet Things J., vol. 9, no. 13, pp. 11560–11577, Jul. 2022.
+[6]
+X. Chen et al., “Design experiences in minimalistic ﬂying sensor node
+platform through SensorFly,” ACM Trans. Sensor Netw., vol. 13, no. 4,
+pp. 1–37, Nov. 2017.
+[7]
+Y. Cui et al., “A novel positioning method for UAV in GNSS-denied
+environments based on mechanical antenna,” IEEE Trans. Ind. Electron.,
+vol. 71, no. 10, pp. 13461–13469, Oct. 2024.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:41 UTC from IEEE Xplore.  Restrictions apply. 
+[p.12]
+XIN et al.: SIA-KalmanNet FOR MULTI-UAV LOCALIZATION IN PARTIALLY GNSS-DENIED ENVIRONMENTS
+14581
+[8]
+G. Michieletto, F. Formaggio, A. Cenedese, and S. Tomasin, “Robust
+localization for secure navigation of UAV formations under GNSS
+spooﬁng attack,” IEEE Trans. Autom. Sci. Eng., vol. 20, no. 4,
+pp. 2383–2396, Oct. 2023.
+[9]
+X. Chen et al., “H-DrunkWalk: Collaborative and adaptive navigation
+for heterogeneous MAV swarm,” ACM Trans. Sensor Netw., vol. 16,
+no. 2, pp. 1–27, Apr. 2020.
+[10] J. S. Russell, M. Ye, B. D. O. Anderson, H. Hmam, and P. Sarunic,
+“Cooperative localization of a GPS-denied UAV using Direction-of-
+Arrival measurements,” IEEE Trans. Aerosp. Electron. Syst., vol. 56,
+no. 3, pp. 1966–1978, Jun. 2020.
+[11] H. H. Afshari, S. A. Gadsden, and S. Habibi, “Gaussian ﬁlters for
+parameter and state estimation: A general review of theory and recent
+trends,” Signal Process., vol. 135, pp. 218–238, Jun. 2017.
+[12] Y. Qu and Y. Zhang, “Cooperative localization against GPS signal
+loss in multiple UAVs ﬂight,” J. Syst. Eng. Electron., vol. 22, no. 1,
+pp. 103–112, Feb. 2011.
+[13] J. Yan, F. Zhu, Y. Huang, and Y. Zhang, “Robust decentralized cooper-
+ative localization for multirobot system against measurement outliers,”
+IEEE Internet Things J., vol. 11, no. 10, pp. 17934–17947, May 2024.
+[14] Z. Song, Y. Zhang, Y. Yu, and C. Tang, “Cooperative positioning
+algorithm based on manifold gradient ﬁltering in UAV-WSN,” IEEE
+Sensors J., vol. 24, no. 8, pp. 12676–12688, Apr. 2024.
+[15] B. Schlotfeldt, V. Tzoumas, and G. J. Pappas, “Resilient active infor-
+mation acquisition with teams of robots,” IEEE Trans. Robot., vol. 38,
+no. 1, pp. 244–261, Feb. 2022.
+[16] B. Schlotfeldt, D. Thakur, N. Atanasov, V. Kumar, and G. J. Pap-
+pas, “Anytime planning for decentralized multirobot active information
+gathering,” IEEE Robot. Autom. Lett., vol. 3, no. 2, pp. 1025–1032, Apr.
+2018.
+[17] H. Zhao et al., “Error analysis strategy for long-term correlated
+network systems: Generalized nonlinear stochastic processes and dual-
+layer ﬁltering architecture,” IEEE Internet Things J., vol. 12, no. 16,
+pp. 33731–33745, Aug. 2025.
+[18] M. He, J. Liu, P. Gu, and Z. Meng, “Leveraging map retrieval and
+alignment for robust UAV visual geo-localization,” IEEE Trans. Instrum.
+Meas., vol. 73, pp. 1–13, 2024.
+[19] X. Chen, A. Purohit, C. R. Dominguez, S. Carpin, and P. Zhang,
+“DrunkWalk: Collaborative and adaptive planning for navigation of
+micro-aerial sensor swarms,” in Proc. 13th ACM Conf. Embedded
+Networked Sensor Syst., Seoul, South Korea, Nov. 2015, pp. 295–308.
+[20] H.
+Wang
+et
+al.,
+“TransformLoc:
+Transforming
+MAVs
+into
+mobile
+localization
+infrastructures
+in
+heterogeneous
+swarms,”
+in Proc. IEEE INFOCOM Conf. Comput. Commun., May 2024,
+pp. 1101–1110.
+[21] J. Zha, N. Zhou, Z. Liu, T. Sun, and X. Chen, “Diﬀusion-based ﬁlter
+for fast and accurate collaborative tracking with low data transmission,”
+TechRxiv, Apr. 2024, doi: 10.36227/techrxiv.171259919.90163593.v1.
+[22] G. Revach, N. Shlezinger, X. Ni, A. L. Escoriza, R. J. G. van Sloun,
+and Y. C. Eldar, “KalmanNet: Neural network aided Kalman ﬁltering
+for partially known dynamics,” IEEE Trans. Signal Process., vol. 70,
+pp. 1532–1547, 2022.
+[23] Y. Bengio, “Learning deep architectures for AI,” Found. Trends Mach.
+Learn., vol. 2, no. 1, pp. 1–127, 2009.
+[24] Y. Zhuang et al., “Multi-sensor integrated navigation/positioning systems
+using data fusion: From analytics-based to learning-based approaches,”
+Inf. Fusion, vol. 95, pp. 62–90, Jul. 2023.
+[25] S. Li, C. De Wagter, and G. C. H. E. De Croon, “Self-supervised
+monocular multi-robot relative localization with eﬃcient deep neural
+networks,” in Proc. Int. Conf. Robot. Autom. (ICRA), May 2022,
+pp. 9689–9695.
+[26] E. Price et al., “Deep neural network-based cooperative visual tracking
+through multiple micro aerial vehicles,” IEEE Robot. Autom. Lett.,
+vol. 3, no. 4, pp. 3193–3200, Oct. 2018.
+[27] G. Lu, H. Ding, J. Hou, and S. Zheng, “Multi-robot collaborative
+exploration on communication-constrained environments,” IEEE Access,
+vol. 13, pp. 31205–31214, 2025.
+[28] I. Buchnik, G. Revach, D. Steger, R. J. G. van Sloun, T. Routtenberg,
+and N. Shlezinger, “Latent-KalmanNet: Learned Kalman ﬁltering for
+tracking from high-dimensional signals,” IEEE Trans. Signal Process.,
+vol. 72, pp. 352–367, 2024.
+[29] I. Buchnik, G. Sagi, N. Leinwand, Y. Loya, N. Shlezinger, and T. Rout-
+tenberg, “GSP-KalmanNet: Tracking graph signals via neural-aided
+Kalman ﬁltering,” IEEE Trans. Signal Process., vol. 72, pp. 3700–3716,
+2024.
+[30] G.
+Choi,
+J.
+Park,
+N.
+Shlezinger,
+Y.
+C.
+Eldar,
+and
+N.
+Lee,
+“Split-KalmanNet: A robust model-based deep learning approach
+for state estimation,” IEEE Trans. Veh. Technol., vol. 72, no. 9,
+pp. 12326–12331, Sep. 2023.
+[31] P. Hao, O. Karakus¸, and A. Achim, “RKFNet: A novel neural network
+aided robust Kalman ﬁlter,” Signal Process., vol. 230, May 2025, Art.
+no. 109856.
+[32] J. Chung, C¸ . G¨ulc¸ehre, K. Cho, and Y. Bengio, “Empirical evaluation
+of gated recurrent neural networks on sequence modeling,” 2014,
+arXiv:1412.3555.
+[33] Y. Bengio, P. Simard, and P. Frasconi, “Learning long-term dependencies
+with gradient descent is diﬃcult,” IEEE Trans. Neural Netw., vol. 5,
+no. 2, pp. 157–166, Mar. 1994.
+[34] Y. Hoshen, “VAIN: Attentional multi-agent predictive modeling,”
+in Proc. 31st Int. Conf. Neural Inf. Process. Syst. (NIPS), 2017,
+pp. 2701–2711.
+[35] H. Wang et al., “Aerial shepherds: Enabling hierarchical localization
+in heterogeneous MAV swarms,” IEEE Trans. Mobile Comput., early
+access, Oct. 6, 2025, doi: 10.1109/TMC.2025.3616380.
+[36] M. Kato, T. K. Rodrigues, T. Abe, and T. Suganuma, “Exploiting radio
+frequency characteristics with a support unmanned aerial vehicle to
+improve wireless sensor location estimation accuracy,” IEEE Internet
+Things J., vol. 11, no. 24, pp. 39570–39578, Dec. 2024.
+[37] S. Javaid et al., “Communication and control in collaborative UAVs:
+Recent advances and future trends,” IEEE Trans. Intell. Transp. Syst.,
+vol. 24, no. 6, pp. 5719–5739, Jun. 2023.
+[38] H. Wang, X. Chen, Y. Cheng, C. Wu, F. Dang, and X. Chen, “H-
+SwarmLoc: Eﬃcient scheduling for localization of heterogeneous MAV
+swarm with deep reinforcement learning,” in Proc. 20th ACM Conf.
+Embedded Networked Sensor Syst., New York, NY, USA, Nov. 2022,
+pp. 1148–1154.
+[39] A. Vaswani et al., “Attention is all you need,” in Proc. NIPS, 2017,
+pp. 6000–6010.
+[40] C.-F.-R. Chen, Q. Fan, and R. Panda, “CrossViT: Cross-attention multi-
+scale vision transformer for image classiﬁcation,” in Proc. IEEE/CVF
+Int. Conf. Comput. Vis. (ICCV), Oct. 2021, pp. 347–356.
+[41] N. Cohen and I. Klein, “Inertial navigation meets deep learning: A
+survey of current trends and future directions,” Results Eng., vol. 24,
+Dec. 2024, Art. no. 103565.
+[42] S.
+Chen,
+Y.
+Zheng, D.
+Lin,
+P.
+Cai,
+Y. Xiao,
+and
+S.
+Wang,
+“MAML-KalmanNet: A neural network-assisted Kalman ﬁlter based on
+model-agnostic meta-learning,” IEEE Trans. Signal Process., vol. 73,
+pp. 988–1003, 2025.
+[43] X. Ni, G. Revach, and N. Shlezinger, “Adaptive kalmannet: Data-
+driven Kalman ﬁlter with fast adaptation,” in Proc. IEEE Int. Conf.
+Acoust., Speech Signal Process. (ICASSP), Seoul, South Korea, Apr.
+2024, pp. 5970–5974.
+[44] J. Li et al., “FormerReckoning: Physics inspired transformer for accurate
+inertial navigation,” in Proc. 30th Annu. Int. Conf. Mobile Comput.
+Netw., Dec. 2024, pp. 2066–2071.
+[45] N. Cohen and I. Klein, “Adaptive Kalman-informed transformer,” Eng.
+Appl. Artif. Intell., vol. 146, Apr. 2025, Art. no. 110221.
+[46] S. Shen, J. Chen, G. Yu, Z. Zhai, and P. Han, “KalmanFormer: Using
+transformer to model the Kalman gain in Kalman ﬁlters,” Frontiers
+Neurorobotics, vol. 18, Jan. 2025, Art. no. 1460255, doi: 10.3389/
+fnbot.2024.1460255.
+[47] J. Zha et al., “DIMM: Decoupled multi-hierarchy Kalman ﬁlter for 3D
+object tracking,” 2025, arXiv:2505.12340.
+[48] Y. Tarumi, K. Fukuda, and S.-I. Maeda, “Deep Bayesian ﬁlter for bayes-
+faithful data assimilation,” 2024, arXiv:2405.18674.
+[49] G. M. Vitetta, P. D. Viesti, E. Sirignano, and F. Montorsi, “Multiple
+Bayesian ﬁltering as message passing,” IEEE Trans. Signal Process.,
+vol. 68, pp. 1002–1020, 2020.
+[50] O. Nacar, M. Abdelkader, L. Ghouti, K. Gabr, A. Al-Batati, and
+A. Koubaa, “VECTOR: Velocity-enhanced GRU neural network for real-
+time 3D UAV trajectory prediction,” Drones, vol. 9, no. 1, p. 8, Dec.
+2024.
+[51] D.
+Jourdan,
+D.
+Dardari,
+and
+M.
+Win,
+“Position
+error
+bound
+for
+UWB
+localization
+in
+dense
+cluttered
+environments,”
+IEEE
+Trans.
+Aerosp.
+Electron.
+Syst.,
+vol. 44,
+no. 2,
+pp. 613–628,
+Apr. 2008.
+[52] C. Wang, S. Tian, L. Du, J. Rao, W. Feng, and D. Huang, “Constraints on
+the retrieval 3-D velocities by hybrid regression network for GNSS/INS
+positioning during GNSS outages,” IEEE Sensors J., vol. 25, no. 10,
+pp. 17835–17849, May 2025.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:41 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

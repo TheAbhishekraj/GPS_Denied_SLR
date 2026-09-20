@@ -1,0 +1,1547 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1423.pdf
+sha256: FE10DFE803CF7470229325CD995EC62F138589D226A9FD777D0D3125FB8687C0
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+A Robust Real-Time Vision based GPS-denied 
+Navigation System of UAV 
+ 
+Yang Liying1, Xiao Bin1,2, Zhou Yu1,2, He Yuqing1, Zhang Hongzhi3, Han Jianda1 
+1 State Key Laboratory of Robotics, Shenyang Institute of Automation, Chinese Academy of Sciences, Shenyang 110016, 
+China 
+2 Northeastern University, Shenyang 110819, China 
+3 The Troubleshooting Branch of Liaoning Electric Power Company Limited, Shenyang 110003, China 
+ 
+ 
+Abstract In 2015 International UAV Innovation Grand 
+Prix the competition, the cargo transport task is assumed as: 
+there are 4 buckets placed in four circles on one moving 
+platform. Firstly, the unmanned aerial vehicle (UAV) is 
+required to identify circle targets and the black and white id 
+marker near the circle on one moving platform, then the UAV 
+chosen a target bucket, tracked and transported it to the other 
+moving platform, until all 4 buckets are transported from one 
+moving platform to the other. In order to accomplish the cargo 
+transport task, a method of a real-time vision-based GPS-
+denied multiple object tracking for UAV is developed. The 
+Pixhawk controller is used to achieve tracking, that the 
+relative distance and velocity between the target and UAV is 
+estimated by the image. Finally, the experimental results 
+proved the effectiveness and robustness of the algorithm. 
+KeywordsUAV; Vision-based navigation; Target detection; 
+Position and velocity estimation  
+I. 
+ INTRODUCTION  
+Vision-based object tracking system of UAV can be used 
+in many situations such as debarking and landing of carrier 
+aircraft[1]-[2] and cargo transportation[3]-[4]. Landing on a 
+moving platform usually through recognition of the 
+landmark or detection of the transport cargo". Now 
+days, some related research of Landing UAV in a moving 
+platform or autonomous cargo transfer with UAV have 
+come out. In such kind of research, GPS being used to 
+localize and navigate outdoors cannot work well due to its 
+low localization measurement accuracy, which can only 
+attain meter level. In this case, vision is used to assist UAV 
+to make more accurate location.  
+ Appearance based visual-servoing method has been 
+used in many occasions [5]. In this paper, the circle is 
+chosen as landmark because it easy to be detected and the 
+detection result is robust even there exists partial occlusions 
+or blur. There are lots of researches on ellipse detection [6] -
+[8]. Comparing with the method of Hough transform [8], 
+ellipse fitting [7] is a good way to find ellipses with given 
+contours, but the ellipse fitting method cannot ensure the 
+fitted ellipse is a correct detection. The affine moment 
+invariants (AMIs) [9] is an effective way to detect the ellipse 
+due to its all ellipses having equal AMIs. 
+In computer vision, a method called perspective-n-point 
+(PnP)[10] is often used, in which 6 Degrees of freedom 
+motion of camera from some known 2D-3D point 
+correspondences is estimated, and it needs at least 4 points 
+for calculation without ambiguities. Moreover there are 
+some other camera position estimation methods like line 
+correspondence or closed shape based method [11] 
+[12]. These methods have a big drawback that is with a few 
+pixels, a big position estimation error can have occurred. 
+Hence position estimation based on circle landmark can 
+greatly reduce the match error. 
+In this paper, we use a circle as the landmark [13], 
+because it's simple shape, and the easy to be recognized by 
+UAV in the sky. Moreover, we use the black and white 
+square id marker [14] [15] to identify the circle. A robust 
+real time algorithm including the detect and tracking of 
+marker, position estimation and set point control of UAV is 
+presented, because of the high frequency of the control 
+updates which is needed to stabilize the UAV, an efficient 
+algorithm is focused on the implementation. 
+This paper is organized as follow, Section 3 describes 
+the related work about vision-based navigation of UAV, 
+ellipse detection, pose estimation. The method of ellipse 
+detection and black and white square id marker detection are 
+described in section 4 and 5. In section 6 the method of 
+position estimation is presented. The experimental results 
+are presented in section 7 and the conclusion is given in 
+section 8. 
+II. 
+OVERVIEW OF THE VISION SYSTEM 
+A. Objectives 
+Our vision algorithms introduced in this paper can be 
+used for detecting and tracking target by UAV in the 
+situation of sea-rescue or cargo transportation. We did lots 
+of experiments, and the experimental site is divided into two 
+parts: the landing area and the target area. The landing area 
+is used for UAV automatic take-off and landing. The target 
+area, where some mobile target is located, is near the landing 
+area, in which some mobile targets placed. Each of the 
+targets is composed of a circle and the corresponding marker. 
+The shape and the color of the targets are keys to the visual 
+system to process. Vision system should be able to detect all 
+the goals, and to intelligently choose a target that is used for 
+978-1-5090-2733-0/16/$31.00 © 2016 IEEE
+321
+The 6th Annual IEEE International Conference on
+Cyber Technology in Automation, Control and Intelligent Systems
+June 19-22, 2016, Chengdu, China
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:41:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+navigating the UAV. When the target moves, the visual 
+system must give the real-time position and speed 
+information of the target accurately. 
+B. Hardware design 
+The whole flight hardware system is constituted by four 
+main parts: a bare rotor-craft platform, an on-board vision 
+system, auto-pilot control system and a ground control 
+system (GCS). 
+  The on-board vision system includes: digital industrial 
+camera, on-board computer, wireless adapter and power 
+supply. The on-board computer for vision processing is an 
+Advantech micro PC with the CPU as Intel Celeron J1900 
+(2x1.99 GHz). The processing speed of vision programs can 
+reach 30fps in the on-board micro-computer. The structure 
+of the system is shown in Fig . 1. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Fig.1 System Design 
+C. Working Procedure 
+The aircraft automatically takeoff in the landing area. 
+Then the vision system starts operation and begin to process 
+the images captured by the digital camera. When one or 
+more circle be detected, the vision system calculates the 
+relative height between the aircraft and the target area, as 
+well as the relative three-dimensional position coordinates. 
+The vision system guide aircraft to fly to the destination that 
+over the target area about 10m height, and then start to 
+detect the corresponding markers of each circle target. After 
+all the markers are detected correctly, the vision system can 
+select a circle intelligently according to its corresponding 
+marker. Once the circle is selected, it will be tracked over 
+the image sequence and its relative 3D-position and 3D-
+speed will be estimated continuously and accurately. To 
+guide the UAV to locate and track the target, the vision 
+system send the relative position and speed information to 
+the aircraft autopilot. At last, the UAV put the processed 
+images back to the ground control station, then we can see 
+the real-time situation of the vision system. 
+From the above discussion, it is obvious that ellipse 
+detection, marker detection, and single-circle-based position 
+estimation are the core problems to be solved. Then we 
+introduce our mainly proposed algorithms respectively. 
+III. 
+ELLIPSE DETECTION 
+Ellipse detection algorithm is divided into two parts: 
+whole ellipse detection and partial ellipse detection. In order 
+to detect the ellipse, we need to get the contours in the image 
+at first through the algorithm of edge detection. Once the 
+contours are detected in the image, each of them will be 
+processed by the following two steps to see if it corresponds 
+to an ellipse. 
+A. Whole ellipse detection 
+Processing based on AMIs: This step is to compute the 
+AMIs of a contour, then we compare the AMIs values with 
+the theoretical values[16]. 
+As proposed in [17], the three AMIs are expressed as 
+
+
+2
+4
+1
+20
+02
+11
+00
+=
+/
+,         (1)
+I
+ 
+
+
+
+ 
+2
+2
+2
+30
+03
+03
+30
+12
+21
+3
+3
+2
+2
+10
+30
+12
+21
+03
+21
+12
+00
+(
+6
+       
+4
+4
+3
+) /
+,      (2)
+I
+ 
+   
+ 
+ 
+ 
+
+
+
+
+
+
+ 
+   
+
+
+
+
+
+
+
+
+
+
+2
+7
+3
+03
+21
+12
+20
+00
+2
+7
+21
+12
+03
+30
+11
+12
+30
+21
+02
+00
+/
+/
+,  (3)
+I
+ 
+
+
+
+ 
+ 
+
+ 
+
+
+
+
+
+
+
+
+
+ 
+ 
+ And the moment 
+ij
+ is given by 
+
+ 
+
+
+
+,
+.
+i
+j
+ij
+x
+x
+y
+y
+x y dxdy
+
+
+
+
+
+
+
+
+
+ 
+  (4) 
+( x , y ) is the coordinate of the centroid and 
+( , )
+x y
+
+is the density distribution function. Suppose 
+( , )
+x y
+
+= 1 when  ( , )
+x y is on the circle, and 
+( , )
+x y
+
+ 
+= 0 otherwise[18]. Because all ellipses and circles have the 
+same AMIs, about a circle, the parameters are set 
+as:
+00
+2
+
+
+
+, 
+11
+0
+
+
+, 
+02
+20
+
+
+
+
+
+ and 
+12
+21
+30
+03
+0
+
+
+
+
+
+
+
+
+[19].Then we can get the 
+theoretical values, 
+1
+2
+1
+0.00633,         (5)
+16
+I
+
+
+
+
+  
+According to our lots of experiments, we recommend the 
+thresholds for 
+1I , 
+2I and 
+3I to be ±0.00025, ±0.0000002 
+and ±0.000002. As shown in Fig. 2, even in the presence of 
+a large number of non-elliptical contours, the target that 
+corresponding to ellipses are all successfully detected. 
+ 
+ 
+ 
+(a)                 (b)                 (c) 
+Fig. 2: An example to demonstrate the whole ellipse detection. (a) 
+Color image; (b) Edge detection image; (c) Result of detection based on 
+AMIs. 
+Image capture 
+On-board 
+computer 
+Camera 
+Aircraft 
+autopilot 
+Wireless adapter 
+GCS 
+Wireless backhaul 
+322
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:41:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+B. Partial Ellipse Detection 
+  Actually, it is common that only parts of ellipse can be 
+seen by digital camera due to the limited field of view. We 
+next present an robust method to detect partial ellipses in the 
+image obtained by the camera. 
+The method is executed by: computing the convex hull 
+for each of the contours that are not classified as whole 
+ellipses, fitting a ellipse for each convex hull, computing the 
+algebraic error between the convex hull and the fitted ellipse. 
+The algebraic error between the convex hull and its fitted 
+ellipse is defined as follows. 
+
+,u v is denoted as the 
+coordinate of a pixel point in the image coordinate frame. 
+And 
+
+,
+c
+c
+u v
+ denoted as the coordinate of the ellipse 
+center. The a and b denote the lengths of the semi-major and 
+semi- !$
+as the angle between the major axis and the u-axis. The 
+equation of the ellipse in the image frame is expressed as 
+
+
+
+
+
+
+
+
+2
+2
+2
+2
+u
+cos
+sin
+sin
+cos
+               
+1,        (6)
+c
+c
+c
+c
+u
+v
+v
+a
+u
+u
+v
+v
+b
+	
+	
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+The algebraic error is defined as 
+
+
+
+
+
+
+
+
+2
+alg
+2
+1
+2
+2
+cos
+sin
+1
+e
+|
+sin
+cos
+          
+1|.      (7)
+n
+i
+c
+i
+c
+i
+i
+c
+i
+c
+u
+u
+v
+v
+n
+a
+u
+u
+v
+v
+b
+	
+	
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+|
+1
+n
+n
+1
+
+
+ 
+where 
+
+,
+i
+i
+u v
+ with i = 1, . . . , n are the coordinates of the 
+pixel points in the contour[20]. 
+ 
+ 
+   If the algebraic error is too large, the fitted ellipse of the 
+contour will be classified as a false detection; otherwise, the 
+contour can be classified as a partial ellipse. According to 
+our lots of experiments, the threshold 0.05 can give a 
+satisfactory result. As shown in Fig. 3, the partial ellipses are 
+detected in the image. 
+ 
+ 
+ 
+(a)                  (b)                 (c) 
+Fig. 3 An example to demonstrate the detection of partially occluded 
+ellipses. The internal detected ellipses have been removed in the algorithm. 
+C. Sumzmary of the Ellipse Detection Algorithm 
+The proposed ellipse detection algorithm is summarized 
+as follows: 
+1) Filter color of the image, reserve the interested color, 
+filter out the background color. 
+2) Detect contours in the image. 
+3) 
+For each contour, compute its central moments, 
+calculate  
+1I ,
+2I and 
+3I , and then compare the calculated 
+1I ,
+2I and 
+3I with the theoretical values.  If 
+ 1)  |
+1I # 1/(16
+2
+ )| < 0.00025,     (8) 
+ 2)  |
+2I | < 0.0000002,  
+        (9) 
+ 3)  |
+3I | < 0.000002,    
+        (10) 
+the contour is a good candidate for a whole ellipse. 
+4) 
+For each contour that does not satisfy (8),(9)and 
+(10), get the convex hull of the contour, and fit an ellipse for 
+each convex hull. 
+5) Compute its algebraic error between the fitted ellipse 
+and the convex hull. If the error< 0.05, the contour is 
+supposed a partial ellipse. 
+The ellipse detection algorithm could detect all the 
+ellipses appeared in the image, while this algorithm could 
+not choose which target can be used for navigating the 
+UAV. We use the method of ID marker detection to choose 
+a target as shown below. 
+IV. BLACK AND WHITE SQUIRE ID MARKER 
+DETECTION 
+Multiple ellipses can be detected in one image, but we 
+are only interested in one at a time. In order to find out 
+which target to track, we need to give each target an id thus 
+we can choose the one we want. So we need to use a maker 
+that encoding the ID numbers, here we use a black and white 
+squire ID marker with hamming code. In order to simplify 
+the search procedure and make it faster, we use a marker 
+with the size of 3x3 grids. It is shown as Fig. 4. 
+ 
+Fig.4. Black and write id marker 
+ 
+Treshold Contour finding
+Shape finding
+Homography estimation 
+&Marker unprojection
+Marker decoding
+Square marker
+Marker vaild
+ 
+Fig.5. id marker detect process 
+ 
+The general procedure to identify id marker include 
+several steps[21]. Firstly when we get a new frame, we 
+should detect all the edges/borders in that frame, here we use 
+the 
+robust 
+Canny 
+Threshold 
+method 
+to 
+do 
+this 
+work. Secondly, we need to convert border pixels to 
+polygons. To obtain quadrangles candidates we choose the 
+polygons which corner equals four, When several 
+quadrangles have too short distances, we choose the one 
+with longest circumference and get rid of the other then we 
+323
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:41:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+get the quadrangle candidates. Thirdly, we should estimate 
+the homography and for each quadrangle in the list of 
+candidates, unwarp the marker using homography to project 
+it into a square and get the 2d code from the 
+quadrangles. Last, we should decode the marker id from the 
+2d code. This procedure is shown as Fig.5. 
+We put the id maker near the circle. When we get the id 
+
+" then choose the 
+one we want. The detection result shown as Fig.6. 
+ 
+ 
+(a)                           (b) 
+Fig.6. An example to demonstrate the detection of id marker 
+V. POSITION ESTIMATION 
+Position estimation will involve three coordinate frames, 
+world frame, camera frame and image frame. Shown as 
+Fig."
+and the Z-axis of word frame is orthogonal to the circle 
+      "    
+frame is [0,0,0] . A     " -
+component should be zero. The origin of camera frame is the 
+center of the camera, and the z-axis of the camera frame is 
+original to the image plane. The origin of the image frame is 
+the upper left corner of the image plane, " 
+axis point rightwards and downwards respectively. This 
+section we will introduce the way how to estimate the 
+"
+point correspondences, which is on the circle of world frame 
+and their correspondent point on the image frame. 
+ 
+Fig.7. Perspective projection of a circle and the foour correspondences 
+To be specific, we have a circle with known radius on 
+the world frame, and we get the perspective projection of the 
+circle which is an ellipse with known parameters in the 
+image frame, And we know camera instinct matrix. With all 
+this known conditions we need to calculate the coordinate of 
+the circle in the camera frame. Thus we can get the distance 
+between the circle and UAV.  
+We define 
+3
+[
+,
+,
+]
+W
+X Y Z
+R
+
+
+as the point in world frame, 
+and
+3
+[ , , ]
+C
+x y z
+R
+
+
+as the point in camera frame.  The 
+rotation vector and translation vector from world frame to 
+camera frame is
+3 3
+x
+R
+R
+
+,
+3
+T
+R
+
+ respectively. Then we 
+have C
+RW
+T
+
+
+. We use subscript i to denote coordinate 
+of center of the circle, the coordinate of the center of circle is 
+[0, 0, 0]
+Wi 
+ in the world frame. We can get the coordinate 
+of circle center is C
+RW
+T
+i
+i
+
+
+ in the camera frame.  
+Suppose the image plane is parallel to the circle plane, then 
+we have C
+T
+i 
+. 
+In order to estimate T, we need at least four point 
+correspondent from circle to ellipse. We have four vertex of 
+the ellipse as 
+,
+,
+,
+1
+2
+3
+4
+n
+n
+n
+n , The parameter of ellipse is 
+, ,
+a b  , Then the coordinates of four vertex are: 
+(
+cos ,
+sin
+)
+(11)
+1
+n
+u
+a
+v
+a
+i
+i
+
+
+
+
+
+                   
+(
+sin ,
+cos )
+(12)
+2
+n
+u
+b
+v
+b
+i
+i
+
+
+
+
+
+                 
+(
+cos ,
+sin
+)
+(13)
+3
+n
+u
+a
+v
+a
+i
+i
+
+
+
+
+
+                   
+(
+sin ,
+cos )
+(14)
+4
+n
+u
+b
+v
+b
+i
+i
+
+
+
+
+
+                
+Suppose there are four point 
+,
+,
+,
+1
+2
+3
+4
+m
+m
+m
+m
+ evenly 
+distributed in one circle, then the line from point 
+1
+m to
+3
+m 
+(expressed as
+1 3
+m m ) is orthogonal to 
+2
+4
+m m , so we can set 
+the X and Y axis of world frame located in 
+1 3
+m m and 
+2
+4
+m m . If the radius of the circle is r, we can get 
+[ , 0, 0]
+1
+m
+r
+
+ 
+[0,
+, 0]
+2
+m
+r
+
+
+ 
+[
+, 0, 0]
+3
+m
+r
+ 
+ 
+[0, , 0]
+4
+m
+r
+
+. Thus we get the 
+four point correspondent 
+{
+,
+}
+1
+1
+m
+n
+ 
+{
+,
+}
+2
+2
+m
+n
+ 
+{
+,
+}
+3
+3
+m
+n
+ 
+{
+,
+}
+4
+4
+m
+n
+ Substitute the this point into position estimate 
+algorithm[22], we can have the relative position between the 
+circle and camera. The calculation method is shown as Fig.8. 
+Here we use function solvePnPRansac from OpenCV to 
+solve T. 
+Pose estimation
+ algorithm
+3D world coordinates of min
+ 4 points
+Image coordinates of the 
+correspondent points
+Camera intrinsic parameters
+Object rotation matrix 
+relative to the camera
+Object translation matrix 
+relative to the camera
+ 
+Fig.8. Pose estimation process 
+ 
+ 
+ 
+              (a)                           (b)  
+Fig.9.  The indoor experiment setup.(a)  Offline camera testing; 
+(b)Indoor vision system testing based UAV 
+ 
+324
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:41:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+ 
+ 
+ 
+         (a) 
+ 
+   (b) 
+ 
+     (c) 
+Fig. 10.  Images (640×480 pixels) captured in the indoor experiment.The 
+relative distance between Camera and target is  (a)0.927m, (b)1.440m, 
+(c)1.983m, respectively. 
+VI. EXPERIMENTAL RESULTS 
+A. Experimental results for position estimation 
+   The indoor experimental setup is shown in Fig.9, and the 
+outdoor experimental setup is shown in Fig.10. We 
+compared the results measured by laser rangefinder with the 
+results calculated by the vision system. We show a 
+numerical experimental result to see if our algorithm can 
+still work well in either indoor experiments (Fig.9) or 
+outdoor experiments (Fig.11) .The actual experimental 
+results and comparative error are shown in TABLE I and 
+TABLE II, respectively. The 
+cq in table is the position of 
+the target center in the UAV coordinate system.  
+ 
+ 
+      (a) 
+ 
+    (b) 
+Fig.11. The outdoor experiment setup.(a)The unmanned helicopter 
+platform;(b)The multi-rotor UAV platform. 
+ 
+ 
+(a) 
+ 
+   (b)  
+   (c) 
+ 
+ 
+(d) 
+          (e)              (f) 
+Fig.12.  Images (640×480 pixels) captured in the outdoor experiment.The 
+relative height of UAV  is (a)1.189m, (b)2.627m, (c)4.263m, (d)7.176m, 
+(e)10.054m,  respectively. The image (f) is a integrated result of our 
+target detection algorithms. 
+ 
+TABLE I.  
+POSITION ESTIMATION RESULTS USING THE IMAGES IN FIG. 
+10 IN THE INDOOR EXPERIMENTS. (UNIT: M) 
+Ima-
+ge 
+Circle 
+center 
+cq 
+by vision(meter) 
+Range 
+|
+cq | by 
+vision  
+Range |
+cq | by 
+laser 
+range- 
+finder 
+Abs 
+error of 
+|
+cq |   
+(a) 
+(0.095,0.016,0.928) 
+0.931 
+0.927 
+0.002 
+(b) 
+(0.340,-0.047,1.439) 
+1.447 
+1.440 
+0.003 
+(c) 
+(0.570,0.164,1.883) 
+1.992 
+1.983 
+0.005 
+TABLE II.  
+POSITION ESTIMATION RESULTS USING THE IMAGES IN FIG. 
+12 IN THE OUTDOOR EXPERIMENTS.(UNIT: M) 
+Ima-
+ge 
+Circle center 
+cq by 
+vision  
+Range 
+|
+cq | by 
+vision 
+Range |
+cq | by 
+laser 
+rangefinder 
+Abs 
+error 
+of |
+cq | 
+(a) 
+(-0.505,0.296,1.183) 
+1.197 
+1.189 
+0.003 
+(b) 
+(0.078,0.155,2.631) 
+2.642 
+2.627 
+0.010 
+(c) 
+(-0.400,0.789,4.113) 
+4.284 
+4.263 
+0.019 
+(d) 
+(-1.158,-0.478,7.119) 
+7.228 
+7.176 
+0.038 
+(e) 
+(-3.770,2.393,9.101) 
+10.137 
+10.054 
+0.061 
+ 
+B. Results of Stability Analysis 
+ In our indoor experiments, when the camera is placed 
+statically, and the distance between the target and camera is 
+about 5.8 m, the results of data stability are shown in Fig.13. 
+The maximum fluctuation of location is about 0.002m, and 
+the maximum fluctuation of speed is about 0.002m/s. In the 
+outdoor experiments, the camera is installed on our UAV, 
+and when the target move fast in different directions, the 
+results of calculated position and speed are shown in Fig.14. 
+0
+50
+100
+150
+200
+250
+300
+350
+400
+450
+-1.626
+-1.624
+-1.622
+-1.62
+-1.618
+-1.616
+-1.614
+Image sequence number (frame)
+Position ( meter)
+Relative position of X axis
+0
+50
+100
+150
+200
+250
+300
+350
+400
+450
+-0.025
+-0.02
+-0.015
+-0.01
+-0.005
+0
+0.005
+0.01
+0.015
+0.02
+Image sequence number (frame)
+Speed ( meter/second)
+Relative speed of X axis
+ 
+(a) 
+ 
+   (b) 
+0
+50
+100
+150
+200
+250
+300
+350
+400
+450
+1.393
+1.394
+1.395
+1.396
+1.397
+1.398
+1.399
+1.4
+1.401
+1.402
+Relative position of Y axis
+Image sequence number (frame)
+Psition ( meter)
+0
+50
+100
+150
+200
+250
+300
+350
+400
+450
+-0.015
+-0.01
+-0.005
+0
+0.005
+0.01
+0.015
+0.02
+Relative speed of Y axis
+Image sequence number (frame)
+Speed ( meter/second)
+ 
+(c) 
+ 
+   (d) 
+0
+50
+100
+150
+200
+250
+300
+350
+400
+450
+5.8
+5.805
+5.81
+5.815
+5.82
+5.825
+5.83
+5.835
+5.84
+Image sequence number (frame)
+Position ( meter)
+Relative position of Z axis
+0
+50
+100
+150
+200
+250
+300
+350
+400
+450
+-0.08
+-0.06
+-0.04
+-0.02
+0
+0.02
+0.04
+0.06
+0.08
+Image sequence number (frame)
+Speed ( meter/second)
+Relative speed of Z axis
+ 
+(e) 
+ 
+   (f) 
+Fig. 13. The caculated results of stationary target .The pictures (a),(b),(c) 
+represent the relative position of X,Y,and Z axis respectively in the UAV 
+coordinate system . And (b),(d),(e) represent the relative speed of X axis, 
+Y axis, and Z axis respectively. 
+0
+50
+100
+150
+200
+250
+300
+350
+400
+-1.5
+-1
+-0.5
+0
+0.5
+1
+1.5
+Relative position of X axis
+Image sequence number (frame)
+Position ( meter)
+0
+50
+100
+150
+200
+250
+300
+350
+400
+-4
+-3
+-2
+-1
+0
+1
+2
+3
+Speed ( meter/second)
+Relative speed of X axis
+Image sequence number (frame)
+ 
+(a) 
+ 
+    (b) 
+0
+50
+100
+150
+200
+250
+300
+350
+400
+-2.5
+-2
+-1.5
+-1
+-0.5
+0
+0.5
+1
+1.5
+2
+2.5
+Position ( meter)
+Image sequence number (frame)
+Relative position of Y axis
+0
+50
+100
+150
+200
+250
+300
+350
+400
+-5
+-4
+-3
+-2
+-1
+0
+1
+2
+3
+4
+5
+Relative speed of Y axis
+Image sequence number (frame)
+Speed ( meter/second)
+ 
+(c) 
+ 
+    (d) 
+0
+50
+100
+150
+200
+250
+300
+350
+400
+2.6
+2.7
+2.8
+2.9
+3
+3.1
+3.2
+3.3
+3.4
+3.5
+Image sequence number (frame)
+Relative position of Z axis
+Position ( meter)
+0
+50
+100
+150
+200
+250
+300
+350
+400
+-1.5
+-1
+-0.5
+0
+0.5
+1
+1.5
+Relative speed of -Z axis
+Image sequence number (frame)
+Speed ( meter/second)
+ 
+(e) 
+ 
+    (f) 
+Fig.14. The caculated results of fast moving target. The pictures (a),(b),(c) 
+represent the relative position of X, Y and Z axis respectively in the UAV 
+coordinate system . And (b),(d),(e) represent the relative speed of X axis, 
+Y axis, and -Z axis respectively. 
+325
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:41:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+TABLE III.  
+AVERAGE TIME CONSUMPTION OF EACH PROCEDURE. 
+Procedure 
+Average Time Consumption 
+Undistortion 
+0.0157 sec 
+RGB to HSV 
+0.0030 sec 
+Color filter 
+0.0022 sec 
+Contour Detection 
+0.0011 sec 
+Ellipse Detection 
+0.0012 sec 
+Marker Detection 
+0.0014 sec 
+Position Estimation 
+0.0020 sec 
+ 
+The position and speed data of fast moving target 
+proved the caculated result of the vision system is accurate 
+and robust enough to navigate UAV to track the moving 
+target. The vision system is more accurate than GPS when 
+the target is within 10 meters, and it can be used for indoor 
+navigation applications. 
+C. Time Consumption Test 
+ The efficiency of the algorithms has been tested on the 
+onboard computer with the CPU as Intel Celeron J1900 
+1.99GHz. The proposed algorithms are used to process 500 
+images captured by the digital camera. The size of each 
+image is 320×240 pixels. The average time consumption of 
+each procedure in our vision system is shown in TABLE III, 
+each procedure consume little time. 
+    As discussed above, based UAV we design a robust 
+target detection method, and a accurate relative position and 
+speed estimation method. The two methods are the core of 
+the vision-based navigation system for UAV. The 
+algorithms discussed above, like ellipse detection, marker 
+detection and position estimation, are both robust and less 
+time consuming, so they are very suitable for real-time 
+applications.  
+VII. CONCLUSIONS AND FUTURE WORK 
+  The experimental results shown that the vision system 
+is to be as robust, efficient, and accurate. In the future, the 
+robustness of the vision system can be improved through 
+controlling the exposure time of the camera by the vision 
+program automatically [23]. In addition, the algorithms of 
+ellipse detection and marker detection can also be improved 
+furtherly, such as combining with the machine learning and 
+Hough transform method. 
+ACKNOWLEDGMENT 
+This work is supported by National Nature Sciences 
+Foundation of China (Grant No. 61503369 and 61433016)  
+REFERENCES 
+[1] Saripalli, Srikanth, and Gaurav S. Sukhatme. "Landing on a moving 
+target using an autonomous helicopter." Field and service robotics. 
+Springer Berlin Heidelberg, 2003. 
+[2] Pestana, Jesus, et al. "Vision based gps-denied object tracking and 
+following for unmanned aerial vehicles." Safety, Security, and 
+Rescue Robotics (SSRR), 2013 IEEE International Symposium on. 
+IEEE, 2013. 
+[3] Thomas, Justin, et al. "Avian-inspired grasping for quadrotor micro 
+uavs." ASME 2013 International Design Engineering Technical 
+Conferences and Computers and Information in Engineering 
+Conference. American Society of Mechanical Engineers, 2013. 
+[4] Eberli, Daniel, et al. "Vision based position control for MAVs using 
+one single circular landmark." Journal of Intelligent & Robotic 
+Systems 61.1-4 (2011): 495-512. 
+[5] CAO Meihui, XIAN Bin, ZHANG Xu etc. An Autonomous Vision-
+based Localization and Control System for Quadrotor UAV[J]. 
+Information and control, 2015,44(2): 190-196,202. 
+[6] Zhang, Si-Cheng, and Zhi-Qiang Liu. "A robust, real-time ellipse 
+detector." Pattern Recognition 38.2 (2005): 273-287. 
+[7] Ahn, Sung Joon, Wolfgang Rauh, and Hans-Jürgen Warnecke. 
+"Least-squares orthogonal distances fitting of circle, sphere, ellipse, 
+hyperbola, and parabola." Pattern Recognition 34.12 (2001): 2283-
+2303.  
+[8] McLaughlin, Robert A. "Randomized Hough transform: improved 
+ellipse detection with comparison." Pattern Recognition Letters 19.3 
+(1998): 299-305. 
+[9] Wang, Yue, and Eam Khwang Teoh. "2D affine-invariant contour 
+matching using B-spline model." Pattern Analysis and Machine 
+Intelligence, IEEE Transactions on 29.10 (2007): 1853-1858. 
+[10] LI Li, WANG Yaonan, LIU Hongjian etc. Visual Positioning Method 
+and System for Rotor Flying Robot[J]. ROBOT, 2016,38(1): 8-16. 
+[11] Ansar, Adnan, and Kostas Daniilidis. "Linear pose estimation from 
+points or lines." Pattern Analysis and Machine Intelligence, IEEE 
+Transactions on 25.5 (2003): 578-589. 
+[12] Wang, Guanghui, Jonathan Wu, and Zhengqiao Ji. "Single view 
+based pose estimation from circle or parallel lines." Pattern 
+Recognition Letters 29.7 (2008): 977-985. 
+[13] Eberli, Daniel, et al. "Vision based position control for mavs using 
+one 
+single 
+artificial 
+landmark." International 
+Conference 
+& 
+Exhibition on Unmanned Aerial Vehicles,(UAV). 2010. 
+[14] Schmalstieg, Dieter, and Daniel Wagner. "Experiences with handheld 
+augmented reality." Mixed and Augmented Reality, 2007. ISMAR 
+2007. 6th IEEE and ACM International Symposium on. IEEE, 2007. 
+[15] Hirzer, 
+Martin. 
+"Marker 
+detection 
+for 
+augmented 
+reality 
+applications." Seminar/Project Image Analysis Graz. 2008. 
+[16] Wagner, Daniel, Tobias Langlotz, and Dieter Schmalstieg. " Robust 
+and unobtrusive marker tracking on mobile phones." Mixed and 
+Augmented 
+Reality, 
+2008. 
+ISMAR 
+2008. 
+7th 
+IEEE/ACM 
+International Symposium on. IEEE, 2008. 
+[17] SONG Wenjie, FU Mengyin, YANG Yi. An Efficient Traffic Signs 
+Recognition 
+Method 
+for 
+Autonomous 
+Vehicle[J]. 
+ROBOT, 
+2015,37(1): 102-111. 
+[18] ZENG Xiang-jin, HUANG Xin-han, WANG Min. Application of 
+ "  	 
+   -
+target Identification[J]. ROBOT, 2009,31(2): 118-123. 
+[19] WANG Hui-yan, ZHU Jing, SUN Xi-hang. EDGE DETECTION 
+METHOD BASED ON WAVELET AND MOMENT AND ITS 
+APPLICATION IN FAULT MONITORING[J]. Information and 
+control, 2003,32(3): 281-284. 
+[20] Wang, Guanghui, Jonathan Wu, and Zhengqiao Ji. "Single view 
+based pose estimation from circle or parallel lines." Pattern 
+Recognition Letters 29.7 (2008): 977-985. 
+[21] Lin, Feng, et al. "A robust real-time embedded vision system on an 
+unmanned rotorcraft for ground target following." Industrial 
+Electronics, IEEE Transactions on 59.2 (2012): 1038-1049. 
+[22] Wang, Guanghui, Jonathan Wu, and Zhengqiao Ji. "Single view 
+based pose estimation from circle or parallel lines." Pattern 
+Recognition Letters 29.7 (2008): 977-985. 
+[23] Zhao, Shiyu, et al. "Homography-based vision-aided inertial 
+navigation of UAVs in unknown environments." AIAA Guidance, 
+Navigation, and Control Conference. 2012.
+ 
+326
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:41:06 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

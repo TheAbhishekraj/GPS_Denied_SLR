@@ -1,0 +1,1259 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0824.pdf
+sha256: 18535376ABB89DA69B480C3761DC559B94B10D1FFA268AEC0BFF6CF32643099C
+library: pymupdf (fitz) v1.28.2
+pages: 11
+=== BEGIN ===
+[p.1]
+IEEE TRANSACTIONS ON INTELLIGENT VEHICLES, VOL. 8, NO. 2, FEBRUARY 2023
+1119
+A Homography-Based Visual Servo Control
+Approach for an Underactuated Unmanned Aerial
+Vehicle in GPS-Denied Environments
+Hang Zhong
+, Member, IEEE, Yaonan Wang
+, Senior Member, IEEE, Zhiqiang Miao
+, Member, IEEE, Ling Li,
+Shuangwen Fan
+, and Hui Zhang
+, Member, IEEE
+Abstract—This paper proposes a homography-based visual
+servo control approach for the stabilization of underactuated un-
+manned aerial vehicles in GPS-denied environments. A virtual
+homographymatrixisproposed,andanewvisualerrorvectorisde-
+ﬁnedtoobtainthepassivity-likevisualerrorequation.Inaddition,a
+homography-based online translation velocity estimator and a non-
+linear backstepping visual servo control approach are addressed to
+promote fast maneuvering without linear velocity feedback. Unlike
+conventional homography-based visual servo control solutions that
+only guarantee the local stability in the equilibrium, the proposed
+controlschemecangettheglobalstabilityinlargeoffset.Simulation
+and experimental tests with a realistic quadrotor subject to the
+measurement noise are carried out to verify the robustness and
+performance of the control approach. In addition, the autonomous
+tracking experiment when the target speed is unpredictable are
+also reported.
+Index Terms—Backsteeping, homography-based visual servo,
+nonlinear controller, underactuated unmanned aerial vehicles.
+I. INTRODUCTION
+F
+OR many real-world Unmanned Aerial Vehicle (UAV)
+applications, autonomy is a fundamental requirement and
+can directly determine the successful execution of a task. For
+example, surveillance [1] and monitoring missions [2] need to
+Manuscript received 28 January 2022; revised 16 March 2022; accepted 26
+March 2022. Date of publication 29 March 2022; date of current version 20
+March 2023. This work was supported in part by the Natural Science Foundation
+of China under Grant 62103140, in part by the Natural Science Foundation
+of Hunan Province under Grant 2021JJ40124, in part by China Postdoctoral
+Science Foundation under Grants BX20200122 and 2020M682555, in part
+by the Key R&D plan of Hunan Province under Grant 2020SK3007, and
+in part by Changsha Science and Technology Plan under Grant kh2003026.
+(Corresponding author: Zhiqiang Miao.)
+Hang Zhong, Yaonan Wang, Zhiqiang Miao, and Shuangwen Fan are with the
+College of Electrical and Information Engineering, Hunan University, Changsha
+410082, China, and also with the National Engineering Research Center for
+Robot Visual Perception and Control, Hunan University, Changsha 410082,
+China (e-mail: zhonghang@hnu.edu.cn; yaonan@hnu.edu.cn; miaozhiqiang@
+hnu.edu.cn; shuangwenfan@hnu.edu.cn).
+Ling Li is with the College of innovation and Entrepreneurship, Changsha
+University of Science and Technology, Changsha 410114, China (e-mail:
+lanling1207@csust.edu.cn).
+Hui Zhang is with the College of Robotics, Hunan University, Changsha
+410082, China (e-mail: zhanghuihby@126.com).
+This
+article
+has
+supplementary
+material
+provided
+by
+the
+au-
+thors
+and
+color
+versions
+of
+one
+or
+more
+ﬁgures
+available
+at
+https://doi.org/10.1109/TIV.2022.3163315.
+Digital Object Identiﬁer 10.1109/TIV.2022.3163315
+autonomously track the movement of targets and avoid obsta-
+cles from the environment. For implementing the autonomous
+operation of a UAV, both exact information of the vehicle’s pose
+is required for accurate control, and the sensors are needed to
+perceive environmental information [3], [4]. Therefore, it is a
+challenging problem to enable the autonomous capacity of the
+UAVinGPS-deniedconstrainedenvironments.Aneffectiveway
+to deal with state estimation constraints is via adding additional
+sensors. One of the most commonly used is vision sensors [5],
+[6]. A typical and commonly used vision sensor such as a
+monocular camera is a type of passive sensor that can obtain
+rich environmental information. It has the advantages of being
+small in size and lightweight and is very easy to integrate into
+the UAV.
+Generally speaking, the use of vision to assist drones to
+operate autonomously in GPS-denined environments can be di-
+vided into vision-based state estimation and visual servo control.
+Vision-based state estimation uses computer vision methods to
+obtain the UAV’s pose, velocity, and other states. Its advantage
+is that it is not coupled with the control loop and is suitable for
+long-distance application scenarios such as autonomous navi-
+gation. Typical vision-based state estimation methods include
+vision-inertial odometry (VIO) [7]–[9], optical ﬂow [10], [11],
+and so on [12]. The visual servo control directly inputs image
+characteristics or reconstructed pose information to the control
+loop, which is suitable for small-scale application scenarios
+such as self-stabilizing hovering and precise positioning. Since
+the scope of this paper is on visual servo control, we will
+focus on reviewing the existing visual servo control methods
+for underactuated UAVs.
+Using feedback features to classify the various visual servo
+control of UAVs is straightforward. There are two main ap-
+proaches: position-based visual servoing (PBVS) and image-
+based visual servoing (IBVS). PBVS uses the reconstructed
+pose as the feedback feature and designs the control law in
+Cartesian space, which has the advantages of a large conver-
+gence range [13], [14]. However, it depends on the accuracy
+of the camera calibration and the precise geometric model of
+the target. IBVS uses visual features (such as points, lines,
+image moments, etc.) as feedback input into the control loop,
+without the need to reconstruct poses, but it suffers two key
+problems. Firstly, the depth of each visual feature is independent
+2379-8858 © 2022 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission.
+See https://www.ieee.org/publications/rights/index.html for more information.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:21 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+1120
+IEEE TRANSACTIONS ON INTELLIGENT VEHICLES, VOL. 8, NO. 2, FEBRUARY 2023
+of the controller and difﬁcult to obtain. Secondly, the rigid-body
+dynamics of the camera ego-motion are highly coupled when
+expressed as target motion in the image plane [15]. Various
+approaches have been proposed to overcome the coupling of
+visual feature motion in image space, to obtain a visual error
+equation with passive properties. The ﬁrst is the spherical pro-
+jection method proposed by [15]. Using the improved centroid
+spherical image features [16], a backstepping nonlinear visual
+controller with an online velocity estimator is proposed in [17],
+which effectively improves the convergence rate in the vertical
+direction. The spherical projection method can also be used for
+the visual servo control of other composite UAVs, such as aerial
+manipulators [14], [18]. These approaches do not require an
+accurate geometric target model or a well-calibrated camera,
+but because the image depth appears as an unknown scale factor
+in the system dynamics, it will lead to complex nonlinear control
+problems. The second is the virtual camera approach ﬁrst men-
+tioned in [19]. It obtains the passive-like visual error kinematics
+by using perspective image moments, and various methods have
+been used to design the control law. For example, backstepping
+control [20], adaptive output-feedback control [21], geometric
+hierarchical control [22], [23], model predictive control [24]–
+[26], learning-based control [27], observer-based control [28],
+etc. In particular, the design methods of controllers in [27]
+and [28] give us a good inspiration. Although the visual error
+equation based on the virtual camera method has the advantages
+ofsimpleformandisnotrelatedtoimagedepth,itneedsaccurate
+image feature matching, and the loss of features will greatly
+affect the stability of the system.
+An alternative approach is the homography-based visual ser-
+voing (HBVS), commonly used for fully actuated systems [29]–
+[31]. The homography matrix relates the planar target in the
+camera frame as seen from two conﬁgurations of the camera.
+Various approaches can be used to obtain the homography
+matrix, i.e., points and lines features matching based [33],
+intensity based [34] and learning based [35]. Although the
+homography matrix is represented by the rotation matrix, dis-
+placement, normal vector, etc., it is very challenging to decouple
+these geometric parameters because of the existence of multiple
+solutions [36]. Therefore, there are few works focused on the use
+of HBVS on the under-actuated system. A homography-based
+visual servoing of a ﬁxed-wing UAV for automatic approaching
+and landing is proposed in [37], but system dynamics were
+not considered and stability analysis was lacking. In [36], a
+gyrometer-aided HBVS solution was proposed for underactu-
+ated UAVs. It can achieve stable hovering without linear velocity
+measurement. However, only local stability is proved based on
+Lyapunov analysis. No matter whether it is a fully actuated
+or an underactuated system, there is very few work that can
+prove the global stability of the HBVS control, especially when
+considering the system dynamics. Only [30] and [31] proved al-
+most global asymptotic stability, but for an almost fully actuated
+autonomous underwater vehicles.
+This study is consistent with these efforts. Compared with
+the existing HBVS solutions, an important original result of the
+proposed HBVS control approach is to obtain a passive-like
+error equation by deﬁning a new virtual homography matrix.
+Fig. 1.
+Underactuated UAV with a downward-looking camera and notations.
+This provides a possible way to design a controller with global
+stability. To the best of our knowledge, our work is the ﬁrst to
+prove the global asymptotic stability of HBVS in underactuated
+UAVs without linear velocity measurements. It can be applied
+to other underactuated robots, such as unmanned ships, two-
+wheeled differential mobile robots, etc.
+The rest of the paper is organized as follows. In Section II,
+the system modeling and problem formulation are given. In
+Section III, we ﬁrst state the existing HBVS control for fully
+actuated vehicles, and then we propose a novel HBVS control
+approach for underactuated UAVs with an online linear velocity
+estimator. Simulation results under ideal and noise with slop
+target plane conditions are presented in Section IV, illustrating
+the performance and robustness of the proposed approach. In
+Section V, various experimental results such as reaching a
+stationary target and tracking of a moving target on a quadrotor
+UAV are provided. Finally, we present some conclusions and an
+overview of possible future works.
+II. SYSTEM MODELING AND PROBLEM FORMULATION
+A. Notation
+The Underactuated UAV is modeled as a rigid body, and
+equipped with a download-looking monocular camera, operates
+sufﬁciently close to a target plane with texture pattern (see
+Fig. 1). For simplicity, assume that the camera is installed at
+the geometric center of the UAV body, and the camera frame
+coincides with the body frame. The following notation is used
+throughout the article.
+1) The right-hand
+inertial frame is denoted
+as I =
+{OI;⃗ei
+1,⃗ei
+2,⃗ei
+3}, and⃗ea
+3 represents the direction down-
+ward into the earth. A = {OA;⃗ea
+1,⃗ea
+2,⃗ea
+3} denote the
+(homography) reference frame, and also represents the
+body and camera frame in the reference pose. Without loss
+of generality, the direction of the frame is parallel to the
+inertial frame. C = {OC;⃗ec
+1,⃗ec
+2,⃗ec
+3} denote the (current)
+body or camera frame. V = {OV ;⃗ev
+1,⃗ev
+2,⃗ev
+3} denote the
+virtual camera frame, whose origin and yaw angle are the
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:21 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+ZHONG et al.: HOMOGRAPHY-BASED VISUAL SERVO CONTROL APPROACH FOR AN UNDERACTUATED UNMANNED AERIAL VEHICLE
+1121
+same as the camera frame, its roll and pitch angles are
+zero.
+2) The orientation and position of the (current) camera frame
+C relative to the reference frame A is represented by a
+rotation matrix R ∈SO(3) and a vector p ∈R3.
+3) Let Φ = (ϕ, θ, ψ)⊤denote the three Euler angles and ϕ,
+θ and ψ denoting, respectively, the roll, pitch and yaw
+angle. Let V ∈R3 denote the linear velocity and Ω =
+(Ωx, Ωy, Ωz)⊤∈R3 denote the angular velocity of the
+UAV or camera both expressed in the (current) camera
+frame C.
+4) Let m denote the mass of the total UAV and let J ∈R3×3
+be the inertia matrix around the center of mass.
+5) Let I3 ∈R3×3 and 03 ∈R3×3 denote, respectively, the
+3 × 3 identity and zero matrix. Let {ex, ey, ez} denote
+the canonical basis vector of R3. The notation |x|2 de-
+notes the square of Euclidean norms. The notation [x]×
+and vex([x]×) denotes, respectively, the skew-symmetric
+matrix associate with the vector x = (x1, x2, x3)⊤and its
+inverse operator, i.e.,
+B. System Modeling
+Considering an UAV in quasi-stationary (or hover) ﬂight
+conditions. Based on the previous literatures [15], [16], [20],
+[38], the kinematics and dynamics model of the UAV are
+˙p = RV
+(1)
+m ˙V = −mΩ×V + F
+(2)
+˙R = RΩ×
+(3)
+I ˙Ω = −Ω×JΩ + Γ
+(4)
+where F ∈C and Γ ∈C represents, respectively, the exogenous
+force and torque on the center of gravity (CoG) of the UAV.
+For an underactuated UAV, the force input F incorporates a
+single independent actuator while full actuation of the torque Γ
+is available. The force F mainly combines thrust, lift and gravity
+components and may be written as
+F := −Tez + mgR⊤ez
+(5)
+where T ∈R represents the magnitude of the thrust applied in
+direction ez.
+C. Problem Formulation
+Visual servo control is usually based on the difference be-
+tween the current image feedback and the target image. The
+control objective is to stabilizing the pose of the camera to reach
+the reference pose (for underactuated UAVs, only need to control
+the position). In this paper, the reference pose is attaching to
+the reference frame A, and choosing the homography informa-
+tion as image feedback. The homography matrix H contains
+coupled information about translation and rotation between the
+current camera frame C and the reference camera frame A as
+follows [29]:
+H = R⊤−1
+d∗R⊤pn∗⊤
+(6)
+where n∗∈R3 is the unit normal vector to target plane ex-
+pressed in the reference frame A and d∗is the distance between
+the target plane and the reference camera optical center (see
+Fig. 1). The derivation of H are given by
+˙H = −Ω×H −1
+d∗V n∗⊤
+(7)
+Deﬁnition 2.1: Consider a virtual frame V, whose origin
+is the same as the current camera frame, it’s roll and pitch
+angles are zero and yaw angle remains unchanged (see Fig. 1).
+Thus, the virtual homography matrix Hv and its derivation are
+deﬁned as
+Hv = RϕθH = R⊤
+ψ −1
+d∗R⊤
+ψpn∗⊤
+(8)
+˙Hv = −[Ωzez]×Hv −1
+d∗RϕθV n∗⊤
+(9)
+where Rϕ, Rθ and Rψ are the corresponding rotation matrix
+respectively, and Rϕθ = RθRϕ.
+Remark 2.1: The control objective is to stabilizing the ho-
+mography matrix H to the identity matrix I3. It is very easy
+to verify that stabilizing Hv has the same effect as H, because
+the underactuation of the UAV make the roll and pitch angles be
+zero at the reference pose.
+The main difﬁculty of using the homography matrix H to
+design the controller are the unknown quantities d∗and n∗
+involved in the expression (6), and the information of translation
+and rotation transformation are coupled in H.
+III. CONTROL DESIGN
+A. Existing HBVS Control for Fully Actuated Vehicle
+In [29], an advance HBVS approach is proposed to control
+6-DOF spatial motion without decomposition of homography
+matrix H. This kinematic control approach builds a control error
+e ∈R6 locally isomorphic to the camera pose.
+Deﬁnition 3.1: The control error e is deﬁned as
+e
+Δ=
+
+ep
+eΘ
+
+=
+ (I3 −H) m∗
+vex
+
+H⊤−H
+
+
+(10)
+with ep and eΘ denotes, respectively, the translation and rotation
+control error, and the control point m∗∈S2 satisfying the
+following assumption.
+Assumption 3.1: The control point m∗∈S2 can be chosen
+such that n∗⊤m∗> 0.
+Lemma 3.1 (See [29]): The following kinematics control law
+
+V
+Ω
+
+= −
+
+kpI3
+03
+03
+kΘI3
+ 
+ep
+eΘ
+
+(11)
+with kp > 0 and kΘ > 0, ensures the local exponential stability
+(LES) of the equilibrium H = I3.
+The linear velocity and the angular velocity in the control law
+(11)arecoupledwitheachother[29],whichwillcauseundesired
+motion. In [39], a decoupled approach was proposed by using a
+new control error.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:21 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+1122
+IEEE TRANSACTIONS ON INTELLIGENT VEHICLES, VOL. 8, NO. 2, FEBRUARY 2023
+Deﬁnition 3.2: The new control error is deﬁned as
+¯e = Me =
+ 2I3
+[m∗]×
+−[c∗]×
+I3
+  ep
+eΘ
+
+(12)
+where ep and eΘ are deﬁned in (12), c∗∈R3 is a control three-
+vector, thus M is a constant matrix.
+Lemma 3.2 (See [39]): After replacing the error e by the new
+error ¯e, the control law deﬁned in (11) ensures the LES of the
+equilibrium H = I3 providing that the following conditions are
+satisﬁed:
+m∗⊤c∗̸ = 2
+(13)
+m∗⊤n∗̸ = 2
+d∗
+(14)
+Furthermore, if consider a planar object. Just choosing m∗=
+c∗= [0, 0, 1]⊤and n∗= [0, 0, 1/d∗]⊤, the stability conditions
+(13) and (14) are both satisﬁed, and the obtained closed-loop
+system will be a fully decoupled linear system.
+The main limitation of the controller deﬁned in Lemmas 3.1
+and 3.2 are the local nature of the control design and stability
+analysis. Another limitation is that when applied to nonlinear
+dynamic systems, only cascade controllers can be designed, and
+it is more difﬁcult to design controllers when the linear and
+angular velocity of the system cannot be measured. In order to
+design a controller with global stability, using (7) and (10), the
+translation visual error equation can be obtained [30]
+˙ep = −Ω× (ep −m∗) + a∗V
+(15)
+with a∗= n∗⊤m∗
+d∗
+> 0 is an unknown multiplicative constant
+under Assumption 3.1.
+Lemma 3.3 (See [30]): The following kinematics control law
+V = −kpep −zpΩ×m∗
+(16)
+with zp is an adaptive scalar factor, its dynamics satisﬁes
+˙zp = e⊤
+p (Ω×m∗)
+(17)
+with angular velocity Ω remains bounded, ensures the globally
+asymptotically stability (GAS) of the translation error ep.
+The proposed kinematics control law (16) can achieve GAS
+for fully actuated system by using a cascade manner control
+design. Furthermore, literature [31] achieves GAS without linear
+velocity measurements by designing an enhanced time-varying
+cascade system. The control laws proposed above are limited to
+the almost fully actuated system.
+In the sequel, we proposed a novel HBVS control approach
+for underactuated UAV by using the virtual homography to
+construct a visual error equation with passive-like property.
+Furthermore, a nonlinear observer based on homography infor-
+mation is derived to estimate the linear velocity.
+B. Proposed HBVS Control Design for Underactuated UAV
+Deﬁnition 3.3: The virtual control error e1 is deﬁned as
+e1 =
+
+ep1
+eψ1
+
+=
+
+(I3 −Hv) m∗
+vex
+
+H⊤
+v −Hv
+⊤ez
+
+(18)
+with ep1 and eψ1 denotes, respectively, the virtual translation
+and yaw angle control error. Take the derivation of (18), using
+(8) and (9), one veriﬁes that
+˙ep1 = −[Ωzez]× (ep1 −m∗) + a∗V v
+(19)
+with V v = RϕθV is the linear velocity of the virtual camera
+frame expressed in its self.
+Let choosing m∗= [0, 0, 1]⊤, and take the derivation of vir-
+tual camera linear velocity V v. The full dynamics can be written
+as
+˙ep1 = −[Ωzez]×ep1 + a∗V v
+(20)
+m ˙V v = −m[Ωzez]×V v + F v
+(21)
+˙Rϕθ = Rϕθ[Ω]× −[Ωzez]×Rϕθ
+(22)
+I ˙Ω = −Ω×JΩ + Γ
+(23)
+where F v = RϕθF .
+Remark 3.1: The visual error dynamics (20) has certain
+passivity-like properties. Choosing m∗= [0, 0, 1]⊤has many
+advantages. The ﬁrst is to eliminate the [Ωzez]×m∗term in
+formula (19). Another is to maximize the unevenness of the
+target plane. The angle range between the target plane and the
+horizontal plane is within (−π/2, π/2) with Assumption 3.1.
+Remark 3.2: The linear velocity of the virtual camera V v is
+difﬁcult to measure directly by the sensors. A feasible method
+is to estimate it in real time through homography matrix infor-
+mation.
+Theorem 3.1: Let ˆV v and ˆep1 be the estimation of V v and
+ep1, respectively. Although ep1 can be directly calculated from
+the homography matrix, here ˆep1 is regarded as an update
+and correction term of the estimator. Deﬁne the corresponding
+estimation errors as
+ ˜ep1 = ep1 −ˆep1
+˜V v = V v −ˆV v
+(24)
+Consider the following update law [17]:
+⎧
+⎨
+⎩
+ˆV v = ˆz + k2˜ep1
+˙ˆz = −[Ωzez]× ˆV v + F v
+m + k2k1˜ep1 + a∗˜ep1
+˙ˆep1 = −[Ωzez]×ep1 + a∗ˆV v + k1˜ep1
+(25)
+with k1 > 0 and k2 > 0 are positive turning gains. The nonlinear
+observer is exponentially stable.
+Proof: The time derivations of ˙˜ep1 and ˙ˆV v can be obtained
+from formulas (20), (24) and (25):
+˙˜ep1 = ˙ep1 −˙ˆep1 = −k1˜ep1 + a∗˜V v
+(26)
+˙ˆV v = −[Ωzez]× ˆV v + F v
+m + a∗˜ep1 + k2a∗˜V v
+(27)
+and then, using the UAV translation dynamics (21) and the
+derivative of the estimated velocity (27), one obtain
+˙˜V v = ˙V v −˙ˆV v = −[Ωzez]× ˜V v −a∗˜ep1 −k2a∗˜V v. (28)
+Consider the Lyapunov storage function as
+L0 = 1
+2|˜ep1|2 + 1
+2
+ ˜V v
+
+2
+.
+(29)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:21 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+ZHONG et al.: HOMOGRAPHY-BASED VISUAL SERVO CONTROL APPROACH FOR AN UNDERACTUATED UNMANNED AERIAL VEHICLE
+1123
+Using (26) and (28), the time derivation of the Lyapunov storage
+function (31) will be
+˙L0 = −k1|˜ep1|2 −k2a∗ ˜V v
+
+2
+(30)
+which is negative deﬁnite. If we choosing α = 2 min(k1, k2a∗),
+such that ˙L0 ≤−αL0. Therefore, the nonlinear observer is
+exponentially stable.
+■
+Remark 3.3: The nonlinear observer (25) only uses the ho-
+mography and the angular velocity to estimate the linear veloc-
+ity. Compared to [7], [32], no additional image processing is
+required, it uses the same visual information as the controller
+design, so the computational burden is very cheap.
+Next, we will use the estimated linear velocity ˆV v in a back-
+stepping control approach to design the visual servo controller
+for the full underactuated dynamics of the UAV.
+Theorem 3.2: Deﬁne the new visual errors as follows:
+
+
+ep2 = ep1 + 1
+c1 ˆV v
+ep3 =
+F v
+mc1k3 +
+a∗
+c1k3 ˜ep1 + ep2
+.
+(31)
+The following control law is GAS and yields visual errors ep1,
+ep2 and ep3 converging to zero without measuring the velocity
+of the virtual camera V v, as long as (39) is satisﬁed:
+˙F v
+mk3
++ [Ωzez]×
+F v
+mk3
+= k1a∗
+c1k3
+˜ep1 −a∗c1 (ep2 −ep1)
+−[Ωzez]×
+a∗
+c1k3
+˜ep1
+−k3ep3 −k4ep3
+(32)
+Proof: Considering the following Lyapunov function:
+L = 1
+2e⊤
+p1ep1 + 1
+2e⊤
+p2ep2 + 1
+2e⊤
+p3ep3 + L0
+(33)
+which contains both the velocity estimator and visual errors.
+Update ˙ep1, and take the derivation of ep2 and ep3 by using
+(20), (24), (27) and (31), yields
+˙ep1 = −[Ωzez]×ep1 + a∗˜V v + a∗c1 (ep2 −ep1)
+(34)
+˙ep2 = −[Ωzez]×ep2 + a∗˜V v + a∗c1 (ep2 −ep1)
++ k3 (ep3 −ep2) + k2a∗
+c1
+˜V v
+(35)
+˙ep3 = −[Ωzez]×ep3 +
+˙F v
+mc1k3
++ [Ωzez]×
+F v
+mc1k3
++
+ a∗
+c1k3
++ 1 + k2
+c1
+
+a∗˜V v −k1a∗
+c1k3
+˜ep1
++ [Ωzez]×
+a∗
+c1k3
+˜ep1 + a∗c1 (ep2 −ep1)
++ k3 (ep3 −ep2)
+(36)
+Taking the time derivation of L, it follows that
+˙L = e⊤
+p1a∗˜V v −e⊤
+p1a∗c1ep1 + e⊤
+p2a∗
+
+1 + k2
+c1
+
+˜V v
+−e⊤
+p2 (k3 −a∗c1) ep2 + e⊤
+p3
+ a∗
+c1k3
++ 1 + k2
+c1
+
+a∗˜V v
+−e⊤
+p3k4ep3 −˜e⊤
+p1k1˜ep1 −˜V
+⊤
+v k2a∗˜V v
+(37)
+which can be bounded as follows after noticing that a⊤b ≤
+|a||b|, uv ≤1
+2(u2 + v2), for any vectors (a, b) and scalars
+(u, v). Substitute the control law (32) into (37), we can get
+˙L ≤−e⊤
+p1a∗
+
+c1 −1
+2
+
+ep1 −˜e⊤
+p1k1˜ep1
+−e⊤
+p2a∗
+k3
+a∗−c1 −1
+2 −k2
+2c1
+
+ep2
+−e⊤
+p3a∗
+k4
+a∗−
+a∗
+2c1k3
+−1
+2 −k2
+2c1
+
+ep3
+−˜V
+⊤
+v a∗
+
+k2 −3
+2 −k2
+c1
+−
+a∗
+2c1k3
+
+˜V v.
+(38)
+It is clear that ˙L is negative deﬁned for
+⎧
+⎪
+⎪
+⎨
+⎪
+⎪
+⎩
+c1 −1
+2 > 0
+k3
+a∗−c1 −1
+2 −k2
+2c1 > 0
+k4
+a∗−
+a∗
+2c1k3 −1
+2 −k2
+2c1 > 0
+k2 −3
+2 −k2
+c1 −
+a∗
+2c1k3 > 0
+(39)
+where k1, k2, c1, k3 and k4 are all positive parameters. Accord-
+ingly, the visual errors ep1, ep2 and ep3, along with ˜ep1, ˜V v
+converges to zero, thus concluding the proof.
+■
+The control law deﬁned by (32) can be simpliﬁed as
+˙F v
+mc1k3
++ [Ωzez]×
+F v
+mc1k3
+= −k3ep3 −k4ep3
+(40)
+the time derivation of the Lyapunov function deﬁned in (35) can
+also be proved to be negative deﬁned by choosing appropriate
+control gains.
+Recalling
+(5)
+and
+(22),
+the
+full
+control
+law
+term
+( ˙F v + [Ωzez]F v) can be written as
+˙F v + [Ωzez] F v = Rϕθ
+
+−˙Tez −Ω×Tez
+
+= Rϕθ
+⎡
+⎣
+−TΩy
+TΩx
+−˙T
+⎤
+⎦
+(41)
+from which the angular velocity, Ωx and Ωy, as well as
+thrust rate
+˙T
+can be deduced from a desired value of
+(−mk2
+3
+c1 ep3 −mk3k4ep3).
+Remark 3.4: Using the angular velocity (Ωx, Ωy) and thrust T
+as the control output of the proposed visual servo approach have
+many advantages. First, we can using the native autopilot (like
+PX4) onboard the vehicle directly. Secondly, using the angular
+velocity as the control input can realize a more reactive control
+of the vehicle, and also allows us to apply a high gain inner loop
+control design of the angular dynamics (4).
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:21 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+1124
+IEEE TRANSACTIONS ON INTELLIGENT VEHICLES, VOL. 8, NO. 2, FEBRUARY 2023
+Remark 3.5: For practical use of the controller, some guide-
+lines are provided to tune the control gains. For the nonlinear
+observer, the increase of k1 (resp. k2) makes ˆep1 (resp. ˆV v)
+converge more quickly. For the backstepping control inner loop,
+the decrease of c1 (resp. k3) makes e2 (resp. e3) converge more
+quickly. Moreover, as c1 decrease, the transient ﬂuctuation of
+e1 and e2 could be suppressed. The increase of k4 makes the
+system converge more quickly.
+C. Yaw Angle Control
+Consider the yaw angle control error eψ1 proposed in (18),
+we have the following theorem.
+Theorem 3.3: The yaw angle control error eψ1 deﬁned in (18)
+is diffeomorphic to the UAV yaw angle, i.e. eψ1 = 0, if and only
+if, ψ = 0. Choose the control input as
+Ωz = −k5eψ1
+(42)
+with k5 > 0, ensures the globally exponentially stability (GES)
+of yaw angle error eψ1, if the yaw angle difference ψ between
+the current pose and reference pose satisﬁes
+−π
+2 < ψ < π
+2 .
+(43)
+Proof: Let using axis-angle representation of the yaw angle
+rotation matrix Rψ as
+Rψ = exp
+
+ψ[ez]×
+
+.
+(44)
+The derivative of eψ1 can be written as follows [29]
+˙eψ1 =
+
+[n∗]×V +
+
+−[n∗]×[p]× + 2Lw
+
+Ω
+⊤ez
+(45)
+where Lw = I3 −sin ψ
+2 [ez]× −sin2( ψ
+2 )(2I3 + [ez]2
+×). Note
+that n∗has the same direction of ez, so n∗× ez = 0. Equa-
+tion (45) can be written as
+˙eψ1 = 2(LwΩ)⊤ez
+= Ωz −sin2
+ψ
+2
+
+Ω⊤
+2I3 + [ez]2
+×
+
+ez
+=
+
+1 −2sin2
+ψ
+2
+
+Ωz = cψΩz
+(46)
+When the yaw angle is limited by condition (43), there is
+cψ > 0. Substituting control input (42) into (46), we have ˙eψ1 =
+−cψk5eψ1, which is exponentially stable.
+For readability purposes, the proposed homography-based
+visual servo control architecture is depicted in Fig. 2.
+IV. SIMULATION RESULTS
+The proposed control approach has been tested ﬁrst via
+simulations, with a realistic model of a quadrotor. The
+physical parameters of the quadrotor are: m = 2.4 kg, J =
+diag(0.042, 0.042, 0.149). The task of the robot is to control the
+quadrotor to reach a stable state relative to the visual target. The
+proposedHBVScontrollerprovidesanestimationofthevelocity
+and generates desired attitude angles and thrust to the native
+inner-loop controller. The inner-loop angular rate controller is a
+simple PID controller with the same as PX4 autopilot [40]. The
+Fig. 2.
+Control architecture of the proposed HBVS.
+TABLE I
+SIMULATION CONDITION SETTING
+involved tuning gains have been chosen as follows: c1 = 0.5,
+k1 = 1, k2 = 1, k3 = 1.5, k4 = 10, k5 = 0.8. In order to verify
+the GAS of the proposed HBVS controller, the UAV initial
+position with respect to the inertial frame is (−3, 4, 6) m, while
+the desired position is (0, 0, 1) m, thus the UAV needs to move
+autonomously at least 7 meters. The initial yaw angle is set to
+zeros, and the desired yaw angle is set to π
+3 . The homography
+matrix H is directly calculated by (6), with d∗= 1 and n∗
+has different values according to the experimental requirements.
+Two simulation experiments under the condition of an ideal and
+an slop target plane with noise are considered. The simulation
+conditions are given in Table I. The simulation results are shown
+in Figs. 3 and 4.
+A. Ideal Case
+First, a simulation with an ideal scenario was carried out.
+Note that the target plane is parallel to the xy plane of UAV
+reference pose, that is, n∗= [0, 0, 1]⊤. Fig. 3(a) shows the 3D
+position of the UAV. In the ﬁrst 2.5 seconds, the UAV has moved
+three-quarters of the entire path, which veriﬁes the convergence
+performance of the proposed approach. The convergence perfor-
+mance can also be veriﬁed from the error curve ep1, eψ1, ep2,
+ep3 in Figs. 3(b), (c), and (d). The linear velocity estimator given
+by (25) tracks the actual velocity of the UAV well, as shown
+in Fig. 3(f), (g), and (h). In particular, the homography-based
+estimator proposed in this paper can have a good tracking
+performance without increasing the gain in the z direction as
+used in [17] and [23]. The output command angular velocity
+Ω∗and thrust T ∗given by (41) are depicted in Fig. 3(i) and (j),
+respectively.
+B. Noise With Slop Target Plane Case
+In order to verify the robustness of the proposed control law,
+simulations are carried with the noise and slop target plane. In
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:21 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+ZHONG et al.: HOMOGRAPHY-BASED VISUAL SERVO CONTROL APPROACH FOR AN UNDERACTUATED UNMANNED AERIAL VEHICLE
+1125
+Fig. 3.
+Simulation results of the ideal case. (a) 3D position of the UAV. (b)-(d)
+Control errors ep1, eψ1, ep2, ep3 versus time. (e) UAV Euler angles versus
+time. (f)-(h) Linear velocity estimator performance in x, y and z direction.
+(i) Command angular velocity Ω∗. (j) Command thrust T ∗.
+detail, the measured Euler angles and angular velocity are added
+with a white Gaussian noise (WGN) of 2 deg and 3.5 deg/s
+standard deviation (SD). The output command thrust also adds
+WGN with a SD of 1.5 N. The unit normal vector of the slop
+target plane is set to n∗= [0.15, −0.5, 0.85]⊤. The simulation
+results are shown in Fig. 4. Overall, the time evolutions of the
+UAV’s position and the visual control errors are converging
+quite slowly compared with the ideal case, but the measurement
+noise and slop target plane does not affect signiﬁcantly the
+Fig. 4.
+Simulation results of the noise with slop target plane case. (a) 3D
+position of the UAV. (b)-(d) Control errors ep1, eψ1, ep2 and ep3. (e) UAV Euler
+angles. (f)-(h) Linear velocity estimator performance in x, y and z direction.
+(i) Command angular velocity Ω∗. (j) Command thrust T ∗.
+performances of the proposed approach. The UAV can ﬁnally
+reach the target pose stably.
+V. EXPERIMENTAL RESULTS
+In this section, we show the results of the proposed vi-
+sual servo control approach performing various tasks. First,
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:21 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+1126
+IEEE TRANSACTIONS ON INTELLIGENT VEHICLES, VOL. 8, NO. 2, FEBRUARY 2023
+Fig. 5.
+UAV with a downward-looking camera.
+TABLE II
+CONTROL GAINS AND PARAMETERS
+we carried out a stable experiment with the target stationary
+to verify the performance of the controller. Secondly, to test
+the robustness of the algorithm, a tracking experiment under a
+moving target was carried out. These experiments can verify the
+autonomous docking, high-precision reconnaissance, and other
+tasks of UAVs in the GPS-denial environment.
+A. Experimental Setup
+The setup consists of a quadrotor with a DAHENGIMAG-
+ING VEN-161 mono camera1 and its homography estimation
+and control software are all running on the onboard computer
+with ROS environment installed (see Fig. 5). The quadrotor
+is equipped with an autopilot based on the PX4 ﬁrmware to
+providetheinner-loopangularvelocitytrackingcontroller.Since
+cameras generally have a slower frame rate than inertial sensors,
+the proposed visual servo control runs on the onboard computer
+with a maximum camera frame rate of 60 Hz, and the command
+thrust and angular velocity are sent to the autopilot through
+MAVROS.2 The overall weight of the vehicle is 2.45 kg, and
+the control gains involved in the computation of the proposed
+control are given in Table II.
+B. Reaching to a Stationary Target
+First, the ability and stability of the system to automatically
+reaching and hovering on a stationary target were tested. For
+simplicity, we use the checkerboard and the ﬁndHomography
+function in OpenCV to obtain the homography matrix. The
+experimental results are shown in Fig. 6. In general, one can
+clearly see the convergence of the UAV’ pose to the desired one
+as shown by the convergence of the control errors ep1, eψ1. In
+Fig. 6(b), we can see that the convergence speed of the error in
+1https://www.daheng-imaging.com
+2http://wiki.ros.org/mavros
+Fig. 6.
+Experiments results of reaching a stationary target with large position
+offset. (a) Final image and initial image captured by the onboard camera.
+(b) Control errors ep1, eψ1. (c) Command thrust T ∗. (d)-(f) Command angular
+velocity tracking performance in x, y and z direction. (g) Estimated linear
+velocity. (h) 3D position of the UAV.
+the x, y and z-directions is basically the same, which overcomes
+the insensitivity problem in the z-direction in 12 and increases
+the robustness of the system. The command angular velocity
+shown in Fig. 6(d), 6(e) and 6(f) indicate that the inner-loop
+of the autopilot has good real-time tracking performance. The
+thrust shown in Fig. 6(c) eventually tends to the system gravity,
+indicating that the UAV has reached an equilibrium point at
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:21 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+ZHONG et al.: HOMOGRAPHY-BASED VISUAL SERVO CONTROL APPROACH FOR AN UNDERACTUATED UNMANNED AERIAL VEHICLE
+1127
+TABLE III
+POSE MEAN ERRORS AND STANDARD DEVIATIONS FOR THE TWO CONTROL
+APPROACHES
+this time. Since the approximate thrust value is used in the
+estimator, the estimated value in the z direction in Fig. 6(g)
+is low performance and more noisy than the x and y directions.
+The 3D position curve of the UAV in Fig. 6(h) shows that it
+moves directly and smoothly to the desired position. It is worth
+noting that Optitrack3 is only used to record the position data of
+the UAV and is not used in the controller.
+To validate steady-state performance of the controller quanti-
+tatively. We repeated the experiment 5 times for the conditions
+shown in Fig. 6. Intuitive and quantitative comparative results
+are given with respect to the geometric hierarchical method [22].
+Table III shows the standard deviations of the two method for
+the UAV position and Euler angles during the steady state period
+of 5-10 seconds. The proposed method is termed as “hbvs,” and
+the geometric hierarchical method is termed as “ghvs”. It should
+be noted that the data for “ghvs” is taken from [22]. It can be
+seen that the method proposed in this paper is less than 1 cm
+in position standard deviation, which has obvious advantages,
+especially in the z-direction.
+C. Tracking of a Moving Target
+Next, the capability of the system of tracking a moving target
+is tested. The homography estimation method is the same as that
+in Section V-II. The system conﬁguration is shown in Fig. 7(a).
+The moving target is a differentially driven wheeled robot, which
+is manually operated and moved at a linear velocity of 0.4 m/s
+and an angular velocity of 0.2 rd/s. Note that the test was
+conducted in an indoor scene without an external positioning
+system, and the UAV cannot obtain information about its own
+or target position or velocity. The UAV initially landed on the
+wheeled robot and takeoff automatically under the proposed
+visual servo control. The initial and the desired image of the
+onboard camera are shown in the upper right and the lower
+right of Fig. 7(a), respectively. The corresponding results are
+shown in Fig. 7(b) to Fig. 7(e). Since the control errors, ep1
+and eψ1 shown in Fig. 7(b) are bounded and quickly stabilized,
+the tracking performance of the proposed controller can be
+guaranteed. One observes from 7(c) that the command thrust T ∗
+is remains constant during tracking. This, in fact, the target is
+moving on a constant horizontal plane. The command angular
+velocity and estimated linear velocity are shown in 7(d) and
+Fig. 7(e) also indicate the tracking effectiveness of the proposed
+approach.
+3https://optitrack.com/
+Fig. 7.
+Experiments results of tracking a moving target. (a) System setup with
+initial and desired image captured by onboard camera. (b) Control errors ep1,
+eψ1. (c) Command thrust T ∗. (d) Command angular velocity Ω. (e) Estimated
+linear velocity in x and y directions.
+VI. CONCLUSION
+We propose a homography-based visual servo control ap-
+proach for the stabilization of underactuated unmanned aerial
+vehicles in GPS-denied environments. By deﬁning a virtual ho-
+mography matrix, a passive-like error equation can be obtained.
+A backstepping-based control approach that uses full dynamics
+to estimate its translation velocity online is proposed. The con-
+troller can ensure global asymptotic stability. Two simulation
+experiments under the condition of an ideal and a slop target
+plane with noise are tested to verify the performance of the
+proposed HBVS control. The experimental results show that
+the proposed scheme can not only achieve fast stabilization
+to the target pose, but also can effectively track the unknown
+moving target. In addition, using homography as a feedback
+feature can effectively reduce the constraints on the target in the
+ﬁeld of view, thereby increasing the robustness of the system.
+In spite of all these improvements, there are still some problems
+worthy of improvement or analysis. One problem that may need
+to be analyzed is that when the target is in unknown motion,
+the stability of the system is difﬁcult to guarantee. Although the
+robust follow-up of the moving target is achieved in this article,
+it lacks rigorous theoretical analysis. In addition, considering
+the stability control method under the angular dynamics of the
+UAVs is a direction for further research.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:21 UTC from IEEE Xplore.  Restrictions apply. 
+[p.10]
+1128
+IEEE TRANSACTIONS ON INTELLIGENT VEHICLES, VOL. 8, NO. 2, FEBRUARY 2023
+REFERENCES
+[1] N. Nigam, S. Bieniawski, I. Kroo, and J. Vian, “Control of multiple UAVs
+for persistent surveillance: Algorithm and ﬂight test results,” IEEE Trans.
+Control Syst. Technol., vol. 20, no. 5, pp. 1236–1251, Sep. 2012.
+[2] R. Bahnemann et al., “The ETH-MAV team in the MBZ international
+robotics challenge,” J. Field Robot., vol. 36, no. 1, pp. 78–103, Oct. 2019.
+[3] H. Oleynikova, Z. Taylor, M. Fehr, R. Siegwart, and J. Nieto, “Voxblox:
+Incremental 3D euclidean signed distance ﬁelds for on-board MAV plan-
+ning,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst., 2017, pp. 1366–
+1373.
+[4] A. Loquercio, E. Kaufmann, R. Ranftl, M. Müller, V. Koltun, and D.
+Scaramuzza, “Learning high-speed ﬂight in the wild,” Sci. Robot., vol. 6,
+no. 59, pp. 1–23, Oct. 2021.
+[5] Z.Miao,Y.-H.Liu,Y.Wang,H.Chen,H.Zhong,andR.Fierro,“Consensus
+with persistently exciting couplings and its application to vision-based es-
+timation,” IEEE Trans. Cybern., vol. 51, no. 5, pp. 2801–2812, May 2021.
+[6] S. P. Bharati, Y. Wu, Y. Sui, C. Padgett, and G. Wang, “Real-time obstacle
+detection and tracking for sense-and-avoid mechanism in UAVs,” IEEE
+Trans. Intell. Veh., vol. 3, no. 2, pp. 185–197, Jun. 2018.
+[7] T. Qin, P. Li, and S. Shen, “VINS-Mono: A robust and versatile monoc-
+ular visual-inertial state estimator,” IEEE Trans. Robot., vol. 34, no. 4,
+pp. 1004–1020, Aug. 2018.
+[8] S. Weiss, M. W. Achtelik, S. Lynen, M. Chli, and R. Siegwart, “Real-time
+onboard visual-inertial state estimation and self-calibration of MAVs in
+unknown environments,” in Proc. IEEE Int. Conf. Robot. Automat., 2012,
+pp. 957–964.
+[9] J. Jeon, S. Jung, E. Lee, D. Choi, and H. Myung, “Run your visual-
+inertial odometry on NVIDIA Jetson: Benchmark tests on a micro aerial
+vehicle,” IEEE Robot. Automat. Lett., vol. 6, no. 3, pp. 5332–5339,
+Jul. 2021.
+[10] H. Romero, S. Salazar, and R. Lozano, “Real-time stabilization of an
+eight-rotor UAV using optical ﬂow,” IEEE Trans. Robot., vol. 25, no. 4,
+pp. 809–817, Aug. 2009.
+[11] L.Fusini,T.I.Fossen,andT.A.Johansen,“NonlinearobserversforGNSS-
+and camera-aided inertial navigation of a ﬁxed-wing UAV,” IEEE Trans.
+Control Syst. Technol., vol. 26, no. 5, pp. 1884–1891, Sep. 2018.
+[12] Q. Fu, Q. Quan, and K. Cai, “Robust pose estimation for multirotor UAVs
+using off-board monocular vision,” IEEE Trans. Ind. Electron., vol. 64,
+no. 10, pp. 7942–7951, Oct. 2017.
+[13] L. Mejias, S. Saripalli, P. Campoy, and G. S. Sukhatme, “Visual servoing
+of an autonomous helicopter in urban areas using feature tracking,” J. Field
+Robot., vol. 23, no. 3, pp. 185–199, Apr. 2006.
+[14] L. Li et al., “Autonomous removing foreign objects for power transmission
+line by using a vision-guided unmanned aerial manipulator,” J. Intell.
+Robot. Syst., vol. 103, no. 2, pp. 1–14, Sep. 2021.
+[15] T. Hamel and R. Mahony, “Visual servoing of an under-actuated dynamic
+rigid-body system: An image-based approach,” IEEE Trans. Robot. Au-
+tomat., vol. 18, no. 2, pp. 187–198, Apr. 2002.
+[16] N. Guenard, T. Hamel, and R. Mahony, “A practical visual servo control
+for an unmanned aerial vehicle,” IEEE Trans. Robot., vol. 24, no. 2,
+pp. 331–340, Apr. 2008.
+[17] R. Mebarki, V. Lippiello, and B. Siciliano, “Nonlinear visual control
+of unmanned aerial vehicles in GPS-denied environments,” IEEE Trans.
+Robot., vol. 31, no. 4, pp. 1004–1017, Aug. 2015.
+[18] H. Zhong et al., “A practical visual servo control for aerial manipulation
+using a spherical projection model,” IEEE Trans. Ind. Electron., vol. 67,
+no. 12, pp. 10 564–10 574, Dec. 2020.
+[19] H. Jabbari, G. Oriolo, and H. Bolandi, “Dynamic IBVS control of an
+underactuated UAV,” in Proc. IEEE Int. Conf. Robot. Biomimetics, 2012,
+pp. 1158–1163.
+[20] D. Zheng, H. Wang, J. Wang, S. Chen, W. Chen, and X. Liang, “Image-
+based visual servoing of a quadrotor using virtual camera approach,”
+IEEE/ASME Trans. Mechatronics, vol. 22, no. 2, pp. 972–982, Apr. 2017.
+[21] H. Xie, A. F. Lynch, K. H. Low, and S. Mao, “Adaptive output-feedback
+image-based visual servoing for quadrotor unmanned aerial vehicles,”
+IEEE Trans. Control Syst. Technol., vol. 28, no. 3, pp. 1034–1041,
+May 2020.
+[22] X. Zhang, Y. Fang, X. Zhang, J. Jiang, and X. Chen, “A novel geometric
+hierarchical approach for dynamic visual servoing of quadrotors,” IEEE
+Trans. Ind. Electron., vol. 67, no. 5, pp. 3840–3849, May 2020.
+[23] X. Zhang, Y. Fang, X. Zhang, J. Jiang, and X. Chen, “Dynamic image-
+based output feedback control for visual servoing of multirotors,” IEEE
+Trans. Ind. Informat., vol. 16, no. 12, pp. 7624–7636, Dec. 2020.
+[24] K. Zhang, Y. Shi, and H. Sheng, “Robust nonlinear model predictive
+control based visual servoing of quadrotor UAVs,” IEEE/ASME Trans.
+Mechatronics, vol. 26, no. 2, pp. 700–708, Apr. 2021.
+[25] D. Zheng, H. Wang, J. Wang, X. Zhang, and W. Chen, “Toward visibility
+guaranteed visual servoing control of quadrotor UAVs,” IEEE/ASME
+Trans. Mechatronics, vol. 24, no. 3, pp. 1087–1095, Jun. 2019.
+[26] X. Zhang, Y. Fang, X. Zhang, P. Shen, J. Jiang, and X. Chen, “Attitude-
+constrained time-optimal trajectory planning for rotorcrafts: Theory and
+application to visual servoing,” IEEE/ASME Trans. Mechatronics, vol. 25,
+no. 4, pp. 1912–1921, Aug. 2020.
+[27] X. Xu, H. Chen, C. Lian, and D. Li, “Learning-based predictive con-
+trol for discrete-time nonlinear systems with stochastic disturbances,”
+IEEE Trans. Neural Netw. Learn. Syst., vol. 29, no. 12, pp. 6202–6213,
+Dec. 2018.
+[28] S. Shen and A. Song, “Bilateral motion prediction and tracking control
+for nonlinear teleoperation system with time-varying delays,” in Proc. Int.
+Conf. Control, Automat. Syst., 2019, pp. 798–803.
+[29] S. Benhimane and E. Malis, “Homography-based 2D visual tracking and
+servoing,” Int. J. Robot. Res., vol. 26, no. 7, pp. 661–676, Jul. 2007.
+[30] S. Krupłnski, G. Allibert, M. Hua, and T. Hamel, “An inertial-aided
+homography-based visual servo control approach for (almost) fully ac-
+tuated autonomous underwater vehicles,” IEEE Trans. Robot., vol. 33,
+no. 5, pp. 1041–1060, Oct. 2017.
+[31] L. -H. Nguyen, M. -D. Hua, G. Allibert, and T. Hamel, “A homography-
+based dynamic control approach applied to station keeping of au-
+tonomous underwater vehicles without linear velocity measurements,”
+IEEE Trans. Control Syst. Technol., vol. 29, no. 5, pp. 2065–2078,
+Sep. 2021, doi: 10.1109/TCST.2020.3029564.
+[32] H. Wang, D. Zheng, J. Wang, W. Chen, and J. Yuan, “Ego-motion esti-
+mation of a quadrotor based on nonlinear observer,” IEEE/ASME Trans.
+Mechatronics, vol. 23, no. 3, pp. 1138–1147, Jun. 2018.
+[33] D. Barath and L. Hajder, “A theory of point-wise homography estimation,”
+Pattern Recognit. Lett., vol. 94, pp. 7–14, Jul. 2017.
+[34] G. Silveira and E. Malis, “Uniﬁed direct visual tracking of rigid and
+deformable surfaces under generic illumination changes in grayscale
+and color images,” Int. J. Comput. Vis., vol. 89, no. 1, pp. 84–105,
+Feb. 2010.
+[35] T. Nguyen, S. W. Chen, S. S. Shivakumar, C. J. Taylor, and V. Kumar,
+“Unsupervised deep homography: A fast and robust homography estima-
+tion model,” IEEE Robot. Automat. Lett., vol. 3, no. 3, pp. 2346–2353,
+Jul. 2018.
+[36] H. De Plinval, P. Morin, P. Mouyon, and T. Hamel, “Visual servoing for
+underactuated VTOL UAVs: A linear, homography-based framework,” Int.
+J. Robust Nonlinear Control, vol. 24, no. 16, pp. 2285–2308, Apr. 2014.
+[37] T. Goncalves, J. Azinheira, and P. Rives, “Homography-based visual
+servoing of an aircraft for automatic approach and landing,” in Proc. IEEE
+Int. Conf. Robot. Automat., 2010, pp. 9–14.
+[38] M. Faessler, A. Franchi, and D. Scaramuzza, “Differential ﬂatness of
+quadrotor dynamics subject to rotor drag for accurate tracking of high-
+speed trajectories,” IEEE Robot. Automat. Lett., vol. 3, no. 2, pp. 620–626,
+Apr. 2018.
+[39] G. Silveira, L. Mirisola, and P. Morin, “Decoupled intensity-based non-
+metric visual servo control,” IEEE Trans. Control Syst. Technol., vol. 28,
+no. 2, pp. 566–573, Mar. 2020.
+[40] L. Meier, D. Honegger, and M. Pollefeys, “PX4: A node-based multi-
+threaded open source robotics framework for deeply embedded platforms,”
+in Proc. IEEE Int. Conf. Robot. Automat., 2015, pp. 6235–6240.
+Hang Zhong (Member, IEEE) received the B.S.,
+M.S., and Ph.D. degrees in automation science from
+the College of Electrical and Information Engineer-
+ing, Hunan University, Changsha, China, in 2013,
+2016, and 2020, respectively. He is currently a Post-
+doc Fellow with the Department of Electrical and
+Information Engineering, Hunan University. His re-
+search interests include aerial robotics, multirobot
+systems, visual servoing, visual navigation, and non-
+linear control.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:21 UTC from IEEE Xplore.  Restrictions apply. 
+[p.11]
+ZHONG et al.: HOMOGRAPHY-BASED VISUAL SERVO CONTROL APPROACH FOR AN UNDERACTUATED UNMANNED AERIAL VEHICLE
+1129
+Yaonan Wang (Senior Member, IEEE) received the
+Ph.D. degree in electrical engineering from Hunan
+University, Changsha, China, in 1994. From 1994
+to 1995, he was a Postdoctoral Research Fellow
+with the Normal University of Defence Technology,
+Changsha, China. From 1998 to 2000, he was a Senior
+Humboldt Fellow in Germany. From 2001 to 2004,
+he was a Visiting Professor with the University of
+Bremen, Bremen, Germany. Since 1995, he has been
+a Professor with the College of Electrical and Infor-
+mation Engineering, Hunan University. His research
+interests include robotics and image processing. Prof. Wang is an Academician
+of the Chinese Academy of Engineering.
+Zhiqiang Miao (Member, IEEE) received the B.S.
+and Ph.D. degrees in electrical and information en-
+gineering from Hunan University, Changsha, China,
+in 2010 and 2016, respectively. From 2014 to 2015,
+he was a Visiting Scholar with the University of
+New Mexico, Albuquerque, NM, USA. From 2016 to
+2018,hewasaPostdocFellowwiththeDepartmentof
+Mechanical and Automation Engineering, The Chi-
+nese University of Hong Kong, Hong Kong. He is
+currently an Associate Professor with the College
+of Electrical and Information Engineering, Hunan
+University. His research interests include multirobot systems, visual navigation,
+and nonlinear control. He was the recipient of the Outstanding Doctoral Dis-
+sertation Award of Hunan Province in 2018, Outstanding Doctoral Dissertation
+Nomination Award of Chinese Association of Automation in 2018, and IEEE
+Robotics and Automation Letters Best Paper Honorable Mention Award in 2020.
+He was an Associate Editor for the 2022 IEEE Conference on Robotics and
+Automation (ICRA), Workshop Associate Editor for the 2020 IEEE/RSJ Inter-
+national Conference on Intelligent Robots and Systems (IROS), and Technical
+Committee Member of several international conferences.
+Ling Li received the B.S. and M.S. degrees in elec-
+tronic science and technology from the College of
+Electrical and Information Engineering, Hunan Uni-
+versity, Changsha, China, in 2014 and 2017, respec-
+tively. She is currently an Assistant with the College
+of Electrical and Information Engineering, Changsha
+University of Science and Technology, Changsha,
+China. Her research interests include embedded sys-
+tem design and visual servo control of the aerial
+robots.
+Shuangwen Fan received the B.Eng. degree in
+automation in 2020 from the College of Electri-
+cal and Information Engineering, Hunan University,
+Changsha, China, where he is currently working to-
+ward the M.S. degree in control science and engineer-
+ing. His research interests include visual servoing,
+motion planning, and visual odometry for rotorcraft
+UAVs.
+Hui Zhang (Member, IEEE) received the B.S., M.S.,
+and Ph.D. degrees in pattern recognition and in-
+telligent system from Hunan University, Changsha,
+China, in 2004, 2007, and 2012, respectively. He is
+currently a Professor with the College of Robotics,
+Hunan University. He is also the Deputy Director
+of the National Engineering Laboratory for Robot
+Visual Perception and Control Technology, Hunan
+University. His research interests include machine
+vision, deep learning, and defect detection.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:21 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

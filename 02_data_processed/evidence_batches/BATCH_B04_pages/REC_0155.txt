@@ -1,0 +1,1282 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0155.pdf
+sha256: 3FCFAA788A0985CA96E183D793FDABAC6ADD567A8E94339DBEE8397B7B2152D8
+library: pymupdf (fitz) v1.28.2
+pages: 10
+=== BEGIN ===
+[p.1]
+© 2022 IEEE. Personal use of this material is permitted. Permission from IEEE must be obtained for all other uses, in any current or
+future media, including reprinting/republishing this material for advertising or promotional purposes, creating new collective works, for
+resale or redistribution to servers or lists, or reuse of any copyrighted component of this work in other works.
+Cooperative Navigation and Guidance of a Micro-Scale Aerial Vehicle
+by an Accompanying UAV using 3D LiDAR Relative Localization
+V´aclav Pritzl∗, Matouˇs Vrba∗, Petr ˇStˇep´an∗, and Martin Saska∗
+Abstract— A novel approach for cooperative navigation and
+guidance of a micro-scale aerial vehicle by an accompanying
+Unmanned Aerial Vehicle (UAV) using 3D Light Detection and
+Ranging (LiDAR) relative localization is proposed in this paper.
+The use of 3D LiDARs represents a reliable way of environment
+perception and robust UAV self-localization in Global Naviga-
+tion Satellite System (GNSS)-denied environments. However,
+3D LiDARs are relatively heavy and they need to be carried
+by large UAV platforms. On the contrary, visual cameras
+are cheap, light-weight, and therefore ideal for small UAVs.
+However, visual self-localization methods suffer from loss of
+precision in texture-less environments, scale unobservability
+during certain maneuvers, and long-term drift with respect
+to the global frame of reference. Nevertheless, a micro-scale
+camera-equipped UAV is ideal for complementing a 3D LiDAR-
+equipped UAV as it can reach places inaccessible to a large UAV
+platform. To gain the advantages of both navigation approaches,
+we propose a cooperative navigation and guidance architecture
+utilizing a large LiDAR-equipped UAV accompanied by a
+small secondary UAV carrying a signiﬁcantly lighter monocular
+camera. The primary UAV is localized by a robust LiDAR
+Simultaneous Localization and Mapping (SLAM) algorithm,
+while the secondary UAV utilizes a Visual-Inertial Odometry
+(VIO) approach with lower precision and reliability. The LiDAR
+data are used for markerless relative localization between the
+UAVs to enable precise guidance of the secondary UAV in the
+frame of reference of the LiDAR SLAM. The performance of
+the proposed approach has been extensively veriﬁed in simula-
+tions and real-world experiments with the algorithms running
+onboard the UAVs with no external localization infrastructure.
+MULTIMEDIA ATTACHMENT
+http://mrs.felk.cvut.cz/icuas2022-coop
+I. INTRODUCTION
+The research of autonomous UAVs operating in indoor
+environments has recently experienced a tremendous surge in
+popularity. Possibilities for the employment of autonomous
+UAVs are being explored, e.g., in ﬁreﬁghting [1], [2],
+Search and Rescue (SAR) [3], [4], [5], [6], documentation
+of historical monuments [7], [8], inspection tasks, etc. As
+there is generally no GNSS or external localization system
+available in real-world indoor environments, the UAVs need
+to rely on their exteroceptive sensors to localize themselves
+This work was supported by CTU grant no SGS20/174/OHK3/3T/13,
+by the Technology Innovation Institute - Sole Proprietorship LLC, UAE,
+under the Research Project Contract No. TII/ATM/2032/2020, by project no.
+DG18P02OVV069 in program NAKI II, and by The Ministry of Education
+of the Czech Republic by OP VVV funded project CZ.02.1.01/0.0/0.0/16
+019/0000765 ”Research Center for Informatics”.
+∗The authors are with the Multi-robot Systems Group, Department of
+Cybernetics, Faculty of Electrical Engineering, Czech Technical University
+in Prague, Czech Republic {vaclav.pritzl, matous.vrba,
+petr.stepan, martin.saska}@fel.cvut.cz
+Secondary UAV
+Primary UAV
+Fig. 1: The large primary UAV equipped with a 3D LiDAR
+is navigating a smaller secondary UAV carrying a monocular
+visual camera.
+and perceive the environment. Multiple options of the UAV
+sensory payload exist, each with its unique advantages.
+One of the most reliable choices of sensors are 3D
+LiDARs. LiDARs are precise, long-range, and exhibit good
+performance even under no illumination and low-visibility
+conditions [9]. However, they come with the cost of relatively
+large weight and size. Because of their weight, their use re-
+quires large UAV platforms to transport them, and such large
+platforms may not be able to ﬂy through all the tight spaces
+present in real-world indoor environments. Furthermore, in
+many real-world applications it is advantageous to deploy a
+team of UAVs to, e.g., cover a larger area faster, but the high
+cost of 3D LiDARs signiﬁcantly increases the overall cost
+of such a UAV ﬂeet.
+On the contrary, visual cameras are cheap, small, light-
+weight, with low power consumption. A visually-localized
+UAV can be very small and capable of ﬂight through very
+narrow gaps. The overall price of such a UAV is much
+lower than the price of a large 3D LiDAR-equipped UAV.
+The use of visual self-localization also has its disadvantages,
+as it loses precision in texture-less environments and its
+long-term drift is larger than in the case of 3D LiDARs.
+Long-term ﬂights then exhibit signiﬁcant error in global
+positioning, which is a problem in the case of SAR mis-
+sions as demonstrated in the DARPA Subterranean challenge
+where precise global positioning was required. Vision-aided
+Inertial Navigation Systems (VINS) also suffer from scale
+unboservability during constant-acceleration movement [10].
+Additionally, 3D models obtained with a monocular camera
+using structure from motion approaches cannot compete with
+the accuracy and quality of a map constructed using a 3D
+LiDAR, which is crucial for mapping and planning in an
+unknown environment.
+[p.2]
+In this paper, we propose a cooperative navigation ap-
+proach synergizing the advantages of both types of sensors.
+We devise a cooperative navigation architecture for a hetero-
+geneous team of autonomous UAVs (see Fig. 1). The primary
+UAV is equipped with a 3D LiDAR and utilizes a LiDAR
+SLAM algorithm to localize itself within the surrounding
+environment. The secondary UAV carries a monocular visual
+camera and uses a VIO approach for its self-localization.
+The 3D LiDAR data obtained by the primary UAV are then
+also used for markerless relative localization of the secondary
+UAV. The relative localization enables the primary UAV to
+guide the secondary UAV in the frame of reference of its
+more accurate and reliable LiDAR SLAM algorithm. This
+approach enables building a team of robots in which one or
+several larger 3D LiDAR-equipped UAVs are guiding one
+or several micro-scale camera-equipped UAVs. These small
+UAVs may explore the environment inside and behind gaps
+too narrow for the larger UAV. Another strategy using the
+proposed method can be relying on a larger 3D LiDAR-
+equipped Unmanned Ground Vehicle (UGV) or UAV carry-
+ing the micro-scale UAVs and releasing them when needed.
+In both strategies, the 3D LiDAR-carrying vehicle ensures
+global localization of the entire team and reliable short-range
+deployment of smaller camera-equipped scouts.
+In this work, we focus mainly on the design and evalua-
+tion of the cooperative navigation architecture itself, which
+enables guidance of the secondary UAV with unreliable self-
+localization using the accurate and reliable frame of reference
+of the primary UAV. It is worth mentioning that this approach
+also enables to utilize the 3D LiDAR information about the
+surrounding obstacles for guiding the secondary UAV, which
+has no internal knowledge about the obstacles. Such obstacle
+avoidance is beyond the scope of this paper.
+A. Related work
+1) UAV cooperative navigation: Cooperative navigation
+approaches utilizing pairs of robots have been proposed
+for improving navigation performance in outdoor GNSS-
+challenging environments. A cooperative navigation ap-
+proach for multiple UAVs was proposed in [11] and [12].
+One or more UAVs (called “fathers” or “deputies”) are
+assumed to have reliable GNSS-based localization. The other
+UAV (called “son” or “chief”) receives GNSS positioning
+information from the fathers and fuses it with relative posi-
+tion measurements and its own navigation state to improve
+its localization accuracy. Visual tracking is used to obtain
+relative position measurements between the UAVs.
+A similar approach is to employ a UGV to improve UAV
+navigation in GNSS-challenging environments. In [13], a
+cooperative localization approach for a UAV-UGV pair was
+proposed. Ultra-wideband (UWB) localization was used to
+obtain the UAV position relative to the UGV and the obtained
+information was used to improve UAV localization accuracy.
+In [14], a UGV was employed as a mobile differential
+GNSS reference station, improving UAV localization accu-
+racy. Similarly in [15], the authors focused on decentralized
+cooperative localization of a UAV in GNSS-challenging
+environment and a UGV capable of relative sensing.
+In contrast to these works, we focus on the problem of
+cooperative navigation in GNSS-denied environments and
+we use a single sensor carried by the primary UAV for
+both navigation of the primary UAV and relative localization
+between the UAV pair.
+2) VIO precision: We employ a monocular VIO method
+for self-localization and closed-loop stabilization of the sec-
+ondary UAV in its local VIO frame. VIO methods suffer
+from several problems that may cause loss of precision.
+As shown in [16], the VIO has four unobservable direc-
+tions under general movement, corresponding to the three
+Degrees of Freedom (DOFs) of global translation and the
+yaw orientation. This results in a long-term drift of the
+VIO estimates with respect to the global frame of reference.
+In [10], it was shown that VIO methods suffer from scale
+unobservability given constant or zero acceleration of the
+camera-Inertial Measurement Unit (IMU) pair and from
+global orientation unobservability given no rotational motion.
+In [17], the authors proposed incorporating wheel odometry
+measurements into the VIO estimator of a UGV and utilizing
+an assumption of movement on a planar surface to remove
+the unobservability and improve localization accuracy. The
+authors of [18] provided a detailed analysis of aided inertial
+navigation systems and arrived at a similar conclusion about
+the VIO observability. Although the rigid extrinsic transfor-
+mation between the IMU and the camera allows us to observe
+the scale of the system, in practice the scale is still very
+close to unobservable at constant acceleration. This is often
+the case when exploring constrained environments where the
+UAV needs to ﬂy very slowly, almost hovering. Moreover,
+the VIO can lose precision due to low amount of texture
+in the environment and due to feature degeneracy in some
+cases [19]. In this paper, we expect these VIO imprecisions
+to manifest mainly as long-term drift and as incorrect scale
+of the local VIO frame of reference. This leads to the UAV
+position control pipeline undershooting or overshooting the
+target position.
+3) Relative localization approaches: Several different op-
+tions for relative localization between UAVs exist. Due to
+the motivation of our research being indoor exploration
+of unknown environments and emergency response scenar-
+ios, we consider only approaches independent of external
+localization infrastructure. A common approach to UAV
+relative localization is using a vision-based detection method.
+Marker-based visual detectors utilize some sort of visually
+distinct markers placed on the targets that are easy to distin-
+guish from the background, such as ultraviolet (UV) LEDs in
+combination with UV-sensitive cameras [20]. The use of UV
+LEDs mitigates issues with environmental illumination and
+allows estimation of the target’s relative position and rough
+estimation of its relative orientation. Marker-less approaches
+typically rely on a Convolutional Neural Network (CNN)
+that is trained to detect the desired targets [21], [22]. This
+approach removes the need for placing markers on the target
+but typically requires knowledge of the target’s physical
+[p.3]
+dimensions to estimate its relative 3D position. Machine
+learning-based approaches also require retraining if the vi-
+sual appearance of the targets or the environment changes.
+In general, vision-based relative localization suffers from
+decreased performance under low visibility conditions and
+often struggles to provide precise estimate of 3D positions
+of the targets due to inaccurate distance estimation [22].
+Furthermore, vision-based approaches may suffer from blind
+spots depending on the number and Fields of View (FOVs)
+of the employed cameras.
+For relative localization, UAVs can also be equipped
+with UWB ranging modules [23]. However, this technique
+provides only the relative distance in the case of a pair of
+UAVs. Even in the case of a formation of multiple UAVs,
+the localization precision is highly dependent on the shape
+of the formation and on the UAV positions inside of it.
+It is also possible to utilize a multi-robot SLAM algorithm
+and thus obtain the relative UAV positions through map
+merging and inter-robot loop closures. Various multi-robot
+SLAM approaches have been proposed utilizing, e.g., LiDAR
+data [24], stereo camera data [25], or monocular camera
+data [26]. However, the multi-robot SLAM approaches re-
+quire sending a large amount of data (sensor data, par-
+tial maps, etc.) over the communication network and lack
+reliability. Some of the multi-robot SLAMs also require
+to employ a ground station for computations, but we aim
+for running all of the algorithms in real time onboard the
+computationally-constrained UAV platforms.
+The relative localization approach employed in this paper
+is built upon a markerless 3D LiDAR-based localization
+solution originally designed in our team for detection of
+non-cooperating intruder UAVs [27]. Contrary to the vision-
+based approaches, it is able to accurately obtain the 3D
+relative position between the UAVs without knowing the
+exact size of the other UAV and without any markers on the
+secondary UAV. Furthermore, it is robust to low visibility
+conditions due to the nature of the LiDAR sensor. The
+approach does not require any additional hardware onboard
+either of the UAVs apart from the 3D LiDAR that is already
+used for SLAM of the primary UAV. Additionally, this
+approach does not pose any additional computational nor
+communicational requirements on the secondary UAV other
+than the ability to receive position commands. To the best
+of our knowledge, our technique presents the ﬁrst UAV
+cooperative navigation and guidance approach based on 3D
+LiDAR relative localization for indoor environments.
+B. Notations
+Let xB
+A be the vector describing the position of the origin
+of the coordinate frame {A} in frame {B}. Let RB
+A ∈SO(3)
+be a rotation matrix describing the rotation from frame {A}
+to frame {B}. We denote
+TB
+A =
+RB
+A
+xB
+A
+0T
+1
+
+∈SE(3)
+(1)
+as the transformation matrix from frame {A} to frame {B}.
+Let gA be a vector of the goal position in frame {A}.
+L
+V
+P
+S
+W
+xL
+P , RL
+P
+xV
+S, RV
+S
+xP
+S
+gL
+in
+gV
+out
+Fig. 2: Outline of the cooperative navigation and guidance
+problem. {W} denotes the global world frame of reference.
+Frames {P} and {S} correspond to the FCUs of the primary
+and secondary UAV, respectively. The primary UAV is local-
+ized by a LiDAR SLAM algorithm in the local frame {L},
+while the secondary UAV is localized by a VIO algorithm
+in the local frame {V}. gL
+in denotes the input goal position
+deﬁned in the frame {L} and gV
+out is the transformed goal
+position used in closed-loop control of the secondary UAV.
+C. Problem statement
+In this paper, we tackle the problem of cooperative nav-
+igation and guidance of a micro-scale aerial vehicle with
+limited sensory setup using onboard sensors of a better
+equipped UAV in the team. One of the UAVs, called the
+primary UAV, is equipped with a 3D LiDAR. The other
+UAV, called the secondary UAV, is smaller in size and is
+equipped with a monocular camera and an IMU. Both of
+these UAVs are equipped with an onboard computer, a wire-
+less communication module, a Flight Controller Unit (FCU)
+with an embedded attitude controller, and an IMU. The UAVs
+operate in indoor GNSS-denied environment with no external
+localization system. All the algorithms run entirely onboard
+the UAVs with no external computational resources. The
+UAVs are able to communicate over a wireless network and
+the primary UAV is able to send position commands to the
+secondary UAV.
+The navigation problem is illustrated in Fig. 2. The frame
+of reference {P} corresponds to the FCU of the primary
+UAV and frame {S} corresponds to the FCU of the sec-
+ondary UAV. 3D pose of the primary UAV in the local
+frame {L} is obtained using a LiDAR SLAM algorithm
+running onboard the primary UAV. Similarly, 3D pose of the
+secondary UAV in {V} is obtained using a VIO algorithm
+running onboard the secondary UAV. The global world frame
+is denoted by {W}.
+The task tackled in this paper is to guide the secondary
+UAV {S} to the goal point gL
+in given in the local LiDAR
+SLAM frame {L}. The goal point is transformed to the point
+gV
+out in the local VIO frame {V} using the output of the
+relative localization.
+The relative transformation between the two UAVs is
+subject to the success of the detection, to delay and to
+[p.4]
+variable rate caused by the LiDAR data processing speed
+and wireless communication channel properties. The self-
+localization output of the secondary UAV {S} in the local
+VIO frame {V} utilized in the position control loop of the
+secondary UAV is subject to inaccuracies. The inaccuracies
+have the form of long-term drift of the frame {V} with
+respect to the world frame {W} and LiDAR SLAM frame
+{L} and scale of the frame {V} differing from the real-
+world metric scale of frame {W}. The rate of the com-
+munication commands being sent from the primary UAV
+to the secondary UAV is subject to changes depending on
+the reliability of the wireless communication channel. Due
+to these real-world factors inﬂuencing the navigation output,
+the goal points gL
+in and gV
+out do not coincide in the global
+world frame {W} and the resulting control error needs to be
+mitigated through feedback control.
+We assume that the orientation of the secondary UAV is
+a priori-known and constant over the course of the guiding
+process. The goal positions gL
+in in the local LiDAR SLAM
+frame {L} are passed to the primary UAV by any high-level
+planning algorithm or a human operator.
+II. MULTI-UAV SYSTEM ARCHITECTURE
+A block diagram of the proposed cooperative navigation
+and guidance approach can be seen in Fig. 3. The primary
+UAV navigates through the environment based on the LiDAR
+data. Simultaneously, the primary UAV detects the secondary
+UAV from the LiDAR scans and tracks its movement.
+Goal points for the secondary UAV can be generated by
+a higher-level planning algorithm running on the primary
+UAV or by a human operator based on the LiDAR data.
+The primary UAV sends position commands to the secondary
+UAV over a wireless network. The primary and secondary
+UAVs together form a feedback loop controlling the position
+of the secondary UAV.
+A. LiDAR-based relative UAV localization
+The LiDAR-based relative localization approach is an
+extension of our previous work on UAV detection that was
+originally designed for autonomous interception of non-
+cooperating intruder UAVs [27]. The method consists of two
+modules: a UAV detector and a UAV tracker. A brief descrip-
+tion of the detection and tracking algorithms is presented
+in this section, as a more detailed discussion is beyond the
+scope of this paper.
+1) UAV detector: The detection algorithm utilizes the
+LiDAR data to estimate an occupancy voxel map of the
+environment where each voxel’s value represents a conﬁ-
+dence that the voxel contains either a background object
+or free air. This voxel map is estimated similarly as in
+common 3D mapping algorithms such as the UFOMap [29]
+but taking into account dynamic ﬂying objects. Points from
+each LiDAR scan are raycasted from the LiDAR sensor’s
+origin and the free-air likelihood of the intersected voxels
+is increased. Then, the points are separated into clusters
+based on their mutual Euclidean distance. Clusters closer to
+a high-conﬁdence background voxel than a certain threshold
+are used to update the map by increasing the background
+likelihood of all voxels containing the corresponding points.
+Each remaining cluster is then either classiﬁed as a ﬂying
+object if it is surrounded with high-conﬁdence free-air voxels
+or it is discarded as unknown. 3D positions of the detected
+ﬂying objects are the output of this algorithm.
+2) UAV tracker: The UAV tracker serves to compensate
+the non-negligible delay of the UAV detector, improve posi-
+tion estimation of the target, and ﬁlter out potential sporadic
+false positives. For this purpose, the tracker keeps a buffer
+of N latest LiDAR scans and a set of current tracks that
+is updated using a Kalman Filter-based multi-target tracking
+approach with a motion model of the target.
+Each input detection initializes a new track that is propa-
+gated from the corresponding scan in the buffer to the latest
+one. For each consecutive scan, the points in the scan are
+separated into Euclidean clusters. The latest voxel map from
+the UAV detector is used to reject clusters belonging to
+background objects. Then, the cluster closest to the track
+is used to update the track if it is closer than a certain
+threshold. Speciﬁcally, the cluster is used as a measurement
+for the Kalman Filter to update the track’s position and
+velocity estimates. When the track is propagated to the latest
+LiDAR scan, it is either added to a set of current tracks or
+merged with a similar track from the set based on a similarity
+threshold.
+The same approach is used to update the set of current
+tracks with new incoming LiDAR scans. After every update,
+the most conﬁdent track (with the smallest determinant of
+its covariance matrix) is outputted as the selected target.
+Similarly, low-conﬁdence tracks are discarded. The output of
+the UAV tracker is the estimated position of the secondary
+UAV xL
+S in the LiDAR SLAM frame {L}.
+B. Target position transformation
+The goal point gL
+in is generated onboard the primary
+UAV by high-level planning. The UAV guider calculates the
+transformation TS
+L from the LiDAR SLAM frame {L} to
+the secondary UAV frame {S} as
+TS
+L =
+
+RS
+L
+xS
+L
+0T
+1
+
+,
+(2)
+where RS
+L is a rotation matrix calculated from zero pitch,
+zero roll, and known heading of the secondary UAV. xL
+S
+is the detected 3D position of the secondary UAV. The
+rate of the secondary UAV detections can vary, e.g., due
+to proximity of obstacles. Furthermore, the transformations
+can be delayed due to the processing time of the LiDAR
+data. Therefore, the transformations are stored in a buffer
+and are discarded if their age exceeds a predeﬁned threshold.
+Transformations at the speciﬁc requested time between two
+available transformations in the buffer are calculated through
+linear interpolation by the Robot Operating System (ROS) tf2
+library1.
+1http://wiki.ros.org/tf2
+[p.5]
+Secondary UAV
+Primary UAV
+High-level
+planning for
+primary UAV
+Trajectory
+generation
+Reference
+tracker
+SE(3)
+controller
+Attitude
+controller
+UAV
+plant
+SLAM
+High-level
+planning for
+secondary UAV
+UAV
+guider
+UAV
+tracker
+UAV
+detector
+gL
+pr
+trajectory
+full-state
+reference
+attitude
+rate
+total
+thrust
+motor
+commands
+3D LiDAR
+point cloud
+xL
+P, RL
+P
+gL
+in
+initialization
+only
+Goal
+receiver
+Reference
+tracker
+gV
+out
+SE(3)
+controller
+Attitude
+controller
+UAV
+plant
+VIO
+full-state
+reference
+attitude
+rate
+total
+thrust
+motor
+commands
+camera
+image
+IMU
+data
+xV
+S, RV
+S
+xL
+S
+dL
+wireless network
+gS
+out
+initialization
+only
+LiDAR
+relative
+sensing
+Fig. 3: Diagram of the proposed cooperative navigation approach. The primary UAV tracks the position of the secondary
+UAV from LiDAR data and sends position commands to the secondary UAV over wireless network. Movement of the
+UAV pair is planned onboard the primary UAV. Position control in the frame of each respective self-localization method is
+provided by the MRS UAV System [28].
+The goal point is transformed to the frame of the sec-
+ondary UAV as
+gS
+out = TS
+LgL
+in
+(3)
+and the resulting 3D position is sent to the secondary UAV
+over the wireless network. The goal point gS
+out is repeatedly
+transmitted to the secondary UAV to account for possible loss
+of communication. At the secondary UAV, the goal point is
+received by the Goal receiver module, where the age of the
+goal point is checked to account for the goal point arriving
+out of order or arriving multiple times. Afterward, the goal
+point is transformed to the point gV
+out based on the VIO
+self-localization output and is passed to the position control
+pipeline of the secondary UAV.
+C. UAV position control pipeline
+The position control pipeline used for guiding the UAVs
+to target positions speciﬁed in the frames of their respec-
+tive self-localization method is provided by the MRS UAV
+System. This section brieﬂy describes the speciﬁc compo-
+nents employed in our cooperative navigation approach. For
+more details, we refer the reader to the MRS UAV System
+paper [28].
+The trajectory generation submodule generates a time-
+parametrized trajectory given a set of waypoints. The em-
+ployed approach is based on the polynomial trajectory
+planning method described in [30]. The Reference tracker
+generates a smooth and feasible full-state reference for the
+feedback controllers using feedforward linear Model Predic-
+tive Control (MPC). The SE(3) controller is a geometric
+tracking feedback controller based on the method proposed
+in [31] that outputs desired angular rate and total thrust
+of the UAV. The attitude controller is implemented on the
+embedded ﬂight controller and tracks the desired angular rate
+and total thrust and outputs commands to the electronic speed
+controllers of the UAV actuators.
+The SLAM submodule encapsulates the LiDAR-based
+SLAM algorithm providing self-localization for the primary
+UAV. In the experimental evaluation shown in this paper,
+the LOAM SLAM algorithm [32] was employed. The VIO
+submodule represents the monocular VIO method used for
+onboard self-localization of the secondary UAV. In the
+experimental evaluation, the VINS-Mono algorithm [33] was
+utilized.
+III. EXPERIMENTAL VERIFICATION
+Video of the performed experiments is available online2.
+A. Simulations
+The performance of the proposed cooperative navigation
+approach was extensively evaluated in computer simulations
+utilizing the Gazebo robotic simulator. The simulations were
+performed in the Urban 2 Story3 indoor environment from
+OpenRobotics (see Fig. 4). The proposed approach was
+2http://mrs.felk.cvut.cz/icuas2022-coop
+3https://app.ignitionrobotics.org/OpenRobotics/
+fuel/models/Urban2Story
+[p.6]
+Fig. 4: The UAVs ﬂying through the simulated environment.
+The primary UAV followed a line trajectory while simultane-
+ously guiding the secondary UAV to complete a surrounding
+rectangular trajectory (see Fig. 5).
+evaluated in its full extent. The primary UAV carried a
+simulated 3D LiDAR with the same parameters as the one
+employed in the real-world experimental evaluation. The
+LiDAR data were utilized both in closed-loop control of the
+primary UAV and for relative localization of the secondary
+UAV. The secondary UAV carried a simulated ﬁsheye camera
+with an attached IMU. The camera data were utilized by the
+VINS-Mono algorithm for self-localization and consequently
+for use in the closed-loop control of the secondary UAV.
+During each simulation, the primary UAV was ﬂying back
+and forth in a straight-line trajectory. Simultaneously, the
+primary UAV guided the secondary UAV to ﬂy through
+waypoints deﬁned in the LiDAR SLAM frame, forming a
+rectangular trajectory around the primary UAV. The heading
+and altitude of the UAVs were kept constant during the
+ﬂights. During each run of the simulation, the secondary
+UAV was tasked to complete the rectangular trajectory 10
+times. The trajectory traversed by the UAVs during one
+of the simulation runs can be seen in Fig. 5. The initial
+positions of the trajectories in different frames of reference
+were aligned to the initial ground truth position. The LiDAR
+relative localization corresponded to the ground truth position
+without exhibiting any drift. On the contrary, the VIO
+output exhibited long-term drift in the direction of the x-
+axis. Nevertheless, the secondary UAV correctly followed
+the target rectangular trajectory without being inﬂuenced by
+the VIO drift as it was guided using the LiDAR relative
+localization. The simulated run was performed 100 times.
+The secondary UAV successfully performed the desired 10
+loops of the rectangular trajectory in 95 runs. During 5 of the
+simulated runs, the simulation ended early due to a failure
+of the VIO self-localization.
+Fig. 6 shows the progression of Root Mean Squared
+Error (RMSE) of the VIO and LiDAR relative localization
+over time. The RMSE was calculated from the 95 suc-
+cessful ﬂights using Euclidean distance of the outputs of
+the respective localization methods from the ground truth.
+To calculate the RMSE value at a speciﬁc timestep, the
+Euclidean distances at such timestep were averaged over
+all the simulation runs. The 2D RMSE was calculated in
+the xy-plane only while the 3D RMSE utilized the full 3D
+Euclidean distance. The VIO-LiDAR 3D distance in the third
+plot was calculated as the Euclidean distance of VIO output
+−7.5
+−5.0
+−2.5
+0.0
+2.5
+5.0
+7.5
+10.0
+x [m]
+−8
+−6
+−4
+−2
+0
+2
+y [m]
+Primary UAV
+Ground truth
+VIO
+LiDAR tracking
+Fig. 5: Trajectories traversed by the UAVs during one of the
+simulations. The primary UAV followed the line trajectory in
+the center and guided the secondary UAV through waypoints
+on the surrounding rectangular trajectory. The LiDAR rela-
+tive localization correctly tracked the secondary UAV while
+the VIO output exhibited long-term drift in the direction of
+the x-axis.
+from the LiDAR relative localization output averaged over all
+simulation runs at each respective timestep. The VIO output
+exhibited linearly-growing long-term drift while the RMSE
+of the LiDAR relative localization stayed approximately
+constant. The overall 2D RMSE of the LiDAR localization
+was 0.13 m and its overall 3D RMSE was 0.34 m. The 3D
+RMSE of LiDAR relative localization was larger than the
+2D RMSE as the tilting of the primary UAV, combined with
+the measurement delay caused by LiDAR data processing,
+decreased the localization precision along the z-axis.
+B. Real-world experiments
+The UAV platforms employed in the real-world experi-
+mental evaluation can be seen in Fig. 7. The primary UAV
+is built upon the Tarot 650 frame and carries the Intel
+NUC 10i7FNK onboard computer with the Intel Core i7
+10710U CPU, 16 GB of RAM, and with a wi-ﬁmodule.
+The secondary UAV carries the Intel NUC 10i7FNH with the
+same CPU and RAM size. Both UAVs carry the Pixhawk 4
+FCU which contains the embedded attitude controller along
+with a built-in IMU. The primary UAV carries the Ouster
+OS0-128 3D LiDAR. The LiDAR has a 360◦horizontal and
+90◦vertical FOV. The LiDAR produces scans at the rate of
+10 Hz. The scans have a resolution of 1024 × 128 beams
+covering the entire FOV. The secondary UAV carries the
+front-facing Bluefox MLC200Wc camera with the DSL217
+ﬁsheye lens. The camera is rigidly connected to the ICM-
+42688-P IMU. The camera is set to produce images at the
+rate of 30 Hz at 752 × 480 resolution. The VINS-Mono
+algorithm is conﬁgured to process the images at the rate of
+10 Hz and the IMU at the rate of 1000 Hz.
+The software running onboard the UAVs is based on
+Ubuntu 20.04, ROS middleware, and the MRS UAV sys-
+[p.7]
+0
+100
+200
+300
+400
+500
+Time [s]
+0.0
+0.5
+1.0
+1.5
+2.0
+3D RMSE [m]
+VIO
+LiDAR
+0
+100
+200
+300
+400
+500
+Time [s]
+0.0
+0.5
+1.0
+1.5
+2.0
+2D RMSE [m]
+VIO
+LiDAR
+0
+100
+200
+300
+400
+500
+Time [s]
+0.0
+0.5
+1.0
+1.5
+2.0
+Distance [m]
+VIO-LiDAR 3D distance
+Fig. 6: Comparison of the RMSE progression over time of
+VIO and LiDAR relative localization calculated from the
+the successful simulated ﬂights. The VIO exhibited linearly
+growing long-term drift while the RMSE of LiDAR relative
+localization stayed approximately constant.
+(a)
+(b)
+Fig. 7: The UAV platforms employed in the real-world ex-
+periments: (a) Primary UAV carrying the Ouster 3D LiDAR,
+(b) Secondary UAV with the monocular camera.
+Secondary UAV
+Fig. 8: Experimental evaluation of ﬂight between obstacles.
+The primary UAV guided the secondary UAV to pass through
+a gap between two rectangular panels.
+0
+2
+4
+6
+8
+10
+12
+14
+16
+x [m]
+−2
+0
+2
+4
+y [m]
+Primary UAV
+LiDAR
+VIO
+Goal position
+Fig. 9: UAV trajectories in an experiment with both UAVs
+moving. The primary UAV guided the secondary UAV to
+positions supplied by human operator and deﬁned in the
+LiDAR SLAM frame.
+tem4 [28]. Nimbro network5 is employed for transporting
+the ROS topics and services over the wireless network.
+During the performed real-world experimental veriﬁcation,
+all the algorithms ran completely onboard the UAVs and no
+external localization system was utilized. The experiments
+were performed in a large indoor arena as shown in Fig. 1
+and Fig. 8. During the real-world experiments, the target
+heading and altitude of the secondary UAV were predeﬁned
+in the local VIO frame.
+1) Both UAVs moving: The ﬁrst experimental trial was
+performed in an area without obstacles with both UAVs
+moving. Both UAVs were ﬂying to target positions selected
+by human operators. The target positions for both UAVs were
+selected in the frame of the LiDAR SLAM algorithm of
+the primary UAV. The primary UAV simultaneously ﬂew
+to its target positions, tracked the secondary UAV, and sent
+transformed target positions to the secondary UAV.
+The trajectories traversed by the UAVs are shown in
+Fig. 9. During the ﬂight, the primary UAV kept changing
+its position, altitude, and heading. The secondary UAV was
+successfully guided to the target positions. Fig. 10 shows
+a comparison of the VIO and LiDAR relative localization
+outputs along with the goal positions. The ﬁgure also shows
+the 3D distance between the outputs of VIO and LiDAR
+relative localization calculated at each point over time during
+the experiment. The VIO output gradually drifted away
+from the LiDAR localization output. The sharp peaks in the
+distance are caused by measurement delay due to LiDAR
+processing and mitigating them is a subject of future work.
+2) Square trajectory at higher speed: The second experi-
+ment evaluated the ability to guide the secondary UAV along
+a square trajectory at higher velocity. The primary UAV
+was placed on the ground while it guided the secondary
+UAV to perform the ﬂight. During this ﬂight, the secondary
+UAV reached peak velocity of approximately 1.5 m s−1 while
+in the other real-world experiments, the peak velocity was
+approximately 1.1 m s−1 (calculated from the VIO self-
+localization output). Fig. 11 displays the traversed trajectory.
+4https://github.com/ctu-mrs/mrs_uav_system
+5https://github.com/AIS-Bonn/nimbro_network
+[p.8]
+100
+150
+200
+250
+300
+350
+400
+450
+Time [s]
+5
+10
+15
+x [m]
+LiDAR
+VIO
+Goal position
+100
+150
+200
+250
+300
+350
+400
+450
+Time [s]
+−2
+0
+2
+4
+y [m]
+LiDAR
+VIO
+Goal position
+100
+150
+200
+250
+300
+350
+400
+450
+Time [s]
+1
+2
+3
+z [m]
+LiDAR
+VIO
+100
+150
+200
+250
+300
+350
+400
+450
+Time [s]
+0.0
+0.5
+1.0
+1.5
+2.0
+Distance [m]
+VIO-LiDAR 3D distance
+Fig. 10: Comparison of VIO and LiDAR relative localization
+outputs along with goal positions of the secondary UAV
+from the experiment with both UAVs moving. The primary
+UAV successfully guided the secondary UAV to the target
+positions even though the VIO output exhibited signiﬁcant
+drift.
+−2
+0
+2
+4
+6
+8
+x [m]
+−1
+0
+1
+y [m]
+Primary UAV
+LiDAR
+VIO
+Goal position
+Fig. 11: UAV trajectory from the experiment evaluating
+square trajectory following at higher velocity. The primary
+UAV stood on the ground while the secondary UAV was
+ﬂying in the air.
+60
+80
+100
+120
+140
+160
+Time [s]
+4
+6
+8
+x [m]
+LiDAR
+VIO
+Goal position
+60
+80
+100
+120
+140
+160
+Time [s]
+−2
+−1
+0
+1
+y [m]
+LiDAR
+VIO
+Goal position
+60
+80
+100
+120
+140
+160
+Time [s]
+0.5
+1.0
+1.5
+z [m]
+LiDAR
+VIO
+60
+80
+100
+120
+140
+160
+Time [s]
+0.0
+0.5
+1.0
+1.5
+Distance [m]
+VIO-LiDAR 3D distance
+Fig. 12: Comparison of VIO and LiDAR relative localization
+outputs from the experiment evaluating square trajectory fol-
+lowing at higher velocity. The secondary UAV successfully
+performed the target trajectory. The sharp peaks in the VIO-
+LiDAR 3D distance are caused by delay due to LiDAR
+processing time.
+Fig. 12 displays the comparison of VIO and LiDAR rela-
+tive localization outputs. The secondary UAV successfully
+performed the desired trajectory.
+3) Flight between obstacles: In the ﬁnal experiment, the
+primary UAV was hovering in place and simultaneously
+guided the secondary UAV to pass between a pair of ob-
+stacles three times (see Fig. 8). The target positions for
+the secondary UAV were predeﬁned in the LiDAR SLAM
+frame of the primary UAV. Fig. 13 shows the trajectories
+traversed by the UAV during the experiment and Fig. 14
+shows the comparison of localization outputs. The VIO and
+LiDAR relative localization outputs drifted apart during the
+ﬂight between the obstacles. Nevertheless, the secondary
+UAV successfully performed the maneuver. This experiment
+evaluated the performance of the proposed approach in
+[p.9]
+0
+2
+4
+6
+8
+x [m]
+−2
+−1
+0
+1
+2
+3
+y [m]
+Primary UAV
+LiDAR
+VIO
+Goal position
+Obstacles
+Fig. 13: UAV trajectories from the ﬂight between obstacles.
+The primary UAV guided the secondary UAV to pass through
+a gap between two rectangular panels.
+close proximity of obstacles. The LiDAR relative localization
+method successfully tracked the secondary UAV throughout
+the entire ﬂight.
+C. Results summary
+Both simulations and real-world experiments have shown
+that the LiDAR relative localization outperforms the VIO
+self-localization in terms of accuracy, as it is not inﬂuenced
+by the detrimental factors inherent to visual self-localization
+methods. The relative localization was successfully utilized
+for precisely guiding the secondary UAV even when the pri-
+mary UAV was moving and in close proximity of obstacles.
+The real-world data corresponded to the simulation results
+demonstrating the drift of VIO positions from the LiDAR
+relative localization output (see Fig. 6 and Fig. 10). In the
+ﬂight near obstacles, the VIO output drifted more than 1 m
+away from the LiDAR position (see Fig. 13). Such signiﬁcant
+drift may lead to a collision if the UAV was not guided
+by the proposed approach. In all real-world experiments,
+the proposed approach successfully tracked the secondary
+UAV and provided estimates of its position at the rate of
+10 Hz, corresponding to the scanning rate of the 3D LiDAR.
+The accuracy of LiDAR relative localization was inﬂuenced
+by the measurement delay caused by LiDAR processing
+time. Mitigating the effects of this delay is a subject of
+future work. Future work will also focus on the estimation
+of relative orientation between the localization outputs and
+fusion of LiDAR detections with the VIO output to remove
+the simplifying assumptions of the current approach.
+IV. CONCLUSIONS
+A novel approach for cooperative navigation and guidance
+of a micro-scale aerial vehicle by an accompanying UAV
+using 3D LiDAR relative localization was proposed in this
+paper. The 3D LiDAR provides rich data for robust UAV self-
+localization and environment perception. However, it needs
+to be carried by a relatively large UAV platform due to
+its weight. On the contrary, a monocular visual camera is
+cheap, light-weight, and therefore ideal for a small payload-
+constrained UAV. The proposed approach combines the
+40
+60
+80
+100
+120
+140
+160
+Time [s]
+2
+4
+6
+8
+x [m]
+LiDAR
+VIO
+Goal position
+40
+60
+80
+100
+120
+140
+160
+Time [s]
+−2
+0
+2
+y [m]
+LiDAR
+VIO
+Goal position
+40
+60
+80
+100
+120
+140
+160
+Time [s]
+0.5
+1.0
+1.5
+2.0
+z [m]
+LiDAR
+VIO
+40
+60
+80
+100
+120
+140
+160
+Time [s]
+0.0
+0.5
+1.0
+Distance [m]
+VIO-LiDAR 3D distance
+Fig. 14: Comparison of VIO and LiDAR relative localization
+outputs from the ﬂight between obstacles. The secondary
+UAV successfully performed the desired trajectory even
+though the VIO output drifted during the ﬂight.
+advantages of both types of sensors to create a heterogeneous
+UAV team capable of robust navigation and at the same
+time capable of ﬂight through constrained environments. 3D
+LiDAR data are used for markerless relative localization
+between the two UAVs to enable precise guidance of the
+secondary UAV in the frame of reference of the accurate
+LiDAR SLAM. The proposed approach was extensively
+evaluated in simulations and multiple real-world experiments
+with the algorithms running completely onboard the UAVs
+with no external localization infrastructure. The experiments
+showed the superior precision of the LiDAR relative local-
+ization when compared to the VIO outputs and successfully
+demonstrated the ability to guide the secondary UAV to target
+positions deﬁned in the LiDAR SLAM frame of reference.
+REFERENCES
+[1] V. Spurny, V. Pritzl, V. Walter, M. Petrlik, T. Baca, P. Stepan,
+D. Zaitlik, and M. Saska, “Autonomous Fireﬁghting Inside Buildings
+[p.10]
+by an Unmanned Aerial Vehicle,” IEEE Access, vol. 9, pp. 15 872–
+15 890, 2021.
+[2] V. Pritzl, P. Stepan, and M. Saska, “Autonomous Flying into Buildings
+in a Fireﬁghting Scenario,” in 2021 International Conference on
+Robotics and Automation (ICRA), 2021, pp. 239–245.
+[3] J. Delmerico, S. Mintchev, A. Giusti, B. Gromov, K. Melo, T. Horvat,
+C. Cadena, M. Hutter, A. Ijspeert, D. Floreano, L. M. Gambardella,
+R. Siegwart, and D. Scaramuzza, “The current state and future outlook
+of rescue robotics,” Journal of Field Robotics, vol. 36, no. 7, pp. 1171–
+1191, 2019.
+[4] M. Petrlik, T. Baca, D. Hert, M. Vrba, T. Krajnik, and M. Saska, “A
+Robust UAV System for Operations in a Constrained Environment,”
+IEEE Robotics and Automation Letters, vol. 5, no. 2, pp. 2169–2176,
+Apr. 2020.
+[5] V. Kr´atk´y, P. Petr´aˇcek, T. B´aˇca, and M. Saska, “An autonomous
+unmanned aerial vehicle system for fast exploration of large complex
+indoor environments,” Journal of Field Robotics, vol. 38, no. 8, pp.
+1036–1058, 2021.
+[6] P. Petr´aˇcek, V. Kr´atk´y, M. Petrl´ık, T. B´aˇca, R. Kratochv´ıl, and
+M. Saska, “Large-Scale Exploration of Cave Environments by Un-
+manned Aerial Vehicles,” IEEE Robotics and Automation Letters,
+vol. 6, no. 4, pp. 7596–7603, Oct. 2021.
+[7] P. Petr´aˇcek, V. Kr´atk´y, and M. Saska, “Dronument: System for
+Reliable Deployment of Micro Aerial Vehicles in Dark Areas of Large
+Historical Monuments,” IEEE Robotics and Automation Letters, vol. 5,
+no. 2, pp. 2078–2085, Apr. 2020.
+[8] V. Kr´atk´y, P. Petr´aˇcek, V. Spurn´y, and M. Saska, “Autonomous
+Reﬂectance Transformation Imaging by a Team of Unmanned Aerial
+Vehicles,” IEEE Robotics and Automation Letters, vol. 5, no. 2, pp.
+2302–2309, Apr. 2020.
+[9] M. Petrl´ık, T. Krajn´ık, and M. Saska, “LIDAR-based Stabilization,
+Navigation and Localization for UAVs Operating in Dark Indoor En-
+vironments,” in 2021 International Conference on Unmanned Aircraft
+Systems (ICUAS), Jun. 2021, pp. 243–251.
+[10] K. J. Wu and S. I. Roumeliotis, “Unobservable Directions of
+VINS Under Special Motions,” Dept. of Computer Science and
+Engineering, University of Minnesota, Tech. Rep., 2016. [Online].
+Available: http://mars.cs.umn.edu/papers/tech report unobs directs.pdf
+[11] F. Causa, R. Opromolla, and G. Fasano, “Cooperative navigation
+and visual tracking with passive ranging for UAV ﬂight in GNSS-
+challenging environments,” in 2021 International Conference on Un-
+manned Aircraft Systems (ICUAS), Jun. 2021, pp. 1538–1547.
+[12] F. Causa and G. Fasano, “Adaptive Cooperative Navigation Strategies
+for Complex Environments,” in 2020 IEEE/ION Position, Location
+and Navigation Symposium (PLANS), Apr. 2020, pp. 100–111.
+[13] Y. Xianjia, L. Qingqing, J. P. Queralta, J. Heikkonen, and T. Wester-
+lund, “Cooperative UWB-Based Localization for Outdoors Positioning
+and Navigation of UAVs aided by Ground Robots,” in 2021 IEEE
+International Conference on Autonomous Systems (ICAS), Aug. 2021,
+pp. 1–5.
+[14] V. O. Sivaneri and J. N. Gross, “Flight-testing of a cooperative
+UGV-to-UAV strategy for improved positioning in challenging GNSS
+environments,” Aerospace Science and Technology, vol. 82-83, pp.
+575–582, Nov. 2018.
+[15] S. J. Dourmashkin, N. R. Ahmed, D. M. Akos, and W. W. Whitacre,
+“GPS-limited cooperative localization using scalable approximate de-
+centralized data fusion,” in 2018 IEEE/ION Position, Location and
+Navigation Symposium (PLANS), Apr. 2018, pp. 1473–1484.
+[16] J. A. Hesch, D. G. Kottas, S. L. Bowman, and S. I. Roumeliotis,
+“Consistency Analysis and Improvement of Vision-aided Inertial Nav-
+igation,” IEEE Transactions on Robotics, vol. 30, no. 1, pp. 158–176,
+Feb. 2014.
+[17] K. J. Wu, C. X. Guo, G. Georgiou, and S. I. Roumeliotis, “VINS
+on wheels,” in 2017 IEEE International Conference on Robotics and
+Automation (ICRA), May 2017, pp. 5155–5162.
+[18] Y. Yang and G. Huang, “Observability Analysis of Aided INS With
+Heterogeneous Features of Points, Lines, and Planes,” IEEE Transac-
+tions on Robotics, vol. 35, no. 6, pp. 1399–1418, Dec. 2019.
+[19] H. Lim, Y. Kim, K. Jung, S. Hu, and H. Myung, “Avoiding Degeneracy
+for Monocular Visual SLAM with Point and Line Features,” in 2021
+IEEE International Conference on Robotics and Automation (ICRA),
+May 2021, pp. 11 675–11 681.
+[20] V. Walter, N. Staub, A. Franchi, and M. Saska, “UVDAR System
+for Visual Relative Localization With Application to Leader–Follower
+Formations of Multirotor UAVs,” IEEE Robotics and Automation
+Letters, vol. 4, no. 3, pp. 2637–2644, Jul. 2019.
+[21] F. Schilling, F. Schiano, and D. Floreano, “Vision-Based Drone
+Flocking in Outdoor Environments,” IEEE Robotics and Automation
+Letters, vol. 6, no. 2, pp. 2954–2961, Apr. 2021.
+[22] M. Vrba and M. Saska, “Marker-Less Micro Aerial Vehicle Detec-
+tion and Localization Using Convolutional Neural Networks,” IEEE
+Robotics and Automation Letters, vol. 5, no. 2, pp. 2459–2466, Apr.
+2020.
+[23] K. Guo, X. Li, and L. Xie, “Ultra-Wideband and Odometry-Based
+Cooperative Relative Localization With Application to Multi-UAV
+Formation Control,” IEEE Transactions on Cybernetics, vol. 50, no. 6,
+pp. 2590–2603, Jun. 2020.
+[24] Y. Huang, T. Shan, F. Chen, and B. Englot, “DiSCo-SLAM: Dis-
+tributed Scan Context-Enabled Multi-Robot LiDAR SLAM With Two-
+Stage Global-Local Graph Optimization,” IEEE Robotics and Automa-
+tion Letters, vol. 7, no. 2, pp. 1150–1157, Apr. 2022.
+[25] Y. Tian, Y. Chang, F. H. Arias, C. Nieto-Granda, J. P. How, and L. Car-
+lone, “Kimera-Multi: Robust, Distributed, Dense Metric-Semantic
+SLAM for Multi-Robot Systems,” IEEE Transactions on Robotics,
+pp. 1–17, 2022.
+[26] P. Schmuck and M. Chli, “Multi-UAV collaborative monocular
+SLAM,” in 2017 IEEE International Conference on Robotics and
+Automation (ICRA), May 2017, pp. 3863–3870.
+[27] M. Vrba, Y. Stasinchuk, T. B´aˇca, V. Spurn´y, M. Petrl´ık, D. Heˇrt,
+D. ˇZaitl´ık, and M. Saska, “Autonomous capture of agile ﬂying
+objects using UAVs: The MBZIRC 2020 challenge,” Robotics and
+Autonomous Systems, vol. 149, p. 103970, Mar. 2022.
+[28] T. Baca, M. Petrlik, M. Vrba, V. Spurny, R. Penicka, D. Hert,
+and M. Saska, “The MRS UAV System: Pushing the Frontiers of
+Reproducible Research, Real-world Deployment, and Education with
+Autonomous Unmanned Aerial Vehicles,” Journal of Intelligent &
+Robotic Systems, vol. 102, no. 1, p. 26, Apr. 2021.
+[29] D. Duberg and P. Jensfelt, “UFOMap: An efﬁcient probabilistic 3D
+mapping framework that embraces the unknown,” IEEE Robotics and
+Automation Letters, vol. 5, no. 4, pp. 6411–6418, Oct. 2020.
+[30] C. Richter, A. Bry, and N. Roy, “Polynomial Trajectory Planning
+for Aggressive Quadrotor Flight in Dense Indoor Environments,” in
+Robotics Research.
+Springer, Apr. 2016, pp. 649–666.
+[31] T. Lee, M. Leok, and N. H. McClamroch, “Geometric tracking control
+of a quadrotor UAV on SE(3),” in 49th IEEE Conference on Decision
+and Control (CDC), Dec. 2010, pp. 5420–5425.
+[32] J. Zhang and S. Singh, “LOAM: Lidar Odometry and Mapping in
+Real-time,” in Robotics: Science and Systems (RSS), Jul. 2014, pp.
+109–111.
+[33] T. Qin, P. Li, and S. Shen, “VINS-Mono: A Robust and Versatile
+Monocular Visual-Inertial State Estimator,” IEEE Transactions on
+Robotics, vol. 34, no. 4, pp. 1004–1020, Aug. 2018.
+=== END ===

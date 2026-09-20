@@ -1,0 +1,890 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0706.pdf
+sha256: A18E68B5491D7B70226CAD576553E8F4F3468B29BF1D965E509F6801F9923E77
+library: pymupdf (fitz) v1.28.2
+pages: 7
+=== BEGIN ===
+[p.1]
+Towards Robust UAV Tracking in GNSS-Denied
+Environments: A Multi-LiDAR Multi-UAV Dataset
+Iacopo Catalano†
+, Xianjia Yu†
+, Jorge Pe˜na Queralta†,‡
+†Turku Intelligent Embedded and Robotic Systems (TIERS) Lab, University of Turku, Finland.
+‡SCAI Laboratory at SPZ, Swiss Federal School of Technology in Zurich - ETH Zurich, Switzerland.
+Emails: 1{iacopo.catalano, xianjia.yu}@utu.fi, 1{jorge.penaqueralta}@hest.ethz.ch
+Abstract—With the increasing prevalence of drones in various
+industries, the navigation and tracking of unmanned aerial ve-
+hicles (UAVs) in challenging environments, particularly GNSS-
+denied areas, have become crucial concerns. To address this
+need, we present a novel multi-LiDAR dataset specifically
+designed for UAV tracking. Our dataset includes data from
+a spinning LiDAR, two solid-state LiDARs with different Field
+of View (FoV) and scan patterns, and an RGB-D camera. This
+diverse sensor suite allows for research on new challenges in
+the field, including limited FoV adaptability and multi-modality
+data processing.
+The dataset facilitates the evaluation of existing algorithms
+and the development of new ones, paving the way for advances
+in UAV tracking techniques. Notably, we provide data in both
+indoor and outdoor environments. We also consider variable
+UAV sizes, from micro-aerial vehicles to more standard com-
+mercial UAV platforms. The outdoor trajectories are selected
+with close proximity to buildings, targeting research in UAV
+detection in urban areas, e.g., within counter-UAV systems or
+docking for UAV logistics.
+In addition to the dataset, we provide a baseline com-
+parison with recent LiDAR-based UAV tracking algorithms,
+benchmarking the performance with different sensors, UAVs,
+and algorithms. Importantly, our dataset shows that current
+methods have shortcomings and are unable to track UAVs
+consistently across different scenarios.
+The dataset is available on GitHub1.
+Index Terms—UAV; Tracking; Solid-State LiDAR; Dataset
+I. INTRODUCTION
+Unmanned Aerial Vehicles (UAVs) are gaining widespread
+use across diverse application domains due to their agility
+and ease of deployment [1], [2]. Equipped with only a flight
+controller and basic sensor suite, they serve as efficient
+and adaptable mobile sensing platforms [3], [4]. Recent
+research has focused on UAV navigation in GNSS-denied
+environments [5], [6], [7], [8], as well as state estimation in
+both single and multi-UAV systems [9], [10].
+The integration of UAVs into multi-robot systems empha-
+sizes the importance of tracking between robots for rela-
+tive or global state estimation methods [11], [12]. Tracking
+UAVs from an unmanned ground vehicle (UGV) within
+multi-robot setups allows for miniaturization and enhanced
+flexibility, reducing the reliance on high-accuracy onboard
+1https://github.com/TIERS/uav multi lidar dataset
+Optitrack PrimeX 22 Camera
+Holybro X500
+Autel 
+Evo II
+Tello
+Fig. 1: Illustration of the hardware used in the experiments. At the
+bottom, the tracking sensors including Ouster OS1-64, Livox Mid-
+360, Livox Avia and Intel RealSense D435.
+localization [13], [14]. The UGV often acts as a base station,
+supplying crucial data to enable UAV operation even in areas
+with limited GNSS signals.
+Despite significant progress in UAV tracking using GNSS
+and other sensors, challenges persist. GNSS signal unavail-
+ability in certain environments, like indoors or urban canyons,
+restricts the accuracy and reliability of UAV positioning and
+tracking. Additionally, existing methods may rely on costly
+hardware or necessitate substantial computational power,
+affecting their practicality and scalability [15], [16]. These
+limitations and challenges underscore the need for new
+approaches that are more robust, accurate, and efficient,
+capable of operating effectively in GNSS-denied environ-
+ments. Moreover, external tracking of UAVs from the ground
+has gained relevance in the context of counter-UAV solu-
+tions [17].
+One of our primary objectives is to address the scarcity of
+data from solid-state LiDARs. These cutting-edge sensors, a
+recent development in long-range scanning technology, pro-
+duce high-density point clouds, making them highly suitable
+for tracking objects in three-dimensional space, including
+UAVs [15]. Their non-repetitive scan patterns allow for the
+generation of dense point clouds with adjustable frequencies
+and variable field of view (FoV) coverage. Recognizing the
+need for more data to propel research in the direction of
+general-purpose and sensor-agnostic LiDAR data processing
+2023 IEEE International Conference on Robotics and Biomimetics (ROBIO) | 979-8-3503-2570-6/23/$31.00 ©2023 IEEE | DOI: 10.1109/ROBIO58561.2023.10354788
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+algorithms, we have taken the initiative to bridge this gap.
+Thus, we introduce our novel multi-LiDAR dataset, com-
+prising a spinning LiDAR, two solid-state LiDARs featuring
+different FoV and scan patterns, and an RGB-D camera com-
+bination. This dataset aims to facilitate advancements in UAV
+tracking and foster the development of robust algorithms
+capable of handling a diverse range of LiDAR data.
+The main contributions of this work are the following:
+(i) A dataset with data from 3 different LiDAR sensors
+and an RGB-D camera in both indoor and outdoor
+environments. This is, to our knowledge, the first di-
+verse dataset in terms of LiDAR sensors for UAV
+tracking. The dataset includes a spinning LiDARs with
+64 (Ouster OS1-64) channels, two different solid-state
+LiDARs (Livox Mid-360 and Livox Avia) with different
+scanning patterns and FoVs, and an RGB-D camera
+(RealSense D435). Given the short range of the point
+cloud generated by the camera compared to the LiDARs,
+we only extracted RGB images from it. Low-resolution
+images with depth, near-infrared, and laser reflectivity
+data from the Ouster sensor complete the dataset. These
+are illustrated in Fig. 1.
+(ii) The dataset includes sequences with motion capture-
+based (MOCAP) ground truth in both indoor and out-
+door environments. The indoor trajectories exhibit more
+intricate patterns than the outdoors, while the outdoor
+sequences were deliberately selected to simulate poten-
+tial docking and infrastructure inspection scenarios [18]
+by emphasizing their proximity to a building.
+(iii) Based on the presented dataset, we provide a baseline
+comparison with recent LiDAR-based UAV tracking al-
+gorithms, benchmarking the performance with different
+sensors, UAVs of different sizes (from micro-aerial-
+vehicles to more standard commercial platforms), and
+algorithms.
+Considering the distinctive characteristics of the dataset
+we have presented, we believe it offers a timely and valuable
+contribution, complementing the existing datasets that pri-
+marily focus on mobile robots indoors or autonomous cars
+outdoors. The diversity of sensors within our suite paves
+the way for exploring new challenges within the research
+community. This dataset serves as a valuable resource to
+facilitate the development of new algorithms in UAV tracking
+that effectively address the challenges posed by limited
+sensor FoV and various scanning modalities. By leveraging
+this dataset, researchers can make significant strides in en-
+hancing adaptability and robustness in their algorithms, thus
+advancing the field of LiDAR-based UAV tracking.
+In the following sections, we will first provide a brief
+review of related work on UAV tracking and LiDAR-based
+sensing in Section II. Then, we will provide an overview of
+the configuration of the proposed sensor system in detail.
+Section IV explains the evaluation procedure of available
+methods on the proposed data set. Finally, Section V con-
+cludes the study and introduces suggestions for further work.
+II. RELATED WORK
+Tracking UAVs using LiDAR technology poses significant
+challenges due to UAVs’ small size, diverse shapes, fast
+movements, and unpredictability. In the absence of exist-
+ing datasets dedicated to UAV tracking, we outline various
+research efforts that have explored innovative methods to
+enhance the detection and tracking of UAVs utilizing LiDAR
+technology.
+Researchers have investigated different approaches to ad-
+dress the limitations of 3D LiDAR technology and improve
+UAV detection and tracking. One method involves proba-
+bilistic analysis of detections using a rotating turret-mounted
+LiDAR, enabling a wider FoV coverage with fewer LiDAR
+beams while continuously tracking only a select number of
+hits [19].
+Combining segmentation techniques and a simple object
+model with temporal information has shown promising re-
+sults in reducing parametrization efforts and generalizing well
+in diverse settings [20]. Other studies incorporate Euclidean
+distance clustering and particle filter algorithms to perform
+UAV detection and tracking [21].
+For UAV deployment from ground robots, relative localiza-
+tion between devices is crucial. In previous works, we exten-
+sively evaluated the effectiveness of multi-scan integration. Li
+et al. proposed a multi-modal approach that combines three
+tracking modalities and integrates multiple scans to adjust
+point cloud density and size for processing [22]. Catalano et
+al. introduced a method that dynamically adjusts the LiDAR
+frame integration time based on the distance to the UAV and
+its speed, fusing two simultaneous scan frequencies using a
+Kalman filter and Inverse Covariance Intersection for robust
+and accurate tracking [23], [7].
+Cooperative navigation frameworks have been introduced
+to guide a secondary UAV with unreliable self-localization
+using a primary UAV equipped with a LiDAR sensor. These
+frameworks utilize occupancy voxel maps and Kalman Filter-
+based multi-target tracking techniques[24].
+An innovative “LiDAR-as-a-camera” concept fuses images
+and point cloud data generated by a single LiDAR sensor
+to track UAVs without prior knowledge. Custom YOLOv5
+models trained on panoramic images bring computer vision
+capabilities to LiDAR technology [6].
+In the context of autonomous UAV landing on a moving
+ground vehicle, Kim et al. employed a clustering algorithm to
+identify the UAV within the point cloud data, enabling precise
+position estimation and the elimination of outliers [25].
+Departing from traditional track-after-detect approaches,
+some studies leverage motion information by analyzing 3D
+details in 360° LiDAR scans and trajectory patterns to
+classify UAVs and non-UAV objects [26], [27].
+These research efforts demonstrate the versatility of Li-
+DAR technology for enhancing UAV detection and tracking.
+However, the absence of a dedicated dataset specific to UAV
+tracking presents an opportunity for our novel dataset to
+address this gap and provide valuable resources for advancing
+UAV tracking algorithms in diverse real-world scenarios.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+Fig. 2: Data collecting platform, top view (left) and front view
+(right)
+III. SYSTEM OVERVIEW
+The data collection’s sensor configurations are illustrated
+in Fig. 1, while detailed information about each sensor can
+be found in Table I. As the primary objective of this work
+is on UAV tracking, the system was mounted on a stationary
+platform.
+A. Hardware
+The main goal of our sensor system is to gather data from
+a diverse range of LiDAR sensors, each offering distinct
+characteristics. These sensors include two innovative low-
+cost solid-state LiDARs, as well as a 3D spinning LiDAR.
+Additionally, an RGB-D camera is integrated into the setup.
+Specifically, our data collecting platform consists of a 64-
+channel Ouster spinning LiDAR (OS1), two Livox solid state
+LiDAR sensors: Mid-360, featuring a nearly 360° FoV, and
+Avia, with an almost-circular FoV. The setup is completed
+with an Intel RealSense D435 RGB-D camera.
+The top and front views depicted in Fig. 2 allow for a
+comprehensive understanding of the distances, positions, and
+orientations.
+The LiDARs are linked to a Gigabit Ethernet router, as well
+as to an onboard computer on the platform. This computer
+is equipped with an Intel i7-10750h processor, 16 GB of
+DDR4 RAM memory, and 1 TB SSD storage. To maintain a
+distinct connection from the LiDARs, the Optitrack system
+is physically attached to the same computer via a separate
+Ethernet interface. Furthermore, the RealSense D435 camera
+is connected to a USB 3.2 port for seamless integration and
+operation.
+Master
+Avia Driver
+Rosbag
+OS-1 Driver
+Mid-360 Driver
+OptiTrack Driver
+D435 Driver
+100 Hz
+100 Hz
+20 Hz
+100 Hz
+30 Hz
+Fig. 3: ROS drivers and data gathering frequency for the different
+LiDAR sensors used in our platform.
+B. Software
+Our software system is exclusively built upon ROS Noetic,
+operating on Ubuntu 20.04. The ROS drivers and the publish-
+ing frequency of the various sensors are visually represented
+in Fig. 3. To address the absence of hardware signals for
+sensor data synchronization, as observed in other datasets in
+the literature [28], we adopt an approach aimed at minimizing
+the data synchronization challenge. This involves running all
+the sensor drivers and data recording programs locally on
+a high-performance computer. By doing so, in conjunction
+with the networking equipment, we effectively reduce data
+transmission latency at both the hardware and software levels.
+Timestamps are applied at the ROS drivers to ensure synchro-
+nization. Additionally, we maintain timestamp consistency
+across all sensors by leveraging the Precision Time Protocol
+(PTP), which is specially designed for high-precision time
+synchronization within local networks.
+C. Sensor Calibration
+The extrinsic parameters for the LiDARs were deter-
+mined using optimization methods similar to those presented
+in
+[29]. The calibration process was conducted in an in-
+door office environment with the sensor platform stationary.
+During calibration, we treated the coordinate system of the
+Ouster LiDAR sensor as the reference frame. To enhance the
+level of detail in the environment, ten consecutive frames of
+point cloud data were integrated from the solid-state LiDARs.
+To align the point cloud data from each LiDAR to the
+reference frame, we employed manual measurements of a
+set of features in the environment. Subsequently, we utilized
+the Generalized Iterative Closest Point (GICP) method to
+iteratively optimize the relative transformation between the
+reference frame and LiDARs [30]. This iterative optimization
+process ensures accurate and precise calibration, enhancing
+the overall performance of the LiDAR-based system.
+Similarly, we determined the extrinsic parameters between
+the Ouster sensor and the Intel RealSense D435 camera using
+the depth cloud produced by the latter. We also provide
+additional stationary data for extrinsic calibration, if a custom
+calibration is preferred.
+The intrinsic parameters of the sensors are given based on
+factory settings and manufacturer information.
+D. Ground Truth
+Accurately generating ground truth data in complex en-
+vironments is a challenging task, as evidenced by various
+existing datasets. Many benchmarks rely on GNSS/INS fu-
+sion methods to produce ground truth pose data. Neverthe-
+less, in indoor environments, GNSS signals are unavailable,
+making this approach infeasible. In such indoor settings,
+MOCAP systems have become widely embraced due to
+their ability to provide positioning data with millimeter-
+level accuracy. However, their practicality is limited by the
+range of the cameras, typically falling within the 10 to 20 m
+range. Additionally, the relatively intricate setup required by
+MOCAP systems has hindered their adoption for outdoor
+environments.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+TABLE I: Sensors specification for the presented dataset. Angular resolution is configurable in the OS1-64 (varying the vertical FoV).
+Livox lidars have a non-repetitive scan pattern that delivers higher angular resolution with longer integration times. Range is based on
+manufacturer information, with values corresponding to 80% Lambertian reflectivity and 100 klx sunlight.
+IMU
+Type
+Channels
+FoV
+Angular Resolution
+Range
+Freq.
+Points
+Ouster OS1-64
+ICM-20948
+spinning
+64
+360°×45°
+V:0.7°, H:0.18°
+120 m
+20 Hz
+1,310,720 pts/s
+Livox Mid-360
+ICM-40609
+solid-state
+N/A
+360°×59°
+N/A
+70 m
+100 Hz
+200,000 pts/s
+Livox Avia
+BOSCH BMI088
+solid-state
+N/A
+70.4°×77.2°
+N/A
+450 m
+100 Hz
+240,000 pts/s
+RealSense D435
+N/A
+RGB-D camera
+N/A
+69°× 42°
+V: 1080, H: 1920 at 30 fps
+10 m
+30 Hz
+-
+To address the need for reliable ground-truth data in
+diverse environments, our present dataset includes MOCAP-
+based ground-truth data for both indoor and outdoor sce-
+narios. This ensures comprehensive coverage and facilitates
+robust evaluation in various real-world conditions.
+E. Dataset Sequences
+Our dataset is organized into three distinct categories
+based on the environment and trajectory structure: structured
+indoor, unstructured indoor, and unstructured outdoor. Each
+category captures specific movement patterns and character-
+istics, as follows:
+(i) Structured Indoor: This subset (HolybroStdn) comprises
+simple trajectories represented by predefined, systematic
+patterns, including a circle, a cube, a spiral, and an
+up and down movement. These structured trajectories
+are intentionally included to provide standardized, re-
+producible, and easily interpretable movement patterns.
+By employing these basic trajectories, ablation studies
+can be performed on isolated and specific aspects of
+different methods. This naturally allows for evaluating
+scenarios where different elements are decoupled. The
+structured indoor trajectories act as a reference point for
+understanding how well a method performs under well-
+defined and controlled conditions.
+(ii) Unstructured: In this subset, trajectories exhibit a more
+irregular nature, simulating movements that occur both
+indoors and outdoors without strict adherence to pre-
+defined patterns. These trajectories aim to capture the
+spontaneous and less structured nature of real-world
+flight scenarios, where a UAV’s movements can vary
+significantly based on the environment and other influ-
+encing factors.
+A comprehensive list of sequences in each category is
+shown in Table II.
+Fig. 4 displays a subset of the dataset, represented in three
+dimensions to enhance the understanding of spatial distances
+in each direction. Complete visualizations of all recorded
+trajectories are available on the project’s GitHub page.
+The data collection for the indoor and outdoor trajectories
+was conducted in distinct locations to capture a diverse
+range of environments. The indoor data was gathered in the
+open area of our lab, providing a controlled and confined
+setting for UAV movements. On the other hand, the outdoor
+data was acquired in an open area adjacent to the building,
+offering a more estensive space for capturing trajectories
+with greater distances and varied environmental conditions.
+TABLE II: List of data sequences in our dataset recorded indoor
+and outdoor
+Sequence
+Description
+Ground Truth
+Difficulty
+HolybroStnd01
+Structured(Up/Down)
+MOCAP
+Easy
+HolybroStnd02
+Structured(Square)
+MOCAP
+Easy
+HolybroStnd03
+Structured(Circle)
+MOCAP
+Easy
+HolybroStnd04
+Structured(Spiral)
+MOCAP
+Easy
+Holybro01
+Unstructured, Indoor
+MOCAP
+Easy
+Holybro02
+Unstructured, Indoor
+MOCAP
+Easy
+Holybro03
+Unstructured, Indoor
+MOCAP
+Easy
+Holybro04
+Unstructured, Indoor
+MOCAP
+Medium
+Holybro05
+Unstructured, Indoor
+MOCAP
+Medium
+HolybroOut01
+Unstructured, Outdoor
+MOCAP
+Medium
+HolybroOut02
+Unstructured, Outdoor
+MOCAP
+Medium
+Autel01
+Unstructured, Indoor
+MOCAP
+Easy
+Autel02
+Unstructured, Indoor
+MOCAP
+Easy
+Autel03
+Unstructured, Indoor
+MOCAP
+Easy
+Autel04
+Unstructured, Indoor
+MOCAP
+Medium
+Autel05
+Unstructured, Indoor
+MOCAP
+Hard
+AutelOut01
+Unstructured, Outdoor
+MOCAP
+Hard
+AutelOut02
+Unstructured, Outdoor
+MOCAP
+Hard
+Tello01
+Unstructured, Indoor
+MOCAP
+Medium
+Tello02
+Unstructured, Indoor
+MOCAP
+Medium
+Tello03
+Unstructured, Indoor
+MOCAP
+Hard
+Tello04
+Unstructured, Indoor
+MOCAP
+Hard
+Tello05
+Unstructured, Indoor
+MOCAP
+Hard
+TelloOut01
+Unstructured, Outdoor
+MOCAP
+Hard
+TelloOut02
+Unstructured, Outdoor
+MOCAP
+Hard
+While the indoor trajectories exhibit both greater complexity
+and, in some, regularity, the outdoor trajectories emphasize
+their proximity to the building, simulating potential docking
+scenarios.
+We qualitatively assessed the complexity of each trajectory
+accommodating for different UAV capabilities, classifying
+the trajectories into three levels: easy, medium, and difficult.
+This categorization is based on the size and speed of the
+UAV used during data collection. Specifically, we utilized
+three different UAVs - the Holybro, Autel II, and Tello. As
+expected, larger UAVs tended to result in easier trajectories,
+while faster speeds led to higher levels of difficulty. The diffi-
+culty levels are chosen with the aim of enabling researchers
+to evaluate their methods across a spectrum of challenges,
+ranging from simple to more intricate flight paths, following
+similar standards in previous datasets [31].
+To introduce additional challenges, we designed the fourth
+indoor track for each UAV as a circular path around an
+obstacle and the fifth indoor track as a loop between two
+obstacles. These obstacle tracks were specifically included to
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+Fig. 4: Sample of recorded trajectories. Top row: HolybroStnd01, HolybroStnd02, HolybroStnd03, HolybroStnd04. Bottom row: Holybro03,
+Autel02, Autel05, Tello04.
+Fig. 5: Subsets of data from the Holybro01 sequence. The left
+column shows the LiDAR point cloud from the Avia and the OS-1
+as the right column displays the point cloud from the Mid-360 as
+well as the RGB image from the D435 and the signal image from
+the OS-1.
+test the UAVs’ maneuvering abilities in constrained spaces,
+further diversifying the difficulty levels and encouraging the
+evaluation of methods under more intricate flight conditions.
+In our dataset, the indoor trajectories typically span ap-
+proximately 16 m, whereas the outdoor trajectories cover
+larger distances, extending up to 30 m. This contrast in dis-
+tances allows researchers to analyze trajectory characteristics
+in diverse spatial contexts, emphasizing the importance of
+robust analysis techniques that can adapt to varying scales
+and complexities.
+F. Data Format
+Data collection within the ROS environment makes use of
+the rosbag format, which has emerged as a standard within
+the robotics research community. Fig 5 showcases sampled
+data frames from a subset of the sensors. Detailed data
+formats for each type of data included in the dataset are as
+follows:
+(i) Point cloud data from spinning LiDAR (OS1-64) is
+recorded as sensor msgs::PointCloud. Each point in the
+point cloud contains four values (x, y, z, I), representing
+local Cartesian coordinates (x, y, z), and the measured
+laser reflectance (I).
+(ii) Point cloud data from solid-state LiDARs, Avia,
+and Mid-360, employs Livox’s custom data format
+named livox ros driver/CustomMsg in the rosbags. This
+custom message includes a base time and an offset time
+relative to the base time for each point. This approach
+compensates for the non-repetitive pattern inherent to
+solid-state LiDARs and allows for de-skewing of the
+point cloud data, addressing distortions caused by the
+sensor’s egomotion. We have retained this message type
+for algorithms involving point cloud deskewing and
+related research. However, to facilitate visualization in
+tools like Rviz and compatibility with standard LiDAR
+processing algorithms relying on ROS messages, we
+provide format conversion tools to transform the Livox
+custom message data to the standard ROS message type,
+sensor msgs::PointCloud. The converted points now
+hold five values (x, y, z, I, C), where x, y, z represent
+local Cartesian coordinates, I is the intensity of the
+point, and C incorporates the line (integer part) and
+point timestamp (decimal part).
+(iii) Images from RGB camera. The RealSense D435 cam-
+era publishes RGB images at 1920×1080 resolution and
+a 30 Hz frequency. The message type is sensor msgs ::
+Image.
+(iv) Images from the high-resolution spinning LiDAR
+(OS1-64) consist of fixed-resolution range images, near-
+infrared images captured by the laser sensor, and signal
+images. Each pixel in these images represents the dis-
+tance from the sensor origin to the point, the captured
+light’s strength, and the object’s reflectivity, respectively.
+These images are published at a frequency of 10 Hz and
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+TABLE III: Position error (RMSE) for the dynamic scan tracking IEKF and IKF (N/A when the error diverges because the estimated
+trajectory is incomplete. Unit: meter)
+Method
+HolybroStnd01
+HolybroStnd02
+HolybroStnd03
+HolybroStnd04
+Holybro01
+Holybro02
+Autel02
+Autel03
+Tello01
+Tello02
+IEKF
+Avia
+0.0431
+0.037
+0.0425
+0.0526
+0.0592
+0.0649
+0.0984
+0.183
+0.125
+0.1182
+IKF
+Avia
+0.0415
+0.0272
+0.0389
+0.042
+0.1155
+N/A
+0.112
+0.0395
+N/A
+0.1321
+IEKF
+Mid-360
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+IKF
+Mid-360
+0.1042
+N/A
+N/A
+N/A
+0.0673
+N/A
+N/A
+N/A
+N/A
+N/A
+TABLE IV: Percentage of successfully estimated trajectories for he
+dynamic scan tracking IEKF and IKF on the selected data subset
+(N/A when the method was not designed for that type of LiDAR)
+LiDAR
+IEKF
+IKF
+Livox Avia
+100%
+80%
+Livox Mid-360
+0%
+20%
+Ouster
+N/A
+N/A
+have 16 bits per pixel with a linear photo response. The
+standard ROS message type, sensor msgs/Image, is used
+for these image data.
+(v) Inertial data is available from both spinning and solid-
+state LiDARs, featuring three built-in 6-axis IMU sen-
+sors with a 3-axis gyroscope and a 3-axis accelerom-
+eter. The IMU data is published at a frequency of
+100 Hz for the spinning LiDAR and 200 Hz for the
+solid-state LiDAR. The standard ROS message type,
+sensor msgs::Imu, is employed for IMU data in the
+rosbags.
+(vi) Ground truth data is derived from the MOCAP
+system and is included in the rosbags as geome-
+try msgs::PoseStamped messages. These data are ob-
+tained from the computer connected to the OptiTrack
+cameras via a VRPN connection, providing precise
+ground truth information.
+IV. EXPERIMENTAL EVALUATION
+This section covers the characterization of the different
+tracking approaches for the dataset sequences.
+A. Metrics
+First, to quantify the disparity between the different Li-
+DAR sensors and the external position system estimates,
+we computed the error by taking the difference between
+the position estimates obtained from both systems for two
+distinct positions and orientations of the target. This analysis
+revealed a Root Mean Squared Error (RMSE) of 0.0143 m.
+To quantitatively evaluate the tracking performance, we
+employed the Root Mean Squared Error (RMSE) metric,
+and the summarized outcomes are presented in Table III.
+Additionally, we provide an overall assessment of each
+method’s performance based on the percentage of success-
+fully estimated trajectories, as shown in Table IV.
+B. Experiments
+As part of our dataset, we provide an evaluation of current
+UAV tracking methods on several sequences. The objective is
+to compare the performance of different methods to provide
+a baseline for future research. Throughout this section, we
+discuss the best methods for different types of LiDAR sensors
+and environments.
+From our analysis, one of the key findings is the pressing
+need for methods that can enhance UAV tracking with sparse
+LiDAR data, regardless of the scanning pattern.
+Regarding the dynamic tracking method [7] (IEKF and
+IKF), initially designed for the Livox Horizon LiDAR, we
+observed that it exhibits strong generalization capabilities and
+performs effectively on the Livox Avia.
+Among the tested methods, we observed that tracking
+using the dense solid-state Livox Avia LiDAR yields superior
+results compared to the sparser Mid-360. Specifically, the
+IEKF method successfully estimated 100% of the selected
+trajectories, while the IKF method achieved better results
+on more standard patterns, such as HolybroStdn. However,
+it’s worth noting that the dynamic tracking method, being
+designed for dense solid-state LiDARs, exhibited poor per-
+formance on the Mid-360, regardless of the trajectory type
+and UAV used.
+In summary, our evaluation highlights the need for im-
+proved UAV tracking methods, especially for sparse LiDAR
+data, and demonstrates the varying performance of different
+methods based on the type of LiDAR sensor and scanning
+environment. These findings lay the groundwork for future
+research and development in UAV tracking techniques.
+V. CONCLUSION
+We introduced a novel dataset collected through a multi-
+LiDAR sensor system, including both indoor and outdoor
+environments. The dataset comprises diverse LiDAR types
+with varying resolutions and scan patterns, along with an
+RGB camera. We also include UAVs with variable sizes
+common to urban areas. This diverse range of sensors and
+UAVs provides a unique opportunity for future research on
+general-purpose algorithms, as our analysis reveals distinct
+performance variations among different algorithms based
+on the type of LiDAR used. Consequently, there exists a
+substantial opportunity to develop more robust LiDAR-based
+UAV tracking algorithms.
+To facilitate algorithm analysis, we have included ground
+truth data for both indoor and outdoor settings. The dataset’s
+distinctive characteristics, encompassing a wide array of data
+and environmental conditions, distinguish it from existing
+literature. This paper thereby aims at establishing a solid
+foundation for benchmarking and performing quantitative
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+comparisons between existing and forthcoming LiDAR-based
+UAV tracking algorithms. This dataset promises to advance
+the field of UAV tracking, opening up new avenues for
+cutting-edge research and development.
+REFERENCES
+[1] Dimosthenis C Tsouros, Stamatia Bibi, and Panagiotis G Sarigiannidis.
+A review on uav-based applications for precision agriculture. Infor-
+mation, 10(11):349, 2019.
+[2] Dongliang Wang, Quanqin Shao, and Huanyin Yue. Surveying wild
+animals from satellites, manned aircraft and unmanned aerial systems
+(uass): A review. Remote Sensing, 11(11):1308, 2019.
+[3] Abel Gawel, Yukai Lin, Th´eodore Koutros, Roland Siegwart, and Cesar
+Cadena. Aerial-ground collaborative sensing: Third-person view for
+teleoperation. In IEEE International Symposium on Safety, Security,
+and Rescue Robotics (SSRR), pages 1–7. IEEE, 2018.
+[4] Francesco Nex and Fabio Remondino. Uav for 3d mapping applica-
+tions: a review. Applied geomatics, 6:1–15, 2014.
+[5] M. Nieuwenhuisen et al. . Autonomous navigation for micro aerial
+vehicles in complex gnss-denied environments. Journal of Intelligent
+& Robotic Systems, 84(1):199–216, 2016.
+[6] Ha Sier, Xianjia Yu, Iacopo Catalano, Jorge Pena Queralta, Zhuo Zou,
+and Tomi Westerlund.
+Uav tracking with lidar as a camera sensor
+in gnss-denied environments.
+In 2023 International Conference on
+Localization and GNSS (ICL-GNSS), pages 1–7. IEEE, 2023.
+[7] Iacopo Catalano, Ha Sier, Xianjia Yu, Tomi Westerlund, and Jorge
+Pe˜na Queralta. Uav tracking with solid-state lidars: Dynamic multi-
+frequency scan integration. arXiv preprint arXiv:2304.12125, 2023.
+[8] Nan Jiang, Kuiran Wang, Xiaoke Peng, Xuehui Yu, Qiang Wang,
+Junliang Xing, Guorong Li, Jian Zhao, Guodong Guo, and Zhenjun
+Han. Anti-uav: A large multi-modal benchmark for uav tracking. arXiv
+preprint arXiv:2101.08466, 2021.
+[9] J. Pe˜na Queralta et al. Collaborative multi-robot search and rescue:
+Planning, coordination, perception and active vision.
+IEEE Access,
+pages 1–1, 2020.
+[10] J. Pe˜na Queralta et al. Autosos: Towards multi-uav systems supporting
+maritime search and rescue with lightweight ai and edge computing.
+arXiv preprint arXiv:2005.03409, 2020.
+[11] Jorge Pena Queralta, Qingqing Li, Fabrizio Schiano, and Tomi West-
+erlund.
+Vio-uwb-based collaborative localization and dense scene
+reconstruction within heterogeneous multi-robot systems.
+In 2022
+International Conference on Advanced Robotics and Mechatronics
+(ICARM), pages 87–94. IEEE, 2022.
+[12] Yang Bai, Koki Asami, Mikhail Svinin, and Evgeni Magid. Cooper-
+ative multi-robot control for monitoring an expanding flood area. In
+2020 17th International Conference on Ubiquitous Robots (UR), pages
+500–505. IEEE, 2020.
+[13] M. Petrl´ık et al. . A robust uav system for operations in a constrained
+environment. IEEE RA-L, 5(2):2169–2176, 2020.
+[14] T. Rouˇcek et al. Darpa subterranean challenge: Multi-robotic explo-
+ration of underground environments. In International Conference on
+Modelling and Simulation for Autonomous Systesm, pages 274–290.
+Springer, 2019.
+[15] Kailai Li, Meng Li, and Uwe D Hanebeck. Towards high-performance
+solid-state-lidar-inertial odometry and mapping.
+arXiv preprint
+arXiv:2010.13150, 2020.
+[16] Lucas Prado Osco, Jos´e Marcato Junior, Ana Paula Marques Ramos,
+L´ucio Andr´e de Castro Jorge, Sarah Narges Fatholahi, Jonathan
+de Andrade Silva, Edson Takashi Matsubara, Hemerson Pistori, Wes-
+ley Nunes Gonc¸alves, and Jonathan Li. A review on deep learning
+in uav remote sensing.
+International Journal of Applied Earth
+Observation and Geoinformation, 102:102456, 2021.
+[17] Stamatios Samaras, Eleni Diamantidou, Dimitrios Ataloglou, Nikos
+Sakellariou, Anastasios Vafeiadis, Vasilis Magoulianitis, Antonios
+Lalas, Anastasios Dimou, Dimitrios Zarpalas, Konstantinos Votis, et al.
+Deep learning on multi sensor data for counter uav applications—a
+systematic review. Sensors, 19(22):4837, 2019.
+[18] Junwon Seo, Luis Duque, and Jim Wacker.
+Drone-enabled bridge
+inspection methodology and application. Automation in construction,
+94:112–126, 2018.
+[19] Sedat Dogru and Lino Marques. Drone detection using sparse lidar
+measurements.
+IEEE Robotics and Automation Letters, 7(2):3062–
+3069, 2022.
+[20] Jan Razlaw, Jan Quenzel, and Sven Behnke. Detection and tracking
+of small objects in sparse 3d laser range data. In 2019 International
+Conference on Robotics and Automation (ICRA), pages 2967–2973.
+IEEE, 2019.
+[21] Hong Wang, Yu Peng, Liansheng Liu, and Jun Liang. Study on target
+detection and tracking method of uav based on lidar. In 2021 Global
+Reliability and Prognostics and Health Management (PHM-Nanjing),
+pages 1–6, 2021.
+[22] Li Qingqing, Yu Xianjia, Jorge Pe˜na Queralta, and Tomi Westerlund.
+Adaptive lidar scan frame integration: Tracking known MAVs in 3D
+point clouds. In 20th International Conference on Advanced Robotics
+(ICAR). IEEE, 2021.
+[23] Iacopo Catalano, Jorge Pe˜na Queralta, and Tomi Westerlund. Evalu-
+ating the performance of multi-scan integration for UAV lidar-based
+tracking. arXiv preprint, 2023.
+[24] V´aclav Pritzl, Matouˇs Vrba, Petr ˇSt˘ep´an, and Martin Saska. Coop-
+erative navigation and guidance of a micro-scale aerial vehicle by
+an accompanying uav using 3d lidar relative localization.
+In 2022
+International Conference on Unmanned Aircraft Systems (ICUAS),
+pages 526–535. IEEE, 2022.
+[25] Jonghwi Kim, Sangwook Woo, and Jinwhan Kim.
+Lidar-guided
+autonomous landing of an aerial vehicle on a ground vehicle.
+In
+2017 14th International Conference on Ubiquitous Robots and Ambient
+Intelligence (URAI), pages 228–231. IEEE, 2017.
+[26] Marcus Hammer, Marcus Hebel, Bj¨orn Borgmann, Martin Laurenzis,
+and Michael Arens. Potential of lidar sensors for the detection of uavs.
+In Laser Radar Technology and Applications XXIII, volume 10636,
+pages 39–45. SPIE, 2018.
+[27] Marcus Hammer, Marcus Hebel, Martin Laurenzis, and Michael Arens.
+Lidar-based detection and tracking of small uavs. In Emerging Imaging
+and Sensing Technologies for Security and Defence III; and Unmanned
+Sensors, Systems, and Countermeasures, volume 10799, pages 177–
+185. SPIE, 2018.
+[28] Zhi Yan, Li Sun, Tom´aˇs Krajn´ık, and Yassine Ruichek.
+Eu long-
+term dataset with multiple sensors for autonomous driving. In 2020
+IEEE/RSJ International Conference on Intelligent Robots and Systems
+(IROS), pages 10697–10704. IEEE, 2020.
+[29] Jinyong Jeong, Younggun Cho, Young-Sik Shin, Hyunchul Roh, and
+Ayoung Kim. Complex urban lidar data set. In 2018 IEEE Interna-
+tional Conference on Robotics and Automation (ICRA), pages 6344–
+6351. IEEE, 2018.
+[30] A. Segal et al. Generalized-icp. In Robotics: science and systems,
+2009.
+[31] Michael Burri, Janosch Nikolic, Pascal Gohl, Thomas Schneider, Joern
+Rehder, Sammy Omari, Markus W Achtelik, and Roland Siegwart.
+The euroc micro aerial vehicle datasets. The International Journal of
+Robotics Research, 35(10):1157–1163, 2016.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:20 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

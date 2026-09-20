@@ -1,0 +1,1315 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1023.pdf
+sha256: 447BAD75461676B65B21422BEF27EA6338EC70E8FFEDB605542A8D30046A8697
+library: pymupdf (fitz) v1.28.2
+pages: 24
+=== BEGIN ===
+[p.1]
+Academic Editor: Kan Wang
+Received: 4 March 2026
+Revised: 25 April 2026
+Accepted: 25 April 2026
+Published: 29 April 2026
+Copyright: © 2026 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license.
+Article
+A Hybrid Drone SINS/GNSS Information Fusion Method Based
+on Attention-Augmented TCN in GNSS-Denied Environments
+Chuan Xu 1
+, Shuai Chen 1,*
+, Daxiang Zhao 1
+, Zhikuan Hou 1
+and Changhui Jiang 2
+1
+School of Automation, Nanjing University of Science and Technology, Nanjing 210094, China;
+xuc13@njust.edu.cn (C.X.); zdx001@njust.edu.cn (D.Z.); hoo@mail.ustc.edu.cn (Z.H.)
+2
+College of Automation Engineering, Nanjing University of Aeronautics and Astronautics,
+Nanjing 211106, China; changhui.jiang@nuaa.edu.cn
+*
+Correspondence: chenshuai@njust.edu.cn
+Highlights
+What are the main findings?
+•
+A hybrid information fusion method for drone SINS/GNSS integrated navigation
+system is proposed to enhance positioning accuracy during GNSS-denied situation by
+jointly leveraging TCN and self-attention mechanism.
+•
+The attention-augmented TCN model exhibits a certain degree of generalization ability,
+achieving effective positioning accuracy enhancement across different GNSS-denied
+periods with typical training parameters in flight tests.
+What are the implications of the main findings?
+•
+The proposed method effectively mitigates the problem of error divergence in drone
+SINS/GNSS integrated systems in GNSS-denied Environments, thereby enhancing
+flight safety, operational precision, and overall efficiency.
+•
+The proposed method requires no additional sensors, and exhibits greater error
+state correction capabilities compared to single TCN predictive model with typical
+training parameters.
+Abstract
+In the field of drone navigation systems, a high-precision positioning solution can be pro-
+vided by an integrated strapdown inertial navigation system (SINS)/global navigation
+satellite system (GNSS). But when satellite signals are interfered with or blocked by tall
+buildings, the errors of SINS will disperse rapidly due to the complex air and mechanical
+vibrations, leading to a serious degradation of navigation accuracy. To enhance the po-
+sitioning performance in this situation, this paper proposes a hybrid information fusion
+method based on attention-augmented temporal convolutional network (TCN) for drone
+SINS/GNSS navigation system. A feature integration and prediction model is constructed
+to provide a pseudo-positioning reference for the integrated navigation filter during GNSS-
+denied periods, in which TCN is used to establish a predictive positioning error correction
+model based on inertial measurements and SINS data, while a self-attention model is incor-
+porated to extract complex global drone motion features. The performance of the proposed
+method has been experimentally verified using Global Positioning System (GPS) and SINS
+data collected from real drone flight test. Comparison results among the proposed model,
+SINS with TCN, SINS with convergent Kalman filter (KF) prediction section and SINS-only
+indicate that the proposed method can effectively improve the drone positioning accuracy
+in specific GNSS-denied environments.
+Remote Sens. 2026, 18, 1379
+https://doi.org/10.3390/rs18091379
+[p.2]
+Remote Sens. 2026, 18, 1379
+2 of 24
+Keywords: drone navigation; SINS/GNSS integrated navigation; attention-augmented;
+TCN; GNSS-denied environments
+1. Introduction
+Integrated navigation system consisting of SINS and GNSS can provide continuous
+high precision positioning and navigation solutions for most of today’s drones when GNSS
+signals are available. The KF, capable of restraining error drift in SINS and calculating the
+dynamic zero bias of SINS sensors, has been widely recognized as the standard optimal
+estimation tool for current SINS/GNSS integration schemes [1]. However, due to the high
+orbital altitude of navigation satellites (e.g., GPS satellites orbit at over 20,000 km), their
+signals are weak when they reach the ground. As the demand for drone operations in
+low-altitude environments increases, challenges for drone-mounted navigation systems
+such as electromagnetic interference and building occlusion are becoming increasingly
+severe, which would lead to interruption of GNSS receiver’s positioning process. In the
+absence of GNSS measurement, the integrated filter cannot complete measurement updates
+and accurate correction for inertial navigation error drift, causing the navigation system’s
+accuracy to deteriorate rapidly, especially when using low-cost inertial measurement unit
+(IMU) manufactured by micro-electro-mechanical systems (MEMS) processes.
+During GNSS-denied periods, a SINS/GNSS integrated KF that has achieved conver-
+gence of the gyroscope and accelerometer state parameters can provide a positive position
+error state estimation capability for the SINS through state prediction sections only, since
+the convergent gyroscope drift and accelerometer bias conform to the current actual inertial
+system error parameters. However, these convergent states remain constant in GNSS-
+denied environment and cannot adapt to complex carrier dynamics due to the lack of
+measurement update sections.
+Many research methods have been proposed to enhance positioning system accu-
+racy under GNSS-denied conditions. For example, deploying additional sensors, such
+as visual units, can provide auxiliary measurement data that achieve significantly higher
+accuracy than SINS-only during GNSS-denied periods [2], but this may incur additional
+hardware costs and increase equipment volume. Recently, with the development of ar-
+tificial intelligence technology, methods based on neural networks (NNs) for modeling
+pseudo-satellite or IMU parameters have been widely used. The main idea behind these
+methods is to establish a mapping relationship from dynamic information provided by the
+SINS to predictive reference models, such as fusion positioning results [3–7], pseudo satel-
+lite navigation position, or the corresponding increment [8–23]. Such predictive models are
+trained using corresponding data collected during GNSS availability and integrated filter
+convergence to approximate real-time sensor parameter models. They are incorporated
+into the integrated navigation system in the absence of GNSS to substitute for navigation
+satellites and provide predictive auxiliary measurement information. However, since the
+predictive model cannot provide absolute positioning observations, the prediction accuracy
+of these models based on SINS will decrease over time. Considering that SINS errors follow
+a certain trend, time can be used as the input in some studies [24]. Additionally, to address
+covariance estimation issues caused by model accuracy decrease, some studies employ
+adaptive parameters to adjust the convergence direction of filters [8,10], or incorporate
+covariance-related parameters into prediction models for training and optimization [25,26].
+With the rapid development of artificial intelligence, various NN structures have been
+investigated for constructing these predictive models, among which recurrent neural net-
+works (RNNs), such as GRU and LSTM, can exhibit more accurate prediction performance
+https://doi.org/10.3390/rs18091379
+[p.3]
+Remote Sens. 2026, 18, 1379
+3 of 24
+owing to their sequence prediction capability [6,8,11,13,15,22]. These methods have shown
+promising performance in conventional land-vehicle navigation scenarios. However, their
+application to drone navigation remains challenging. Compared with vehicle-mounted
+systems, IMUs for drone navigation systems typically require higher sampling rates due
+to their high-dimensional motion characteristics, and are subject to more complex high-
+frequency vibrations and sensor noise. In such scenarios, models with efficient parallel
+computation, a strong capability for capturing long high-frequency sequences, and lower
+susceptibility to steady-state sensor noise are particularly desirable.
+Temporal convolutional networks (TCNs) provide an attractive alternative due to
+their parallel computation capability, large receptive field, and stable training behavior.
+Recent studies have demonstrated the effectiveness of TCN-based models in sequential
+prediction tasks [10]. Nevertheless, single TCN models mainly emphasize temporal de-
+pendency extraction and may not sufficiently characterize the correlation structure among
+multidimensional gyroscope and accelerometer measurements, which is critical for highly
+dynamic drone maneuvers.
+To address these limitations, this paper proposes a hybrid information fusion method
+based on attention-augmented TCN for drone SINS/GNSS integrated navigation system
+during GNSS-denied periods. First, a TCN-based temporal feature extraction model was
+developed, whose parallel computing mechanism offers higher computational efficiency
+and robustness against steady-state noise, making it suitable for high-dynamic, high-
+vibration drone inertial systems. Then, a self-attention module is introduced into the
+prediction model to capture global correlation features related to maneuverability between
+the multidimensional gyroscope and accelerometer inertial sequences. By jointly exploiting
+temporal dynamics and inter-sensor correlations, the proposed model improves positioning
+error prediction and compensation for drone SINS/GNSS integrated navigation system
+during GNSS outages.
+The remainder of this paper is organized as follows: Section 2 describes the proposed
+hybrid information fusion method, including the design of the predictive model and the
+execution process of the integrated system. Section 3 presents the experimental flight
+testing that validates the proposed method, including the experimental setup and detailed
+results. The analysis and discussion are presented in Section 4. The conclusion is presented
+in Section 5.
+2. Methods
+2.1. Hybrid Information Fusion Scheme
+As one of the core technologies in modern high-accuracy positioning, navigation, and
+timing (PNT) applications, SINS/GNSS integrated solutions are designed to overcome
+the inherent limitations of standalone navigation systems. However, GNSS interruptions
+can result in periodic discontinuities and accumulation of SINS errors in the navigation
+solution. Therefore, an intelligent predictive model is integrated into the SINS/GNSS in
+order to replace GNSS in terms of providing alternative measurements and reduce SINS
+errors in GNSS-denied environments. The primary purpose of the prediction model is to
+establish a correlation between the drone’s dynamic characteristics and the estimation of
+SINS horizontal position error divergence when GNSS is operational, thereby improving
+the filter’s state correction capability in the form of error observations between SINS and
+reference information during GNSS-denied periods.
+The hybrid fusion scheme is based on inertial-reference loosely coupled mode due to
+its high efficiency, flexibility and simple structure, which facilitates maintenance. In this
+scheme, SINS and reference source operate independently, with GNSS or the predictive
+model acting as an auxiliary measurement source that periodically supplies position and
+https://doi.org/10.3390/rs18091379
+[p.4]
+Remote Sens. 2026, 18, 1379
+4 of 24
+velocity observations to mitigate the cumulative drift of the INS. Depending on the refer-
+ence source, the proposed navigation strategy consists of two distinct phases: the GNSS
+integrated channel and the predictor correction channel, as shown in Figure 1.
+Figure 1. Schematic framework of the proposed hybrid information fusion scheme.
+As shown in Figure 1, since accelerometer calibration is relatively complex, in this
+study the INS performs zero-bias repeatability calibration based on stationary gyroscope
+data after power-up, followed by strap-down inertial navigation calculations and integrated
+navigation. To mitigate the impact of inevitable system noise and measurement noise and
+achieve real-time inference and updating of navigation system status information, a KF is
+used in data fusion. The corresponding discrete-time state equations and measurement
+equations can be expressed as follows:
+(
+Xk = Fk,k−1Xk−1 + Gk,k−1Wk−1
+Zk = HkXk + Vk
+(1)
+where Xk and Zk represent the system state vector and the measurement vector at time k,
+respectively. Fk,k−1 denotes the state transition matrix. Gk,k−1 and Wk−1 denote the system
+noise matrix and process noise vector, respectively. Hk,k−1 is the measurement matrix and
+Vk is the measurement noise vector. The detailed derivation of the filter equations is not
+included for brevity in this paper [27].
+The local East-North-Up (ENU) geographic coordinate system is adopted as the
+navigation reference frame in this paper. The state vector typically consists of naviga-
+tion state errors as well as the inertial sensor errors. The state vector X can be set as a
+15-dimensional vector:
+X =
+h
+Φ
+δνn
+δpn
+∆b
+εbiT
+,
+(2)
+where Φ =
+
+ΦE, ΦN, ΦU]T denotes the misalignment angles of the calculated navigation
+frame relative (n-frame) to the actual n-frame. δνn =
+
+δνE, δνN, δνU]T represents the veloc-
+ity errors, and δp =
+
+δL, δλ, δh]T corresponds to the position errors. ∆b =
+
+∆x, ∆y, ∆z]T and
+εb =
+
+εx, εy, εz]T indicate the accelerometer biases and the gyroscope drift in the three-axis
+of the vehicle’s body frame (b-frame), respectively. Based on the temporal characteristics
+of the individual components in the error state vector X and ignoring the effects of some
+https://doi.org/10.3390/rs18091379
+[p.5]
+Remote Sens. 2026, 18, 1379
+5 of 24
+small quantities, the state transition matrix F is constructed according to the linear error
+equations of SINS [28]:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.
+Φ = Φ × ωn
+in + δωn
+in −Cn
+b εb
+δ
+.νn = −f n × ϕ + νn ×
+ 2δωn
+ie + δωn
+en
+ + νn ×
+ 2ωn
+ie + ωn
+en
+ + Cn
+b ∆b
+δ
+.
+L = δvN/(RM + h) −δhvn/(R M + h)2
+δ
+.
+λ = δvEsecL/(RN + h) + δLvEsecLtanL/(RN + h) −δhvEsecL/(R N + h)2
+δ
+.
+h = δvU
+(3)
+where the superscript n and superscript b denote the navigation frame and the vehicle’s
+body frame, respectively. ωn
+in =
+ ωn
+ie + ωn
+en
+
+represents the angular velocity of the n-frame
+relative to the i-frame in the n-frame, and δωn
+in is its error. ωn
+ie and δωn
+ie are the Earth’s
+self-rotation velocity and its error in the n-frame and ωn
+en and δωn
+en are the angular velocity
+and its error of the n-frame relative to the earth frame (e-frame) in the n-frame. Cn
+b is the
+direction cosine matrix for transforming the coordinates from the b-frame to the n-frame.
+f n denotes the specific force measured by the accelerometer in the b-frame. νn and δνn
+indicate the projection of the true velocity vector and its error in the n-frame. RM and RN
+are the radius of curvature in meridian and prime vertical, respectively.
+In the GNSS integrated channel, the six-dimensional velocity and position differences
+between the SINS and GNSS are defined as the measurement vector denoted by Z, and the
+measurement matrix H is:
+Hk =
+h
+06×3
+I6×6
+06×6
+i
+,
+(4)
+where I denotes the identity matrix, and its subscript indicates the matrix dimension.
+Before each update of GNSS measurement, the system continuously collects and
+stores partial outputs from the IMU and SINS. These data contain the real-time motion
+characteristics of the drone carrier and are used to construct temporal input sequences,
+which serve as the training foundation for the predictive model. The input sequence
+recording cycle is completed when the filter updates the state vector based on the GNSS
+measurements. Simultaneously, the reference correction information is recorded to establish
+the mapping relationship with the input sequence, serving as the corresponding training
+output for the predictive model.
+This recording process is repeated continuously based on the update interval of the
+filter, during which the input sequences and the corresponding outputs are recorded and
+used to train the predictive model until a stable mapping between them is established.
+During GNSS-denied periods, the navigation system switches to the predictor correction
+channel. In this phase, temporal sequences formatted as in the training phase are fed into
+the pre-trained predictive model at each update cycle of the integrated filter. Utilizing
+real-time carrier motion information, the model calculates reference correction information
+in the form of an observation vector for the integrated filter to perform measurement
+updates and subsequent state correction. Due to the trained predictive model’s inherent
+generalization capability, the reference correction information it calculates offers greater
+flexibility and accuracy than the constant bias state correction of the convergent filter under
+complex flight conditions.
+To maintain the stability of the model’s prediction accuracy, the input data excludes
+high-dimensional divergent information such as velocity, position, or their associated errors.
+The input sequence of the predictive model consists mainly of IMU data, and the yaw angle
+sequence is also included as part of the input to enhance the correlation between the data
+in the b-frame and the correction output in the n-frame. The predictive model consists of
+two components: TCN sequence feature modeling and attention-augmented global feature
+https://doi.org/10.3390/rs18091379
+[p.6]
+Remote Sens. 2026, 18, 1379
+6 of 24
+extraction, with differently formatted input sequences. For the temporal convolutional
+block, the specific expression of the input sequence can be given by:
+h
+Ωb
+ib
+Γb
+Ψ
+iˆk
+k =
+
+
+ωb
+ibx ˆk
+ωb
+ibyˆk
+ωb
+ibzˆk
+f b
+x k
+f b
+y ˆk
+f b
+z ˆk
+ψˆk
+...
+ωb
+ibxk
+ωb
+ibyk
+ωb
+ibzk
+f b
+x k
+f b
+y k
+f b
+z k
+ψk
+
+
+(5)
+where ωb
+ib and f b are the angular velocity and specific force measurement data output by
+the gyroscope and accelerometer in the b-frame, respectively. The subscripts x, y and z
+denote the x-, y- and z- axis of the b-frame, respectively. ψ is the yaw angle. The subscript k
+denotes the filter measurement update time. ˆk = k −f + 1 and f is the sequence length,
+which corresponds to the IMU measurement frequency when the GNSS update rate is 1 s.
+For the attention-augmented block, the input sequence will be divided into multiple
+patches and flattened into a sequence using IMU data only. Assume s:i is the nth column of
+h
+Ωb
+ib
+Γb
+Ψ
+i
+k and si = s:iT, the input sequence for the attention-augmented block can be
+flattened as:
+S =
+h
+s1
+· · ·
+s6i
+.
+(6)
+Each si, i.e., the single-axis inertial sensor sequence is divided into N patches:
+si =
+h
+pi
+0
+pi
+1
+· · ·
+pi
+N−1
+i
+, i = 1, 2, · · · 6
+(7)
+where N is determined by the sensor sequence length f and the patch size M:
+N = f /M.
+(8)
+Each patch vector pi
+j contained in si can be expressed as:
+pi
+j =
+h
+di
+k−(j+1)M+1
+· · ·
+di
+k−jM
+i
+, j = 0, 1, · · · , N −1.
+(9)
+In the early stages following GNSS interruption, IMU and SINS outputs remain rel-
+atively stable within short filter measurement update cycles, achieving centimeter-level
+accuracy. Attempting to directly map these inputs to information containing raw standard
+point positioning GNSS position data—which exhibits meter-level noise, may lead to issues
+such as model overfitting to noise, difficulty in convergence, and poor local generalization
+capabilities. Therefore, by exploiting the noise-resistant advantages of filters, the optimal
+estimate of the fusion process is adopted as the recorded reference output. Consequently,
+when applying different filters or adaptive parameters to address interference from vari-
+ous complex environments, this input-output mapping structure remains adaptable and
+can benefit from architectural improvements. Considering that GNSS-denied situations,
+such as electromagnetic interference or obstruction by tall buildings, primarily occur at
+low altitudes of several hundred meters, altitude errors can be effectively suppressed
+by well-calibrated consumer-grade altimeters in such environments, and the prediction
+model focuses on modeling horizontal errors—specifically latitude and longitude state
+estimates—to reduce model complexity and enhance training efficiency and accuracy.
+https://doi.org/10.3390/rs18091379
+[p.7]
+Remote Sens. 2026, 18, 1379
+7 of 24
+Based on the relationship between the predictive two-dimensional horizontal position
+reference correction information and the state model of the integrated filter, the output of
+the prediction model is defined as follows:
+
+
+
+
+
+
+
+
+
+∼
+Xk =
+h
+∂L
+∂λ
+iT
+Zk =
+h
+δL
+δλ
+iT
+Hk =
+h
+02×6
+I2×2
+02×7
+i
+(10)
+where
+∼
+Xk is the optimal latitude and longitude error state for the filter at measurement
+update time k during GNSS availability period, serving as the training output for the
+prediction model. Zk and Hk are the inferred output measurement vector and measurement
+matrix, respectively.
+Based on the above analysis of the hybrid integration scheme, a regression NN model
+for mapping multidimensional sensor sequences to reference state correction information
+needs to be constructed and incorporated into the information fusion framework.
+2.2. Attention-Augmented TCN Predictive Model
+Temporal networks are suitable for constructing predictive models, as there is a signif-
+icant time dependency between the IMU sequence and the position error correction state.
+Unlike land vehicle-mounted systems, drone navigation systems require higher measure-
+ment frequencies due to their high-dimensional motion characteristics, and their inertial
+measurement systems incorporate more steady-state noise from motors, propellers, and
+mechanical resonance. Therefore, a TCN is employed to construct the regression prediction
+model in this work, whose parallel processing mechanism offers higher computational
+efficiency and exhibits superior robustness against steady-state noise. In practice, the
+“infinite memory” advantage of RNNs is largely absent, and TCNs exhibit longer memory
+than recurrent architectures with the same capacity [29].
+TCNs employ convolutional rather than recurrent structures for time series modeling,
+incorporating expanded causal convolutions and residual connection mechanisms. Causal
+convolutions ensure that the temporal order of the sequence is preserved, while dilated
+convolutions enable the model to capture long-range dependencies without excessive
+network depth. Residual connection blocks enhance training stability and facilitate learning
+in deeper architectures. The structure diagram of TCN is shown in Figure 2, taking a three-
+layer TCN with a convolution filter size of 3 as an example.
+Figure 2. Structure diagram of TCN.
+https://doi.org/10.3390/rs18091379
+[p.8]
+Remote Sens. 2026, 18, 1379
+8 of 24
+In large-scale time series modeling scenarios, convolutional architectures typically
+require stacking multiple layers of networks to effectively expand the receptive field of
+a single neuron. To avoid excessive network depth, TCN employs dilated convolutions
+to increase the receptive field. As shown in Figure 2, the dilation factors are 1, 2, and 4,
+respectively. By stacking three dilated causal convolutional layers, the network can capture
+dependencies in the long input sequence. The dilation factors follow an exponential
+sequence with base 2, yielding a dilation factor of h = 2l−1, where l denotes the hidden
+layer index. By stacking multiple dilated layers, the receptive field can be significantly
+expanded without excessive network depth.
+Suppose that a dilated convolution is applied to an input sequence {x0, x1, ..., xT}, its
+formulation is expressed as follows [29]:
+F(s) =
+k−1
+∑
+i=0
+f (i)·xs−d·i
+(11)
+where F(s) denotes the convolution result in the sequence {x0, x1, ..., xT} and f (i) represents
+the filter with a kernel size of k, and d is the dilation factor.
+Increasing the network depth can lead to saturated or even deteriorated model perfor-
+mance. To address this performance degradation commonly encountered in deep neural
+networks, residual blocks are designed. Their essence lies in constructing a skip-connection
+path, enabling the network to learn the residual function between input and output rather
+than directly fitting complex mappings. Skip connections are implemented through identity
+maps or 1 × 1 convolutions for dimensional matching. The structure of dilated causal
+convolution block including residual connection is shown in Figure 3.
+Figure 3. Structure of dilated causal convolution residual block (filter size is 3).
+The residual block primarily consists of two dilated causal convolution layers, weight
+normalization, a nonlinear activation function (ReLU), and dropout. Together, these com-
+ponents enable the block to learn complex residual mappings.
+https://doi.org/10.3390/rs18091379
+[p.9]
+Remote Sens. 2026, 18, 1379
+9 of 24
+TCNs effectively enhance their ability to capture features across large-scale sequences
+through convolutional expansion and residual connections. However, the inputs of the
+predictive model consist of three-axis angular velocities, three-axis specific forces, and
+heading angle. Clearly, these seven-dimensional sequences exhibit strong correlations in
+terms of positional estimation error and correction reference. To capture the characteristic
+dependencies within these inputs and map them to the reference position correction outputs,
+a self-attention network is incorporated into the prediction model.
+Self-attention is an attention mechanism that can establish unobstructed cross-distance
+information propagation pathways and extract correlation features between any positions
+within a single sequence, unconstrained by their spatial distance. The schematic diagram
+of a self-attention encoder is shown in Figure 4.
+Figure 4. Schematic diagram of self-attention encoder structure.
+After embedding and positional encoding, the input sequence is multiplied by the
+weight matrices WQ, WK, and WV, respectively. The resulting Q, K, and V matrices
+undergo scaled dot-product attention computations. Specifically, the dot product between
+Q and K is computed, scaled by the factor 1/√θk to prevent gradients from being extremely
+small, normalized via the SoftMax function, and finally multiplied by the V matrix to yield
+the scaled dot-product attention outputs, which are calculated according to the following
+equation [30]:
+Attention(Q, K, V) = so f tmax( QKT
+√θk
+)V,
+(12)
+where Q ∈RT×d, K ∈RT×d and V ∈RT×d denote the query, key, and value matrices,
+respectively.
+The multi-head attention mechanism enables the model to focus on different positions
+of key information within various attention subspaces. Specifically, the input data are
+projected into multiple subspaces through separate linear transformations, and distinct
+https://doi.org/10.3390/rs18091379
+[p.10]
+Remote Sens. 2026, 18, 1379
+10 of 24
+attention weight representations are obtained through scaled dot-product attention compu-
+tation. The outputs from all heads are then concatenated to form the final representation.
+The mathematical formulation is given as follows:
+MultiHead(Q, K, V) = Contat(head1, · · · , headh)Wo,
+(13)
+headi = Attention
+
+QWQ
+i , KWK
+i , VWV
+i
+
+,
+(14)
+where headi, i = 1, 2, ..., h is calculated according to Equation (12).
+Based on the above principles and analysis, the schematic diagram of the constructed
+attention-augmented TCN predictive model is presented. As shown in Figure 5, stacked
+TCN layers serve as the backbone network, with multi-head self-attention integrated to
+enhance the modeling of global temporal dependencies.
+Figure 5. Schematic diagram of attention-augmented TCN predictive model.
+Each layer of the TCN consists of a 1D convolutional layer, weight normalization
+layer, ReLU activation function layer and dropout layer in the main path. A parallel 1 × 1
+convolution and an identity mapping serve as the residual branches, whose outputs are
+combined with the main path via an addition layer. In parallel, the input data sequence
+is extracted, flattened, and divided into distinct patch segments. Following positional
+embedding, the multi-head attention layer extracts global correlation features across the
+multi-axis sensor data.
+The outputs of the TCN block and the attention-based feature extraction block are
+compressed by global average pooling and projected into fixed-length feature vectors.
+These vectors are then concatenated for feature fusion. Finally, the fused features are passed
+through a fully connected layer and are mapped to a two-dimensional output space.
+The convolution kernel size of the TCN is set to a typical value of 3 and the number
+of filters is set to 64. These hyperparameters were selected based on common practice in
+temporal sequence modeling, providing a balance between short-term dynamic feature
+extraction, computational efficiency, and overfitting control. The stride was set to 1 to
+preserve temporal continuity and avoid loss of local motion details.
+The introduction of multi-head attention layers effectively enhances long-range mod-
+eling capabilities and reduces the requirement for excessive layer depth in TCNs. Therefore,
+the depth of the convolutional layers in the TCN is set to 5. With dilation factors defined as
+2l−1, the effective receptive field of the top layer exceeds 60 time steps.
+https://doi.org/10.3390/rs18091379
+[p.11]
+Remote Sens. 2026, 18, 1379
+11 of 24
+To match the receptive field of the TCN, the patch length of the attention module is set
+to 50 samples, enabling it to effectively capture relevant features across different receptive
+fields. The measurement frequency T of the IMU used in this study is 400 Hz. According
+to Equation (8), this results in 8 patches for each sensor axis and 48 patches in total for the
+six-axis input sequence.
+To validate the structural soundness and robustness of the predictive model, training
+parameters were selected based on typical values in sequence-modeling studies. The
+detailed model and training parameter configuration are summarized in Table 1.
+Table 1. Model and training parameter configuration.
+Parameter
+Value/Configuration
+General
+normalization
+Min-Max
+number of trainable parameters
+67.2 K
+TCN
+layer depth
+5
+number of filters
+64
+convolution kernel size
+3
+stride
+1
+dilation factor
+2l−1
+Attention
+patch size
+50
+patch quantity
+48
+Training
+solver
+Adam
+β1
+0.9
+β2
+0.999
+max epochs
+300
+mini-batch size
+64
+initial learning rate
+0.001
+loss function
+Mean Squared Error
+random seed
+42
+To further assess the generalization capability of the proposed model and the effec-
+tiveness of the proposed fusion method, all subsequent experiments and analyses were
+conducted using the same trained model with the parameters specified in Table 1, without
+scenario-specific retraining or parameter adjustment to avoid the influence of scenario-
+dependent tuning and enable an objective assessment of the generalization capability and
+practical applicability of the proposed methods under different experimental conditions.
+3. Experiment
+3.1. Dataset Description
+To validate the performance of the proposed method, flight experiments were con-
+ducted on a hexacopter drone platform with a SINS/GNSS integrated navigation system.
+The hardware platform and configuration for the experiments are illustrated in
+Figure 6, and the main specific parameters are summarized in Table 2, where m, s, h,
+mg and ug represent meter, second, hour, milligravity, and microgravity, respectively. An
+internally developed MEMS IMU with a sampling rate of 400 Hz is used in the SINS. The
+GNSS receiver is a UM482 with a sampling rate of 1 Hz developed by Beijing BDStar Navi-
+gation Co., Ltd., Beijing, China, and set to GPS signal mode. The real-time data processing
+and collection unit is a GD32H7 microcontroller unit (MCU) for real-time data processing
+and data collection. Both IMU and GNSS data are sampled and stored using separate Direct
+Memory Access (DMA) and interrupt controllers to ensure data synchronization.
+https://doi.org/10.3390/rs18091379
+[p.12]
+Remote Sens. 2026, 18, 1379
+12 of 24
+The flight experiments were conducted in Pukou District, Nanjing, Jiangsu Province,
+China. Prior to takeoff, the drone was placed on the ground and the onboard system was
+powered on. Immediately after startup, the data acquisition platform began continuously
+recording all sensor measurements. During the initial 0–60 s period, the system remained
+stationary to complete satellite signal acquisition, gyroscope zero-bias calibration, and
+the initialization procedures required for the navigation solution, including SINS initial
+alignment and subsequent activation of the SINS/GNSS integrated navigation mode. This
+ground initialization stage was excluded from the effective flight dataset.
+Figure 6. Data acquisition platform in flight experiments.
+Table 2. Specifications of the main navigation devices.
+Instrument
+Parameter
+Value
+GNSS
+Horizontal Position precision
+1.5 m (RMS)
+Elevation Position precision
+2.5 m (RMS)
+Velocity precision
+0.03 m/s
+Gyroscope
+Zero bias stability
+2◦/h
+Random walk
+0.05◦/
+√
+h
+Accelerometer
+Zero bias stability
+0.1 mg
+Random walk
+25 ug/
+√
+h
+After completion of the initialization process, the drone took off at the 61st second
+and climbed vertically to a maximum altitude of 490 m. It then flew northward, during
+which a brief flight stability test was performed, before turning eastward toward the
+destination point. The horizontal trajectory is illustrated in Figure 7 using Google Maps
+(https://www.google.com/maps, accessed on 20 April 2026), where the takeoff location
+and destination waypoint are marked by circular and square symbols, respectively. The
+drone reached the destination at the 613th second, at which point data collection was
+terminated and the dataset was completed. Therefore, the total recorded dataset lasted
+613 s, while the effective flight data used for analysis covered 553 s (61st–613th second).
+The velocity profiles are shown in Figure 8.
+https://doi.org/10.3390/rs18091379
+[p.13]
+Remote Sens. 2026, 18, 1379
+13 of 24
+Figure 7. Horizontal flight trajectory in flight experiments.
+Figure 8. Flight velocity in flight experiments.
+3.2. Dataset Partitioning for Experiments
+All flight experimental data were divided into three temporally independent sections
+according to the navigation workflow and the simulated GNSS interruption scenario.
+The first section corresponds to the early flight phase from the 61st to the 373rd second,
+immediately after takeoff. During this interval, GNSS signals were fully available. These
+data were primarily used to verify stable flight status and allow the SINS/GNSS integrated
+navigation filter to converge from its initialized state to a steady operating condition.
+Excluding this segment from model training and testing also helps avoid the influence of
+transient errors that may occur shortly after takeoff.
+To evaluate the proposed method under GNSS-denied conditions, it was assumed that
+the drone entered a GNSS outage region at the 493rd second of the mission. Accordingly,
+the final 240 s of flight data before reaching the destination were extracted and evenly
+divided into two consecutive 120 s sections.
+https://doi.org/10.3390/rs18091379
+[p.14]
+Remote Sens. 2026, 18, 1379
+14 of 24
+The second section, spanning the 374th to the 493rd second, represents the pre-outage
+phase with normal GNSS availability. This segment was used for model training, enabling
+the proposed network to learn the recent motion dynamics and sensor error characteristics
+immediately before GNSS loss.
+The third section, spanning the 494th to the 613th second, represents the simulated
+GNSS-denied phase after signal interruption. During this interval, GNSS measurements
+were blocked from the navigation system, and the proposed method was used to predict
+navigation state corrections for the SINS solution. The resulting positioning and state-
+estimation performance in this section was used to validate the effectiveness of the proposed
+approach under GNSS outage conditions. The verification scheme is shown in Table 3.
+Table 3. Time allocation for experimental verification scheme.
+Time
+61–373 s
+374–493 s
+494–523 s
+524–553 s
+554–583 s
+584–613 s
+Exp. 1
+Take off &
+Filter
+convergence
+Model
+training
+Prediction (494–553 s)
+/
+/
+Exp. 2
+Gap (30 s)
+Prediction (524–583 s)
+/
+Exp. 3
+Prediction (494–613 s)
+The effectiveness of the proposed predictive model structure and information fusion
+scheme was validated by comparing the horizontal positioning and velocity errors of four
+fusion strategies during operation in the simulated GNSS-denied region: (1) SINS-only,
+(2) SINS with convergent KF prediction section, (3) SINS with TCN-based correction, and
+(4) SINS with the proposed TCN-Attention-based correction model. Performance validation
+under GNSS-denied conditions was conducted using three validation scenarios, denoted as
+Experiments 1–3, each designed to examine the proposed method under different outage
+durations and temporal conditions.
+Experiment 1 evaluates short-term GNSS outage performance over a 60 s validation
+interval from the 494th to the 553rd second. In this scenario, the model was trained using
+the immediately preceding GNSS-available segment, and the four methods were compared
+in terms of positioning and velocity accuracy after the drone had operated inside the
+GNSS-denied zone for one minute.
+Experiment 2 uses the same 60 s GNSS-denied validation interval as Experiment 1,
+but introduces a 30 s temporal gap between the end of the training data and the start of the
+validation period. Specifically, the interval from the 494th to the 523rd second was excluded
+from training and treated as an unobserved transition period. This scenario was designed
+to assess model robustness under temporal distribution shift and delayed adaptation to
+changing motion dynamics.
+Experiment 3 evaluates longer-duration GNSS outage performance over the full 120 s
+interval from the 494th to the 613th second. In this case, the pre-outage training segment
+and the outage validation segment were both set to 120 s, providing an equal-duration split
+between training and testing. This scenario was designed to compare the long-horizon
+prediction stability and cumulative error suppression capability of the different methods
+during extended GNSS denial.
+All experiments were conducted using the same TCN and TCN-Attention models
+trained on the designated model-training segment (374th–493rd second) with the parameter
+settings listed in Table 1. No retraining or parameter adjustment was performed for
+different validation scenarios. This unified evaluation protocol is necessary to ensure a fair
+comparison among experiments and eliminate the influence of scenario-specific tuning, and
+to objectively assess the generalization capability and practical applicability of the proposed
+methods under varying GNSS-denied conditions. Based on the above experimental settings,
+https://doi.org/10.3390/rs18091379
+[p.15]
+Remote Sens. 2026, 18, 1379
+15 of 24
+the comparative results of the three validation scenarios are presented below, with each
+experiment focusing on a different aspect of GNSS-denied navigation performance.
+3.3. Experiment 1
+Experiment 1 was designed to test the position correction performance of the proposed
+method when the drone flew in the GNSS-denied zone for more than 60 s. The reference
+flight trajectories and the corresponding positioning results of SINS-only, SINS with conver-
+gent KF prediction section (abbreviated as KF Prediction), SINS with TCN (abbreviated as
+TCN) and SINS with TCN-Attention (abbreviated as TCN-Attention) are shown in Figure 9.
+Figure 9. Positioning results in Experiment 1.
+Figure 10 presents the horizontal positioning errors of the four methods when the
+drone flew within the GNSS-denied zone for over 60 s in Experiment 1.
+Figure 10. Results of horizontal position errors in Experiment 1.
+https://doi.org/10.3390/rs18091379
+[p.16]
+Remote Sens. 2026, 18, 1379
+16 of 24
+Table 4 provides the corresponding comparison results of horizontal position errors
+for Experiment 1.
+Table 4. Horizontal position errors in Experiment 1.
+Experiment
+Method
+Direction
+Maximum
+Error (m)
+RMSE (m)
+1
+SINS
+Longitude
+89.50
+40.28
+KF-Prediction
+74.80
+34.23
+TCN
+71.86
+32.99
+TCN-Attention
+70.75
+32.50
+SINS
+Latitude
+36.97
+15.39
+KF-Prediction
+18.34
+7.03
+TCN
+16.41
+6.25
+TCN-Attention
+12.87
+4.69
+Figure 11 presents the east and north velocity errors of the four methods in Experi-
+ment 1. The corresponding comparison results of velocity errors are provided by Table 5.
+Figure 11. East and north velocity errors in Experiment 1.
+Table 5. Velocity errors in Experiment 1.
+Experiment
+Method
+Direction
+Maximum
+Error (m/s)
+RMSE (m/s)
+1
+SINS
+East
+2.69
+1.50
+KF-Prediction
+2.15
+1.23
+TCN
+2.08
+1.20
+TCN-Attention
+2.05
+1.19
+SINS
+North
+1.67
+0.79
+KF-Prediction
+1.04
+0.44
+TCN
+0.98
+0.41
+TCN-Attention
+0.89
+0.37
+https://doi.org/10.3390/rs18091379
+[p.17]
+Remote Sens. 2026, 18, 1379
+17 of 24
+3.4. Experiment 2
+Experiment 2 was designed to test the position correction performance of the pro-
+posed method under a discontinuous split with a temporal gap. The GNSS-denied duration
+remains 60 s, but there is a 30-s gap relative to the training trajectory. The reference flight tra-
+jectories and the corresponding positioning results of SINS-only, SINS with convergent KF
+prediction section, SINS with TCN and SINS with TCN-Attention are shown in Figure 12.
+Figure 12. Positioning results in Experiment 2.
+Figure 13 presents the horizontal positioning errors of the four methods in Experiment 2.
+Figure 13. Results of horizontal position errors in Experiment 2.
+Table 6 provides the corresponding comparison results of horizontal position errors
+for Experiment 2.
+https://doi.org/10.3390/rs18091379
+[p.18]
+Remote Sens. 2026, 18, 1379
+18 of 24
+Table 6. Horizontal position errors in Experiment 2.
+Experiment
+Method
+Direction
+Maximum
+Error (m)
+RMSE (m)
+2
+SINS
+Longitude
+47.24
+23.49
+KF-Prediction
+40.60
+21.32
+TCN
+37.25
+19.88
+TCN-Attention
+35.94
+19.32
+SINS
+Latitude
+70.28
+30.15
+KF-Prediction
+47.94
+19.87
+TCN
+44.45
+18.43
+TCN-Attention
+41.52
+17.11
+Figure 14 presents the east and north velocity errors of the four methods in
+Experiment 2. The corresponding comparison results of velocity errors are provided
+by Table 7.
+Figure 14. East and north velocity errors in Experiment 2.
+Table 7. Velocity errors in Experiment 2.
+Experiment
+Method
+Direction
+Maximum
+Error (m/s)
+RMSE (m/s)
+2
+SINS
+East
+1.06
+0.73
+KF-Prediction
+0.89
+0.61
+TCN
+0.86
+0.58
+TCN-Attention
+0.84
+0.57
+SINS
+North
+2.94
+1.44
+KF-Prediction
+2.23
+1.02
+TCN
+2.13
+0.97
+TCN-Attention
+2.06
+0.94
+3.5. Experiment 3
+Experiment 3 was designed to test the position correction performance of the proposed
+method under a long-horizon continuous split. When the drone had been flying in the
+https://doi.org/10.3390/rs18091379
+[p.19]
+Remote Sens. 2026, 18, 1379
+19 of 24
+GNSS-denied zone for 120 s, the reference trajectories and the corresponding positioning
+results of SINS-only, SINS with convergent KF prediction section, SINS with TCN and SINS
+with TCN-Attention are shown in Figure 15.
+Figure 15. Positioning results in Experiment 3.
+Figure 16 presents the horizontal positioning errors of the four methods when the
+drone flew within the GNSS-denied zone for over 2 min.
+Figure 16. Results of horizontal position errors in Experiment 3.
+Table 8 provides the corresponding comparison results of horizontal position errors
+for Experiment 3.
+https://doi.org/10.3390/rs18091379
+[p.20]
+Remote Sens. 2026, 18, 1379
+20 of 24
+Table 8. Horizontal position errors in Experiment 3.
+Experiment
+Method
+Direction
+Maximum
+Error (m)
+RMSE (m)
+3
+SINS
+Longitude
+372.98
+167.53
+KF-Prediction
+279.61
+130.29
+TCN
+263.26
+123.62
+TCN-Attention
+256.79
+121.00
+SINS
+Latitude
+258.17
+99.77
+KF-Prediction
+184.70
+66.84
+TCN
+170.55
+61.34
+TCN-Attention
+153.42
+54.30
+Figure 17 presents the east and north velocity errors of the four methods in Experi-
+ment 3. The corresponding comparison results of velocity errors are provided by Table 9.
+Figure 17. East and north velocity errors in Experiment 3.
+Table 9. Velocity errors in Experiment 3.
+Experiment
+Method
+Direction
+Maximum
+Error (m/s)
+RMSE (m/s)
+3
+SINS
+East
+5.59
+3.09
+KF-Prediction
+3.81
+2.26
+TCN
+3.54
+2.14
+TCN-Attention
+3.44
+2.09
+SINS
+North
+6.07
+2.88
+KF-Prediction
+4.79
+2.21
+TCN
+4.49
+2.08
+TCN-Attention
+4.16
+1.94
+4. Discussion
+From Figures 10, 13 and 16, together with Tables 4, 6 and 8, all three aided strategies
+significantly reduced the maximum horizontal positioning error relative to the SINS-only
+https://doi.org/10.3390/rs18091379
+[p.21]
+Remote Sens. 2026, 18, 1379
+21 of 24
+solution in Experiments 1–3. Horizontal positioning and velocity errors are computed as
+the Euclidean norms of their corresponding two-dimensional component errors. Com-
+pared with SINS-only, the SINS solution, aided by the converged KF prediction section,
+achieved reductions of 20%, 26%, and 26%, respectively. This indicates that even without
+further GNSS updates, the previously converged filter states still provide useful short-
+term compensation for inertial error growth. When real-time motion information was
+further introduced through the data-driven correction model, larger improvements were
+obtained. The TCN-based method reduced the maximum horizontal positioning error by
+24%, 32%, and 31%, respectively, demonstrating that temporal convolution is effective in
+learning recent dynamic error evolution from pre-outage inertial sequences. After further
+incorporating maneuverability-related feature extraction through the attention mechanism,
+the proposed TCN-Attention method achieved the best overall performance, with error
+reductions of 26%, 35%, and 34%, respectively. The additional gains suggest that modeling
+cross-channel dependencies among multidimensional inertial measurements is beneficial,
+particularly under highly dynamic drone motion conditions.
+A similar trend can be observed in the horizontal velocity results shown in
+Figures 11, 14 and 17, together with Tables 5, 7 and 9. For the learning-based meth-
+ods, although the observation vector only contains latitude and longitude error estimates,
+velocity errors are also indirectly constrained through recursive propagation of the SINS
+error-state equations. Compared with SINS-only, the converged KF prediction method
+reduced the maximum horizontal velocity error by 25%, 23%, and 26% in Experiments 1–3,
+respectively. The TCN-based method further improved these reductions to 27%, 27%, and
+31%, while the proposed TCN-Attention method achieved the largest reductions of 29%,
+29%, and 35%. These results demonstrate that the converged KF prediction section remains
+effective for short-term compensation because the previously estimated parameters, such as
+sensor zero-bias states, are still consistent with the current inertial system. However, once
+measurement updates are unavailable, these fixed estimates cannot adapt to evolving drone
+maneuvers or time-varying sensor behavior, resulting in progressively limited correction
+capability. Both learning-based correction methods outperform the conventional KF predic-
+tion strategy in terms of horizontal positioning and velocity accuracy during GNSS outages,
+as they adaptively exploit recent IMU motion sequences to estimate time-varying naviga-
+tion errors. Consequently, they provide clear improvements over the KF-based approach.
+Building on this foundation, the proposed TCN-Attention framework achieves additional
+performance gains in all three experiments compared with the TCN-only model. This
+indicates that, through the exploitation of global cross-channel dependencies associated
+with drone maneuvers, the added attention mechanism further captures the relationship
+between recent IMU motion dynamics and accumulated SINS navigation errors, thereby
+enhancing correction accuracy. Moreover, the performance advantage becomes more pro-
+nounced in Experiments 2 and 3, where temporal mismatch or longer outage duration is
+introduced. This suggests that the proposed method has stronger robustness to changing
+motion conditions and superior capability for suppressing cumulative inertial drift over
+extended GNSS-denied intervals, which explains its consistently superior performance
+across different validation scenarios.
+5. Conclusions
+This paper proposes a hybrid drone SINS/GNSS information fusion method based
+on attention-augmented TCN, which can further suppress inertial navigation errors under
+GNSS-denied conditions without requiring additional sensors. By leveraging the high
+computational efficiency of the TCN and its robustness to steady-state noise, a self-attention
+mechanism is introduced to address the limitations of convolutional networks in capturing
+https://doi.org/10.3390/rs18091379
+[p.22]
+Remote Sens. 2026, 18, 1379
+22 of 24
+long-range feature correlations in multidimensional sensor sequences. Based on real flight
+data collected from a drone SINS/GNSS integrated navigation system, three experiments
+were conducted, including short-horizon and long-horizon continuous splits, a discontinu-
+ous split with a temporal gap, and an ablation study involving the self-attention module.
+The experimental results demonstrate that, compared with the standalone TCN model,
+the proposed predictive model and data fusion scheme exhibit stronger state correction
+capability by establishing a more accurate mapping between inertial measurements and
+positioning error correction through multidimensional feature extraction and modeling.
+In addition, since the proposed predictive model uses the fused state as training targets
+to mitigate observational noise, the framework has the potential to be extended to other
+sensor fusion architectures. By incorporating fused positioning outputs from an integrated
+navigation system as supervisory references, the model can learn the relationship between
+inertial data and optimal or suboptimal reference correction states, thereby providing
+redundant correction information under sensor degradation or failure conditions.
+Despite the encouraging results, several limitations remain. First, similar to other
+hybrid NN-KF architectures, the covariance of the observation data provided by the neural
+network must be carefully specified. Since the primary contribution of this work lies
+in the structure of regression predictive model, a conventional residual-based constant
+parameterization was adopted in this paper. Future research may incorporate adaptive
+covariance estimation based on innovation statistics or integrate it into neural network
+modeling to learn uncertainty.
+Second, the experimental validation in this study was conducted using a single flight
+dataset and a relatively limited mission profile. The tested trajectory mainly consisted
+of straight flight segments with moderate maneuver transitions, which is representative
+of many low-altitude drone operational paths. However, broader validation across more
+varied flight patterns is still desirable. Therefore, further verification under more diverse
+trajectories, aggressive turning maneuvers, altitude-varying missions, highly dynamic
+operational scenarios, and unseen operating conditions is still required. Future work may
+investigate online adaptation, continual learning, or domain-generalization strategies to
+improve robustness.
+Finally, although the proposed model demonstrated promising generalization across
+multiple simulated GNSS-denied validation settings, the training process was based on
+data collected from one platform and one sensor configuration. Additional studies in-
+volving different drone platforms, IMU grades, payload conditions, and environmental
+disturbances would be valuable to assess cross-platform transferability and robustness.
+Author Contributions: Conceptualization, C.X. and S.C.; methodology, C.X. and S.C.; software: C.X.
+and D.Z.; validation, C.X. and Z.H.; formal analysis, C.X. and C.J.; investigation, D.Z.; resources, Z.H.
+and C.J.; data curation, C.X. and D.Z.; writing—original draft preparation, C.X.; writing—review and
+editing, C.X. and D.Z.; visualization, Z.H.; supervision, S.C. and C.J.; project administration, C.X. and
+S.C.; funding acquisition, S.C. and C.J. All authors have read and agreed to the published version of
+the manuscript.
+Funding: This research was funded by the National Natural Science Foundation of China, grant
+number 62503224, and the National Natural Science Foundation of Jiangsu Province, grant number
+BK20241388.
+Data Availability Statement: The data presented in this study are available on request from the
+corresponding author due to the data originates from proprietary sensors containing commercially
+sensitive information.
+Conflicts of Interest: The authors declare no conflicts of interest.
+https://doi.org/10.3390/rs18091379
+[p.23]
+Remote Sens. 2026, 18, 1379
+23 of 24
+References
+1.
+Chiang, K.W.; Noureldin, A.; EI-Sheimy, N. Constructive neural-networks-based MEMS/GPS integration scheme. IEEE Trans.
+Aerosp. Electron. Syst. 2008, 44, 582–594. [CrossRef]
+2.
+Georgy, J.; Noureldin, A.; Korenberg, M.J.; Bayoumi, M.M. Modeling the stochastic drift of a MEMS-based gyroscope in
+gyro/odometer/GPS integrated navigation. IEEE Trans. Intell. Transp. Syst. 2010, 11, 856–872. [CrossRef]
+3.
+Zhong, L.; Li, X. INS/GNSS integrated navigation algorithm based on CNN-LSTM-Attention. J. Phys. Conf. Ser. 2025, 2990, 012018.
+[CrossRef]
+4.
+Lei, X.; Li, J. An adaptive navigation method for a small unmanned aerial rotorcraft under complex environment. Measurement
+2013, 46, 4166–4171. [CrossRef]
+5.
+He, K.; Zhang, S.; Yao, C.; Wang, Y.; Ding, K. A novel real-time integrated navigation system based on the S-Transformer and
+A-SRCKF during GPS outages. GPS Solut. 2025, 29, 138. [CrossRef]
+6.
+Zheng, Z.; Li, X.; Kong, D.; Hu, J.; Hu, Y. An effective fusion positioning methodology for land vehicles in GPS-denied
+environments using low-cost sensors. Meas. Sci. Technol. 2023, 34, 125102. [CrossRef]
+7.
+Wang, Z.; Liu, H.; Guo, G.; Han, M. An Enhanced Vehicle Self-Positioning Method During GNSS Outages Using Factor Graph
+Optimization and CNN-LSTM-Attention. IEEE Trans. Instrum. Meas. 2025, 74, 2521011. [CrossRef]
+8.
+Tang, Y.; Jiang, J.; Liu, J.; Yan, P.; Tao, Y.; Liu, J. A GRU and AKF-Based Hybrid Algorithm for Improving INS/GNSS Navigation
+Accuracy during GNSS Outage. Remote Sens. 2022, 14, 752. [CrossRef]
+9.
+Yao, Y.; Xu, X.; Zhu, C.; Chan, C. A hybrid fusion algorithm for GPS/INS integration during GPS outages. Measurement 2017, 103,
+42–51. [CrossRef]
+10.
+Cheng, J.; Gao, Y.; Wu, J. An Adaptive Integrated Positioning Method for Urban Vehicles Based on Multitask Heterogeneous
+Deep Learning During GNSS Outages. IEEE Sens. J. 2023, 23, 22080–22092. [CrossRef]
+11.
+Alaeiyan, H.; Mosavi, M.R.; Ayatollahi, A. Enhancing the integration of the GPS/INS during GPS outage using LWT-IncRGRU.
+Ain Shams Eng. J. 2024, 15, 102779. [CrossRef]
+12.
+Kuang, X.; Yan, B. A Novel FECAM-iTransformer Algorithm for Assisting INSGNSS Navigation System during GNSS Outages.
+Appl. Sci. 2024, 14, 8753. [CrossRef]
+13.
+Liu, Y.; Luo, Q.; Zhou, Y. Deep Learning-Enabled Fusion to Bridge GPS Outages for INS/GPS Integrated Navigation. IEEE Sens. J.
+2022, 22, 8974–8985. [CrossRef]
+14.
+Dai, W.; Han, H.; Wang, J.; Xiao, X.; Li, D.; Chen, C.; Wang, L. Enhanced CNN-BiLSTM-Attention Model for High-Precision
+Integrated Navigation During GNSS Outages. Remote Sens. 2025, 17, 1542. [CrossRef]
+15.
+Wei, F.; Jiang, J.; Lu, S.; Gong, Y.; Tao, Y.; Tang, Y.; Yan, P.; Luo, H.; Liu, J. A LSTM Algorithm Estimating Pseudo Measurements
+for Aiding INS during GNSS Signal Outages. Remote Sens. 2020, 12, 256. [CrossRef]
+16.
+Chen, S.; Xin, M.; Yang, F.; Zhang, X.; Liu, J.; Ren, G.; Kong, S. Error Compensation Method of GNSS INS Integrated Navigation
+System Based on AT-LSTM During GNSS Outages. IEEE Sens. J. 2024, 24, 12. [CrossRef]
+17.
+Sun, J.; Chen, Z.; Wang, F. A Novel ML-Aided Methodology for SINS/GPS Integrated Navigation Systems during GPS Outages.
+Remote Sens. 2022, 14, 5932. [CrossRef]
+18.
+Wu, Z.; Wang, W. INS/magnetometer integrated positioning based on neural network for bridging long-time GPS outages. GPS
+Solut. 2019, 23, 88. [CrossRef]
+19.
+Abdolkarimi, E.S.; Rafatnia, S. Fuzzy fixed-time multi-source fusion with attention-based neural networks for reliable navigation
+under satellite signal loss. Eng. Appl. Artif. Intell. 2026, 163, 112806. [CrossRef]
+20.
+Shen, C.; Zhang, Y.; Tang, J.; Cao, H.; Liu, J. Dual-optimization for a MEMS-INS/GPS system during GPS outages based on the
+cubature Kalman filter and neural networks. Mech. Syst. Signal. Pr. 2019, 133, 106222. [CrossRef]
+21.
+Tian, S.; Wang, C.; Gong, X.; Wu, Y.; Rao, J.; Huang, D. Hybrid deep learning-assisted multi-mode measurements compensation
+for GNSSINS loosely-coupled integration in different GNSS challenging environments. Adv. Space Res. 2025, 75, 8466–8485.
+[CrossRef]
+22.
+Zhao, L.; Li, J.; Feng, K.; Wei, X.; Song, J.; Jiao, Y. A hybrid optimization algorithm for GWO Fine-tuning GRU-Aided AKF during
+GPS outage. Measurement 2022, 206, 112302. [CrossRef]
+23.
+Liu, J.; Du, J.; Wang, Z.; Qian, Y.; Xu, Q.; Ji, M.; Zhang, W. A multi-strategy optimized deep learning approach for INS_GNSS
+error compensation during GNSS outages. Eng. Res. Express 2025, 7, 035287. [CrossRef]
+24.
+Saadeddin, K.; Abdel-Hafez, M.F.; Jaradat, M.A.; Jarrah, M.A. Optimization of Intelligent Approach for Low-Cost INS/GPS
+Navigation System. J. Intell. Robot. Syst. 2014, 73, 325–348. [CrossRef]
+25.
+Huo, Z.; Jin, L.; Sun, X.; Zhang, Y.; He, Y.; Wang, H. A hybrid GNSS/INS integrated navigation method combining GRU-SA and
+covariance-adaptive factor graph optimization during GNSS outages. Meas. Sci. Technol. 2025, 36, 096310. [CrossRef]
+26.
+Zhu, F.; Lv, J.; Chen, W.; Cai, Q.; Cao, L.; Zhang, X. Self-Learning Position Variance Using Crowdsourcing Data for Adaptive
+GNSS/SINS Integrated Navigation. IEEE Trans. Intell. Transp. Syst. 2025, 26, 10. [CrossRef]
+https://doi.org/10.3390/rs18091379
+[p.24]
+Remote Sens. 2026, 18, 1379
+24 of 24
+27.
+Gao, S.; Zhong, Y.; Zhang, X.; Shirinzadeh, B. Multi-sensor optimal data fusion for INS/GPS/SAR integrated navigation system.
+Aerosp. Sci. Technol. 2009, 13, 232–237. [CrossRef]
+28.
+Qing, Y. Inertial Navigation, 3rd ed.; Science Press: Beijing, China, 2020; pp. 317–321.
+29.
+Bai, S.; Kolter, J.Z.; Koltun, V. An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling.
+arXiv 2014, arXiv:1803.01271.
+30.
+Vaswani, A.; Shazeer, N.; Parmar, N.; Uszkoreit, J.; Jones, L.; Gomez, A.N.; Kaiser, Ł.; Polosukhin, I. Attention is all you need.
+arXiv 2017, arXiv:1706.03762.
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+https://doi.org/10.3390/rs18091379
+=== END ===

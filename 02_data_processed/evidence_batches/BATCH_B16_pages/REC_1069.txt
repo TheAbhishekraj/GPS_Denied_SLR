@@ -1,0 +1,1205 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1069.pdf
+sha256: DC42217CEDF5716A4DE1535F6F428E004BCB860A76E586E42DEEF3C1EE72906E
+library: pymupdf (fitz) v1.28.2
+pages: 20
+=== BEGIN ===
+[p.1]
+Academic Editor: Zhi Feng
+Received: 27 December 2025
+Revised: 24 February 2026
+Accepted: 27 February 2026
+Published: 4 March 2026
+Copyright: © 2026 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license.
+Article
+UAV–UGV Collaborative Localization in GNSS-Denied
+Large-Scale Environments: An Anchor-Free VIO–UWB Fusion
+with Adaptive Weighting and Outlier Suppression
+Haoyuan Xu
+, Gaopeng Zhao *
+and Yuming Bo
+School of Automation, Nanjing University of Science and Technology, Nanjing 210094, China;
+319110010174@njust.edu.cn (H.X.); byming@njust.edu.cn (Y.B.)
+* Correspondence: zhaogaopeng@njust.edu.cn
+Highlights
+What are the main findings?
+•
+An anchor-free collaborative localization framework is proposed, effectively suppress-
+ing visual–inertial odometry (VIO) drift over long trajectories (up to kilometers) in
+GNSS-denied areas.
+•
+A two-stage robust scheme integrating covariance-based outlier rejection and adap-
+tive Fisher information estimation significantly improves positioning accuracy under
+dynamic Non-Line-of-Sight (NLOS) UWB ranging conditions.
+What are the implications of the main findings?
+•
+The method enables precise, infrastructure-free multi-robot navigation in large-scale
+(~1.6 km2) complex environments, advancing applications like disaster response and
+cooperative inspection.
+•
+The adaptive weighting strategy provides a generalizable approach for handling
+time-varying sensor uncertainty in real-world robotic systems.
+Abstract
+In GNSS-denied large-scale outdoor environments, UAVs and UGVs that rely solely on
+visual–inertial odometry (VIO) suffer from accumulated global drift as the trajectory grows.
+Meanwhile, inter-platform ultra-wideband (UWB) ranging exhibits unknown, time-varying
+noise under NLOS/multipath, rendering naïve weighting unreliable. This paper presents
+an anchor-free collaborative localization framework for UAV–UGV teams that fuses pair-
+wise UWB ranges (including UAV–UAV, UAV–UGV, and UGV–UGV) with onboard VIO
+in a factor-graph backend via a two-stage robust scheme. First, we bound VIO drift using
+per-agent state covariance and reject UWB outliers with a Mahalanobis gate, preventing
+early-stage bias when VIO is still accurate. Then, during global optimization, we adaptively
+estimate the Fisher information of UWB factors from measurement–state residuals, en-
+abling online self-tuning of measurement confidence under time-varying SNR. Real-world
+experiments with three UAVs and two UGVs over multi-level rooftops and forest–open
+areas (~1.6 km2) show that, compared to an outlier-only variant, the proposed method
+further reduces localization RMSE by about 24.6% and maximum error by about 31.2% for
+both UAVs and UGVs, maintaining strong performance during long trajectories dominated
+by VIO drift and NLOS ranges. The approach requires no fixed anchors or GNSS and is
+applicable to UAV–UGV teams for disaster response, cooperative mapping/inspection,
+and bandwidth-limited operations.
+Drones 2026, 10, 175
+https://doi.org/10.3390/drones10030175
+[p.2]
+Drones 2026, 10, 175
+2 of 20
+Keywords: SLAM; UWB; factor graph; multi-robot systems
+1. Introduction
+Collaborative multi-robot SLAM technology has advanced significantly in recent years.
+For example, prior work [1] developed a collaborative SLAM framework for air–ground
+scenarios involving multiple unmanned platforms. This framework supports global map
+initialization by matching visual feature points without the need for GNSS information
+and generates loop closures during the subsequent motion of the platforms. However, in
+practical applications, unmanned platforms often follow non-overlapping or diverging
+paths to conserve energy and maximize operational efficiency. This divergence compli-
+cates the generation of positional loop closures between platforms after initialization. In
+large-scale outdoor tasks, if global localization information such as GNSS is lacking, the
+localization error of each unmanned platform will continuously diverge, rendering the
+localization results unusable after a period of time due to excessive drift error. The work
+described in this paper aims to further improve the positioning accuracy of multi-agent
+collaborative localization without relying on GNSS in order to promote the widespread ap-
+plication of this technology in outdoor rescue, collaborative logistics transportation, indoor
+or cave exploration, and other application scenarios where GNSS positioning is denied. To
+constrain the drift of odometry, the fusion of single unmanned platform odometry with
+UWB positioning information has become a mature technology. For example, Yang et al.’s
+previous research [2] adopted an improved extended Kalman filter-based scheme to fuse
+UWB positioning information with IMU. Hashim et al. achieved better results using a
+nonlinear stochastic complementary filter [3]. Nguyen et al.’s work [4] employed a factor
+graph optimization-based approach to tightly couple camera, IMU, and UWB positioning
+information. Shin et al. [5] designed a robust odometry that fuses VIO with UWB informa-
+tion using a cost function based on mutual information. Xu developed a dual free-size least
+squares support vector machines assisted maximum correntropy Kalman filter for fusing
+INS and UWB data [6]. Cao et al. combined multiple methods to improve the accuracy
+of positioning using UWB ranging alone in complex interference conditions [7]. In the
+multi-agent domain, Zhou et al. integrated UWB positioning information with laser odom-
+etry in multi-robot systems [8]. This method fuses three-dimensional position information
+calculated from known UWB anchor positions and UWB ranging information. Although
+the performance of the aforementioned prior research has been validated in small-scale
+scenarios, the positioning accuracy is significantly affected when the UWB tag moves out-
+side the area surrounded by the anchors during the UWB positioning process. Therefore,
+the above methods that fuse UWB positioning information are not applicable when the
+agent’s motion range is extremely large or when it is impossible to deploy or calibrate
+anchors in advance. Unlike the aforementioned studies, the method used in this paper
+does not require fixed anchors and relies solely on the UWB ranging information between
+two agents. This is similar to the following works. Nguyen et al. [9] proposed a method
+that utilizes UWB ranging information and odometry measurements from neighboring
+robots to obtain more accurate global position estimates. Liu et al. proposed a distributed
+SLAM framework [10] that uses Pairwise Consistency Maximization (PCM) to examine
+the quality of loop closures and perform outlier rejections. Cai et al.’s method [11] divides
+UWB measurements into trusted or untrusted states using an adaptive threshold and finally
+establishes a factor graph model to optimize poses. Nguyen et al.’s latest research [12] ad-
+dresses the problem of estimating the four-degree-of-freedom (three-dimensional position
+and orientation) robot-to-robot relative coordinate transformation using onboard odometry
+https://doi.org/10.3390/drones10030175
+[p.3]
+Drones 2026, 10, 175
+3 of 20
+and inter-robot distance measurements. However, in the experiments described in the
+above works, the motion range of all agents is within a few tens of meters or even a few
+meters. Considering this, the drift of VIO and the ranging error of UWB are both at a very
+low order of magnitude. If the UWB measurement is affected by Non-Line-of-Sight (NLOS)
+interference, the localization accuracy can be improved by directly removing the outliers
+in the UWB ranging values. However, when the length of the agent’s motion trajectory
+reaches several kilometers or more, and the distance between two agents reaches several
+hundred meters, the localization results of VIO will gradually become unreliable due to
+drift error. In this case, even if the UWB ranging is affected by factors such as NLOS or
+multipath effects, it can still provide effective constraints for the global position. Especially
+in complex outdoor environments, it is impossible to guarantee that there will always be
+Line-of-Sight (LOS) UWB measurements between agents during the motion process.
+In addition to the cooperative and UWB-based methods mentioned above, the work
+also relates to recent research exploring object-based, multi-sensor, and robust SLAM
+frameworks in changed or large-scale environments. For instance, ObVi-SLAM [13] tackles
+long-term consistency by building an object-centric map with uncertainty updates, en-
+abling robust outdoor localization under seasonal/weather changes. LiDAR-UWB-INS
+integrated positioning approaches [14] further show benefits in sparse-feature environ-
+ments by leveraging LiDAR super-resolution and multi-sensor fusion to mitigate drifting.
+Some systems focus on characterizing or mitigating non-line-of-sight conditions for UWB
+measurements, such as a reliable UWB/INS approach [15] and magnetic-UWB fusion [16],
+both demonstrating improved accuracy under challenging signal occlusions. Moreover,
+classification-based UWB methods [17] employ learning models (e.g., LSTM) to adaptively
+identify distance errors under heavy multipath or outliers, making UWB more robust in
+large-scale tasks. Meanwhile, PIPO-SLAM [18] explores a lightweight visual–inertial back-
+end with “pose-only” multiple-view geometry factorization, reducing the complexity and
+memory usage compared to classic BA. Recent range-aided visual–inertial estimation has
+also progressed rapidly. For example, Goudar et al. proposed a range–visual–inertial fusion
+framework for micro aerial vehicles [19]. Ma et al. introduced VIRAA-SLAM, which tightly
+couples visual–inertial measurements with UWB range and angle-of-arrival constraints for
+robust localization without pre-calibrated anchor positions [20]. For swarm-scale relative
+localization, Zhao et al. presented a robust and scalable multi-robot localization method
+based on stereo UWB arrays [21]. Beyond model design, Stirling et al. studied Gaussian
+variational inference with non-Gaussian factors for state estimation and demonstrated
+improved robustness for UWB localization under heavy-tailed NLOS/multipath errors [22].
+Public resources such as the MILUV dataset further facilitate benchmarking of multi-
+UAV UWB–vision fusion algorithms [23]. Compared with these methods, the proposed
+framework integrates inter-platform UWB distance constraints into a factor-graph-based
+collaborative SLAM backend and self-tunes the confidence of UWB factors using VIO state
+covariance and measurement–state residuals. The proposed method does not require scene
+object detection [13], does not rely on pre-surveyed static anchors or a single sensor being
+fully robust [14–17], and does not eliminate 3D point parameterization altogether [18].
+Instead, it targets a balanced design for GNSS-denied, large-scale multi-robot deployments
+where UWB measurements are intermittently NLOS. The key distinguishing features are
+(i) anchor-free fusion using only inter-robot ranges; (ii) covariance-aware outlier rejection
+to avoid early-stage bias when VIO is still accurate; and (iii) adaptive Fisher-information
+weighting for time-varying UWB uncertainty, thereby sustaining accurate global localiza-
+tion at large scales.
+In the proposed method, UWB ranging information is fused into a factor graph
+optimization-based collaborative SLAM algorithm framework. The pairwise ranging
+https://doi.org/10.3390/drones10030175
+[p.4]
+Drones 2026, 10, 175
+4 of 20
+information between unmanned platforms provides distance constraints on the global
+map, thereby suppressing VIO drift. During the modeling process, UWB ranging is
+considered as a Dual One-way Ranging (DOWR) measurement, which is a non-coherent
+ranging based on signal time-of-flight. Since it is subject to interference from unknown
+external environments, the entire optimization problem can be regarded as the fusion of
+measurement information with unknown noise distribution on the basis of traditional
+visual–inertial bundle adjustment (BA) optimization. The processing of UWB measurement
+information can be divided into two steps: first, the drift error of VIO is estimated through
+the covariance of the states in the single-platform VIO factor graph optimization process. If
+the residual between the UWB measured distance and the distance obtained by the VIO of
+the two agents is greater than the estimated VIO drift error at this time, the UWB ranging
+is directly determined as an outlier. Finally, in the global optimization process, the Fisher
+information of UWB ranging is estimated using the residuals between the state variables
+and the UWB ranging. The main contributions of this paper are as follows:
+(1)
+For the UWB ranging information in the collaborative localization algorithm frame-
+work, a method for outlier rejection of UWB point-to-point ranging under NLOS
+conditions based on state covariance estimation is proposed.
+(2)
+In the factor graph optimization process that fuses visual–inertial and UWB infor-
+mation, the covariance of the UWB ranging factor is estimated using the residuals
+between the states and measurements, improving the accuracy of the final position
+estimation while fully utilizing the measurement information.
+(3)
+Finally, the effectiveness of the method is demonstrated through real-world experiments.
+2. Materials and Methods
+2.1. Collaborative Localization Algorithm Overview
+In this paper, the main agent refers to the unmanned ground vehicle (UGV) due to its
+superior on-board computational power. Other unmanned platforms, such as unmanned
+aerial vehicles (UAVs), are considered secondary agents. The system is divided into
+two parts: each agent’s independent program and the server program. These programs
+run separately on each agent platform and the server. The server program is deployed on
+the main agent, which means the UGV needs to run both the independent program and the
+server program simultaneously. The global coordinate system {W} is aligned with the local
+coordinate system of the main agent. The coordinate system {B} is defined with the first
+frame of the agent’s camera as the origin. The camera optical axis is set as the x-axis, the
+positive direction of pixel rows as the y-axis, and the negative direction of pixel columns as
+the z-axis. Each agent runs a modified version of ORB-SLAM3 (open-source C++ library;
+UZ-SLAMLab, University of Zaragoza, Zaragoza, Spain) [24] with visual–inertial odometry
+(VIO). Due to the proximity of the initial positions, each agent can achieve loop closure
+through visual alignment at the time of departure. By relaxing the initial loop-closure
+constraints, each agent estimates an initial rigid-body transform TBnW between its local
+coordinate system {Bn} and the global coordinate system {W}. The loop closure detection
+and pose recognition methods in the global map follow previous work [1]. In this paper,
+the adjustment of each agent’s position in the global map is constrained by both visual loop
+closure and UWB range measurements. The overall collaborative localization pipeline is
+shown in Figure 1.
+At time step ti, during the motion of a given agent n, its locally running VIO contin-
+uously updates the pose pBn,i ∈SE(3) in the local coordinate system {Bn}, as well as the
+related map points. Meanwhile, agent n retrieves the poses of other agents in the global
+coordinate system {W} from the server. Using the method described in Section 2.3, the raw
+UWB readings are converted into distances between keyframes. By comparing the variance
+https://doi.org/10.3390/drones10030175
+[p.5]
+Drones 2026, 10, 175
+5 of 20
+of the VIO states with the residuals between the state variables and the measurements,
+outliers are identified and removed.
+ 
+Figure 1. Collaborative localization algorithm pipeline.
+The keyframe poses pWn,i and pWm,j (poses in {W}) corresponding to the UWB mea-
+surements, as well as the signals of newly observed map points for the keyframe, are
+transmitted to the server.
+The data packet transmitted from the secondary agents to the main agent contains
+newly added keyframe information from the last transmission to the current moment. This
+includes the pose of the keyframe in the local map of the current agent, as well as UWB
+measurements related to other agents (if available, see Section 2.3 of this chapter for details).
+Additionally, the data packet includes information about newly added map points, such
+as the descriptors of the map points and their 3D positions in the local map of the current
+agent. Due to the centralized communication structure, simultaneous data transmissions
+from multiple secondary agents can impose significant bandwidth pressure on the main
+agent. To address this issue, the communication interface of the secondary agent is designed
+to send a transmission request to the main agent only when at least 5 s have elapsed since
+the last data transmission and a minimum of 30 keyframes have been accumulated. Data
+transmission only begins when the main agent’s available bandwidth meets the required
+conditions. Once the server receives the augmented keyframe information from all agents,
+a global optimization is performed based on the method described in Section 2.2. The
+optimized global poses are then updated, and the corrected poses are sent back to all agents.
+Each agent adjusts the positions of its local map points and keyframes accordingly. It is
+worth noting that during the global optimization process at the server level, the Fisher
+information of each UWB measurement is replaced with the estimated value obtained by
+the method described in Section 2.3.
+2.2. Collaborative Position Estimation Integrating VIO and Ranging Information
+The proposed algorithm is deployed on a central server, integrating the keyframes,
+map points, and UWB information collected from various unmanned platforms. Once the
+server receives the measurement data of each agent through the communication module, the
+optimization problem is formulated using a factor graph model. Similar factor-graph-based
+range-aided visual–inertial fusion frameworks have been adopted in recent work [19,20].
+Let X represent the set of state variables and Z represent the set of measurement variables.
+The state estimation problem is formulated as the maximum a posteriori estimation of the
+state given the measurements:
+ˆX = argmax
+X P(X|Z)
+(1)
+https://doi.org/10.3390/drones10030175
+[p.6]
+Drones 2026, 10, 175
+6 of 20
+The function h(x) represents the measurement model for the state variables. The
+residual between the state xi at time i and the measurement zi is defined as
+r(xi, zi) = zi −h(xi)
+(2)
+The cost function c(x) represents the total measurement cost of the state estimation,
+which is defined as
+c(xi) = zi −h(xi)2
+Σi = r(xi, zi)⊤Σ−1r(xi, zi)
+(3)
+In the above equation, ∥·∥Σ denotes the Mahalanobis distance. The cost functions
+cVISION(X), cIMU (X), and cUWB (X) correspond to the visual, IMU-predicted, and UWB
+measurement costs, respectively. When l 3D points are observed by visual tracking, the
+set of keyframes observing the j-th 3Dpoint is denoted as Kj. The specific forms of the cost
+functions are as follows:
+VISIONc(X) =
+j=0
+∑
+l−1 ∑
+i∈κj
+Hub
+
+
+
+
+
+
+VISIONrij (X)2
+−1
+∑
+t,j
+
+
+
+(4)
+IMUc(X) =
+k
+∑
+i=1
+
+
+
+IMUrτi−1,i(X)
+
+
+
+
+2
+−1
+∑
+τi,t+1
+(5)
+UWBc(X) = ∑
+i∈κj
+UWB∥ri (X)∥2
+σ−2
+UWB
+(6)
+The specific forms of the visual residual rVISION(X) and the IMU-predicted residual
+rIMU(X) follow ORB-SLAM3. At time ti, the specific form of the UWB residual rUWB(X) is
+as follows:
+rUWB(xi) = Rn→m
+h
+−∥pn
+i −pm
+i ∥
+(7)
+In the visual cost function cVISION(X), Hub(·) represents the Huber robust kernel
+function. The information matrix of the visual reprojection residual is the inverse of the
+covariance matrix ∑i,j of the visual reprojection error, which is associated with the pyramid
+level and scale of the FAST feature points extracted. For the IMU cost function cIMU(X), the
+covariance matrix of the IMU prediction is derived through noise back-propagation using
+Allan variance due to the interference of external measurement error functions, which are
+expressed as
+f (xi | zi) = exp
+
+−1
+2c(xi)
+
+(8)
+The pose optimization problem described in this paper can be represented by the
+factor graph model shown in Figure 2.
+Assuming that the state variables of the system follow a Gaussian distribution,
+Bayesian inference indicates that the posterior probability of the state variables is pro-
+portional to the product of the error functions. Taking the negative logarithm of the product
+of the error functions yields the posterior probability density function of the state variables
+X given the measurements Z, which is proportional to the sum of the residuals at each time
+step for each sensor:
+P(X|Z) ∝
+k
+∏
+i=1
+f (xi | zi) =
+k
+∑
+i=1
+
+−1
+2c(xi, zi)
+
+(9)
+https://doi.org/10.3390/drones10030175
+[p.7]
+Drones 2026, 10, 175
+7 of 20
+Thus, the maximum a posteriori estimation problem is transformed into a nonlinear
+least squares optimization problem:
+c(xi) = zi −h(xi)2
+Σi = r(xi, zi)⊤Σ−1r(xi, zi)
+(10)
+Figure 2. The factor graph constructed during global optimization on the server hosted on the master
+agent. Blue circles denote keyframe poses; orange circles denote map points; green squares, stars,
+circles, and triangles denote IMU, prior, vision, and ranging factors, respectively.
+2.3. Processing of UWB Ranging
+Since the sampling frequency of the UWB receiver/transmitter ranges from 100 to
+400 Hz, during the global optimization process, we only consider the distance relationships
+between keyframes. If each measurement is fused directly, it would significantly increase
+the computational load. To make full use of as much UWB measurement information as
+possible and save computational resources, the original multiple UWB data are transformed
+into a single distance measurement between keyframes. The algorithm introduced in this
+section runs locally on each agent, used to fuse multiple measurement data and associate
+them with a specific keyframe, while excluding measurements that may negatively impact
+subsequent global optimization.
+When an agent obtains a raw UWB measurement Rhn→m at time th, this measurement
+needs to be associated with the closest keyframe ki of the agent on the time axis at time ti.
+All measurements associated with ki from tx to ty are denoted as {Rx, Ri, . . ., Ry}.
+Based on the VIO localization results of two neighboring frames at time th, the positions
+of agent n and agent m at time th are calculated using a constant velocity motion model
+as Phn and Phm, respectively. The residual between the distance calculated by the VIO
+localization result and the UWB measurement at time th is defined as rhn→m:
+rn→m
+h
+= Pn
+h −Pm
+h −Rn→m
+h
+(11)
+Similarly, all measurements correspond to a residual set, denoted as {rx, ri, . . ., ry}.
+Since the time interval between keyframes is short (commonly within 0.3–1 s in ORB-
+SLAM), it is assumed that the external environment of this group of UWB measurements
+does not change significantly. The errors of this group of UWB measurements over a short
+time are assumed to follow a normal distribution. The proposed method removes outliers
+through the following steps:
+(1)
+Perform Anderson-Darling test to determine whether {rx, ri, . . ., ry} follows a normal
+distribution. The significance level α is set to α = 0.1. If the test is not passed, the
+entire group of measurements is classified as outliers.
+https://doi.org/10.3390/drones10030175
+[p.8]
+Drones 2026, 10, 175
+8 of 20
+(2)
+For the remaining residuals, compute the median
+∼r; and the median absolute
+deviation (MAD). For each residual ri, define the corrected standardized dis-
+tance zi = (ri −
+∼r)/(c·MAD), where c ≈1.483 for Gaussian data. Residuals with
+|zi| > kappa are treated as outliers. In this work, kappa = 3 is used as a conservative
+default; it can be tuned according to the chip specification and field conditions.
+(3)
+Let N be the total number of residuals in the current keyframe interval, and let n be the
+number of remaining inliers. If n < N/3, the whole interval is considered unreliable
+(e.g., strong interference) and is discarded; otherwise, the inlier sequence is fused to a
+single keyframe-to-keyframe range using a Kalman filter at time ti.
+If a valid measurement sequence is obtained through the above steps, all valid mea-
+surements are used to estimate the distance Rin→m from agent n to agent m at time ti
+using a Kalman filter. Here, it is assumed that the unmanned platforms follow a constant
+velocity motion model, and the state transition matrix in the Kalman filter is set to 1.
+The corresponding frame of agent m at time ti is also treated as a keyframe and sent to
+the server.
+The predicted distance ||pin −pim|| is compared with the UWB-measured distance
+Rin→m and combined with the uncertainty in position estimation (i.e., the covariance matrix
+of state estimation) to evaluate whether the current Rin→m is accurate, thereby determining
+whether it can provide valid information for state estimation. Assume that the covariance
+matrices of the positions of the two agents in the previous optimization step are ΣnVIO and
+ΣmVIO, respectively. The variance of the predicted distance is calculated based on the law
+of error propagation as
+σ2
+VIO =
+ Pn
+i −Pm
+i
+⊤ Σn
+VIO + Σm
+VIO
+ Pn
+i −Pm
+i
+
+
+
+Pn
+i −Pm
+i
+
+
+
+(12)
+Since the noise variance of UWB ranging is unknown and variable, we can use the
+uncertainty σ2VIO of the predicted distance to evaluate whether the measurement residual
+rin→m is within a reasonable range. The standardized residual is defined as
+γ = rn→m
+i
+σVIO
+(13)
+Assuming that the measurement errors follow a Gaussian distribution, the square of
+the Mahalanobis distance follows a chi-squared distribution with 1 degree of freedom. The
+threshold is set to γ < 0.71, corresponding to a 30% confidence level under the Gaussian
+assumption. If this threshold is exceeded, the UWB ranging measurement corresponding
+to this keyframe is considered invalid and removed.
+2.4. Adaptive Fisher Information Estimation of UWB Ranging Factor
+Before each global pose optimization begins, it is necessary to estimate the Fisher
+information of the newly added keyframes’ UWB range measurements, thus highlighting
+the importance of UWB in the overall optimization. Suppose that at time ti, agents n
+and m occupy positions pin and pim, respectively, and there is a valid UWB measurement
+Rin→m. For simplicity, this section only considers the state variables of two platforms
+and their direct range measurement; for multiple platforms, an extension with multiple
+pairwise measurements can be applied. Let the state estimate from the previous global
+optimization be
+x∗
+i = (µn
+i , µm
+i )
+(14)
+https://doi.org/10.3390/drones10030175
+[p.9]
+Drones 2026, 10, 175
+9 of 20
+with the corresponding covariance
+Σi = {Σn
+i , Σm
+i }
+(15)
+Assuming that at time ti, the prior state distribution of agents n and m follows a
+Gaussian distribution, we can write
+Pi(x) ≈N (µi, Σi)
+(16)
+When a new range measurement is introduced into the global optimization, we aim
+to obtain a posterior distribution Qi(x) to characterize the new state uncertainty after
+considering the UWB range measurement. Since the noise distribution of UWB is unknown
+(often non-Gaussian under NLOS/multipath [22]), we only know that Rin→m is related to
+the true distance in some way. To avoid overly strong assumptions about the distribution,
+we can adopt the method of “expectation equals the measured value” to represent this
+measurement constraint:
+Z
+∥µn
+i −µm
+i ∥Qi(x)dx = Rn→m
+i
+(17)
+Among all feasible posterior distributions Qi(x) satisfying the above measurement
+constraint, we choose the one that is “closest” to the prior distribution Pi(x). If we use the
+KL divergence to measure the information gain between Q*(x) and P(x), we have
+DKL(Q∗(x)||P(x)) =
+Z
+Q∗(x) ln
+ Q∗(x)
+P(x)
+
+dx
+(18)
+To minimize the KL divergence, we can formulate the problem as
+min
+Qi
+DKL(Qi∥Pi) = min
+Qi
+Z
+Qi(x) ln
+ Qi(x)
+Pi(x)
+
+dx
+(19)
+subject to
+R 
+
+µn
+i −µm
+i
+
+
+Qi(x)dx = Rn→m
+i
+R
+Qi(x)dx = 1
+Qi(x) ≥0
+(20)
+This is a typical minimum KL-divergence problem with a linear constraint, which
+can be solved using the method of Lagrange multipliers. Let λ be the Lagrange multiplier
+corresponding to the distance expectation constraint, ensuring that the expected distance
+equals the UWB measurement:
+Z
+∥µn
+i −µm
+i ∥Q∗
+i (x)dx = Rn→m
+i
+(21)
+Let α be the Lagrange multiplier corresponding to the normalization constraint. The
+Lagrangian functional is then constructed as
+L[Qi, λ, α] = R
+Qi(x) ln
+ Qi(x)
+Pi(x)
+
+dx
++λ
+ Rn→m
+i
+−R 
+
+µn
+i −µm
+i
+
+
+Qi(x)dx
+
++α(1 −R
+Qi(x)dx)
+(22)
+By taking the functional derivative of Qi(x) and setting it to zero, we obtain the
+optimal solution:
+Q∗
+i (x) = Pi(x) exp
+−λ
+
+
+µn
+i −µm
+i
+
+
+
+Z(λ)
+(23)
+https://doi.org/10.3390/drones10030175
+[p.10]
+Drones 2026, 10, 175
+10 of 20
+where Z(λ) is the normalization constant defined by
+Z(λ) =
+Z
+Pi(x) exp[−λ∥µn
+i −µm
+i ∥]dx
+(24)
+Taking the negative logarithm with respect to x, we obtain
+−ln Q∗
+i (x) = −ln Pi(x) + λ∥µn
+i −µm
+i ∥+ ln Z(λ)
+(25)
+We can view ln Qi*(x) as the “additional cost function” introduced by this range
+measurement. We ignore the part involving Pi(x) because it is already included in the prior
+or in other factors; the truly new penalty term from the measurement is
+λ∥µn
+i −µm
+i ∥
+(26)
+In standard nonlinear least-squares factor-graph optimization, when performing Non-
+linear Least Squares type factor-graph optimization, we typically expect each measurement
+factor to contribute a quadratic term involving the measurement residual and the infor-
+mation matrix. However, it is clearly not a quadratic form but rather a weighted distance.
+Therefore, we need to perform a second-order expansion with respect to the state x* i.
+For convenience, let λ
+
+
+pn
+i −pm
+i
+
+
+ be denoted by f (x), where x = µi, and take the
+first-and second-order derivatives of f at x = µi:
+d0 = d(µi), Ji = ∇d(µi), Hi = ∇2d(µi)
+(27)
+Then, performing a second-order expansion of f(x) around x* yields
+f (x) ≈f (x∗) + (∇f (x∗))⊤(x −x∗)
++ 1
+2(x −x∗)⊤∇2 f (x∗)(x −x∗)
+(28)
+Substituting the above notation, this can be expressed as
+f (x) ≈λd(x∗) + λJ⊤
+i (x −x∗) + 2λ(x −x∗)⊤Hi(x −x∗)
+(29)
+If we consider f(x) to be the cost function described in Section 2.2, the current UWB
+cost function for the state X can be written as
+cUWB
+i
+(X) ≈λiJ⊤
+i (x −x∗) + 2λi(x −x∗)⊤H(x −x∗).
+(30)
+We can interpret the “second-order” term as a form of 1
+2 residualT information residual,
+leading us to approximate the information matrix by
+σ−2
+UWB ≈λiJ⊤
+i Ji.
+(31)
+The multiplier λi is obtained by enforcing the constraint that the expected distance
+under the posterior equals the UWB measurement, i.e., E (under Qi*) [d(x)] = Ri. Because the
+corresponding integral has no closed-form solution, λi is solved numerically. In practice,
+the prior distribution is approximated by samples (or sigma points), and λi is found with a
+one-dimensional search (e.g., bisection or golden-section search).
+K
+∑
+k=1
+h
+VIOd
+
+xki
+exp
+
+−λiVIOd
+
+xk
+K
+∑
+k=1
+exp
+ −λiVIOd
+ xk
+−Rn→m
+i
+(32)
+https://doi.org/10.3390/drones10030175
+[p.11]
+Drones 2026, 10, 175
+11 of 20
+Given samples x(s) from the prior N(µi, Σi), the expectation E (under Qi*) [d(x)] can be
+evaluated with normalized weights proportional to exp(−λ·d(x(s))). After λi is obtained,
+the resulting posterior can be interpreted as a prior updated by a range-consistency factor.
+During successive global optimizations, the weights of the ranging factors converge to
+reasonable values: when the discrepancy between the measurement and the prior is large
+(typical under NLOS), λi becomes smaller; when the measurement is consistent with the
+prior, λi becomes larger. The procedure is summarized in Algorithm 1.
+Algorithm 1. Adaptive Fisher-information estimation for a UWB range factor
+Input: prior mean/covariance (µi, Σi) from the last global optimization; UWB range
+measurement Ri for agents n and m at keyframe time ti.
+Sample: draw S samples x(s) ~ N(µi, Σi) (or use sigma points) and compute distances
+d(s) = ||pn(s) −pm(s)||.
+Search: find λi ≥0 such that the weighted expectation ∑s ws(λi)·d(s) matches Ri, where
+ws(λ) ∝exp(−λ·d(s)).
+Update: use the local second-order approximation (around µi) to convert the tilted
+posterior into an equivalent quadratic factor and compute the information matrix (31).
+Output: adaptive information (weight) for the UWB factor to be used in the next
+global optimization.
+3. Experimental Evaluation
+3.1. Experiment Setup
+To validate the effectiveness of the proposed method, we conducted experiments on a
+system comprising three UAVs and two UGVs. Each platform was equipped with identical
+sensors, with image and IMU data provided by the RealSense D455 (Intel Corporation,
+Santa Clara, CA, USA), and the UWB module based on the DW1000 chip (Decawave Ltd.,
+Dublin, Ireland). The UAVs were equipped with vertically polarized UWB antennas with a
+gain of 6.3 dBi, while the UGVs used UWB antennas with a gain of 14.2 dBi. Supported
+by high-gain antennas, the selected UWB module achieved a maximum ranging distance
+of up to 1.5 km under LOS conditions, with an average ranging error of +0.6 m. Under
+NLOS conditions, depending on the type of obstacle, the maximum ranging distance still
+exceeded 500 m, though the maximum ranging error could exceed 20 m.
+The ground truth of the platform trajectories was obtained by fusing data from a
+high-performance MTI300 IMU (Xsens Technologies B.V., Enschede, The Netherlands) and
+GPS corrected with RTK. Both the UAVs and UGVs utilized the NVIDIA AGX platform
+(NVIDIA Corporation, Santa Clara, CA, USA) as their main control unit. The server used in
+this experiment was equipped with an AMD 5995WX processor (Advanced Micro Devices,
+Inc., Santa Clara, CA, USA) and 128 GB of memory. The UAV and UGV platforms and
+sensor/antenna placement are shown in Figure 3.
+All sensor extrinsics (GNSS, UWB, IMU, and camera) were calibrated prior to
+the experiments.
+The experiments were conducted at two locations: the multi-level rooftop of the
+School of Automation building at Nanjing University of Science and Technology and a
+forested area with open spaces to the north of the building, as shown in Figure 4. The total
+area spanned approximately 1.6 square kilometers and included various obstacles that
+could affect UWB ranging, such as walls, wire fences, small structures, reinforced concrete
+buildings, and large trees.
+https://doi.org/10.3390/drones10030175
+[p.12]
+Drones 2026, 10, 175
+12 of 20
+ 
+Figure 3. UAV and UGV platforms and sensor/antenna placement used in the experiments. Colored
+boxes indicate the approximate locations of onboard sensors/antennas (see legend).
+Table 1. The agents used in each experiment and the length of their movement trajectories (— indicates
+that the agent did not participate in that group).
+Group
+UAV1
+UAV2
+UAV3
+UGV1
+UGV2
+1
+2374.5
+1837.1
+—
+—
+—
+2
+1759.8
+1698.4
+—
+—
+—
+3
+2283.0
+3715.9
+—
+—
+—
+4
+1999.2
+2894.0
+—
+—
+—
+5
+591.1
+773.8
+1162.3
+192.1
+192.1
+6
+567.3
+492.6
+1303.9
+201.7
+201.7
+7
+672.5
+1265.8
+1261.2
+176.8
+176.8
+8
+1338.4
+310.6
+709.9
+115.2
+115.2
+Figure 4. Experimental environment and trajectories of each agent. Numbers 1–8 correspond to the
+eight experimental groups (Groups 1–8) listed in Table 1.
+https://doi.org/10.3390/drones10030175
+[p.13]
+Drones 2026, 10, 175
+13 of 20
+Eight experimental groups were conducted: four on the multi-level rooftop of the
+School of Automation building and four in the nearby forest/open area (Figure 4). The full
+platform set consists of three UAVs and two UGVs; depending on site layout and safety
+constraints, a subset of agents may be used in a given group (Table 1). Each dataset includes
+stereo images and IMU measurements from the RealSense sensors, navigation data from
+the MTI300 unit, and RTK-corrected GNSS for ground truth.
+During the physical experiments, the main agent received data packets from each
+secondary agent at an average interval of 9.7 s, with an average packet size of 1.7 MB. Since
+the system adopts a centralized architecture, the bandwidth pressure increases linearly
+with the number of secondary agents.
+3.2. Experimental Results
+To evaluate the contributions of the proposed components (covariance-based UWB
+outlier rejection and adaptive Fisher-information weighting), we conduct an ablation study
+with four methods:
+Method 1 (Baseline): Non-cooperative single-platform localization using monocular-
+inertial ORB-SLAM3 (VIO only).
+Method 2: Covariance-based UWB outlier rejection (Section 2.3) + fixed UWB weight
+(information set to 1) in the global factor graph optimization.
+Method 3 (Proposed): Method 2 + adaptive Fisher-information estimation for UWB
+factors (Section 2.4).
+Method 4 (Idealized reference): Oracle UWB outlier removal using ground truth and
+weights set to the inverse of the true UWB error variance (upper-bound reference).
+To independently evaluate the impact of UWB ranging constraints on localiza-
+tion accuracy, visual loop closure detection was disabled in all methods during the
+experimental process.
+This progressive ablation clearly reveals the individual and combined effectiveness of
+the proposed components. Due to space limitations, Figure 5 only shows the true value of
+the trajectory of one experiment (experimental group 1) and the trajectory obtained by the
+proposed method.
+Figure 5. The true value of the motion trajectory of the unmanned cluster in Experimental Group 1
+and the positioning result obtained by the algorithm.
+https://doi.org/10.3390/drones10030175
+[p.14]
+Drones 2026, 10, 175
+14 of 20
+Figure 6 shows the error curves of the positioning of each unmanned platform in
+Experimental Group 1 using four methods. Figure 7 shows the UWB measurements of
+UGV1 relative to UAV1 and UAV2 in Experimental Group 1 and describes how to elimi-
+nate measurements that may provide effective information for subsequent optimization
+through the positioning confidence of UGV1′s VIO. UGV1 is selected here because the
+UWB measurements of the unmanned vehicle are subject to more NLOS interference.
+Figure 6. Curve of the positioning error value of each agent in Experimental Group 1 changing
+with time.
+Figure 7. Blue represents the rejected measurements, red represents the adopted measurements, and
+the green line indicates the uncertainty threshold for the distance estimated using the variance of the
+VIO state (via the method described in Section 2.3).
+Figure 8 shows the cumulative distribution functions (CDFs) curves of the error of the
+eight groups of experiments. Figure 9 describes the error of the UWB measurement of each
+of the eight groups of experiments, which reflects the degree of interference to the UWB
+ranging of the unmanned platform during movement.
+Localization accuracy is evaluated using the position root mean square error (RMSE)
+and the maximum position error (MPE) [25]. RMSE summarizes the average error over
+the trajectory, while MPE captures the worst-case deviation, which is important for safety-
+critical navigation. The results for all eight experimental groups are summarized in Table 2.
+Table 2. Performance Comparison of Different Methods.
+Group
+Method 1
+Method 2
+Method 3
+Method 4
+RMSE
+MPE
+RMSE
+MPE
+RMSE
+MPE
+RMSE
+MPE
+Group 1
+12.67
+27.94
+8.99
+18.37
+5.33
+13.38
+4.16
+8.51
+Group 2
+10.59
+24.95
+4.91
+12.80
+4.32
+9.10
+3.68
+7.45
+Group 3
+10.66
+23.91
+7.06
+15.68
+5.40
+11.89
+4.85
+10.14
+Group 4
+13.97
+29.88
+6.11
+13.38
+4.92
+12.42
+4.68
+9.54
+Group 5
+7.41
+16.96
+5.82
+12.48
+3.24
+7.61
+2.53
+6.22
+Group 6
+6.94
+12.75
+6.07
+12.13
+5.91
+12.18
+4.87
+11.12
+Group 7
+6.48
+12.05
+3.15
+6.38
+2.37
+5.09
+1.71
+4.54
+Group 8
+8.01
+14.04
+5.56
+14.97
+4.32
+10.41
+3.19
+7.01
+https://doi.org/10.3390/drones10030175
+[p.15]
+Drones 2026, 10, 175
+15 of 20
+Figure 8. CDF Curves of Trajectory Errors for All Unmanned Platforms in Eight Experiments.
+https://doi.org/10.3390/drones10030175
+[p.16]
+Drones 2026, 10, 175
+16 of 20
+Figure 9. Statistical Results of the UWB Ranging Signal Errors Received by Each Platform in
+Eight Groups of Experiments. In each subfigure, colors correspond to different platforms (as labeled
+on the x-axis); box plots show the 25–75% interquartile range with median, and whiskers indicate the
+max–min range.
+https://doi.org/10.3390/drones10030175
+[p.17]
+Drones 2026, 10, 175
+17 of 20
+4. Discussion
+4.1. Quantitative Analysis and Method Comparison
+The experimental results demonstrate that the proposed methods (Method 3 and
+Method 4) significantly outperform the single-platform localization method (Method 1)
+and the method using only correct UWB measurements (Method 2) in terms of localization
+accuracy (RMSE and MPE). As shown in Table 2, Method 4 achieves a notable reduction
+in localization error across all eight experimental groups. For instance, in Group 1, the
+RMSE of Method 4 is 4.16 m, which is a reduction of 67.2% compared to Method 1 (12.67 m)
+and 53.7% compared to Method 2 (8.99 m). Similarly, the MPE of Method 4 in Group 1 is
+reduced by 69.6% and 53.7% compared to Method 1 and Method 2, respectively.
+From the CDF curves in Figure 8 and Table 2, it can be observed that integrating
+UWB measurements reduces the maximum localization error by an average of 41.8% and
+decreases the RMSE by 47.8% in most experiments (excluding Group 8). The limited
+improvement of Method 2 is primarily due to the fact that most LOS measurements are
+concentrated in the initial stage of motion, where the VIO localization error is already
+small. As a result, UWB measurements have limited impact on improving accuracy during
+this phase.
+When comparing Method 3 and Method 2, incorporating partially acceptable UWB
+measurements (Method 3) leads to a reduction in the maximum localization error by
+31.2% and RMSE by 24.6%. Further adopting the full proposed approach (Method 4) and
+dynamically estimating Fisher information, the maximum localization error is further
+reduced by 18.9%, and the RMSE is further decreased by 11.3% compared to Method 3.
+4.2. Impact of UWB Measurement Rejection and Fisher Information Estimation
+As shown in Figure 7, the UWB measurement rejection strategy described in Section 2.3
+effectively eliminates most heavily disturbed measurements while retaining those useful
+for subsequent optimization. This ensures the optimization model can fully utilize reliable
+distance constraints, significantly improving localization accuracy in scenarios with long
+trajectories and accumulated VIO errors.
+From the error curves of UAV1 and UAV2 in Figure 6, it can be further observed that
+failing to reject measurements likely to interfere with global optimization—particularly in
+the early stages when VIO has not yet experienced severe drift—adversely impacts final
+localization accuracy. On this basis, the proposed dynamic Fisher information estimation
+further improves localization accuracy during the later stages of motion, where VIO drift
+becomes more pronounced. This demonstrates the importance of dynamically adjusting
+measurement weights to suppress cumulative drift error.
+4.3. Performance Across Different Experimental Scenarios
+From the data in Figures 8 and 9, it is evident that most UWB measurements are
+under NLOS conditions. However, the proposed method effectively utilizes UWB dis-
+tance information even under these conditions, as evidenced by the fact that the CDF
+curves of Method 4 are generally closer to the top-left corner, indicating smaller overall
+localization errors.
+Additionally, comparisons between Groups 1–4 and Groups 5–8 in Table 2 reveal
+that the longer trajectories in Groups 1–4 result in more significant VIO drift errors, es-
+pecially during the later stages of motion. Nevertheless, Method 4 demonstrates better
+drift suppression in these scenarios compared to Groups 5–8, as indicated by the greater
+separation between the CDF curves of Method 4 and Method l in Groups 1–4. For example,
+in Group 4, Method 4 reduces the maximum localization error by 84.4% compared to
+https://doi.org/10.3390/drones10030175
+[p.18]
+Drones 2026, 10, 175
+18 of 20
+Method 1, whereas the reduction is 55.1% in Group 8. This indicates that the proposed
+method remains effective even in the presence of more severe VIO drift.
+4.4. Advantages and Limitations of the Proposed Method
+The conducted ablation study further validates the effectiveness and necessity of the
+proposed dynamic Fisher information estimation and UWB ranging outlier rejection com-
+ponents. In summary, the proposed fusion model demonstrates robustness and accuracy,
+particularly in scenarios where most UWB measurements are subject to various levels of
+interference. The UWB measurement rejection strategy and Fisher information estimation
+method effectively suppress the divergence of trajectory drift errors while preserving the
+constraints provided by distance measurements. This is particularly advantageous in
+environments where most UWB measurements are NLOS.
+However, the method has certain limitations. First, the UWB measurement rejection
+strategy relies on the uncertainty estimation of VIO states, which may be less effective under
+extreme interference or when VIO errors are inherently large. Second, the experiments
+assume reliable communication between platforms, but communication delays or data loss
+in real-world applications may affect the real-time performance of global optimization.
+Lastly, this study focuses on UAV and UGV platforms, and the applicability of the proposed
+method to other types of robotic platforms requires further exploration.
+4.5. Scalability and Communication Considerations
+The current implementation uses a centralized backend hosted on the main agent,
+so scalability is mainly limited by communication bandwidth, latency, and the growth of
+the factor graph. Bandwidth pressure increases approximately linearly with the number
+of secondary agents because each agent transmits keyframes, map-point updates, and
+associated UWB measurements. In addition, delayed or dropped packets can lead to stale
+priors and temporarily inconsistent inter-robot constraints. In practice, these issues can be
+mitigated by (i) throttling keyframe/map-point uploads based on available bandwidth,
+(ii) limiting UWB factors to a sliding window of recent keyframes, and (iii) using robust
+kernels and covariance-aware gating to reduce the impact of asynchronous updates. A
+distributed backend or hierarchical clustering of agents is a natural next step for large
+swarms [21].
+4.6. Relation to Distributed SLAM and Learning-Based UWB Robustness
+Recent distributed SLAM systems (e.g., PCM-based outlier handling and distributed
+ranging SLAM) and learning-based NLOS/error classification for UWB are closely related
+to this work. This paper focuses on a lightweight, model-based strategy that can run online
+with limited training data and without infrastructure (anchors). A direct quantitative
+comparison is non-trivial because many distributed SLAM baselines assume different
+sensors (LiDAR), use different communication models, or require loop-closure-rich trajec-
+tories, while learning-based UWB robustness typically depends on environment-specific
+training and feature availability. Nevertheless, the proposed covariance-gated outlier rejec-
+tion can be viewed as complementary to PCM-style consistency checks, and the adaptive
+Fisher-information scheme provides a principled way to down-weight time-varying UWB
+uncertainty without explicit NLOS labels. Integrating distributed optimization and/or
+learned NLOS classifiers into the current framework is an important direction for fu-
+ture work. Benchmarking on public datasets (e.g., MILUV [23]) would further facilitate
+fair comparisons.
+https://doi.org/10.3390/drones10030175
+[p.19]
+Drones 2026, 10, 175
+19 of 20
+5. Conclusions
+This study proposes a multi-robot collaborative localization method based on the
+fusion of UWB and VIO, aiming to address the challenges of collaborative localization for
+unmanned platforms in large-scale and complex environments. By dynamically estimating
+the Fisher information of UWB measurements and leveraging state covariance for outlier
+rejection, the proposed method effectively suppresses VIO drift errors and improves global
+localization accuracy and robustness without relying on fixed anchors.
+The method was validated through multiple experiments conducted in multi-level
+rooftop areas, forested regions, and open spaces. Experimental results demonstrate that
+the proposed method significantly outperforms traditional single-platform localization
+and unoptimized collaborative localization approaches, particularly in scenarios where
+UWB signals are heavily disturbed. In GNSS-denied environments, the proposed method
+exhibits high localization accuracy and adaptability in long-distance movements and
+complex environments.
+In the future, the proposed method has the potential to be applied in various practical
+scenarios, such as disaster rescue, collaborative logistics, and underground exploration.
+Additionally, integrating data from complementary sensors (e.g, LiDAR or millimeter-wave
+radar) and exploring advanced distributed optimization algorithms represent promising
+directions for further improving system performance.
+Beyond the current evaluation, the framework can be strengthened by explicitly
+studying scalability (agent count, communication delay, and packet loss) and by bench-
+marking against representative distributed backends under matched sensing and commu-
+nication assumptions. In addition, reporting percentile-based error statistics (e.g., 95th
+percentile) alongside RMSE and MPE would further characterize tail behavior in safety-
+critical deployments.
+Finally, combining the proposed model-based weighting with learned NLOS classifi-
+cation or signal-quality features is a promising hybrid direction: learning can provide fast,
+environment-adaptive priors, while the factor-graph backend preserves global consistency
+and uncertainty propagation.
+Author Contributions: Conceptualization, H.X. and G.Z.; methodology, H.X.; software, H.X.; valida-
+tion, H.X., G.Z. and Y.B.; formal analysis, G.Z.; investigation, H.X.; resources, H.X.; data curation,
+H.X.; writing—original draft preparation, H.X.; writing—review and editing, G.Z.; visualization,
+H.X.; supervision, Y.B.; project administration, Y.B. All authors have read and agreed to the published
+version of the manuscript.
+Funding: This research received no external funding.
+Data Availability Statement: The data presented in this study are available upon request from
+the corresponding author due to privacy, ethical, and legal restrictions. The data are not publicly
+available to protect participant confidentiality and to comply with applicable regulations.
+Acknowledgments: The authors thank the editorial team and anonymous reviewers for their help-
+ful comments.
+Conflicts of Interest: The authors declare no conflicts of interest.
+References
+1.
+Xu, H.; Zhao, G.; Bo, Y. An Aerial and Ground Multi-Agent Cooperative Location Framework in GNSS-Challenged Environments.
+Remote Sens. 2022, 14, 5055. [CrossRef]
+2.
+Yang, H.; Wang, C.; Liu, K.; Tang, J.; Liu, J.; Luo, Y. Indoor Mobile Localization Based on a Tightly Coupled UWB-INS Integration.
+In 2020 16th International Conference on Control, Automation, Robotics and Vision (ICARCV), Shenzhen, China, 13–15 December 2020;
+IEEE: New York, NY, USA, 2020; pp. 1261–1266.
+https://doi.org/10.3390/drones10030175
+[p.20]
+Drones 2026, 10, 175
+20 of 20
+3.
+Hashim, H.A.; Eltoukhy, A.E.; Vamvoudakis, K.G. UWB Ranging and IMU Data Fusion: Overview and Nonlinear Stochastic
+Filter for Inertial Navigation. IEEE Trans. Intell. Transp. Syst. 2024, 25, 359–369. [CrossRef]
+4.
+Nguyen, T.H.; Nguyen, T.-M.; Xie, L. Range-Focused Fusion of Camera-IMU-UWB for Accurate and Drift-Reduced Localization.
+IEEE Robot. Autom. Lett. 2021, 6, 1678–1685. [CrossRef]
+5.
+Shin, S.; Lee, S.; Lee, H.; Myung, H. MIR-VIO: Mutual Information Residual-Based Visual Inertial Odometry with UWB Fusion
+for Robust Localization. In 2021 21st International Conference on Control, Automation and Systems (ICCAS), Jeju, Republic of Korea,
+12–15 October 2021; IEEE: New York, NY, USA, 2021; pp. 200–205.
+6.
+Xu, Y.; Shen, K.; Wang, Y.; Li, S.; Chen, X.; Song, Y. Dual Free-Size LS-SVM Assisted Maximum Correntropy Kalman Filtering for
+Seamless INS-Based Integrated Drone Localization. IEEE Trans. Ind. Electron. 2024, 71, 5281–5291. [CrossRef]
+7.
+Cao, B.; Chen, Y.; Yang, Z.; Li, K.; Ning, X.; Li, P. Design a Novel Method to Improve Positioning Accuracy of UWB System in
+Harsh Underground Environments. IEEE Trans. Ind. Electron. 2024, 71, 12476–12485. [CrossRef]
+8.
+Zhou, H.; Chen, Z.; Zhang, Y.; Zhang, D. An Online Multi-Robot SLAM System Based on LiDAR/UWB Fusion. IEEE Sens. J.
+2022, 22, 2530–2542. [CrossRef]
+9.
+Nguyen, T.H.; Nguyen, T.-M.; Xie, L. Flexible and Resource-Efficient Multi-Robot Collaborative Visual-Inertial-Range Localization.
+IEEE Robot. Autom. Lett. 2022, 7, 928–935. [CrossRef]
+10.
+Liu, R.; Ding, Z.; Zhang, J.; Wang, Q.; Shen, S. Distributed Ranging SLAM for Multiple Robots with Ultra-Wideband and
+Odometry Measurements. In 2022 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Kyoto, Japan, 23–27
+October 2022; IEEE: New York, NY, USA, 2022; pp. 2428–2435.
+11.
+Cai, Q.; Zhou, Z.; Zhang, K.; Li, X.; Xu, Y. A Distributed SLAM with UWB-VIO Fusion Framework for Enhanced Relative
+Localization of Multi-UAVs System. In 2023 4th International Conference on Computer Vision, Image and Deep Learning (CVIDL)),
+Zhuhai, China, 26–28 May 2023; IEEE: New York, NY, USA, 2023; pp. 195–200.
+12.
+Nguyen, T.H.; Xie, L. Relative Transformation Estimation Based on Fusion of Odometry and UWB Ranging Data. IEEE Trans.
+Robot. 2023, 39, 2861–2877. [CrossRef]
+13.
+Adkins, A.; Chen, T.; Biswas, J. ObVi-SLAM: Long-Term Object-Visual SLAM. IEEE Robot. Autom. Lett. 2024, 9, 2377–2384.
+[CrossRef]
+14.
+Hu, Y.; Li, X.; Kong, D.; Ni, P.; Hu, W.; Song, X. An Enhanced LiDAR/UWB/INS Integrated Positioning Methodology for
+Unmanned Ground Vehicle in Sparse Environments. IEEE Trans. Ind. Inform. 2024, 20, 10238–10249. [CrossRef]
+15.
+Hu, Y.; Li, X.; Dong, X.; Kong, D.; Xu, Q.; Sun, Y. A Reliable Cooperative Fusion Positioning Methodology for Intelligent Vehicle
+in Non-Line-of-Sight Environments. IEEE Trans. Instrum. Meas. 2022, 71, 1007111. [CrossRef]
+16.
+Brunacci, V.; De Angelis, A. Fusion of UWB and Magnetic Ranging Systems for Robust Positioning. IEEE Trans. Instrum. Meas.
+2024, 73, 7500712. [CrossRef]
+17.
+Kim, D.-H.; Farhad, A.; Pyun, J.-Y. UWB Positioning System Based on LSTM Classification with Mitigated NLOS Effects. IEEE
+Internet Things J. 2023, 10, 1822–1835. [CrossRef]
+18.
+Ge, Y.; Zhang, L.; Wu, Y.; Hu, D. PIPO-SLAM: Lightweight Visual-Inertial SLAM With Preintegration Merging Theory and
+Pose-Only Descriptions of Multiple View Geometry. IEEE Trans. Robot. 2024, 40, 2046–2058. [CrossRef]
+19.
+Goudar, A.; Zhao, W.; Schoellig, A.P. Range-Visual-Inertial Sensor Fusion for Micro Aerial Vehicle Localization and Navigation.
+IEEE Robot. Autom. Lett. 2024, 9, 683–690. [CrossRef]
+20.
+Ma, X.; Guo, N.; Xin, R.; Cen, Z.; Feng, Z. VIRAA-SLAM: Flexible Robust Visual-Inertial-Range-AOA Tightly-Coupled Localization.
+IEEE Robot. Autom. Lett. 2025, 10, 10658–10665. [CrossRef]
+21.
+Zhao, H.; Xu, L.; Li, Y.; Wen, F.; Gao, H.; Liu, C.; Yu, J.; Wang, Y.; Shen, Y. Robust and Scalable Multi-Robot Localization Using
+Stereo UWB Arrays. IEEE Trans. Robot. 2025, 41, 5645–5662. [CrossRef]
+22.
+Stirling, A.; Lukashchuk, M.; Bagaev, D.; Kouw, W.M.; Forbes, J.R. Gaussian Variational Inference with Non-Gaussian Factors for
+State Estimation: A UWB Localization Case Study. IEEE Robot. Autom. Lett. 2026, 11, 2762–2769. [CrossRef]
+23.
+Shalaby, M.; Dahdah, N.; Shabbir Ahmed, S.; Champagne Cossette, C.; Le Ny, J.; Forbes, J.R. MILUV: A Multi-UAV Indoor
+Localization dataset with UWB and Vision. Int. J. Robot. Res. 2026, 1–21. [CrossRef]
+24.
+Campos, C.; Elvira, R.; Rodríguez, J.J.G.; Montiel, J.M.M.; Tardós, J.D. ORB-SLAM3: An Accurate Open-Source Library for Visual,
+Visual-Inertial, and Multimap SLAM. IEEE Trans. Robot. 2021, 37, 1874–1890. [CrossRef]
+25.
+Zhang, Z.; Scaramuzza, D. A Tutorial on Quantitative Trajectory Evaluation for Visual(-Inertial) Odometry. In 2018 IEEE/RSJ
+International Conference on Intelligent Robots and Systems (IROS), Madrid, Spain, 1–5 October 2018; IEEE: New York, NY, USA, 2018;
+pp. 7244–7251.
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+https://doi.org/10.3390/drones10030175
+=== END ===

@@ -1,0 +1,649 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0161.pdf
+sha256: C153DCD7D40067D4B35693584EE166488FDCEE8EFAFF0ED1BD963FD71B3D34F4
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+Sensor Fusion for Autonomous Indoor UAV
+Navigation in Confined Spaces
+Alice James1∗, Avishkar Seth1, Endrowednes Kuantama2, Subhas Mukhopadhyay1, Richard Han2
+School of Engineering1, School of Computing2
+Macquarie University
+Sydney, Australia
+alice.james@mq.edu.au
+Abstract—In this paper, we address the challenge of navigating
+through unknown indoor environments using autonomous aerial
+robots within confined spaces. The core of our system involves the
+integration of key sensor technologies, including depth sensing
+from the ZED 2i camera, IMU data, and LiDAR measurements,
+facilitated by the Robot Operating System (ROS) and RTAB-
+Map. Through custom designed experiments, we demonstrate
+the robustness and effectiveness of this approach. Our results
+showcase a promising navigation accuracy, with errors as low
+as 0.4 meters, and mapping quality characterized by a Root
+Mean Square Error (RMSE) of just 0.13 m. Notably, this
+performance is achieved while maintaining energy efficiency and
+balanced resource allocation, addressing a crucial concern in
+UAV applications. Flight tests further underscore the precision
+of our system in maintaining desired flight orientations, with
+a remarkable error rate of only 0.1%. This work represents
+a significant stride in the development of autonomous indoor
+UAV navigation systems, with potential applications in search and
+rescue, facility inspection, and environmental monitoring within
+GPS-denied indoor environments.
+Index Terms—Autonomous UAV Navigation, Multi-Sensor Fu-
+sion, SLAM, Deep Learning, Indoor Mapping
+I. INTRODUCTION
+In recent years, the rapid advancements in Unmanned Aerial
+Vehicle (UAV) technology have ushered in a new era of ex-
+ploration and data acquisition, particularly in complex indoor
+environments where traditional navigation methods often fall
+short. These aerial robots, particularly quadrotors equipped
+with a multitude of sensors, have the potential to revolutionize
+tasks such as search and rescue [1], facility inspections [2],
+and environmental monitoring within indoor spaces due to
+their enhanced mobility and maneuverability [3]. The difficulty
+of autonomous navigation in constrained, GPS-denied indoor
+environments is substantial [4], [5]. The combination of Deep
+Learning (DL) and multi-sensor fusion is crucial in improving
+the navigation [6], mapping, and exploring capacities of UAVs
+[7].
+The problem of autonomous indoor robot mapping, localiza-
+tion, and navigation is widely studied in the literature. Simulta-
+neous Localization and Mapping, or SLAM, is a fundamental
+concept in this domain that relies heavily on robot sensing and
+perception. This process is particularly challenging indoors
+due to the absence of GPS signals, the presence of various
+obstacles, and the need for precise, real-time decision-making
+[8]. UAVs operating in indoor spaces encounter tight corridors,
+dynamic environments, and limited space to maneuver, all of
+which intensify the complexity of navigation. Additionally,
+UAVs designed for indoor use face constraints in terms of
+onboard computational power and payload capacity [9], [10].
+Despite these challenges, the demand for indoor applications,
+such as surveillance and disaster relief in GPS-denied envi-
+ronments [11], is on the rise. In such scenarios, the preference
+is often for low-cost flying robots that can be easily replaced
+if damaged or lost [3].
+Real-time Simultaneous Localisation and Mapping (RTAB-
+Map) is an open-source package that focuses on loop closure
+detection and effective memory management for large-scale
+mapping [12]–[14]. It provides online processing, significant
+low-drift odometry, robust localisation, and multi session
+mapping. These features were developed to address various
+practical requirements.
+In this paper, a deep learning-enhanced multi-sensor fusion
+SLAM system for autonomous indoor environment exploration
+of UAVs is proposed. This paper focuses on the development
+of the UAV based on multiple sensors such as IMU, vision
+and laser sensors and fusing the data with deep learning based
+computer vision sensing. This paper’s main contributions are
+as follows:
+• Unique UAV system: A novel UAV system architecture
+is proposed that uses customised open source software
+and hardware configurations with the on-board computer,
+flight controller and sensors.
+• Multi Sensor-Fusion: A new approach is proposed that
+creates a sensor fusion using the LIDAR, camera, and
+IMU sensing modalities.
+• Deep Learning: A deep learning architecture for au-
+tonomous indoor navigation in tight spaces is presented
+that uses visual slam to create edge detection.
+II. BACKGROUND
+Previous research on autonomous indoor navigation for
+UAVs using deep learning and SLAM techniques is very
+significant in ground based robots [15], [16]. The objective of
+these works is to address the unique challenges and limitations
+inherent to UAV navigation within indoor settings.
+2023 16th International Conference on Sensing Technology (ICST) | 979-8-3503-9534-1/23/$31.00 ©2023 IEEE | DOI: 10.1109/ICST59744.2023.10460820
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:32 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+Additionally, systems that merge Light Detection and Rang-
+ing (LIDAR) with Inertial Measurement Units (IMU) have
+been suggested for indoor UAV navigation [17]. Utilizing
+a pair of scanning laser range finders along with an IMU,
+this method offers robust navigation by allowing the UAV to
+precisely gauge its environment. Moreover, advancements in
+multi-sensor fusion and depth learning for UAV navigation
+have also been examined [18]. Exploiting the improvements
+in sensor technology, this method provides real-time data sup-
+port to deep learning algorithms, thereby making autonomous
+drone navigation feasible.
+A great deal of research has been done on 2D laser range
+finders [19], 3D LIDAR [20], and vision sensors [21], [22]
+over the past few years. Recent studies have focused on a
+variety of different tools that can be used for SLAM, including
+magnetic [23], olfactory [24], and thermal sensors [25], and
+event-based cameras [26]. However, these substitute sensors
+have not yet been taken into account for SLAM in the same
+extent as range and vision sensors.
+In conclusion, the existing frameworks for deep learning-
+based autonomous indoor navigation for UAVs include a
+wide range of approaches. These comprise deep reinforcement
+learning, obstacle avoidance, integration of LIDAR and IMU,
+multi-sensor fusion, and comparative evaluations. Each aims
+to surmount the obstacles and limitations related to indoor
+UAV navigation, thereby facilitating secure and efficient au-
+tonomous operation. While the existing area of research has
+significantly advanced the field of autonomous indoor navi-
+gation for UAVs, our work introduces an integrated approach
+that suggests an alternative to current solutions.
+III. SYSTEM OVERVIEW
+In this study, the challenge of autonomous aerial robot’s
+state estimation is tackled as a hardware software integrated
+issue. The objective of this system is to enable a quadcopter
+to autonomously navigate through indoor environments, essen-
+tially replicating the decision-making capabilities of a skilled
+human pilot. A front-facing stereo camera mounted on the
+UAV generates images that are processed in real-time. Using
+a trained classifier, the system issues flight commands aimed
+at ensuring safe navigation shown in Figure 1.
+Fig. 1. The aerial robot used for indoor SLAM
+We also show the multi-sensor fusion integration of the on
+board sensors such as LIDAR, IMU, and stereo vision. Fig. 1
+shows the drone hardware specifications and Fig. 2 shows the
+hardware system block diagram of the proposed system. This
+block diagram is further explained in depth with the deep
+learning and edge detection in the coming sections.
+Fig. 2. The System Block Diagram of the Autonomous UAV
+In this project, the following system configuration partially
+adapted from [27] is used:
+• UAV Components: A 295 mm carbon fiber quadrotor
+frame, 3 bladed 5 inch propellers, 1750 Kv motors, and
+a 3S 3200 mAh LiPo Battery are used in building the
+UAV. This gives a balance of stability and control for
+the UAV with a maximum flight time of 8 minutes with
+about 1.5 kg total load. A Pixhawk 2.4.8 flight controller
+with Ardupilot firmware are configured for the UAV.
+• On Board Computer (OBC): A Jetson Nano board
+is used as the onboard computing platform. The board
+runs custom built Ubuntu 20.04 OS, ROS Noetic, and
+is configured to run Intel and ZED cameras using ROS
+middleware. The board is powered by a 5V 4A BEC and
+communicates to the flight controller via serial commu-
+nication.
+• Sensors: The ZED 2i stereo camera and the Intel Re-
+alSense d455 equipped with dual RGB cameras and an
+IMU sensors are tested. Both of these are compatible
+with the software architecture and ROS version making
+it versatile for applications like SLAM and 3D mapping.
+A Slamtec RPLidar A1M8 laser scanning is used mainly
+for confined spaces obstacle detection. Apart from this,
+the IMU sensors are also used for motion tracking,
+orientation, and odometry data.
+• SLAM System: RTAB-Map (Real-Time Appearance-
+Based Mapping) integrates with ROS to execute loop clo-
+sure detection and construct a global map, by subscribing
+to odometry, sensor data, and other ROS topics, while
+publishing the generated 2D or 3D maps and localization
+data back into the ROS ecosystem. This received data is
+then converted into attitude, and position controller for
+the flight controller commands.
+IV. SENSOR FUSION FOR MAPPING
+A. Sensors
+Depth sensing is a critical component in many robotic
+and spatial perception applications. The camera is connected
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:32 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+to the Jetson Nano through USB 3.0 and uses 1080p Video
+Mode at 30 fps, detecting distances from 0.3 to 10 meters.
+The camera provides RGB-D images (/rgb_topic) and
+stereo images (/depth_camera_info_topic), which are
+essential inputs for our sensor fusion block. The (roslaunch
+zed_rtabmap_example zed_rtabmap.launch) pro-
+gram launches the RTAB-Map program with the appropriate
+ROS nodes. It transmits data at 1.55 MB/s and 6.18 Hz
+frequency.
+Odometry information is similarly sent using the built-
+in IMU, Barometer, and Magnetometer sensors in the ZED
+2i module. The module provides odometry information
+(zed_node/odom) and IMU messages with pose data
+(zed_node/imu/data), which are essential inputs for our
+sensor fusion block. The (zed/zed_node/odom) ROS
+topic, transmitting (nav_msgs/Odometry) messages, op-
+erates at a frequency of approximately 7.59 Hz with a
+bandwidth usage of 5.31 KB/s as shown in Figure 4. The
+(zed/zed_node/imu/data) ROS topic, transmitting mes-
+sages of type (sensor_msgs/Imu), operates at a frequency
+of approximately 300.31 Hz with a bandwidth usage of 96.51
+KB/s. This data is also fed into the sensor fusion block for
+synchronization.
+LiDAR information is obtained from the (/scan), type
+(sensor_msgs/LaserScan) topic obtained from the RPL-
+idar. The RPLidar laser scanner generates laser scan data
+representing distance measurements to objects in the UAV’s
+surroundings. This data is published on the (/scan) topic
+in ROS and can be utilized for various purposes, including
+obstacle detection, mapping, and localization within the envi-
+ronment. The (/scan) ROS topic, transmitting messages of
+type (sensor_msgs/LaserScan), operates at a frequency
+of approximately 6.4 Hz with a bandwidth usage of 37 kbps.
+B. SLAM Visualization in RVIZ
+In our SLAM implementation, we employ RVIZ, a ROS
+visualization tool, to provide real-time insights into the per-
+ception and mapping capabilities of our UAV system. This
+enables us to monitor and analyze various critical aspects of
+the environment and sensor data as shown in Figure 3.
+Fig. 3. The ROS Visualisation output for SLAM implementation performed
+by connecting the ground station laptop to the UAV’s unique ROS Master IP
+address
+Top Left - Confidence Map: This section displays the
+confidence obtained from the ZED 2i camera. The confi-
+dence map is crucial for understanding the reliability of
+the depth information. It is available as an image on the
+topic confidence/confidence_image. Note that the
+Confidence Map is also accessible as a 32-bit floating-point
+image through the topic confidence/confidence_map.
+Bottom Left - Depth Image View: Here, we visual-
+ize the depth map obtained from the ZED 2i camera.
+This depth map is accessible in RVIZ through the topic
+depth/depth_registered. It contains 32-bit depth val-
+ues in meters. RVIZ automatically normalizes the depth map
+to 8-bit and displays it as a grayscale depth image. Top Right
+- Custom Edge Detection Node: This section showcases a
+custom edge detection node, utilizing the Canny edge detection
+algorithm through the OpenCV ROS node. It subscribes to
+the ROS topic zed_node/rgb/image_rect_color for
+image data, allowing us to visualize edge-detection results.
+Bottom Left - Depth Register: This section is dedicated
+to visualizing the registered depth information. Registration
+ensures that depth data aligns with the RGB data, providing
+accurate spatial information. Center of Image - Point Cloud
+Reconstruction: At the center of the image, we present a 3D
+point cloud reconstruction of the environment. This rich rep-
+resentation incorporates information from various sensors, in-
+cluding the ZED 2i camera and RPLidar, as well as the orienta-
+tion data from the IMU. The point cloud is accessible through
+the topic (zed/zed_node/point_cloud/cloud_reg).
+In sensor fusion, loop closure operates by integrating data
+from multiple sensors to recognize revisited locations or land-
+marks within an environment [12]. This recognition relies on
+the fusion of sensory information from visual, depth, LiDAR,
+and IMU data, to establish consistent and accurate maps. When
+the system detects that the UAV or robotic platform revisits
+a previously observed location, loop closure algorithms use
+the fused sensor data to align the new observations with the
+existing map, thereby correcting mapping errors and ensuring
+the map remains coherent.
+The algorithm 1 outlines the steps for indoor localization
+and navigation of a drone. It starts by initializing odometry and
+pose estimation, integrating data from an Inertial Measurement
+Unit (IMU) and a camera. Point cloud data is reconstructed for
+spatial awareness. When an obstruction or edge is detected,
+the depth camera’s range is set between 0.3 to 10 meters.
+For objects in close proximity, sensor messages are fetched
+from a Laser Scan at a frequency of 6.4 Hz. Sensor fusion
+techniques of loop closure and proximity detection are applied
+to get map graph data. The drone’s velocity and orientation are
+updated accordingly using MAVROS messages. If the position
+error is within a certain tolerance, the drone switches to a
+(Guided No GPS) mode. The final output is a trajectory
+map for indoor navigation.
+V. EXPERIMENTAL VALIDATION
+In our experimental setup, all the computation is done on
+board the UAV on the Jetson Nano computer. We first verify
+and test the computational requirements and operation without
+attaching propellers and rectify any calibration and setup
+phases necessary for the communication between different
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:32 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+Algorithm 1 Drone Indoor Localization and Navigation
+1: Initialize: Odom and Pose Estimation
+2: Integrate IMU and Camera Feedback for Pose Estimation
+3: Reconstruct
+Point
+Cloud
+Data
+from
+/point cloud/cloud reg
+4: while Obstruction or Edge Detected do
+5:
+Set depth camera info topic range to 0.3 to 10 meters
+6:
+for Objects in Close Proximity (Camera Range Limited)
+do
+7:
+Fetch sensor msgs from LaserScan at 6.4 Hz
+8:
+Perform Sensor Fusion: Loop Closure and Proximity
+Detection
+9:
+Update
+(velocity ned)
+based
+on
+current
+(drone position)
+10:
+Estimate Orientation using yaw rate cmd
+11:
+if Position Error within Tolerance then
+12:
+Switch to Guided No GPS Mode
+13:
+end if
+14:
+end for
+15: end while
+16: Output: Generate Trajectory Map for Indoor Environment
+sensors, controllers, and actuators present on the UAV. An
+experimental setup in the real-world is created to test the
+algorithm and model performance.
+A. System Network - RQT graphs
+We use Rqt graph to illustrate the communication structure
+of the components in our autonomous indoor UAV navigation
+system, showing how different sensors, processing nodes,
+and the flight controller are connected via ROS topics. The
+complete Rqt graph is divided into two figures for better
+clarity. Figure 4 shows the Rqt graph presenting active ROS
+nodes and topics obtained from the ZED 2i camera along with
+RVIZ output and Figure 5 shows the Rqt graph for mavros
+and rplidar laser ROS nodes. Explained earlier in section 4,
+multiple camera ROS nodes are used to create the RTAB-Map
+graph and visualisation that is used for positioning, orientation
+and trajectory analysis.
+Figure 4 shows the Rqt graph for mavros and rplidar laser
+ROS nodes. The TF library, denoted by (/tf) allows us to
+keep track of the relationships between different coordinate
+frames attached to various components of our UAV in a
+3D space. The communication between the mavros node
+responsible for the flight controller’s messages and control
+outputs and (/rplidar) is shown here. The Rostopic list
+shows the continuous messages published through the network
+to maintain the map generation and trajectory shown in green
+colour in the RVIZ output. Hector SLAM ROS package,
+when integrated with the RPLidar sensor’s /scan data and
+RViz visualization, enables robots to construct 2D maps of
+their surroundings while concurrently estimating their own
+positions, supporting tasks such as autonomous navigation and
+obstacle avoidance.
+Fig. 4. The RQT Graph showing active ROS nodes and topics obtained from
+the ZED 2i camera along with RVIZ output
+An experimental setup is created using different obstacles
+placed closely together for the custom UAV to navigate
+through autonomously. Our real-world experiments were con-
+ducted within a warehouse space and customised to roughly
+7m × 7m × 5m dimensions as shown in Figure 6. The point
+cloud reconstructed, TF transforms of the links, and coloured
+confidence map are shown in the middle Figure 6. The right
+most section in Figure 6 represents the planned trajectory
+of the UAV in the confined space representing the Odom
+and Laser Scan/Feedback. The UAV has demonstrated its
+capability to perform effectively even in close proximity to
+obstacles.
+B. Distance measurements
+To verify the accuracy and performance of the UAV, a total
+of 20 trials are performed in the shown indoor space with three
+different sensor configurations. Table I provides a comparison
+of 3 different sensor configurations for the UAV system
+navigation. The configurations include ”Monocular Camera
+Only,” ”Depth Camera + IMU,” and ”Depth Camera + IMU
++ LiDAR.” The data shows that as the sensor configuration
+complexity increases, navigation accuracy improves, with the
+LiDAR-equipped system achieving the highest accuracy up
+to 0.4 meters. Mapping quality, measured in RMSE, follows a
+similar trend, with the LiDAR configuration having the lowest
+RMSE of 0.13 m. However, this improved performance comes
+at a cost of increased power and energy consumption, where
+the LiDAR setup consumes 8 watts and 1440 joules, while the
+monocular camera consumes only 5 watts and 900 joules. The
+LiDAR configuration is also the heaviest at 1.5 kg, compared
+to 1 kg for the monocular camera setup. Hence, the choice of
+sensor configuration needs to be balanced considering a trade-
+off between accuracy, cost, energy consumption, and weight
+requirements.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:32 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+Fig. 5. The RQT graph showing the active ROS nodes, ROS topics and TF
+for the LiDAR, Hector Slam, and MAVROS packages along with the RVIZ
+output.
+Fig. 6. Indoor Autonomous UAV Navigation Flight Tests in a Confined Space
+setup
+The provided data in Figure 7 illustrates the relationship
+between distance (measured in meters) and the percentage of
+successful reconstruction. The results indicate that at shorter
+distances, the reconstruction performance is consistently high,
+with 97% accuracy at 0.25m and 0.5m, gradually declining to
+94% at 1m. Beyond this point, there is a more pronounced
+decrease in accuracy, with 76% accuracy at 3m and 68% at
+4m. As the distance increases further, the accuracy continues
+to decrease, reaching 40% at 6m. This data suggests that the
+reconstruction system performs exceptionally well for close-
+range objects but faces challenges as the distance increases,
+which proves that the system performs well in close proximity
+areas.
+C. Flight tests
+In this section, we describe the flight tests conducted using
+our aerial robotic system. The tests were performed in an
+indoor environment utilizing a custom indoor map as shown
+earlier. One of the key aspects of these flight tests was the
+evaluation of the system’s orientation control. To assess this,
+we recorded and analyzed the Roll, Pitch, and Yaw (RPY)
+TABLE I
+COMPARISON OF 3 DIFFERENT SENSOR CONFIGURATIONS TESTED ON THE
+UAV
+A = MONOCULAR CAMERA, B = DEPTH CAMERA + IMU, C = DEPTH
+CAMERA + IMU + LIDAR
+Sensor Configuration
+A
+B
+C
+Navigation Accuracy (m)
+0.7
+0.5
+0.4
+Mapping Quality (RMSE)
+0.22
+0.15
+0.13
+Exploration Time (min)
+18
+12
+13
+Average Power Consumption (Watts)
+5
+7
+8
+Total Energy Consumption (Joules)
+900
+1260
+1440
+Cost (Au$)
+$800
+$1,300
+$1,500
+Weight (kg)
+1 kg
+1.2 kg
+1.5 kg
+Fig. 7. Detection and Reconstruction of the map at different distances
+IMU readings obtained from the Pixhawk flight controller
+during flight.
+The flight test results were graphically represented, com-
+paring the desired RPY values with the actual values recorded
+during flight as shown in Figure 8. This comparison allowed us
+to evaluate the system’s performance in terms of maintaining
+the desired orientation. Notably, the error rate observed in
+these flight tests was found to be impressively low, measur-
+ing at just about 0.1%. This low error rate underscores the
+precision and reliability of the orientation control system in
+maintaining the desired flight attitude.
+VI. CONCLUSION
+In conclusion, this paper presents a comprehensive study
+on the development and validation of a sensor-fusion-based
+system for autonomous indoor UAV navigation in confined
+spaces. Through a series of experiments, we have demon-
+strated the system’s robustness and efficacy in real-world sce-
+narios. Our sensor fusion approach, combining depth sensing
+from the ZED 2i camera, IMU data, and LiDAR measure-
+ments, has shown definitive results. The system achieved a
+navigation accuracy as low as 0.4 meters, a mapping quality
+with a Root Mean Square Error (RMSE) of only 0.13 m,
+and a trajectory mapping capability that enables autonomous
+UAV flight in confined spaces. Importantly, these results are
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:32 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+Fig. 8. The flight log data of the drone mid-flight highlighting the actual vs.
+desired Roll, Pitch, and Yaw values for the Autonomous Indoor Navigation
+Test
+achieved while keeping energy consumption balanced, with
+the LiDAR-equipped system consuming 1440 joules, and
+demonstrating the system’s reliability and energy efficiency.
+Furthermore, the flight tests substantiate the system’s orienta-
+tion control, with a negligible error rate of 0.1%, attesting to
+its precision in maintaining desired flight attitudes. This work
+marks a significant step forward in developing autonomous
+indoor UAV navigation systems, offering practical solutions
+for applications in search and rescue, facility inspection, and
+environmental monitoring within GPS-denied indoor environ-
+ments.
+Thus, future research directions may focus on enhancing
+the system’s adaptability and obstacle avoidance capabilities in
+dynamic indoor settings. In conjunction with this, the research
+presented in this study establishes a path for the effective use
+of autonomous UAVs in difficult indoor scenarios, offering
+major advances in numerous domains where precise, GPS-free
+navigation is essential.
+REFERENCES
+[1] Y. Bi, M. Lan, J. Li, S. Lai, and B. M. Chen, “A lightweight autonomous
+MAV for indoor search and rescue,” Asian J. Control, vol. 21, no. 4,
+pp. 1732–1744, 7 2019.
+[2] L. Wawrla, O. Maghazei, and T. Netland, “Applications of drones in
+warehouse operations,” Whitepaper. ETH Zurich, D-MTEC, p. 212,
+2019.
+[3] Y. Tao, E. Iceland, B. Li, E. Zwecher, U. Heinemann, A. Cohen,
+A. Avni, O. Gal, A. Barel, and V. Kumar, “Learning to Explore
+Indoor Environments using Autonomous Micro Aerial Vehicles,” arXiv,
+9 2023. [Online]. Available: http://arxiv.org/abs/2309.06986
+[4] T. Elmokadem and A. V. Savkin, “Towards fully autonomous UAVs: A
+survey,” Sensors, vol. 21, no. 18, 9 2021.
+[5] M.
+Labb´e
+and
+F.
+Michaud,
+“Multi-Session
+Visual
+SLAM
+for
+Illumination-Invariant Re-Localization in Indoor Environments,” Front.
+Rob. AI, vol. 9, p. 801886, Jun. 2022.
+[6] Y. Wang, F. Yang, T. Wang, Q. Liu, and X. Xu, “Research on
+visual navigation and remote monitoring technology of agricultural
+robot,”
+International
+Journal
+on
+Smart
+Sensing
+and
+Intelligent
+Systems, vol. 6, no. 2, pp. 466–481, 2013. [Online]. Available:
+https://doi.org/10.21307/ijssis-2017-550
+[7] K. Qian, X. Ma, X. Z. Dai, and F. Fang, “Spatial-temporal collaborative
+sequential monte carlo for mobile robot localization in distributed
+intelligent environments,” International Journal on Smart Sensing
+and Intelligent Systems, vol. 5, no. 2, pp. 295–314, 2012. [Online].
+Available: https://doi.org/10.21307/ijssis-2017-482
+[8] Z. Li, C. Zhao, J. Wang, X. Hou, J. Hu, Q. Pan, and C. Jia, “High-
+Accuracy Robust SLAM and Real-Time Autonomous Navigation of
+UAV in GNSS-denied Environments,” in Lecture Notes in Electrical
+Engineering, vol. 644 LNEE.
+Springer Science and Business Media
+Deutschland GmbH, 2022, pp. 1099–1108.
+[9] A. N. Wilson, A. Kumar, A. Jha, and L. R. Cenkeramaddi, “Embedded
+Sensors, Communication Technologies, Computing Platforms and Ma-
+chine Learning for UAVs: A Review,” IEEE Sens. J., vol. 22, no. 3, pp.
+1807–1826, Dec. 2021.
+[10] J. Sandino, F. Vanegas, F. Maire, P. Caccetta, C. Sanderson, and
+F. Gonzalez, “UAV Framework for Autonomous Onboard Navigation
+and People/Object Detection in Cluttered Indoor Environments,” Remote
+Sens., vol. 12, no. 20, p. 3386, Oct. 2020.
+[11] N. Boonyathanmig, S. Gongmanee, P. Kayunyeam, P. Wutticho, and
+S. Prongnuch, “Design and Implementation of Mini-UAV for Indoor
+Surveillance,” in 2021 9th International Electrical Engineering Congress
+(iEECON).
+IEEE, 2021, pp. 10–12.
+[12] M.
+Labb´e,
+“Rtab-map
+as
+an
+open-source
+lidar
+and
+visual
+slam
+library
+for
+large
+scale
+and
+long-term
+online
+operation,”
+2018,
+[Online;
+accessed
+27.
+Sep.
+2023].
+[Online].
+Available:
+https://onlinelibrary.wiley.com/doi/abs/10.1002/rob.21831
+[13] M. Labbe and F. Michaud, “Online global loop closure detection
+for large-scale multi-session graph-based SLAM,” IEEE International
+Conference on Intelligent Robots and Systems, pp. 2661–2666, Sep.
+2014.
+[14] M. Labb´e and F. Michaud, “Appearance-Based Loop Closure Detection
+for Online Large-Scale and Long-Term Operation,” IEEE Trans. Rob.,
+vol. 29, no. 3, pp. 734–745, Feb. 2013.
+[15] C. Kolhatkar and K. Wagle, “Review of SLAM Algorithms for Indoor
+Mobile Robot with LIDAR and RGB-D Camera Technology,” in Inno-
+vations in Electrical and Electronic Engineering.
+Singapore: Springer,
+Jul. 2020, pp. 397–409.
+[16] M. Filipenko and I. Afanasyev, “Comparison of Various SLAM Systems
+for Mobile Robot in an Indoor Environment,” in 2018 International
+Conference on Intelligent Systems (IS).
+IEEE, 2018, pp. 25–27.
+[17] G. A. Kumar, A. K. Patil, R. Patil, S. S. Park, and Y. H. Chai, “A
+LiDAR and IMU Integrated Indoor Navigation System for UAVs and
+Its Application in Real-Time Pipeline Classification,” Sensors, vol. 17,
+no. 6, p. 1268, Jun. 2017.
+[18] L. Liu, Y. Wu, G. Fu, and C. Zhou, “An Improved Four-Rotor UAV
+Autonomous Navigation Multisensor Fusion Depth Learning,” Wireless
+Commun. Mobile Comput., vol. 2022, May 2022.
+[19] J. Zhang, M. Henein, R. Mahony, and V. Ila, “VDO-SLAM: A Visual
+Dynamic Object-aware SLAM System,” arXiv, May 2020.
+[20] “3D LiDAR SLAM Integration with GPS/INS for UAVs in Urban GPS-
+Degraded Environments | AIAA SciTech Forum,” Sep. 2023, [Online;
+accessed 27. Sep. 2023].
+[21] S. Sumikura, M. Shibuya, and K. Sakurada, “OpenVSLAM: A Versatile
+Visual SLAM Framework,” in MM ’19: Proceedings of the 27th ACM
+International Conference on Multimedia.
+New York, NY, USA:
+Association for Computing Machinery, Oct. 2019, pp. 2292–2295.
+[22] A. Macario Barros, M. Michel, Y. Moline, G. Corre, and F. Carrel, “A
+Comprehensive Survey of Visual SLAM Algorithms,” Robotics, vol. 11,
+no. 1, p. 24, Feb. 2022.
+[23] F. Viset, R. Helmons, and M. Kok, “An Extended Kalman Filter for
+Magnetic Field SLAM Using Gaussian Process Regression,” Sensors,
+vol. 22, no. 8, p. 2833, Apr. 2022.
+[24] W. Chen, X. Wang, S. Gao, G. Shang, C. Zhou, Z. Li, C. Xu, and K. Hu,
+“Overview of Multi-Robot Collaborative SLAM from the Perspective of
+Data Fusion,” Machines, vol. 11, no. 6, p. 653, Jun. 2023.
+[25] M. R. U. Saputra, C. X. Lu, P. P. B. de Gusmao, B. Wang, A. Markham,
+and N. Trigoni, “Graph-Based Thermal–Inertial SLAM With Probabilis-
+tic Neural Networks,” IEEE Trans. Rob., vol. 38, no. 3, pp. 1875–1893,
+Nov. 2021.
+[26] W. Chamorro, J. Sol`a, and J. Andrade-Cetto, “Event-Based Line SLAM
+in Real-Time,” IEEE Rob. Autom. Lett., vol. 7, no. 3, pp. 8146–8153,
+Jun. 2022.
+[27] A. Seth, A. James, E. Kuantama, S. Mukhopadhyay, and R. Han, “Drone
+High-Rise Aerial Delivery with Vertical Grid Screening,” Drones, vol. 7,
+no. 5, p. 300, May 2023.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:32 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

@@ -1,0 +1,1825 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0391.pdf
+sha256: 87FFCD54DDC8C651C82E97835631EC35444D6D054FF2A5D0B5BE05A5A06BC8D9
+library: pymupdf (fitz) v1.28.2
+pages: 14
+=== BEGIN ===
+[p.1]
+Date of publication xxxx 00, 0000, date of current version xxxx 00, 0000.
+Digital Object Identifier 10.1109/ACCESS.2017.DOI
+Multi-UAV Collaboration and IMU Fusion
+Localization Method in Partial
+GNSS-denied Scenarios
+YI ZHENG1,3, YAQIN XIE2, JIAMIN LI3 (Member, IEEE)
+1The Changwang School of Honors, Nanjing University of Information Science and Technology, Nanjing 210044, China
+2The School of Electronic and Information Engineering, Nanjing University of Information Science and Technology, Nanjing, 210044, China
+3National Mobile Communications Research Laboratory, School of Information Science and Engineering, Southeast University, Nanjing 210096, China
+Corresponding author: Yaqin Xie (e-mail: xyq@nuist.edu.cn).
+This work was supported by the National Natural Science Foundation of China (NSFC) under Grants 62001238 and the Open Research
+Fund of National Mobile Communications Research Laboratory, Southeast University (No. 2022D11).
+ABSTRACT
+When it comes to disaster rescue, quickly and accurately locating the trapped people will not miss the
+golden rescue time, thereby improving the success rate of rescue. The existing research has focused
+on the use of unmanned aerial vehicles (UAVs) to locate stationary user equipment (UE). However, the
+simultaneous movement of the UAVs and the UE brings about problems of UAV coordinate deviation and
+range interference, resulting in poor accuracy and stability of UE localization. To solve the mentioned
+issues above, a fusion localization method based on multi-UAV collaborative ranging and user-side inertial
+measurement unit (IMU) module was proposed for GNSS-denied scenarios. First, the initial coordinate
+deviations of the UAVs were corrected by multi-UAV collaboration; Then, a pre-processing scheme based
+on density peaks clustering (DPC) was proposed to eliminate the abnormal interference in the ranging data;
+Finally, the unscented Kalman filter (UKF) was used to realize the fusion localization based on multi-UAV
+ranging and user-side IMU module. The simulation results showed that the proposed scheme can maintain
+the accuracy and stability of UE localization in the presence of ranging interference, and the positioning
+error was reduced by 21.4% compared with the commonly used extended Kalman filter (EKF). Moreover,
+the proposed localization scheme had a better performance in low-altitude rather than high-altitude flight
+scenarios.
+INDEX TERMS Density peaks clustering (DPC), fusion localization, inertial measurement unit (IMU),
+unmanned aerial vehicle (UAV), unscented Kalman filter (UKF)
+I. INTRODUCTION
+I
+N emergency scenarios such as rescue for natural disasters
+and accidents, real-time location information of the
+rescuers and trapped people is particularly important for
+rescue work [1]. A precise location can speed up the response
+time of rescue teams and increase the chances of finding
+people trapped in critical situations. However, in the process
+of search and rescue, the affected areas are often faced
+with problems of satellite rejection and base station damage,
+which leads to interrupted communication links. Due to the
+absence of communication relays, users in the affected area
+are generally unable to communicate with each other or with
+the outside world [2], and cannot obtain location information
+via the Internet or the Global Navigation Satellite System
+(GNSS). The traditional rescue often takes a blanket search
+for the missing person, which is aimless and easy to miss
+the golden rescue time. Therefore, it is extremely critical to
+provide an alternative localization solution for rescuers and
+trapped people in emergencies. In this article, the term ’UAV’
+refers to the unmanned aerial vehicle, and the term ’UE’
+refers to the user equipment.
+The UAV airborne base stations (BS) have obvious
+advantages in search and rescue scenarios [3]. Without
+relying on ground infrastructure, UAVs can achieve dynamic
+network self-assembly by carrying small base stations
+and different sensors to enhance communication as well
+as localization services for affected areas and guarantee
+emergency
+handling
+capabilities
+[4].
+For
+localization
+VOLUME 4, 2016
+1
+This article has been accepted for publication in IEEE Access. This is the author's version which has not been fully edited and 
+content may change prior to final publication. Citation information: DOI 10.1109/ACCESS.2023.3315870
+This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License. For more information, see https://creativecommons.org/licenses/by-nc-nd/4
+[p.2]
+Y. ZHENG et al.: Multi-UAV Collaboration and IMU Fusion Localization Method in Partial GNSS-denied Scenarios
+requirements, UAVs are often equipped with distance
+measurement modules such as time-of-flight (TOF) [5]–[7]
+or received signal strength indicator (RSSI) [8], [9] to
+obtain the distance information of the user equipment (UE).
+In addition, the UAV airborne base station has a certain
+flight altitude. On the one hand, it can avoid obstacles to
+receive satellite signals, and obtain its position information
+based on satellites. On the other hand, compared to ground
+base stations, it is easier to form Line of Sight (LOS)
+channels between UAV base stations and UEs [10], and both
+communication and ranging are more stable. So far, a team of
+UAVs can autonomously navigate, explore, detect, and find
+the target in a cluttered environment with a known map [11].
+In December 2020, UAVs played a central role in the rescue
+of the largest mountain landslide in Norwegian history. DJI
+M300 RTK drones were used to quickly detect, obtain the
+target position, and guide the helicopter to rescue the trapped.
+Recently, much research has concentrated on energy-
+efficient UAV path planning [12], [13] and area coverage
+[14], [15] for static UE localization. These works are
+based on two assumptions: accurate UAV coordinates and
+stationary UEs. However, the deviation of UAV coordinates
+may be accumulated during the movement of the UAVs.
+The UE positioning bias increases with UAV coordinate
+bias. Moreover, as the position of the UAVs and the UE
+is constantly changing, the signal may be blocked by an
+obstacle, leading to abnormal ranging data. This will result in
+large deviations or even failure of UE localization in a short
+time.
+Aiming at the scene of partial GNSS-denied and the
+simultaneous movement of the UAVs and UEs, a localization
+scheme based on the fusion of multi-UAV and inertial
+measurement unit (IMU) was proposed to provide highly
+accurate and stable positioning services for the mobile UEs
+on the ground. The main contributions are summarized as
+follows.
+1) A multi-UAV collaborative coordinate correction model
+was proposed and solved by the gradient descent
+method to eliminate the initial coordinate deviation of
+UAVs.
+2) Aiming
+at
+the
+problem
+of
+ranging
+anomaly,
+a
+data screening method based on the Density Peaks
+Clustering (DPC) and multilateral matching degree was
+proposed, which can effectively eliminate abnormal
+data and enhance the stability of the localization
+algorithm.
+3) Based on the unscented Kalman filter (UKF), a
+multi-UAV collaboration and user-side IMU module
+fusion
+localization
+algorithm
+was
+proposed.
+The
+simulation
+results
+showed
+that
+the
+positioning
+performance of the fusion localization scheme based on
+UKF is better than that of the extended Kalman filter
+(EKF), and achieved good robustness.
+The rest of the article is structured as follows. Section
+II discusses the related works. Section III presents the
+multi-UAV collaborative and IMU fusion localization model.
+In Section IV, the multi-UAV collaborative and IMU fusion
+localization algorithm is introduced from three aspects: UAV
+own coordinate correction, range data pre-processing, and
+UKF. The performance evaluation and analysis are presented
+in Section V. Finally, Section VI concludes the article with
+some future directions.
+II. RELATED WORKS
+The inertial navigation system (INS) [16] is a common
+scheme for mobile target localization, which can be used
+in both UAV and UE sides. INS uses the IMU module
+to obtain the acceleration and angular velocity, make
+real-time displacement estimations, and perform incremental
+positioning calculations. Owing to the advantages of low
+cost and short-term high accuracy, the fusion localization
+combined with the IMU module has been widely used in
+many scenarios such as inspection UAV positioning [17],
+vehicle positioning, and indoor pedestrian positioning [16].
+With the miniaturization of the IMU module, it can be
+easily installed in mobile phones and other devices, thus
+enabling further extension to outdoor positioning scenarios
+and providing assisted navigation and localization services
+for mobile UEs.
+High-precision UAV coordinates are primarily required for
+the UAV-based coordinate localization system. So far, most
+UAVs on the market use GNSS to obtain their coordinates.
+However, satellite-based UAV positioning cannot operate
+in dense urban environments or indoor environments [18].
+Much work has been carried out on the cooperative
+localization for UAVs. In [17], the EKF was used to
+achieve the fusion positioning consisting of IMU, Ultra
+Wide Band (UWB), and optical flow. The multi-source
+fusion localization improved the accuracy and stability of
+individual inspection UAV positioning. W. Zhang et al. [20]
+proposed two improved schemes based on the particle swarm
+optimization (PSO) algorithm: hierarchical PSO (HPSO)
+and reference PSO (RPSO), which combined ground anchor
+deployment and multi-UAV relative position to realize the
+localization of UAV swarm. Both [17] and [20] required
+the advanced arrangement of static anchor nodes to assist
+in the coordinate acquisition of the UAVs, which is difficult
+to achieve when a disaster causes infrastructure damage.
+In [21], [22], map-matching positioning was proposed to
+reduce the requirements for infrastructure but increased
+the hardware cost and computational complexity, which
+is particularly unfavorable for small UAVs with short
+endurance. Different from the idea of map matching,
+authors in [23] proposed a vision-based UAV group relative
+angle measurement scheme, which makes full use of
+the advantages of multi-device collaboration, and achieves
+a better UAV positioning effect than EKF. Multi-UAV
+collaboration can improve the positioning accuracy of
+individual UAVs, but once some of them have positioning
+anomalies, it would drag down the performance of the entire
+system. In [24], the proportion of autonomous positioning
+2
+VOLUME 4, 2016
+This article has been accepted for publication in IEEE Access. This is the author's version which has not been fully edited and 
+content may change prior to final publication. Citation information: DOI 10.1109/ACCESS.2023.3315870
+This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License. For more information, see https://creativecommons.org/licenses/by-nc-nd/4
+[p.3]
+Y. ZHENG et al.: Multi-UAV Collaboration and IMU Fusion Localization Method in Partial GNSS-denied Scenarios
+of each UAV has adjusted adaptively, which improved the
+accuracy and stability of UAV group positioning. Multi-UAV
+joint networking brings about the problem of UAV formation
+control. [25] and [26] realized the Leader-Following control
+from the perspective of velocity and heading angle control
+and simultaneous relative localization, respectively, which
+has a good reference for our work.
+It can be seen that the EKF [17], [24], [27], [28] and
+PSO [20], [29], [30] algorithms are two commonly used
+cooperative localization algorithms. EKF uses the first-order
+Taylor expansion to approximate the distance equation, and
+the solution accuracy is limited [28]. Thanks to group
+learning, the PSO algorithm has the advantage of fast
+convergence, but the computational complexity is large [30].
+In [20], authors reduced the computational complexity by
+flexibly reducing the number of particles, but the randomness
+of the particle initialization and iteration process still restricts
+the local search capability of the algorithm. When the
+analytic equation of the objective function is known, the
+gradient descent method [31] is more explicitly targeted and
+has a stronger local search capability and lower complexity
+than the PSO algorithm.
+In complex environments, the UE ranging data obtained
+by UAV base stations can be partially abnormal due to
+signal interference, obstacle blockage, and other reasons.
+If the abnormal data can be filtered out, the influence can
+be eliminated from the root cause, to achieve more stable
+localization. In [32], the data anomaly was quantified as
+a time-varying path loss index, and a Newton gradient
+algorithm was proposed to solve the path loss index
+and distance estimation. However, this requires the use
+of redundancy in multilateral positioning, which means
+more UAVs are needed (more than needed for localization
+solving). This increases the cost of the equipment required
+for the emergency network. Aiming at the complex
+channel environment in the city, the three-dimensional map
+information was used to distinguish the RSSI ranging data
+obtained by LOS and Non-Line of Sight (NLOS) paths
+[33]. Then, the UAV path planning was optimized based
+on the path loss estimation. However, in the rescue scene,
+the surface situation may change significantly, and the
+three-dimensional map information needs to be re-collected.
+The above schemes mainly eliminated the influence of
+abnormal ranging data from the perspective of channel
+parameter estimation. In addition, it can also be considered
+from the perspective of data cleaning and screening. Different
+kinds of clustering methods are often used for data cleaning
+and screening. Among them, the division-based K-means
+clustering algorithm [34] is more suitable for finding
+clusters of convex data sets, but it needs to input the
+number of clusters in advance and is sensitive to noise
+and outliers, which is not suitable for noise removal. The
+Density-Based Spatial Clustering of Applications with Noise
+(DBSCAN) method [35] can effectively mark noise points
+and discover data clusters of any shape. However, the
+algorithm is very sensitive to user-defined parameters, and
+FIGURE 1. UAV emergency network based mobile UE localization system
+the parameter set can only be based on experience without
+regularity. Rodrigues et al. [36] further proposed the DPC
+algorithm in ‘Science’ in 2014, which reduced the number
+of user-defined parameters and significantly improved both
+clustering accuracy and computational efficiency. This
+efficient cluster identification clustering scheme can also be
+used in range data screening.
+Research in indoor dynamic target localization provides
+a
+significant
+reference
+for
+outdoor
+localization.
+The
+range-based multilateral localization algorithms are relatively
+mature and can be easily solved via Newton’s iterative
+method [13], including the Chan-Taylor (CT) method
+[37], the gradient descent method [38], etc. However, the
+multilateral ranging method is essentially a single-source
+localization method, and the ranging information is prone
+to fluctuations, resulting in a large positioning deviation. In
+recent years, scholars have fused two or more localization
+technologies to improve the accuracy and stability of
+positioning [12], [39], [40]. In [39], the UWB ranging and
+IMU fusion positioning scheme based on EKF is used to
+improve localization accuracy in a small area,. However, the
+EKF only uses the first-order Taylor approximation for the
+nonlinear system, which has a large error when the Taylor
+expansion center deviates significantly from the true value.
+To improve the accuracy of state estimation in nonlinear
+systems, S. J. Julier and J. K. Uhlmann [41] proposed the
+UKF algorithm. UKF uses Unscented Transform (UT) [42]
+to deal with the nonlinear transfer problem of mean and
+covet and approximates the probability density distribution of
+nonlinear functions. In [40], the fusion localization scheme
+based on UKF has been studied in indoor positioning and
+achieved better positioning results than EKF. This method
+can also be migrated to the localization of moving targets
+by multiple UAVs. However, the BS and the UE are moving
+simultaneously at this point, making the localization process
+more complex.
+III. SYSTEM MODEL
+The scenario of a mobile UE localization system based on
+emergency UAV networks is shown in Fig. 1. Due to the
+damage to the base station and the occlusion of the mountain,
+VOLUME 4, 2016
+3
+This article has been accepted for publication in IEEE Access. This is the author's version which has not been fully edited and 
+content may change prior to final publication. Citation information: DOI 10.1109/ACCESS.2023.3315870
+This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License. For more information, see https://creativecommons.org/licenses/by-nc-nd/4
+[p.4]
+Y. ZHENG et al.: Multi-UAV Collaboration and IMU Fusion Localization Method in Partial GNSS-denied Scenarios
+TABLE 1. Index of Notation
+Notation
+Description
+pU(k)
+Coordinates of the user at time slot k
+pi(k)
+Coordinates of the i-th UAV at time slot k
+pUAV (k)
+Coordinates of all UAVs at time slot k
+N
+Number of UAVs
+m
+Number of user range measurements in a time slot
+ri(k)
+The true distance between the i-th UAV and the user
+at time slot k
+ri,j(k)
+Distance between the i-th UAV and the j-th UAV at
+time slot k
+eZ(k)
+The distance observation vector at time slot k
+σr
+The distance observation noise variance
+υi(k)
+The distance observation noise between the i-th UAV
+and the user at time slot k
+υ(k)
+The observation noise vector at time slot k
+li(k)
+The i-th measurement distance combination at time
+slot k
+L(k)
+m sets of ranging data for the same target in k time
+slots
+δ
+Deviation between estimated and true values of user
+coordinates
+∆t
+The interval between two time slots
+X(k)
+Mobile user’s motion state vector at time slot k
+v(k)
+Mobile user’s velocity vector at time slot k
+a(k)
+Mobile user’s acceleration vector at time slot k
+ωa(k)
+The process noise of acceleration at time slot k
+σa
+The variance of process noise rate
+dij
+Inter-element similarity in DPC
+dc
+Cut-off distance in DPC
+ρi
+Local density of elements in DPC
+δi
+Relative distance of the elements in DPC
+γi
+The screening indicator in DPC
+η
+Decrease in cost function during gradient descent
+ω(k)
+The process noise vector at time slot k
+λ
+The scaling parameter for prediction error control
+nx
+The dimension of X(k)
+w(i)
+mean
+The weight of mean of the i-th sampling point
+w(i)
+cov
+The weight of covariance of the i-th sampling point
+PZkZk
+The observation covariance matrix at time slot k
+PXkZk
+The cross-covariance matrix between the state vector
+and the observation vector at time slot k
+K(k)
+The Kalman gain at time slot k
+Q
+The covariance matrix of process noise
+R
+The covariance matrix of observation noise
+∥·∥
+The norm of a vector
+GNSS in the UEs’ area is invalid, so the UEs cannot obtain
+their location information. At this time, the UAV emergency
+network can be deployed around the UEs to be located.
+Because the UAV has a certain flight height, it can avoid
+occlusion and receive satellite signals. In the Figure, the 1st,
+2nd, and 3rd UAVs are used as mobile anchors to provide
+localization and navigation services to ground users. The 4th
+UAV plays a relay role and connects the UAV emergency
+network to the ground base station, thus completing the
+network connection.
+Section III discusses the localization system from three
+aspects: mobile UE localization based on UAV base
+station ranging, mobile UE self-positioning based on
+IMU, and multi-UAV collaborative coordinate correction.
+Subsequently, a complete multi-UAV collaborative and IMU
+fusion localization model was proposed. The meanings of the
+main symbols in this article are shown in Table 1.
+A. MOBILE UE LOCALIZATION BASED ON UAV BASE
+STATION RANGING
+During the emergency rescue process, both the UAVs and the
+rescue personnel are in motion. In this article, the continuous
+motion was discretized, and the time was divided according
+to the time slot. It is assumed that the position of the UAV
+and the UE does not change in each time slot.
+The position of the ground UE at time slot k is
+pU(k) = [xU(k), yU(k), 0]T .
+(1)
+Similarly, the position of the i-th UAV at time slot k is
+pi(k) = [xi(k), yi(k), zi(k)]T .
+(2)
+The real distance between the i-th UAV and the UE at
+time slot k is denoted as ri(k), and the distance relationship
+between the UE to be located and the i-th UAV can be
+obtained as
+∥pi(k) −pU(k)∥= ri(k).
+(3)
+The measured distance between the i-th UAV base station
+and the UE to be located is denoted as eri(k), containing
+the true distance ri(k) with the observation noise υi(k) ∼
+N
+ 0, σ2
+r
+
+. Let υ(k) = [υ1(k), υ2(k), · · · , υN(k)]T denote
+the observation noise vector. The distance vector eZ(k) =
+[er1(k), er2(k), · · · , erN(k)]T obtained from N UAV base
+stations is a function of the unknown quantity pU(k):
+eZ(k) = h (pU(k)) + υ(k),
+(4)
+where
+h (pU(k)) =
+
+
+∥p1(k) −pU(k)∥
+∥p2(k) −pU(k)∥
+...
+∥pN(k) −pU(k)∥
+
+.
+The expression of the unknown quantity pU(k) can be
+obtained by the inverse function as
+pU(k) = h−1 
+eZ(k) −υ(k)
+
+.
+(5)
+For a nonlinear function h(.), solving the analytic
+expression of its inverse function h−1(.) is difficult, and
+a linear iterative approximation is generally used to obtain
+the numerical solution [21]. In this section, the Chan-Taylor
+method [37] is used to solve the numerical solution of pU(k).
+First, the initial position pU(k) of the iteration is obtained via
+Chan’s method. The system of (6) is obtained by squaring
+both sides of (4):
+
+
+
+
+
+
+
+
+
+∥p1(k) −pU(k)∥2 = er1(k)2
+∥p2(k) −pU(k)∥2 = er2(k)2
+...
+∥pN(k) −pU(k)∥2 = erN(k)2
+.
+(6)
+Taking the first equation in (6) as the base, the quadratic
+term is eliminated by difference, and N −1 linear equations
+are obtained as shown in (7):
+CpU(k) = b,
+(7)
+4
+VOLUME 4, 2016
+This article has been accepted for publication in IEEE Access. This is the author's version which has not been fully edited and 
+content may change prior to final publication. Citation information: DOI 10.1109/ACCESS.2023.3315870
+This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License. For more information, see https://creativecommons.org/licenses/by-nc-nd/4
+[p.5]
+Y. ZHENG et al.: Multi-UAV Collaboration and IMU Fusion Localization Method in Partial GNSS-denied Scenarios
+where
+C =
+
+
+p2(k)T −p1(k)T
+p3(k)T −p1(k)T
+...
+pN(k)T −p1(k)T
+
+
+(N−1)×3
+b = 1
+2
+
+
+∥p2(k)∥2 −∥p1(k)∥2+er1(k)2 −er2(k)2
+∥p3(k)∥2 −∥p1(k)∥2+er1(k)2 −er3(k)2
+...
+∥pN(k)∥2 −∥p1(k)∥2+er1(k)2 −erN(k)2
+
+
+(N−1)×1
+.
+While the mode of C isn’t equal to zero, that is to say, any
+three UAVs are not in a straight line, the coordinates of the
+UE can be obtained via the least square method:
+bpU(k) =
+ CT C
+−1CT b.
+(8)
+However, when the mode of C is equal to 0, the linear
+correlation part should be removed and then obtain C′ for
+calculation.
+Next, the Taylor series expansion is performed on (6) at
+bpU(k), and the estimation error is reduced by cyclic iteration.
+The specific process of the Chan-Taylor method is as follows:
+1) The relationship between the current user coordinate
+estimate bpU(k) and the actual user coordinate pU(k)
+can be expressed as
+pU(k) = bpU(k) + δ.
+(9)
+where δ = [δx, δy, δz]T denotes the deviation between
+the coordinate estimate bpU(k) and the real position
+pU(k) of the user.
+2) Expand the system of (6) at bpU(k) with a first-order
+Taylor series, and the linearized iterative equations are
+obtained as shown in (10):
+M1δ = M2,
+(10)
+where
+M1 =
+
+
+bpU(k)T −p1(k)T
+bpU(k)T −p2(k)T
+...
+bpU(k)T −pN(k)T
+
+
+N×3
+M2 = 1
+2
+
+
+er1(k)2 −∥bpU(k) −p1(k)∥2
+er2(k)2 −∥bpU(k) −p2(k)∥2
+...
+erN(k)2 −∥bpU(k) −pN(k)∥2
+
+
+N×1
+.
+The least squares solution of (10) is given by
+δ =
+ MT
+1 M1
+−1MT
+1 M2.
+(11)
+3) Use bpU(k) + δ instead of bpU(k) and go back
+to step 1). Continue to calculate the corresponding
+deviation δ and loop iterations to obtain the coordinate
+optimal estimate. The iteration is stopped when ∥δ∥<
+ε = 0.01 or reaches the upper limit of the number
+of iterations. At this point the convergent solution
+pU(k) = bpU(k) is obtained.
+The Taylor iteration is an approximate Newton iteration
+with a clear objective and fast convergence. In the subsequent
+simulation experiments, the convergence solution can be
+obtained within 50 iterations. However, an upper limit on
+the number of iterations is still required in the case of a
+non-convex environment.
+B. IMU-BASED MOBILE USER SELF-LOCALIZATION
+Section III-B uses IMU sensors to obtain the motion status
+of the mobile user, which serves as an aid for positioning and
+improves system stability.
+Denote the user’s velocity vector at time slot k as
+v(k) = [vx(k), vy(k), vz(k)]T .
+(12)
+Similarly, the acceleration vector at time slot k is denoted
+as
+a(k) = [ax(k), ay(k), az(k)]T .
+(13)
+The UE motion within each time slot is approximated
+as uniformly accelerated motion. As the sample period is
+∆t, the process noise of acceleration at time slot k is
+denoted as ωa(k), ωa(k) ∼N
+ 0, σ2
+a
+
+. After the integral
+of acceleration, the process noise of velocity and position is
+denoted as ωa(k)∆t and ∆t2
+2 ωa(k), respectively. Then, the
+UE’s velocity v(k + 1) and position pU(k + 1) at time slot
+k + 1 can be predicted by the motion state and acceleration
+of the target at time slot k are
+v(k + 1) = v(k) + a(k)∆t + ωa(k)∆t
+(14)
+pU(k + 1) = pU(k) + v(k)∆t + ∆t2
+2 a(k) + ∆t2
+2 ωa(k).
+(15)
+C. MULTI-UAV COLLABORATIVE POSITION
+CORRECTION
+In the emergency network, the UAV base station can
+obtain its position information based on satellite signals.
+However, the built-in satellite navigation positioning module
+of the UAV has limited accuracy, with ±1.5m deviation
+in the horizontal direction and ±0.5m deviation in the
+vertical direction [19]. When the UAV base station system
+is unstable, the positioning error will be even larger,
+which will seriously affect the localization performance
+of the UAV-based network to ground users. To achieve
+high-precision localization of UE, multi-UAV collaboration
+can be used to correct the position information of UAVs.
+The real distance between the i-th and j-th UAVs at time
+slot k is recorded as ri,j(k), then the distance relationship
+between the UAV base stations satisfies
+∥pi(k) −pj(k)∥= ri,j(k).
+(16)
+VOLUME 4, 2016
+5
+This article has been accepted for publication in IEEE Access. This is the author's version which has not been fully edited and 
+content may change prior to final publication. Citation information: DOI 10.1109/ACCESS.2023.3315870
+This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License. For more information, see https://creativecommons.org/licenses/by-nc-nd/4
+[p.6]
+Y. ZHENG et al.: Multi-UAV Collaboration and IMU Fusion Localization Method in Partial GNSS-denied Scenarios
+The distance measurement between the i-th and j-th UAV
+is denoted as eri,j(k), which can be obtained via RSSI, TOF,
+etc. N UAV base stations lead to N(N −1)/2 equations:
+
+
+
+
+
+
+
+
+
+∥p1(k) −p2(k)∥= er1,2(k)
+∥p1(k) −p3(k)∥= er1,3(k)
+...
+∥pN−1(k) −pN(k)∥= erN−1,N(k)
+.
+(17)
+For the convenience of representation, the coordinates
+of all UAVs at time slot k are labeled as PUAV (k) =
+[p1(k), p2(k), · · · , pn(k)]. The GNSS coordinates of the
+UAVs are known and can be used as initial values, but further
+accuracy improvements are required. Thus, equation (17) can
+be rewritten as an optimization problem. The multi-UAV
+cooperative position correction model is expressed as
+follows:
+PUAV (k) = arg min
+N
+X
+i=1
+N
+X
+j=i+1
+g (pi(k), pj(k), eri,j(k)),
+(18)
+where
+g (pi(k), pj(k), eri,j(k)) = (∥pi(k) −pj(k)∥−eri,j(k))2.
+In this paper, the GNSS coordinates of the UAV are used as
+the initial solution, and the gradient descent method is used
+to solve Equation (18). The specific solution process is given
+in IV-A.
+D. MULTI-UAV COLLABORATION AND IMU FUSION
+LOCALIZATION MODEL
+Combining III-A to III-C, the result of ranging and
+positioning the UE by the UAV base station is used as
+the coordinate observation epU(k), while the coordinate
+prediction value obtained by the IMU module carried by the
+user itself is noted as bpU(k + 1). The complete mobile UE
+multi-source localization model can be expressed as
+epU(k) =h−1 
+eZ(k) −υ(k)
+
+(19a)
+bpU(k + 1) =pU(k) + v(k)∆t + ∆t2
+2 a(k) + ∆t2
+2 ωa(k),
+(19b)
+where the UAV coordinates PUAV (k) used as the positioning
+anchor point in h−1 (·) are obtained from (18).
+Equations (19a) and (19b) correspond to the multi-UAV
+collaborative localization and user-side IMU localization
+processes, respectively, and the fusion algorithms for both
+will be presented in Section IV.
+IV. MULTI-UAV COLLABORATION AND IMU FUSION
+LOCALIZATION ALGORITHM
+The flow of the multi-UAV collaborative and IMU fusion
+localization algorithm is shown in Fig. 2. The algorithm was
+divided into three parts: first, the gradient descent method
+was proposed for UAV collaborative coordinate correction;
+Then, data screening based on DPC was performed to
+FIGURE 2. Process of multi-UAV collaboration and IMU fusion localization
+reduce the impact of abnormal data on UE localization
+accuracy; Finally, the multi-UAV collaborative and IMU
+fusion localization was realized based on UKF.
+A. GRADIENT DESCENT METHOD TO CORRECT THE
+COORDINATES OF UAVS
+The distance between UAV base stations is used as a
+constraint, and the gradient descent method is used to correct
+the initial UAV coordinates. The coordinates ePUAV (k),
+obtained by the UAV through satellite signal measurements,
+are used as the initial values. Then, construct the cost function
+according to (18):
+G =
+N
+X
+i=1
+N
+X
+j=i+1
+g (pi(k), pj(k), eri,j(k)).
+(20)
+Taking the first-order total differentiation of the UAV
+coordinates, the gradient expression is obtained as follows:
+−−−→
+Grad =
+h
+∂G
+∂p1(k)
+∂G
+∂p2(k)
+· · ·
+∂G
+∂pN(k)
+i
+.
+(21)
+Since the gradient descent process needs to go through
+several iterations, the accuracy of the single gradient
+calculation is not required, and the approximation of the
+first-order partial derivatives can be obtained using the
+difference method.
+Then, normalizing the gradient −−−→
+Grad yields −−−→
+Grad∗:
+−−−→
+Grad∗= −−−→
+Grad
+.
+
+
+−−−→
+Grad
+
+
+
+.
+(22)
+Set the step size to ξ and iteratively update the UAV
+coordinates:
+bPUAV (k) = ePUAV (k) + ξ · −−−→
+Grad∗.
+(23)
+The reduction of the updated cost function is denoted as η:
+η = G|PUAV (k)=ePUAV (k) −G|PUAV (k)=bPUAV (k).
+(24)
+Determine whether the iterative process converges by the
+condition |η| < ε = 0.01. If it does not converge, let
+6
+VOLUME 4, 2016
+This article has been accepted for publication in IEEE Access. This is the author's version which has not been fully edited and 
+content may change prior to final publication. Citation information: DOI 10.1109/ACCESS.2023.3315870
+This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License. For more information, see https://creativecommons.org/licenses/by-nc-nd/4
+[p.7]
+Y. ZHENG et al.: Multi-UAV Collaboration and IMU Fusion Localization Method in Partial GNSS-denied Scenarios
+ePUAV (k) = bPUAV (k) and return to calculate −−−→
+Grad based
+on (21). It is worth noting that when η < 0, it means that
+the optimal estimation point has been crossed after moving
+the step size ξ along the gradient direction. At this point, it is
+necessary to discount the step length ξ by half.
+The process of the gradient descent method is shown in
+Algorithm 1.
+Algorithm 1 The Gradient Descent Method for UAV
+Localization
+Input: ePUAV (k), eri,j(k)
+Output: bPUAV (k)
+1: Set the variables: ξ = 0.1, ε = 0.01
+2: repeat
+3:
+Calculate −−−→
+Grad based on (21)
+4:
+Normalize −−−→
+Grad to −−−→
+Grad∗
+5:
+bPUAV (k) ←ePUAV (k) + ξ · −−−→
+Grad∗
+6:
+Calculate η based on (24)
+7:
+if η < 0 then
+8:
+reduce ξ by half
+9:
+end if
+10: until |η| < ε
+11: return Outputs
+B. DATA PREPROCESSING BASED ON DPC
+It is assumed that the UAV base station ranges the UE m
+times in the k-th time slot so that m sets of ranging data are
+obtained as L(k) = {l1(k), l2(k), · · · , lm(k)}, where lm(k)
+denotes the combination of the distances obtained from the
+m-th measurement by N UAVs in the k-th time slot.
+When the range is normal, these data will float on either
+side of a reference value. If the base station range is
+abnormal, a portion of the data will deviate. Individual data
+anomalies show up as noisy points that deviate from the
+overall measurement distribution, while a larger number of
+data anomalies show up as independent cluster distributions.
+Therefore, a clustering method that can automatically
+identify cluster centers and noise points is needed.
+The DPC algorithm [32] is an automatic cluster center
+identification method based on density peaks. The algorithm
+is based on the following two assumptions: one, the cluster
+centers are surrounded by other data points with lower
+density in the clusters. Two, the distance between cluster
+centers is relatively far. The inter-element similarity dij is
+obtained by
+dij = ∥li(k) −lj(k)∥2.
+(25)
+Then the similarity matrix D is constructed as
+D =
+
+
+d11
+d12
+· · ·
+d1m
+d21
+d22
+...
+...
+dm1
+dm2
+dmm
+
+.
+(26)
+The local density ρi of the i-th element is obtain by
+ρi =
+X
+j
+exp
+ 
+−d2
+ij
+d2c
+!
+.
+(27)
+The relative distance δi of the i-th element is obtain by
+δi =
+
+
+
+min
+j:ρj>ρi (dij) , if∃j, ρj > ρi
+max
+j
+(dij) , otherwise
+.
+(28)
+Then, a decision map is drawn to identify the points with
+larger local density ρi and relative distance δi as cluster
+centers. Subsequently, the non-centers are assigned to the
+nearest clusters. The cutoff distance dc is the only parameter
+that needs to be set artificially for DPC. The set of points
+belonging to the cluster but not farther than dc from other
+clusters is defined as the boundary region and the highest
+density point in the boundary region is defined as ρb. Finally,
+objects in the clusters with densities equal to or less than ρb
+are considered outliers (noise points) and are not counted in
+the clustering results.
+However, the "large value" is only a qualitative description
+and there is no uniform standard, which causes the
+identification of cluster centers to be easily influenced by
+subjective factors. In response, [43] further proposed an
+improved DPC scheme that automatically selects clustering
+centers. Define the cluster center identification variable
+corresponding to the i-th element as
+γi = ρi × δi.
+(29)
+Then, draw a descending graph by arranging γi in
+descending order. The slope between each adjacent point in
+the graph is then calculated and the data point with the largest
+change in slope is found as the critical point. The data point
+before the critical point is the center of clustering.
+The specific execution of the DPC algorithm is shown in
+Algorithm 2.
+Algorithm 2 Density Peaks Clustering
+Input: L(k) = {l1(k), l2(k), · · · , lm(k)}
+Output: Cluster results
+1: Set the variables: dc = 1
+2: Calculate the inter-element similarity dij and construct
+the similarity matrix D based on (25) and (26)
+respectively
+3: Calculating local density ρi, relative distance δi and
+cluster center identification variable γi based on (27) and
+(28) respectively
+4: Calculate cluster center identification variable γi based
+on (29)
+5: Identify cluster centers based on γi sequence
+6: Assigning non-central points to the nearest high-density
+point cluster
+7: Remove outliers with local density less than ρb
+8: return Outputs
+VOLUME 4, 2016
+7
+This article has been accepted for publication in IEEE Access. This is the author's version which has not been fully edited and 
+content may change prior to final publication. Citation information: DOI 10.1109/ACCESS.2023.3315870
+This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License. For more information, see https://creativecommons.org/licenses/by-nc-nd/4
+[p.8]
+Y. ZHENG et al.: Multi-UAV Collaboration and IMU Fusion Localization Method in Partial GNSS-denied Scenarios
+If multiple cluster centers are identified by DPC, this
+indicates the presence of an anomalous part of the data.
+To ensure localization accuracy, the UAV base station data
+cannot be deleted directly, and the normal part needs to be
+filtered out from it.
+In
+response,
+Section
+IV-B
+proposed
+a
+multilateral
+matching degree-based screening scheme. Suppose L(k) is
+clustered by DPC to obtain {φ1, · · · , φj, · · · , φnc}, a total
+of nc central distributions, where φj =
+
+eφ1
+j, eφ2
+j, · · · , eφN
+j
+
+, denoting the combination of N
+UAV-to-user range
+measurements. First, the Chan-Taylor method in Section
+III-A is used to find the user coordinate estimates bpj
+U(k),
+where j = 1, 2, · · · , nc, corresponding to the above nc
+range combinations. Then, the distance from bpj
+U(k) to each
+UAV base station
+
+
+
+bpj
+U(k) −pi(k)
+
+
+
+ is calculated. Next, the
+distance calculation value is differenced from the measured
+value eφi
+j. Finally, the sum of squares of the differences is
+calculated to obtain the expression (30), which measures the
+multilateral matching degree.
+Ej =
+N
+X
+i=1
+
+
+
+bpj
+U(k) −pi(k)
+
+
+
+ −eφi
+j
+2
+(30)
+The distance deviation degree Ej corresponding to each
+cluster center is derived according to (30), and the set φj with
+the smallest Ej among them is selected as the normal data
+combination so that the cleaning and screening of abnormal
+data are completed.
+C. UNSCENTED KALMAN FILTER
+Based on completing the UAV coordinate correction and
+ranging data preprocessing, Section IV-C combined the UAV
+base station ranging with the user-side IMU module based
+on unscented Kalman filter to achieve the UE localization.
+UKF depends on the assumption that both observed variables
+and state variables obey Gaussian distribution. The Gaussian
+distribution of random variables can be described by a set
+of sigma sampling points, and then the posterior mean and
+variance are approximated by the weighted statistical linear
+regression method through nonlinear function mapping.
+According to the conclusion of [42], compared with EKF,
+the estimation accuracy of UKF can reach the second-order
+accuracy of Taylor series expansion.
+Use symbol X(k) to indicate the motion state of the UE in
+slot k:
+X(k) =
+ pU(k)
+v(k) T .
+(31)
+where pU(k) and v(k) are introduced in (1) and (12),
+respectively.
+Let bX(k + 1|k) denote the prediction of the state vector
+at time slot k + 1. According to the recurrence relation of
+equation (14) and equation (15), the state equation can be
+expressed as follows:
+bX(k + 1|k) = A bX(k) + Ba(k) + ω(k),
+(32)
+Algorithm 3 UKF for UE Localization
+Input: eZ(k + 1), eX(k|k), P(k|k)
+Output: X(k + 1|k + 1), P(k + 1|k + 1)
+1: Set the variables: α = 1, β = 2, κ = 0.
+2: Calculate the sigma points
+X(i)(k|k) =
+
+
+X(k)
+X(k) +
+p
+(nx + λ) P(k)
+X(k) −
+p
+(nx + λ) P(k)
+
+
+T
+3: Predict the sigma points and get the mean and covariance
+bX(i)(k + 1|k) = AX(i)(k|k) + Ba (k) , i = 0, 1, ..., 2nx
+X(k + 1|k) =
+2nx
+P
+i=0
+w(i)
+m bX(i)(k + 1|k)
+P(k + 1|k) =
+2nx
+P
+i=0
+w(i)
+c
+h
+X(k + 1|k) −bX(i)(k + 1|k)
+i
+h
+X(k + 1|k) −bX(i)(k + 1|k)
+iT
++ Q
+4: Update sigma points
+X(i)(k+1|k) =
+
+
+X(k + 1|k)
+X(k + 1|k) +
+p
+(nx + λ) P(k + 1|k)
+X(k + 1|k) −
+p
+(nx + λ) P(k + 1|k)
+
+
+T
+5: Predict the observed values and calculate their mean and
+covariance
+bZ(i)(k + 1|k) = h
+
+X(i)(k + 1|k)
+
+, i = 0, 1, ..., 2nx
+Z(k + 1|k) =
+2nx
+P
+i=0
+w(i)
+m bZ(i)(k + 1|k)
+PZkZk =
+2nx
+P
+i=0
+w(i)
+c
+h
+Z(k + 1|k) −bZ(i)(k + 1|k)
+i
+h
+Z(k + 1|k) −bZ(i)(k + 1|k)
+iT
++ R
+PXkZk =
+2nx
+P
+i=0
+w(i)
+c
+h
+X(k + 1|k) −bX(i)(k + 1|k)
+i
+h
+Z(k + 1|k) −bZ(i)(k + 1|k)
+iT
+6: Calculate the Kalman gain and update the state
+K(k + 1) = PXkZkP−1
+ZkZk
+bX(k + 1|k + 1) = X(k + 1|k)+
+Kk+1
+h
+eZ(k + 1) −Z(k + 1)
+i
+P(k + 1|k + 1) = P(k + 1|k) + Kk+1PZkZkKT
+k+1
+7: return Outputs
+where
+A =
+ I3×3
+∆t · I3×3
+O3×3
+I3×3
+
+B =
+
+1
+2∆t2 · I3×3
+∆t · I3×3
+T
+ω(k) =
+h
+∆t2
+2 ωa(k)
+∆tωa(k)
+iT
+.
+Let eZ(k + 1) denote the observation vector at time slot
+k + 1. According to equation (4), the observation equation
+8
+VOLUME 4, 2016
+This article has been accepted for publication in IEEE Access. This is the author's version which has not been fully edited and 
+content may change prior to final publication. Citation information: DOI 10.1109/ACCESS.2023.3315870
+This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License. For more information, see https://creativecommons.org/licenses/by-nc-nd/4
+[p.9]
+Y. ZHENG et al.: Multi-UAV Collaboration and IMU Fusion Localization Method in Partial GNSS-denied Scenarios
+can be expressed as:
+eZ(k + 1) =
+
+
+∥pU(k + 1) −p1(k + 1)∥
+∥pU(k + 1) −p2(k + 1)∥
+...
+∥pU(k + 1) −pN(k + 1)∥
+
++ υ(k + 1).
+(33)
+Then, let Q and R denote the covariance of the process
+noise ω(k) and the observation noise υ(k), respectively.
+Q = diag(
+1
+4σ2
+a∆t4 · 11×3
+σ2
+a∆t2 · 11×3 )
+(34)
+R = σ2
+r · IN×N
+(35)
+In the Gaussian system, UKF uses a small number of
+sample points to obtain the distribution of variables after
+nonlinear transformation. The a priori mean X(k) takes the
+value of the optimal estimate bX(k) of the current state vector.
+The set of sigma points obtained based on the prior mean and
+covariance matrix can be expressed as (36).
+X(0)(k|k) = X(k)
+X(i)(k|k) = X(k) +
+p
+(λ + nx) P(k|k)
+
+i, i = 1, . . . , nx
+X(i)(k|k) = X(k) −
+p
+(λ + nx) P(k|k)
+
+i, i = nx + 1, . . . , 2nx
+(36)
+where
+p
+(λ + nx) P(k|k)
+
+i represents the i-th column
+element of matrix
+p
+(λ + nx) P(k|k)
+
+. λ is the scaling
+factor to reduce the total prediction error, which is set to
+λ = α2 (nx + κ). nx denotes the dimension of X(k). α
+is generally set to a small positive number to ensure the
+mean of the sigma points is around X (k), the article takes
+α = 1. Set the parameter κ = 0 to ensure that the matrix
+(λ + nx) P(k|k) is a positive semi-definite matrix.
+In the unscented transformation, the weight of the i-th
+sampling point in the calculation of the mean value is denoted
+as w(i)
+mean, and the weight in the calculation of the covariance
+is denoted as w(i)
+cov :
+w(0)
+mean =
+λ
+nx+λ
+w(0)
+cov =
+λ
+nx+λ +
+ 1 −α2 + β2
+w(i)
+mean = w(i)
+cov =
+λ
+2(nx+λ), i = 1, 2, . . . , 2nx
+,
+(37)
+where β is a non-negative weight coefficient, β = 2.
+Substitute the sigma point into the (32), predict the
+state mean X(k + 1|k) and the state covariance matrix
+P(k + 1|k) at time slot k + 1, and then generate new
+sigma points by the UT transformation. Substitute the new
+sigma points into (33) to calculate the k + 1 step prediction
+mean Z(k + 1|k) of the system observation, and then
+calculate the observation covariance matrix PZkZk and the
+cross-covariance matrix PXkZk between the state vector and
+the observation vector. Finally, calculate the Kalman gain
+according to the covariance and the state and update the
+covariance matrix at time slot k + 1.
+The specific unscented Kalman filter process is presented
+in Algorithm 3.
+TABLE 2. Mean of UAV Self-positioning Errors
+Methods
+X(m)
+Y(m)
+Horizon(m)
+Height(m)
+Collaboration
+0.654
+0.645
+0.919
+0.328
+Kalman
+0.89
+0.902
+1.267
+0.328
+Raw
+1.2
+1.2
+1.697
+0.4
+V. SIMULATION AND EXPERIMENTAL RESULTS
+To verify the effectiveness of the proposed localization
+algorithm, we set three UAV base stations to form a typical
+UE localization scenario of the emergency network and
+use MATLAB to carry out simulation experiments. In the
+test region of 1000 × 1000 × 200 m3, the UAV hovered
+at 150 m altitude according to the preset line to provide
+localization services for UEs on the ground. The coordinates
+of UAVs obtained via satellite navigation were set to have
+a deviation of ±1.5 m in the horizontal direction and
+±0.5 m in the vertical direction [19]. Set the mean square
+deviation of the observation noise and the process noise
+to 1.5 and 0.2, respectively. The ranging error between
+the UAVs followed the distribution of N
+ 0, 12
+. The root
+mean square error (RMSE) and the cumulative distribution
+function (CDF) were used to measure the localization
+accuracy and stability. First, the UAV cooperative coordinate
+correction algorithm was compared with the Kalman filter
+and the PSO algorithms. Then, the screening and cleaning
+effect of the preprocessing process was verified under
+range anomaly conditions. In addition, the performance
+of the UKF algorithm was compared with the EKF [39]
+and CT [37] algorithms under different conditions. Finally,
+the performance of the proposed multi-UAV collaborative
+IMU fusion localization algorithm in high-altitude and
+low-altitude scenarios was evaluated respectively.
+A. PERFORMANCE OF UAV COLLABORATIVE
+CORRECTION
+To verify the advantages of the UAV collaborative correction
+scheme proposed in this article, the commonly used Kalman
+method and the initial coordinates of the UAVs were used as
+a comparison. Table 2 showed the average localization errors
+of UAVs obtained by the three schemes. It can be seen that
+the two-dimensional accuracy of UAV coordinates obtained
+by using the UAV collaborative correction scheme proposed
+in this article was improved by about 45.8% compared with
+the initial UAV coordinates, and further improved by about
+27.5% based on the commonly used Kalman filter. At the
+same time, the positioning accuracy of the proposed scheme
+in the vertical direction was not improved compared with the
+Kalman method. This is because many UAVs are almost at
+the same height, and the horizontal direction error is mainly
+corrected in the collaborative coordinate correction.
+To more intuitively reflect the two-dimensional coordinate
+correction effect of the proposed scheme on UAV, the
+two-dimensional flight path diagram of the 1st UAV in the
+UAV network is drawn in Fig. 3. The results showed that
+both the UAV initial coordinate trajectory and the Kalman
+VOLUME 4, 2016
+9
+This article has been accepted for publication in IEEE Access. This is the author's version which has not been fully edited and 
+content may change prior to final publication. Citation information: DOI 10.1109/ACCESS.2023.3315870
+This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License. For more information, see https://creativecommons.org/licenses/by-nc-nd/4
+[p.10]
+Y. ZHENG et al.: Multi-UAV Collaboration and IMU Fusion Localization Method in Partial GNSS-denied Scenarios
+FIGURE 3. UAV tracking routes under different Correction schemes
+FIGURE 4. Comparison of iteration efficiency
+filtering trajectory have some deviations from the real UAV
+position, while the use of collaborative cointegration could
+effectively correct the two-dimensional deviation, which was
+more consistent with the real trajectory.
+Fig. 4 compared the iterative efficiency of the gradient
+descent method and the commonly used PSO algorithm.
+It can be seen from this figure that with the increase
+in the number of particles, the PSO algorithm was more
+adaptable. Compared with the gradient descent method, the
+PSO algorithm achieved better fitness in the initial iteration.
+However, when the fitness was about 15, the PSO algorithm
+converged early and stopped optimization. In contrast, the
+gradient descent method with low complexity had fast
+convergence speed and good adaptability, which can meet the
+needs of UAV dynamic coordinate correction. Therefore, the
+gradient descent method was chosen in this paper instead of
+the PSO algorithm.
+B. PREPROCESSING PERFORMANCE IN THE CASE OF
+RANGING INTERFERENCE
+Considering the influence of interference such as occlusion
+in the ranging process for UEs, Section V-B simulated the
+positioning of UE by adding outliers in the ranging data
+with a probability of 30%. The proposed data preprocessing
+FIGURE 5. The effect of preprocessing for interference data
+scheme and the localization results without preprocessing
+were compared and analyzed under different data quantities.
+Moreover, the preprocessing effect on 10, 15, 50, and 100
+sets of ranging data were tested respectively.
+Fig. 5 compared the CDF of the localization errors with
+different data sizes. The results showed that when there was
+interference in user-ranging data, the localization deviation
+obtained without preprocessing was extremely large. For the
+proposed preprocessing scheme, the best localization effect
+was achieved when the data size was 100, and the positioning
+error of all test points was within 3 m. On a scale of 50,
+about 1% of the test points had positioning errors greater
+than 6m. If it is reduced to 15 ranging times, the probability
+of user positioning error greater than 6 m increases to 4%.
+When the number of measurements was further reduced to
+10, the probability of user positioning error greater than
+6 m was more than 10%. This is because as the number
+of measurements is reduced, insufficient data will lead to
+clustering anomalies in the preprocessing process, increasing
+the probability of screening failure.
+When the amount of measured data is sufficient, the
+preprocessing scheme proposed in this article can eliminate
+almost all the effects of measured outliers. However, in the
+actual measurement process, because the UAV and the user
+are in the mobile state at the same time, a sufficient amount
+of data cannot be obtained. Therefore, it is inevitable that a
+small amount of abnormal data remains after preprocessing.
+C. LOCALIZATION PERFORMANCE OF THE
+UKF-BASED FUSION ALGORITHM
+Considering the scenario where the UAV base station and the
+UE move at the same time, the experiment first compared
+the localization effects of UKF, EKF, and CT methods under
+normal ranging conditions. Set the ground UEs to move along
+the known line, select 70 sample points on the way, and
+perform 100 rounds of testing.
+Fig. 6 showed the RMSE distribution of the user at each
+sample point. It can be seen that the RMSE of the three
+localization algorithms near the starting point was not much
+10
+VOLUME 4, 2016
+This article has been accepted for publication in IEEE Access. This is the author's version which has not been fully edited and 
+content may change prior to final publication. Citation information: DOI 10.1109/ACCESS.2023.3315870
+This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License. For more information, see https://creativecommons.org/licenses/by-nc-nd/4
+[p.11]
+Y. ZHENG et al.: Multi-UAV Collaboration and IMU Fusion Localization Method in Partial GNSS-denied Scenarios
+FIGURE 6. Localization error distribution of mobile UE sample sequence
+FIGURE 7. Trajectories of the Mobile UEs
+different. With the recursive iteration, the UKF and EKF
+positioning errors gradually decrease and tended to be stable
+after 10 sample sequences. After iteration, the positioning
+error of UKF was about 1.03 m, while the positioning
+errors of EKF and CT were about 1.31 m and 2.03 m,
+respectively. The UE localization error has reduced by 21.4%
+compared with the commonly used EKF. Moreover, the
+time-consuming of UKF, EKF, and CT of each sample was
+about 1.7 × 10−5 s, 1.7 × 10−5 s and 2.1 × 10−5 s. It can
+meet the needs of dynamic UE localization.
+To analyze the tracking effect of UKF on mobile users
+more intuitively, Fig. 7 showed the movement trajectories
+of one test user. Among them, due to the fluctuation of
+ranging information, the CT method based on single source
+ranging will lead to the deviation of some sample points. The
+positioning error of single-source inertial navigation based
+on the IMU module will accumulate with the increase of
+distance and deviate from the actual trajectory gradually. The
+UKF method based on multi-source location can eliminate
+some interference and avoid the error accumulation of the
+IMU module, so the UE motion circuit is closer to the real
+path.
+The experiment then compared and tested the localization
+of users by UKF, EKF, and CT when there are residual
+FIGURE 8. Filtering effect in abnormal residual scene
+FIGURE 9. CDFs of localization error under interference conditions
+outliers. Select a part of the UE mobile line and set the
+ranging noise to N
+ 0, 82
+to simulate the influence of
+abnormal data residual on localization. The two-dimensional
+error distribution of moving UE sample points under
+abnormal conditions is obtained by 500 tests on the
+measurement data with abnormal residuals, as shown in
+Fig. 8. It can be seen that a residual measurement anomaly
+appeared near the 40th sample sequence. At this time, the
+RMSE of the CT method was close to 9 m after multiple
+experiments, which is a large deviation. However, the RMSE
+obtained by using the UKF was about 3.5 m, which
+can effectively reduce the influence of anomaly residual
+on location. Moreover, in the case of abnormal data, the
+localization accuracy of the UKF was still better than that of
+the EKF method. In Fig. 9, we compared the UE positioning
+error distribution of the preprocessing combined with the
+UKF scheme(the proposed scheme), only preprocessing,
+only UKF, and no processing when the data scale was 30.
+The experimental results showed that the scheme proposed
+achieved the best localization effect, in which the positioning
+error of about 96% of the sample points was less than 4
+m, and that of all the sample points was less than 8 m,
+achieving excellent positioning accuracy and stability. When
+VOLUME 4, 2016
+11
+This article has been accepted for publication in IEEE Access. This is the author's version which has not been fully edited and 
+content may change prior to final publication. Citation information: DOI 10.1109/ACCESS.2023.3315870
+This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License. For more information, see https://creativecommons.org/licenses/by-nc-nd/4
+[p.12]
+Y. ZHENG et al.: Multi-UAV Collaboration and IMU Fusion Localization Method in Partial GNSS-denied Scenarios
+FIGURE 10. CDFs of localization error under high altitude and low altitude
+scenarios
+only preprocessing is used, there will be a small amount of
+abnormal residue, resulting in the CDF curve not reaching
+100%. When only UKF is used, the correction effect is
+more obvious at large errors but even lower than the scheme
+without any treatment at small errors.
+The preprocessing combined with the UKF filtering
+scheme proposed in this article can effectively eliminate the
+interference of ranging anomalies of localization for moving
+UEs. The simulation results verified that the proposed
+positioning scheme has good robustness.
+D. LOCALIZATION PERFORMANCE IN HIGH-ALTITUDE
+AND LOW-ALTITUDE SCENARIOS
+Due to the blocking of mountains, there are two localization
+strategies for the UAV emergency network: (1) The UAVs fly
+at high altitudes to obtain more accurate GNSS coordinates,
+which would mean poor range accuracy with the UEs. (2)
+The UAVs fly at low altitudes for more accurate ranging with
+the UEs, which would scarify certain GNSS accuracy for the
+UAVs. The error distribution of UAVs’ GNSS coordinates
+was set to N
+ 0, 1.52
+and N
+ 0, 92
+for the high-altitude
+and low-altitude scenarios, respectively [19]. And the error
+distribution of the range between UAVs and UEs was set to
+N
+ 0, 52
+and N
+ 0, 12
+for the two scenarios, respectively
+[5].
+In Fig. 10, the suffixes ‘1’ and ‘2’ in the legend
+correspond to the high-altitude scene and the low-altitude
+scene, respectively. It can be seen that the UKF method
+proposed was superior to the commonly used EKF and CT
+methods in both localization scenarios. For UKF positioning,
+more than 90% of the sample point positioning error was
+within 2 m in the low-altitude scene, while only less than
+80% of the sample positioning error was less than 4 m in
+the high-altitude scene. This indicated that the positioning
+scheme proposed has a high tolerance for GNSS error at the
+UAV end, and is sensitive to ranging error with the UEs.
+Table 3 showed the RMSE of the three localization
+schemes in high-altitude and low-altitude scenes, respectively.
+Among them, the RMSE of UKF in the low altitude scene
+TABLE 3. RMSE under high-altitude and low-altitude scenarios
+RMSE
+UKF
+EKF
+CT
+High altitude (m)
+2.84
+3.90
+6.06
+Low altitude (m)
+1.41
+1.65
+2.37
+was only 1.41 m, while that in the high altitude scene
+was 2.84 m. This is because, as shown in subsection
+V-A, the synergy between UAVs effectively calibrates the
+original GNSS deviation. Therefore, in the actual localization
+process, the UAV flight height can be reduced, and scarify
+certain GNSS accuracy to obtain better positioning results for
+the UEs. Moreover, the multi-UAV collaboration and IMU
+fusion localization algorithm is also suitable for dynamic
+localization based on short-range IoT (Internet of Things).
+However, since the proposed algorithm is sensitive to
+ranging error, a high-precision ranging module is needed to
+ensure localization accuracy in high-altitude scenarios. This
+will increase the power consumption and cost of the UAV
+system.
+VI. CONCLUSION
+Aiming at the problem of mobile UE localization in
+partial GNSS-denied scenarios, this article proposed a
+localization scheme based on multi-UAV collaboration
+and IMU fusion. Multiple UAVs are used to build an
+emergency network and integrate with the user-side IMU
+module to achieve high-precision UE localization. Thus,
+it can avoid the inefficient traditional blanket search and
+improve rescue efficiency. First, a multi-UAV collaborative
+correction model was proposed, and the gradient descent
+method was used to correct the initial coordinates of
+the UAV. Then, a data filtering method based on DPC
+was proposed to reduce the impact of abnormal data on
+localization. On this basis, a multi-UAV collaborative and
+IMU fusion localization algorithm based on UKF was
+proposed. The simulation results showed that the proposed
+UAV collaborative coordinate correction algorithm can
+effectively improve the two-dimensional coordinate accuracy
+of UAV; The RMSE of the proposed UKF method has
+reduced by 21.4% compared with the commonly used
+EKF method; Under interference conditions, the proposed
+scheme can still achieve high-precision and high-stability
+UE localization, and has good robustness; The proposed
+scheme is tolerant to GNSS deviation at the UAV end
+but sensitive to ranging noise with the UEs, so it is
+more suitable for low-altitude flight localization scenarios.
+Moreover, the multi-UAV collaboration and IMU fusion
+localization algorithm can also apply to short-range dynamic
+IoT localization.
+It is worth noting that in addition to the flight height,
+dense forests and buildings will also seriously reduce
+the ranging accuracy, thus affecting the accuracy of the
+localization scheme proposed in this paper. In practical
+rescue applications, personnel positioning is only the first
+step. The UAV emergency network also needs to guarantee
+12
+VOLUME 4, 2016
+This article has been accepted for publication in IEEE Access. This is the author's version which has not been fully edited and 
+content may change prior to final publication. Citation information: DOI 10.1109/ACCESS.2023.3315870
+This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License. For more information, see https://creativecommons.org/licenses/by-nc-nd/4
+[p.13]
+Y. ZHENG et al.: Multi-UAV Collaboration and IMU Fusion Localization Method in Partial GNSS-denied Scenarios
+tasks such as communication and environmental awareness.
+In the future, we will further study the channel sensing of
+UAV base stations in complex obstacle environments.
+REFERENCES
+[1] R. Ravichandran, D. Ghose and K. Das, "UAV Based Survivor Search
+during Floods," 2019 International Conference on Unmanned Aircraft
+Systems (ICUAS), Atlanta, GA, USA, 2019, pp. 1407-1415.
+[2] MASE K. How to deliver your message from/to a disaster area[J]. IEEE
+Communications Magazine, vol.49, no.1, pp. 52-57. 2011.
+[3] Z. Gong et al., “Design, analysis, and field testing of an innovative
+drone-assisted zero-configuration localization framework for wireless
+sensor networks,” in IEEE Transactions on Vehicular Technology, vol.
+66, no. 11, pp. 10322–10335, Nov. 2017.
+[4] WANG Li, WEI Qing, XU Lianming, SHEN Yuan, ZHANG Ping, FEI
+Aiguo. “Research on low-energy-consumption deployment of emergency
+UAV network for integrated communication-navigating-sensing”, in
+Journal on Communications , vol. 43, no. 7, pp.1-20, July 2022.
+[5] R. M. Rao, A. V. Padaki, B. L. Ng, Y. Yang, M. -S. Kang and V.
+Marojevic, "ToA-Based Localization of Far-Away Targets: Equi-DOP
+Surfaces, Asymptotic Bounds, and Dimension Adaptation," in IEEE
+Transactions on Vehicular Technology, vol. 70, no. 10, pp. 11089-11094,
+Oct. 2021.
+[6] Y. Kang, Q. Wang, J. Wang and R. Chen, "A High-Accuracy
+TOA-Based Localization Method Without Time Synchronization in
+a Three-Dimensional Space," in IEEE Transactions on Industrial
+Informatics, vol. 15, no. 1, pp. 173-182, Jan. 2019.
+[7] S. Zhao, X. -P. Zhang, X. Cui and M. Lu, "A New TOA Localization
+and Synchronization System With Virtually Synchronized Periodic
+Asymmetric Ranging Network," in IEEE Internet of Things Journal, vol.
+8, no. 11, pp. 9030-9044, 1 June1, 2021.
+[8] J. Zhu, P. Hou, K. Nagayama, Y. Hou, S. Denno and R. Ferdian,
+"Two-Dimensional RSSI-Based Indoor Localization Using Multiple
+Leaky Coaxial Cables With a Probabilistic Neural Network," in IEEE
+Access, vol. 10, pp. 21109-21119, 2022.
+[9] H. -C. Yen, L. -Y. Ou Yang and Z. -M. Tsai, "3-D Indoor Localization
+and Identification Through RSSI-Based Angle of Arrival Estimation With
+Real Wi-Fi Signals," in IEEE Transactions on Microwave Theory and
+Techniques, vol. 70, no. 10, pp. 4511-4527, Oct. 2022.
+[10] S. G. Sanchez, S. Mohanti, D. Jaisinghani and K. R. Chowdhury,
+"Millimeter-Wave Base Stations in the Sky: An Experimental Study
+of UAV-to-Ground Communications," in IEEE Transactions on Mobile
+Computing, vol. 21, no. 2, pp. 644-662, 1 Feb. 2022.
+[11] X. Zhu, F. Vanegas, F. Gonzalez and C. Sanderson, "A Multi-UAV
+System for Exploration and Target Finding in Cluttered and GPS-Denied
+Environments," 2021 International Conference on Unmanned Aircraft
+Systems (ICUAS), Athens, Greece, 2021, pp. 721-729.
+[12] B. Yuan et al., "A UAV-Assisted Search and Localization Strategy in
+Non-Line-of-Sight Scenarios," in IEEE Internet of Things Journal, vol.
+9, no. 23, pp. 23841-23851, 1 Dec.1, 2022.
+[13] M. Atif, R. Ahmad, W. Ahmad, L. Zhao and J. J. P. C. Rodrigues,
+"UAV-Assisted Wireless Localization for Search and Rescue," in IEEE
+Systems Journal, vol. 15, no. 3, pp. 3261-3272, Sept. 2021.
+[14] Y. -C. Du, M. -X. Zhang, H. -F. Ling and Y. -J. Zheng, "Evolutionary
+Planning of Multi-UAV Search for Missing Tourists," in IEEE Access,
+vol. 7, pp. 73480-73492, 2019.
+[15] Lang, Ruan, Jinlong, et al. "Energy-Efficient Multi-UAV Coverage
+Deployment in UAV Networks:A Game-Theoretic Framework", in China
+Communication, 2018.
+[16] F. Potortì et al., "Off-Line Evaluation of Indoor Positioning Systems in
+Different Scenarios: The Experiences From IPIN 2020 Competition," in
+IEEE Sensors Journal, vol. 22, no. 6, pp. 5011-5054, Mar. 2022.
+[17] J. JI, X. SUN, W. ZHOU. Application of multi-source fusion localization
+algorithm in inspection UAV[J]. Journal of Navigation and Positioning,
+vol.10, no.4, pp:130-137, 2022.
+[18] Hacohen S , Medina O , Grinshpoun T , et al. Improved GNSS
+Localization and Byzantine Detection in UAV Swarms[J]. Sensors, 2020,
+20(24):7239.
+[19] MATRICE 600 UAV specifications, Accessed: Apr.01, 2020. [Online].
+Available: https://www.dji.com/es/matrice600/info
+[20] W. Zhang and W. Zhang, "An Efficient UAV Localization Technique
+Based on Particle Swarm Optimization," in IEEE Transactions on
+Vehicular Technology, vol. 71, no. 9, pp. 9544-9557, Sept.2022.
+[21] S. Minaeian, J. Liu and Y. -J. Son, "Vision-Based Target Detection and
+Localization via a Team of Cooperative UAV and UGVs," in IEEE
+Transactions on Systems, Man, and Cybernetics: Systems, vol. 46, no.
+7, pp. 1005-1016, July 2016.
+[22] J. Zhuang, X. Chen, M. Dai, W. Lan, Y. Cai and E. Zheng, "A
+Semantic Guidance and Transformer-Based Matching Method for UAVs
+and Satellite Images for UAV Geo-Localization," in IEEE Access, vol.
+10, pp. 34277-34287, 2022.
+[23] D. Wang, B. Lian, Y. Liu and B. Gao, "A Cooperative UAV Swarm
+Localization Algorithm Based on Probabilistic Data Association for
+Visual Measurement," in IEEE Sensors Journal, vol. 22, no. 20, pp.
+19635-19644, 15 Oct.15, 2022.
+[24] D. Shi, C. Liu, F. She, et al. “Cooperation Localization Method Based
+on Location Confidence of Multi-UAV in GPS-denied Environment”, in
+Computer Science, vol.49, no.4, pp.302-311, Apr. 2022.
+[25] Y. Xu, J. Wang, J. Wang and Y. Ke, "Nonlinear Formation Control of
+Small Fixed-Wing UAVs with Velocity and Heading Rate Constraints,"
+2018 IEEE International Conference on Mechatronics and Automation
+(ICMA), Changchun, China, 2018, pp. 1275-1280.
+[26] T.
+-M.
+Nguyen,
+Z.
+Qiu,
+T.
+H.
+Nguyen,
+M.
+Cao
+and
+L.
+Xie,
+"Distance-Based
+Cooperative
+Relative
+Localization
+for
+Leader-Following Control of MAVs," in IEEE Robotics and Automation
+Letters, vol. 4, no. 4, pp. 3641-3648, Oct. 2019.
+[27] ZHOU M M, ZHANG B, ZHAO Q, et al. Cooperative localization
+algorithm based on adaptive fading Sage-Husa extended Kalman filter[J].
+Chinese Journal of Ship Research, 2022, 17(4): 92–97.
+[28] F. Hu and G. Wu, "Distributed Error Correction of EKF Algorithm in
+Multi-Sensor Fusion Localization Model," in IEEE Access, vol. 8, pp.
+93211-93218, 2020.
+[29] Z. Zhan, J. Zhang, Y. Li, and Y. Shi, “Orthogonal learning particle swarm
+optimization,” IEEE Trans. Evol. Comput., vol. 15, no. 6, pp. 832–847,
+Dec. 2011.
+[30] M. Y. Arafat and S. Moh, “Localization and clustering based on swarm
+intelligence in UAV networks for emergency communications,” IEEE
+Internet Things J., vol. 6, no. 5, pp. 8958–8976, Oct. 2019.
+[31] H. Xie, F. Wang, Q. Xun, Y. He, J. Rodríguez and R. Kennel, "A
+Low-Complexity Gradient Descent Solution With Backtracking Iteration
+Approach for Finite Control Set Predictive Current Control," in IEEE
+Transactions on Industrial Electronics, vol. 69, no. 5, pp. 4522-4533, May
+2022.
+[32] X. Zou, F. Zhou, L. Fan and W. Chen, "Shadowing Cancellation and
+Iterative Newton-Gradient Algorithm for UAV-Assisted Localization,"
+in IEEE Communications Letters, vol. 25, no. 11, pp. 3570-3574, Nov.
+2021.
+[33] O. Esrafilian, R. Gangula and D. Gesbert, "Three-Dimensional-Map-
+Based Trajectory Design in UAV-Aided Wireless Localization Systems,"
+in IEEE Internet of Things Journal, vol. 8, no. 12, pp. 9894-9904, 15
+June15, 2021.
+[34] J. Qi, Y. Yu, L. Wang and J. Liu, "K*-Means: An Effective and Efficient
+K-Means Clustering Algorithm," 2016 IEEE International Conferences
+on Big Data and Cloud Computing (BDCloud), Social Computing and
+Networking (SocialCom), Sustainable Computing and Communications
+(SustainCom) (BDCloud-SocialCom-SustainCom), Atlanta, GA, USA,
+2016, pp. 242-249.
+[35] A. K. M. R. Chowdhury, M. E. Mollah and M. A. Rahman, "An
+efficient method for subjectively choosing parameter ‘k’ automatically
+in VDBSCAN (Varied Density Based Spatial Clustering of Applications
+with Noise) algorithm," 2010 The 2nd International Conference on
+Computer and Automation Engineering (ICCAE), Singapore, 2010, pp.
+38-41.
+[36] Rodriguez A, Laio A. "Clustering by fast search and find of density
+peaks," Science, vol.344, no.6191, pp: 1492–1496, June 2014.
+[37] L. Liu, P. Deng, P. Fan, et al. “A Cooperative Location Method Based on
+Chan and Taylor Algorithms”, in Journal of Electronic and Information
+Technology, vol.26, no.1, pp: 41-46, Jan. 2004.
+[38] S. Zhang, Y. Qi, H. Lv, et all. “UWB positioning optimization
+method based on redundant distance screening”, in Journal of Tsinghua
+University (Science and Technology), vol. 62, no.5.
+[39] L. Xie, X. Liu, Y. Wang, et al. “Indoor EKF localization algorithm based
+on RFID carrier phase”, in Journal on Communications, vol.43, no.3, pp:
+124-134, Mar. 2022.
+VOLUME 4, 2016
+13
+This article has been accepted for publication in IEEE Access. This is the author's version which has not been fully edited and 
+content may change prior to final publication. Citation information: DOI 10.1109/ACCESS.2023.3315870
+This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License. For more information, see https://creativecommons.org/licenses/by-nc-nd/4
+[p.14]
+Y. ZHENG et al.: Multi-UAV Collaboration and IMU Fusion Localization Method in Partial GNSS-denied Scenarios
+[40] D.
+Feng,
+C.
+Wang,
+C.
+He,
+Y.
+Zhuang
+and
+X.
+-G.
+Xia,
+"Kalman-Filter-Based Integration of IMU and UWB for High-Accuracy
+Indoor Positioning and Navigation," in IEEE Internet of Things Journal,
+vol. 7, no. 4, pp. 3133-3146, April 2020.
+[41] Julier S , Uhlmann J K . A General Method for Approximating Nonlinear
+Transformations of Probability Distributions. 1999.
+[42] S. Wang, Y. Lyu and W. Ren, "Unscented-Transformation-Based
+Distributed Nonlinear State Estimation: Algorithm, Analysis, and
+Experiments," in IEEE Transactions on Control Systems Technology, vol.
+27, no. 5, pp. 2016-2029, Sept. 2019.
+[43] Z. Wang, “Research on Density Peak Clustering Algorithm by
+Automatically Determining ”, M.S. thesis, Apr., Xidian University,
+Xi’an., Shaanxi, 2020.
+YI ZHENG is currently working towards his
+B.S. degree in Communication Engineering at
+School of Changwang in Nanjing University of
+Information Science and Technology. His research
+interests include UAV localization and routing
+planning.
+YAQIN
+XIE
+received
+the
+Ph.D.
+degree
+in
+communication and information systems from
+Southeast University, in 2011. She then joined the
+School of Electronic and Information Engineering,
+Nanjing University of Information Science and
+Technology. From February 2015 to February
+2016, she was supported by the National Study
+Fund to visit King’s College London, U.K., as
+a Visiting Scholar. Her current research interests
+include indoor localization, satellite navigation,
+routing planning, and artificial Intelligence.
+JIAMIN LI received the B.S. and M.S. degrees
+in communication and information systems from
+Hohai University, Nanjing, China, in 2006 and
+2009, respectively, and the Ph.D. degree in
+information and communication engineering from
+Southeast University, Nanjing, China, in 2014.
+He joined the National Mobile Communications
+Research Laboratory, Southeast University, in
+2014, where he has been an Associate Professor
+since 2019. His research interests include massive
+MIMO, distributed antenna systems, and multi-objective optimization.
+14
+VOLUME 4, 2016
+This article has been accepted for publication in IEEE Access. This is the author's version which has not been fully edited and 
+content may change prior to final publication. Citation information: DOI 10.1109/ACCESS.2023.3315870
+This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License. For more information, see https://creativecommons.org/licenses/by-nc-nd/4
+=== END ===

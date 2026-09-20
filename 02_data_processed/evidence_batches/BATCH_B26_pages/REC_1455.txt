@@ -1,0 +1,1394 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1455.pdf
+sha256: 9D5100EBC3928143B2FED56CB082391DA9164049A51B10B52A81CB7C5B3B92DB
+library: pymupdf (fitz) v1.28.2
+pages: 20
+=== BEGIN ===
+[p.1]
+Citation: Han, S.; Zhao, M.; Wang, K.;
+Dong, J.; Su, A. Cross-Modal Images
+Matching Based Enhancement to
+MEMS INS for UAV Navigation in
+GNSS Denied Environments. Appl.
+Sci. 2023, 13, 8238. https://doi.org/
+10.3390/app13148238
+Academic Editors: Subhas
+Mukhopadhyay and Yutaka
+Ishibashi
+Received: 22 May 2023
+Revised: 8 July 2023
+Accepted: 14 July 2023
+Published: 16 July 2023
+Copyright:
+© 2023 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed
+under
+the
+terms
+and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).
+applied  
+sciences
+Article
+Cross-Modal Images Matching Based Enhancement to MEMS
+INS for UAV Navigation in GNSS Denied Environments
+Songlai Han 1, Mingcun Zhao 1, Kai Wang 2, Jing Dong 1,* and Ang Su 3
+1
+Research Institute of Aerospace Technology, Central South University, Changsha 410083, China;
+songlai.han@csu.edu.cn (S.H.)
+2
+College of Computer Science and Technology, Macau University of Science and Technology,
+Macau 999078, China
+3
+College of Aerospace Science and Engineering, National University of Defense Technology,
+Changsha 410073, China
+*
+Correspondence: dongjing@csu.edu.cn
+Abstract: A new cross-modal image matching method is proposed to solve the problem that un-
+manned aerial vehicles (UAVs) are difﬁcult to navigate in GPS-free environment and night environ-
+ment. In this algorithm, infrared image or visible image is matched with satellite visible image. The
+matching process is divided into two steps, namely, coarse matching and ﬁne alignment. Based on
+the dense structure features, the coarse matching algorithm can realize the position update above
+10 Hz with a small amount of computation. Based on the end-to-end matching network, the ﬁne
+alignment algorithm can align the multi-sensor image with the satellite image under the condition of
+interference. In order to obtain the position and heading information with higher accuracy, the fusion
+of the information after visual matching with the inertial information can restrain the divergence
+of the inertial navigation position error. The experiment shows that it has the advantages of strong
+anti-interference ability, strong reliability, and low requirements on hardware, which is expected to
+be applied in the ﬁeld of unmanned navigation.
+Keywords: image matching; MEMS INS; sensor integration; autonomous navigation
+1. Introduction
+Unmanned aerial vehicle (UAV) navigation is generally achieved by means of global
+navigation satellite system (GNSS) [1] or the fusion of GNSS with inertial navigation
+system (INS [2,3]). As is known, the GNSS signal might be blocked, cheated, or even
+shut down [4,5]. Under these circumstances, standalone INS generally cannot fulﬁll the
+navigation necessity, especially for the micro electro mechanical systems (MEMS) INS,
+which is widely used in the small- or medium-size UAVs [6]. If the UAVs ﬂy at a proper
+altitude and have a good view of the ground, a vision-based approach can be used to
+enhance the performances of the MEMS INS, and an acceptable navigation accuracy might
+be achieved to ensure the reliable ﬂying of UAV in GNSS denied circumstances [7].
+Literatures [3,8] discussed the image matching-based methods for UAV navigation.
+The position of the UAV can be estimated according to the results produced by matching
+the real-time image to the referenced image. However, it is still challenging to reliably
+and accurately match the real-time aerial image and the referenced image when they are
+captured by different types of sensors at different times, which are deﬁned as multi-sensor
+temporal images. The distortions between the multi-sensor temporal images, as shown
+in Figure 1, include nonlinear grayscale variation, severe noise distortion, and even the
+changes in local ground features with time, which will severely degrade the matching
+performance [9,10].
+Appl. Sci. 2023, 13, 8238. https://doi.org/10.3390/app13148238
+https://www.mdpi.com/journal/applsci
+[p.2]
+Appl. Sci. 2023, 13, 8238
+2 of 20
+1
+2
+1'
+2'
+1
+2
+1'
+2'
+(a) visible light image (left) and infrared image (right)
+(b) enlarged subareas
+Figure 1. Cross-modal image pair and their enlarged subareas. Image (a) shows the visible light
+image and the infrared image captured in a same scene. Image (b) shows the enlarged subareas
+which are captured and enlarged from the rectangle areas in Image (a).
+The matching algorithms developed in [8,11] are very computationally expensive. To
+solve the problem, the visual odometer based on optical ﬂow [12] combined with particle
+ﬁlter is adopted to restrict the search area of the matching and eliminate the incorrect
+results [11]. However, optical ﬂow is not drift-free and can be easily interrupted by motion
+blur or light changes. Consequently, the position solution is still unstable if both the image
+matching and the visual odometer produce unreliable input.
+Deep learning-based image matching method is employed in [3] for UAV localization;
+however, the precision of the image matching algorithm is very low to estimate the precise
+heading of the UAV, which means that the heading estimation from the image matching
+cannot be used to correct the INS heading. Therefore, only INS position can be corrected by
+the image matching results. Finally, these image matching methods [3,8,11] are developed
+mainly for the visible light images, which means their visual positioning methods only
+work in daylight.
+In the last decade, vision-based simultaneous localization and mapping (VSLAM)
+has been extensively studied [11,13]. However, pure vision-based SLAM is usually not a
+robust solution for navigation. The main drawback of VSLAM is that the vision tracker
+could be easily interrupted by light change, motion blurring, or occlusion of moving
+objects. For solving this problem, vision and inertial fusion-based SLAM (VISLAM) has
+been proposed [14,15]. VISLAM is more robust than VSLAM since the inertial module
+would not be affected by light change, motion blurring, or occlusion, which can consistently
+provide the motion states to the navigation system [16–18]. Meanwhile, the vision system
+can provide environmental perception and states correction, which is supplemental to
+the internal module. Nevertheless, the VISLAM suffers from the position drift problem.
+Therefore, closed-loop optimization is employed for correcting the drift [15,19]. However,
+the long path closed-loop optimization is very expensive in both computation and memory
+consumption. In addition, closed-loop path is not always available for UAVs navigation,
+for example, for single-way ﬂying of UAVs. Although VISLAM has been widely and
+[p.3]
+Appl. Sci. 2023, 13, 8238
+3 of 20
+successfully used for indoor (or enclosed environment) navigation, it is still very hard to
+apply for UAV navigation in large open environment.
+In this paper, we proposed an airborne MEMS INS enhancing method based on
+cross-modal images matching, which can provide long range autonomous navigation
+for medium- and high-altitude aircraft under GNSS blocking environment. The main
+contributions of this work are the following:
+(I)
+A coarse matching algorithm based on the dense structure features is proposed to
+effectively adapt to nonlinear grayscale variation and noise distortion. In addition, the
+searching process of the coarse matching is signiﬁcantly accelerated with fast Fourier
+transform (FFT). Therefore, the proposed coarse matching algorithm can provide
+position updates with a rate above 10 Hz on a low power airborne compute. Since the
+proposed coarse matching method is reliable and time efﬁcient, the visual odometer
+is no longer required.
+(II)
+A ﬁne alignment algorithm based on a deep end-to-end trainable matching network
+is proposed to precisely align the real-time aerial image with the referenced satellite
+image despite the local ground feature changes and nonlinear grayscale variation.
+The result of ﬁne alignment is employed to estimate the precise heading angle of the
+UAV, which is better than three degrees (1σ) during a typical experiment and can be
+used to correct the heading angle of the MEMS INS.
+(III) Based on the cross-modal image matching approach, a precise position and heading
+can be obtained, which is used to enhance the MEMS INS performances in this
+research. A ﬁltering model to fuse the vision-based navigation information and the
+INS information is developed, which can precisely and reliably estimate the position,
+velocity, and attitude errors of the UAV and avoid the accumulating errors of the
+MEMS INS. The enhanced navigation approach can provide long-time autonomous
+navigation for the UAV at medium- to high-altitude at GNSS denied environments,
+and it can work effectively in both daylight condition (with visible light camera) and
+night condition (with infrared camera).
+In the remaining parts of this paper, Section 2 describes the cross-modal image match-
+ing approach to achieve the position and heading enhancement information. The data
+fusion approach to achieve the enhancement to MEMS INS with image matching is dis-
+cussed in Section 3. The experimental tests are discussed in Section 4, and the concluding
+remarks are provided in Section 5.
+2. Position and Heading Estimation Approach Based on Cross-Modal Image Matching
+The overall scheme of the proposed visual estimator is shown in Figure 2. The
+camera calibration is realized with OpenCV camera calibration module [20]. Before the
+image matching, the real-time image is corrected according to the pose, altitude, and the
+parameters of the camera. After the correction, the ground resolution and the orientation of
+the real-time image and the referenced image are signiﬁcantly the same. The transition of
+the real-time image relative to referenced image can be estimated by the coarse matching.
+After the image correction, the center point of the corrected image is directly below the
+aircraft. Therefore, the horizontal position of the UAV can be directly calculated according
+to the result of the coarse matching.
+The result of the coarse matching is then inputted into the ﬁne alignment algorithm,
+which will estimate the homography transformation between the real-time image and the
+referenced image. Precise point correspondences between the real-time image and the
+referenced image can be produced with the homography transformation. The points in
+the referenced image can be mapped to the world coordinate system with zero height.
+Therefore, correspondences between the 2D point in the real-time image and 3D point in
+the world coordinate system are established. Then, the position (relative to the ground)
+and pose of the camera can be calculated with perspective-n-point (PNP) method [21]
+according to the 2D to 3D point correspondences and the camera parameters provided
+[p.4]
+Appl. Sci. 2023, 13, 8238
+4 of 20
+by the calibration. Finally, the position and heading estimated is sent to the INS for
+performance enhancement.
+Image correction
+Camera calibration
+Coarse image matching based on PCA-HOG
+ Fine registration based on deep end-to-end 
+homography estimation
+Position and pose estimation base on PNP
+Real-time image
+Referenced image
+Camera
+ parameters
+Camera
+ parameters
+2D-3D correspondences
+Transition
+Navigation system
+Position and heading
+Horizontal position
+Pose and altitude
+ 
+Figure 2. Flowchart of the proposed visual estimator.
+2.1. Fast Coarse Image Matching Based on PCA-HOG
+2.1.1. PCA-HOG Feature Description
+Histogram of oriented gradient (HOG) is a common feature descriptor used in target
+detection and image matching. HOG is a description based on the statistics of local
+gradient magnitude and direction, which has good invariability for grayscale variation [22].
+However, HOG is very sensitive to the noise distortion since it is formed based on gradient
+direction, which is easily disturbed by the distortion between cross-modal images.
+To improve the noise reliability, we employ principal component analysis (PCA) to
+enhance the local gradient orientation. The PCA is typically used to calculate the dominant
+vectors of a given dataset that can reduce the noise component in signals and estimate the
+local dominant orientation.
+For each pixel, the PCA can be applied to the local gradient vectors to obtain their
+local dominant direction.
+Given the original image I with its horizontal derivative image A and vertical deriva-
+tive image B, an N × 2 local gradient matrix is constructed for each pixel:
+G = [AT
+BT]
+(1)
+A =
+
+a1
+a2
+· · ·
+an
+	
+, B =
+
+b1
+b2
+· · ·
+bn
+	
+(2)
+They can be calculated with Sobel calculators [23]. N is determined by the size of the
+local window of the PCA calculation. For example, if the size of the window for each pixel
+is 3 × 3, then the value of N is 9.
+The dominant orientation can be estimated by determining a unit vector u perpendicu-
+lar to the combined direction of the local gradient vectors
+
+ai
+bi
+T. Since the production of
+vectors perpendicular to each other is 0; therefore, this can be formulated as the following
+minimization problem:
+
+
+
+GTu
+
+
+
+
+2
+=
+N
+∑
+i=1
+ 
+ai
+bi
+ · u
+2
+(3)
+[p.5]
+Appl. Sci. 2023, 13, 8238
+5 of 20
+Vector u can be solved by applying SVD to the local gradient matrix G:
+G = USVT
+(4)
+where U is an N × N orthogonal matrix, S is an N × N matrix, V =
+
+v
+u
+
+is a 2 × 2
+orthogonal matrix, and v indicates the local dominant orientation of the local gradient.
+The PCA enhanced structure orientation can be calculated according to the following
+equation:
+ϕ = 1
+2∠(u1, u2)
+(5)
+where ϕ ∈[0◦, 180◦), u1 is the element in the ﬁrst row of u and u1 is the element in the
+second row of u. Note that the structure orientation is orthogonal to the orientation of the
+gradient vector.
+The orientation enhanced by PCA is more robust against the distortion between cross-
+modal images than the orientation directly estimated with local gradient. Figure 3a,b shows
+two examples of comparing gradient orientation and PCA enhanced ordination. Clearly,
+PCA enhanced ordination is more stable under the cross-modal distortion.
+1
+2
+1'
+2'
+1
+2
+1'
+2'
+1
+2
+1'
+2'
+1
+2
+1'
+2'
+(a) gradient orientation
+(b) PCA enhanced orientation
+(c) HOG
+(d) PCA-HOG
+Figure 3. Examples of comparing gradient orientation and PCA-enhanced ordination. The numbers
+in the top right of the image indicate the orientation maps or the descriptions that are extracted from
+the enlarged subareas from the cross-modal image pairs provided in Figure 1.
+[p.6]
+Appl. Sci. 2023, 13, 8238
+6 of 20
+The PCA-HOG description is a feature vector, which is calculated at each pixel of
+image. The PCA-HOG description and the HOG description [22] are calculated in the
+same procedure, except that the local gradient orientation is replaced by the PCA enhanced
+orientation. The examples of comparing PCA-HOG and HOG are provided in Figure 3c,d.
+We can see that cross-modal distortion causes more signiﬁcant change to the patterns of
+HOG descriptor compared with the patterns of PCA-HOG descriptor.
+2.1.2. Searching Process Accelerating
+Coarse matching is a full-searching template matching as shown in Figure 4. The
+template, namely, the aforementioned corrected real-time image, needs to be compared
+with each candidate window in the referenced image and matched to the most similar
+window. The similarity of PCA-HOG can be calculated with the sum of squared differences
+(SSD) as follows:
+similarity(u,v) = ∑
+x,y
+SSD(H(x, y), H(x −u, y −v))
+(6)
+where H(x, y) represents the PCA-HOG feature vector of the pixel in (x, y), and (u, v)
+is the transition between the template and the corresponding candidate window in the
+referenced image.
+Candidate 
+window
+Candidate 
+window
+Target window
+Referenced  image
+Search in 
+translation
+Template image
+ 
+Figure 4. Example of full-searching template matching with cross-modal images, the template image
+is a real-time infrared image and the referenced image is a satellite visible light image.
+However, the searching process with per-pixel SSD calculation is very computationally
+expensive. To reduce the computational burden, we developed a fast convolution-based
+method for the template searching. First, we deﬁne the similarity of PCA-HOG feature
+map as the following equation:
+similarity(u,v) = ∑
+x,y
+ H′(x, y) · H′(x −u, y −v)
+
+(7)
+where the operator · represents the dot product, and H′(x, y) is the normalized (by L2
+norm) PCA-HOG feature vector of the pixel in (x, y). Then, the full-searching process can
+be deﬁned as the following convolution:
+( ˆu, ˆv) = arg
+(u,v)
+max∑
+x,y
+(H(x, y) · H(x −u, y −v))
+(8)
+[p.7]
+Appl. Sci. 2023, 13, 8238
+7 of 20
+where ( ˆu, ˆv) is the transition between the template and the referenced image estimate by
+the searching process. The convolution can be accelerated in frequency domain by using
+fast Fourier transform (FFT):
+( ˆu, ˆv) = arg
+(u,v)
+max∑
+x,y
+F−1[F(H(x, y)) · F∗(H(x −u, y −v))]
+(9)
+where F is fast Fourier transform, F∗is the complex conjugate of F, and F−1 is inverse
+fast Fourier transform (IFFT). IFFT and FFT are the main parts of the computation of the
+accelerated convolution process. Suppose the size of the template is n × n and the size of
+the referenced image is m × m. The computation complexity of the searching process with
+SSD is O
+
+n2(m −n + 1)2
+, while the computation complexity of the searching process
+accelerated with FFT is O(2m2logm). The accelerating ratio is varied with the size of image,
+which is given in Table 1 by examples. We can see that a signiﬁcant computation decrease
+can be achieved by the accelerating method.
+Table 1. Computation comparison of the two search methods.
+Image Size
+Computation Amount
+Accelerating Ratio
+m = 128, n = 32
+O(n2(m −n + 1)2 = 9, 634, 816
+42.0
+O
+ 2m2logm
+ = 229, 376
+m = 256, n = 64
+O(n2(m −n + 1)2 = 152, 571, 904
+145.5
+O
+ 2m2logm
+ = 1, 048, 576
+m = 512, n = 128
+O(n2(m −n + 1)2 = 2, 428, 518, 400
+514.7
+O
+ 2m2logm
+ = 4, 718, 592
+2.2. Fine Alignment Based on End-to-End Trainable Matching Network
+Fine alignment for cross-modal images is very challenging due to the complicated
+grayscale variation and the local ground feature changes. The image matching meth-
+ods based on handcrafted features have very limited ability for addressing the chal-
+lenges [10,24].
+Rocco et al. [24] proposed an image matching method based on convolutional neural
+network (CNN) for both instance-level and category-level matching, which can handle
+substantial appearance differences, background clutter, and large deformable transforma-
+tion. Based on this method, Park et al. [10] proposed a two-stream symmetric network for
+aerial image matching which can adapt to the light change and the variation of ground
+appearance, and the matching precision is further improved in paper [25]. However, the
+matching precision of these methods is low, mainly due to the lower resolution of the input
+image and the lower resolution of the features extraction, as pointed out in paper [24].
+2.2.1. Loss Function
+Suppose the ground truth homography transformation between a real-time image
+and a referenced image is Hgt, and the homography transformation estimated between the
+subareas of this training pair is ˆHk, then the loss function is calculated by the following:
+loss =
+4
+∑
+k=1
+N
+∑
+i=1
+∥Hgt(xi, yi) −
+  ˆHk
+ xi −tx, yi −ty
+ +
+ tx, ty
+∥2
+(10)
+where N is the number of grid points, and
+ tx, ty
+
+is the translation between the subarea
+and the real-time image, as shown in Figure 5. The loss function is based on the trans-
+formed grid loss proposed in [24], which minimizes the discrepancy between the estimated
+transformation and the ground truth transformation.
+[p.8]
+Appl. Sci. 2023, 13, 8238
+8 of 20
+Sub-area 1
+Sub-area 2
+Sub-area 3
+Sub-area 4
+Sub-area 4
+(a)
+(b)
+ 
+Figure 5. Image partition. Image (a) shows that the input image is divided into four subareas. In
+image (b), the arrow indicates the translation between the four subareas and the real-time image.
+2.2.2. Implementation Details and Discussion
+The network is developed based on [24] which is originally trained on visible light
+images. Therefore, we build a training dataset with 5000 pairs of infrared aerial image and
+visible light satellite image. We generate the ground true pairs by applying homography
+transformation to the manually aligned pairs, since there are no datasets with completely
+correct transformation parameters between infrared aerial image and visible light satel-
+lite image.
+The resolution of the input image is 640 × 480. The input image will be divided into
+four subareas and each subarea is then resized to 240 × 240. The feature map is extracted
+with ResNet-101 network [26] rather than VGG-16 network [27], since the former achieves
+better matching performance as reported in [28].
+The partition approach increases the resolution of the input image and the resolution
+of the features extraction, which helps in improving the matching precision. Of course,
+one can also enhance the precision by inputting the image with high resolution rather than
+using partition, but that may introduce an enormous increase in parameters to the network,
+which makes the retraining process (for cross-modal images) difﬁcult and eventually lowers
+the performance of the inference.
+In the partition approach, the four subarea pairs share the backbone network and
+the regression network, which means the number of the parameters of the network is not
+increased. This facilitates the retraining process and the deployment of network, which
+will eventually enhance the performance of the homography estimation with a modest
+training dataset.
+During the inference, the global homography transformation for the ﬁne alignment is
+estimated with RANSAC algorithm [29], which minimizes the re-projection errors of the
+four homography transformations of the subarea pairs.
+Examples of the coarse matching and the ﬁne alignment are shown in Figure 6. We can
+see that the features in the results of ﬁne alignment are aligned more accurately compared
+with the results of coarse matching.
+[p.9]
+Appl. Sci. 2023, 13, 8238
+9 of 20
+(a)
+(c) 
+(b)
+(d) 
+Figure 6. Results of coarse matching and ﬁne alignment. Image (a,b) shows the results of coarse
+matching. Image (c,d) shows the results of ﬁne alignment. The areas in the windows in these results
+are enlarged and given in the top right.
+3. Enhancement of MEMS INS for UAV Navigation
+3.1. Overall Scheme
+According to the above discussion, the drift-free position and heading of the UAV can
+be calculated from the cross-modal image matching, in which the information will be used
+to enhance the MEMS INS to improve the autonomous navigation performance of UAV.
+INS obtains the position, velocity, and attitude of the UAV by integrating the accel-
+eration and angular rate from the accelerometers and gyros, respectively. However, the
+navigation errors of the INS will accumulate due to the drifts of the accelerometers and the
+gyros used [30,31], which is especially challenging for the MEMS INS due to the unstable
+characteristics of the MEMS inertial sensors [1,2]. The cross-modal image matching is used
+to enhance the performance of the MEMS INS herein. The overall scheme is shown in
+Figure 7, and the main steps are as follows:
+(I)
+The real-time images from the camera mounted in the UAV are transformed and
+corrected by the reference attitude from the MEMS INS initially, and then from the
+extended Kalman ﬁlter which will be discussed below.
+(II)
+The transformed real-time images are used to match with the geo-referenced images,
+which is pre-prepared and stored in the UAV navigation computer before the task,
+and obtain the position and heading of the UAV by solving the PNP pose as discussed
+in Section 2.
+(III) The MEMS INS position, velocity, attitude, and heading are calculated by the inertial
+navigation algorithm.
+(IV) An extended Kalman ﬁlter is designed to fuse the navigation data from image match-
+ing and from MEMS INS.
+[p.10]
+Appl. Sci. 2023, 13, 8238
+10 of 20
+H
+δ
+P
+δ
+Figure 7. Integrated navigation algorithm overall scheme.
+The system model and measurement model for data fusion are derived, respectively.
+The extended Kalman ﬁlter compares the navigation results from the image matching and
+from MEMS INS, and estimates and corrects the position, velocity, attitude errors, and
+compensates the drifts of the inertial sensors.
+3.2. System Model for Data Fusion
+The SINS error model is commonly used by the design of Kalman ﬁlter model. In this
+proposed system, the errors are always deﬁned in the navigation frame. First, we choose
+the local-level geographic frame as the navigation frame, which is denoted as n frame.
+Then, the body frame is deﬁned as b frame, which is aligned with its longitudinal, lateral,
+and vertical axes.
+The attitude error equation of INS is deﬁned as follows [32,33]:
+.
+ψ
+n = −ωn
+in × ψn + Cn
+bεb
+(11)
+where ψn refers to the attitude error vector projected in navigation frame, ωn
+in refers to the
+rotation rate of the navigation frame with respect to the inertial frame, Cn
+b represents the
+attitude matrix from the body frame to the navigation frame, and εn refers to the gyro bias
+vector in the navigation frame.
+The velocity error equation of INS is deﬁned as follows [32,33]:
+δ
+.
+V
+n = −(ωn
+ie + ωn
+in) × δVn + ∇n −ψn × fn
+(12)
+where δVn represents the velocity error in the navigation system, ωn
+ie refers to the rotation
+rate of the earth frame with respect to the inertial frame, fn is the speciﬁc force projected
+in the navigation frame, and ∇n represents the accelerometer zero bias expressed in the
+navigation frame.
+[p.11]
+Appl. Sci. 2023, 13, 8238
+11 of 20
+The position error equation of INS is deﬁned as follows [32,33]:
+δ
+.
+P
+n = −ωn
+en × δPn + δVn
+(13)
+where δP is the position error in the navigation system.
+The biases of the gyroscopes and accelerometers can be regarded as a constant within
+a certain period of time, and they are modeled as follows:
+.
+∇
+n = 0,
+.εn = 0
+(14)
+Based on the above INS error model, we select the attitude error, velocity error, position
+error, biases of the gyroscopes and accelerometers as the states of the data fusion ﬁlter. This
+yields a 15-element state vector X:
+X =
+h
+(δPn)T
+(δVn)T
+(ψn)T
+(∇n)T
+(εn)Ti
+(15)
+Considering Equations (11)–(15), the state equation of the data fusion ﬁlter can be
+written as follows:
+.
+X = FX + W
+(16)
+where W is the 15-dimension state noise variance vector, and the system matrix F can be
+expressed as follows:
+F =
+
+
+F11
+F12
+03×3
+03×3
+03×3
+03×3
+F22
+F23
+F24
+03×3
+03×3
+03×3
+F33
+03×3
+F35
+03×3
+03×3
+03×3
+03×3
+03×3
+03×3
+03×3
+03×3
+03×3
+03×3
+
+
+(17)
+The submatrix in system matrix F can be expressed as follows:
+F11 =
+
+
+0
+ωn
+enD
+−ωn
+enE
+−ωn
+enD
+0
+ωn
+enN
+ωn
+enE
+−ωn
+enN
+0
+
+,
+F12 =
+
+
+1
+0
+0
+0
+1
+0
+0
+0
+1
+
+
+F22 =
+
+
+0
+ 2ωn
+ieD + ωn
+enD
+
+−
+ 2ωn
+ieE + ωn
+enE
+
+−
+ 2ωn
+ieD + ωn
+enD
+
+0
+ 2ωn
+ieN + ωn
+enN
+
+ 2ωn
+ieE + ωn
+enE
+
+−
+ 2ωn
+inN + ωn
+enN
+
+0
+
+
+F23 =
+
+
+0
+−f n
+D
+f n
+E
+f n
+D
+0
+−f n
+N
+−f n
+E
+f n
+N
+0
+
+,
+F24 = Cn
+b
+F33 =
+
+
+0
+ωn
+inD
+−ωn
+inE
+−ωn
+inD
+0
+ωn
+inN
+ωn
+inE
+−ωn
+inN
+0
+
+,
+F35 = −Cn
+b
+(18)
+3.3. Measurement Model for Data Fusion
+In our research, the measurement information comes from the image matching obser-
+vations as discussed in Section 2, and this information is used to correct the MEMS INS
+degradation with time by the Kalman ﬁltering mechanism.
+The image matching procedure can provide position, attitude, and heading observa-
+tions. However, considering that the attitude observation from image matching is generally
+at the level of a few tenths of a degree; therefore, it is not accurate enough for correcting the
+attitude of MEMS INS. As a result, in this research, the position and heading observations
+from image matching are chosen as the measurements for Kalman ﬁlter of data fusion.
+[p.12]
+Appl. Sci. 2023, 13, 8238
+12 of 20
+For the aircraft position measurement, deﬁne zIMG
+p
+as the position obtained from the
+image matching, and zINS
+p
+as the position obtained from the MEMS INS. Therefore, the
+position error of the inertial navigation can be expressed as follows:
+ezp = zINS
+p
+−zIMG
+p
+(19)
+Considering the deﬁnition of the state vector X in Equation (15), the above position
+error can be expressed as:
+ezp = Hp · X
+(20)
+where the coefﬁcient matrix Hp can be expressed as:
+Hp =
+
+I3×3
+03×3
+03×3
+03×3
+03×3
+
+(21)
+For the aircraft heading measurement, deﬁne zIMG
+head as the heading angle obtained
+from the image matching, and zINS
+p
+as the heading angle obtained from the MEMS INS.
+Therefore, the heading error of the inertial navigation can be expressed as follows:
+ezhead = zINS
+head −zIMG
+head
+(22)
+Herein, to construct the measurement model for the data fusion Kalman ﬁlter, we
+also need to provide the relation between the heading error and the state vector X, as in
+Equation (20). However, the relation between the heading error and the state vector X
+is not very straightforward. The heading error described in Equation (22) is deﬁned as
+the Euler error; however, the heading error component in state vector X is deﬁned as the
+mathematical platform error [33]. Their relation can be derived as follows:
+As discussed in the previous sections, Cn
+b represents the attitude matrix from the body
+frame to the navigation frame, which can be expressed as follows if H, θ, φ are deﬁned to
+be the heading, pitch, and roll, respectively [34].
+Cn
+b =
+
+
+cos θ cos H
+−cos φ sin H + sin φ sin θ cos H
+sin φ sin H + cos φ sin θ cos H
+cos θ sin H
+cos φ cos H + sin φ sin θ sin H
+−sin φ cos H + cos φ sin θ sin H
+−sin θ
+sin φ cos θ
+cos φ cos θ
+
+
+(23)
+For brevity, we use cij to denote the element of Cn
+b in row i and column j. Therefore,
+the heading angle can be calculated from Cn
+b as:
+H = arctanc21
+c11
+(24)
+The heading error δH can be obtained from the variation of Equation (24), and can be
+expressed as follows:
+δH = c11 · δc21 −c21 · δc11
+c2
+11 + c2
+21
+(25)
+In Equation (25), δc11, δc21 are the elements of the attitude error matrix δCn
+b , which can
+be calculated as:
+δCn
+b = Cp
+b −Cn
+b
+(26)
+where Cp
+b is deﬁned as the attitude matrix from the body frame b to mathematical platform
+p, and it can be calculated as follows:
+Cp
+b = Cp
+nCn
+b
+(27)
+[p.13]
+Appl. Sci. 2023, 13, 8238
+13 of 20
+In Equation (27), Cp
+n represents the attitude matrix from the navigation frame n to
+mathematical platform p, and it can be calculated by using the platform attitude error
+vector ψn in Equation (15) as follows [33]:
+Cp
+n = I −(ψn×) =
+
+
+1
+ψD
+−ψE
+−ψD
+1
+ψN
+ψE
+−ψN
+1
+
+
+(28)
+where ψN, ψE, ψD are the components of ψn projected in navigation frame n.
+Combine Equations (16)–(18) into (15), and the heading error δH can be expressed as
+follows:
+δH = −(c2
+11 + c2
+21)ψD + c11c31ψE + c21c31ψN
+c2
+11 + c2
+21
+(29)
+Compared with Equation (22), it can be found that the following relationship holds:
+ezhead = zINS
+head −zIMG
+head = δH
+(30)
+Consider the deﬁnition of state vector X, the following equation can be obtained:
+ezhead = δH =
+
+01×3
+01×3
+M1×3
+01×3
+01×3
+
+X
+(31)
+where M1×3 is deﬁned as follows according to Equation (29):
+M1×3 =
+h c21c31
+c2
+11+c2
+21
+c11c31
+c2
+11+c2
+21
+−1
+i
+(32)
+Deﬁne Hhead as the coefﬁcient matrix of Equation (31), and the attitude error equation
+can be expressed as follows:
+ezhead = Hhead · X
+(33)
+Combine Equations (20) and (31), the measurement model for data fusion can be
+obtained as follows:
+ez = H · X
+(34)
+where the measurement model coefﬁcient matrix H can be expressed as follows:
+H =
+ Hp
+Hhead
+
+(35)
+4. Experimental Tests
+4.1. Test Conditions
+The proposed enhanced navigation approach is evaluated by ﬁeld tests. In these tests,
+a visible light camera and an infrared camera are carried by the UAV (DJI M600Pro made
+by DJI Technology Co., Ltd. in Shenzhen, China) to capture the real-time aerial image, as
+shown in Figure 8. All the data of the sensors are real-timely collected and processed by an
+onboard computer (Jetson Nano made by NVIDIA Corp. in Beijing, China), which has a
+CPU composed of 4-core ARM A57 @1.43 GHz and a GPU composed of 128-core Maxwell
+@912 Hz.
+[p.14]
+Appl. Sci. 2023, 13, 8238
+14 of 20
+Infrared
+Camera
+MEMS
+Inertial Sensors
+Figure 8. The ﬂying tests platform.
+The visible light and the infrared camera parameters are listed in Table 2, and the
+MEMS inertial sensor parameters are shown in Table 3.
+Table 2. Camera parameters.
+Type of Sensor
+Infrared
+Visible Light
+Image Resolution
+640 × 480 Pixels
+2048 × 2048 Pixels
+Field of View
+73 × 58 deg
+78 × 78 deg
+Wave Length
+1.0~1.6 um
+-
+Maximum Frames per Second
+60 fps
+60 fps
+Table 3. MEMS inertial sensor parameters.
+Sensor
+Parameters
+Values
+Gyroscope
+Range
+400 deg/s
+Bias Repeatability
+<0.1 deg/h
+Bias Instability (at 25 ◦C)
+<0.5 deg/h
+Scale Factor Repeatability
+<15 ppm
+Scale Factor Nonlinearity
+<100 ppm
+Accelerometer
+Range
+8 g
+Bias Repeatability
+<3.5 mg
+Noise Density
+<25 ug/sqrt (Hz)
+Scale Factor Nonlinearity
+<1000 ppm
+4.2. Test Results
+The proposed cross-modal image matching approach (CMM) is compared with
+HOP [11], which combines histograms of oriented gradients (HOG), optical ﬂow (OF), and
+particle ﬁlter (PF). HOP uses a matching method based on HOG for positioning, and, to
+accelerate the matching process, OF and PF are employed to decrease the searching area.
+[p.15]
+Appl. Sci. 2023, 13, 8238
+15 of 20
+The positioning accuracy of CMM and HOP is evaluated by comparing their position-
+ing results with the GPS RTK, which generally has an accuracy of 0.02 m under benign
+environments.
+The correct positioning ratio (CPR) is selected for evaluating the positioning reliability
+of CMM and HOP. Herein, the CPR is deﬁned as CPR = CP/P, where P is the total number
+of positioning, and CP is the correct number of positioning. According to the positioning
+requirement of the UAV, herein, we deﬁne that a positioning result is correct if its error is
+less than 30 m compared with the GPS RTK. The root-mean-squares error (RMSE) of the
+correct positioning is selected for evaluating the positioning accuracy.
+Eight UAV ﬂights are carried out to evaluate the aforementioned approaches, namely,
+CMM and HOP. The ﬂight parameters are provided in Table 4. The ﬂight trajectories are
+shown in Figure 9. The correct positioning ratio and the positioning RMS error of CMM
+and HOP are compared in Table 5.
+Table 4. UAV ﬂight parameters.
+Flight No.
+Average Height
+Distance
+Average Velocity
+Camera Used
+Flight 1
+273 m
+412.1 m
+5.1 m/s
+Visible light
+Flight 2
+328 m
+1130.6 m
+4.7 m/s
+Visible light
+Flight 3
+484 m
+1078.6 m
+4.8 m/s
+Infrared
+Flight 4
+521 m
+1248.6 m
+4.0 m/s
+Infrared
+Flight 5
+496 m
+967.6 m
+4.9 m/s
+Infrared
+Flight 6
+501 m
+1213.6 m
+4.9 m/s
+Infrared
+Flight 7
+492 m
+1245.5 m
+5.1 m/s
+Infrared
+Flight 8
+321 m
+350.4 m
+4.0 m/s
+Visible light
+ 
+Figure 9. The ﬂight trajectory of the eight ﬂights.
+[p.16]
+Appl. Sci. 2023, 13, 8238
+16 of 20
+Table 5. CMM and HOP performance comparison.
+Flight No.
+CMM CPR
+CMM Positioning
+RMS Error
+HOP CPR
+HOP Positioning
+RMS Error
+Flight 1
+99.8%
+3.777 m
+95.5%
+18.986 m
+Flight 2
+99.2%
+4.683 m
+97.3%
+23.659 m
+Flight 3
+99.6%
+4.416 m
+55.8%
+22.867 m
+Flight 4
+99.2%
+4.149 m
+63.7%
+22.005 m
+Flight 5
+99.1%
+6.142 m
+62.3%
+19.215 m
+Flight 6
+99.5%
+6.021 m
+67.5%
+24.612 m
+Flight 7
+98.9%
+6.354 m
+52.9%
+37.624 m
+Flight 8
+99.7%
+4.882 m
+72.1%
+14.863 m
+It can be noted from Table 5 that both the CPR and positioning accuracy of HOP are
+signiﬁcantly lower than those of CMM for all the ﬂights. There are mainly two reasons for
+the low performances of HOP. First, the image matching algorithm of HOP is developed
+for visible light images, which is unreliable for matching cross-modal images; therefore, its
+CPRs are very low in the ﬂights with infrared camera. Second, the searching area of HOP
+is small (about 30 m × 30 m) due to the high computation complexity of the matching;
+therefore, the true position could be out of the searching area when a false prediction is
+introduced by a false matching.
+Furthermore, the contribution of the coarse matching of CMM can be observed by com-
+paring the CPR of HOP with that of CMM. The feature descriptor of the proposed coarse
+matching is enhanced by PCA, which is more reliable for matching cross-modal images.
+In addition, the searching process of the coarse matching of CMM is signiﬁcantly acceler-
+ated, which means we can afford a signiﬁcantly larger searching area (≥150 m × 150 m).
+Therefore, the CMM can re-track the ﬂight path even when the true position is far from the
+predict position, which also helps in improving the reliability of CMM. Table 6 shows the
+time-consuming statistics of CMM, where the visible light real-time image is resized from
+2048 × 2048 pixels to 512 × 512 pixels. Since the ground resolution of visible light real-time
+image is signiﬁcantly higher than the reference image, we can save the computation without
+losing the position precision by decreasing the resolution of real-time image properly. From
+the statistics of Table 6, it can be noted that the proposed coarse matching algorithm can
+realize an average position update rate of 12.6 Hz (79.1 ms) for infrared image, and an
+average position update rate of 12.1 Hz (82.6 ms) for visible light.
+Table 6. Time-consuming statistics of CMM.
+Image
+Type
+Image
+Resolution
+Referenced
+Image
+Average Time Cost
+of Coarse Matching
+Average Time Cost
+of Fine Alignment
+Infrared
+640 × 480
+1024 × 768
+79.1 ms
+2451.1 ms
+Visible light
+512 × 512
+1024 × 768
+82.6 ms
+2454.4 ms
+The positioning and heading obtained from the image matching are ﬁnally used to
+enhance the MEMS INS in order to improve the autonomous navigation performance of
+UAV according to the approach proposed in Section 3. Herein, the positioning and heading
+results of CMM and those of HOP are separately used to aid the MEMS INS, whose raw
+sensors data are collected during the ﬂying tests.
+The CMM enhanced MEMS INS positioning errors are shown in Figure 10, and the
+comparative HOP enhanced MEMS INS positioning errors are shown in Figure 11. By
+comparing Figure 10; Figure 11, it can be seen that both the positioning accuracy and the
+positioning stability are improved dramatically. It can be noted that there exists some error
+“jumps” in Figure 11 during the HOP enhanced MEMS INS process. This phenomenon
+arises from the fact that the HOP imaging matching approach has a low CPR, which
+affects the integration of HOP and MEMS INS. The statistics of the enhanced MEMS INS
+[p.17]
+Appl. Sci. 2023, 13, 8238
+17 of 20
+positioning results are listed in Table 7, which shows that the CMM enhanced system
+achieves signiﬁcantly better performances than the HOP enhanced system.
+Table 7. CMM and HOP enhanced MEMS INS performance comparison.
+Flight No.
+CMM Enhanced Approach
+HOP Enhanced Approach
+North RMS Error
+East RMS Error
+North RMS Error
+East RMS Error
+Flight 1
+3.644 m
+3.440 m
+20.155 m
+19.037 m
+Flight 2
+4.124 m
+3.966 m
+21.686 m
+21.175 m
+Flight 3
+3.519 m
+3.683 m
+20.822 m
+20.242 m
+Flight 4
+3.079 m
+4.113 m
+16.024 m
+22.358 m
+Flight 5
+5.192 m
+5.047 m
+12.279 m
+15.584 m
+Flight 6
+4.859 m
+5.818 m
+16.078 m
+20.278 m
+Flight 7
+3.902 m
+5.125 m
+29.580 m
+32.507 m
+Flight 8
+3.111 m
+3.878 m
+10.084 m
+11.329 m
+ 
+Time / s
+Flight 1
+Flight 2
+Flight 3
+Flight 4
+Flight 5
+Flight 6
+Flight 7
+Flight 8
+North Error / m
+Figure 10. CMM enhanced MEMS INS positioning errors.
+[p.18]
+Appl. Sci. 2023, 13, 8238
+18 of 20
+ 
+East Error / m
+North Error / m
+Figure 11. HOP enhanced MEMS INS positioning errors.
+5. Concluding Remarks
+In this paper, we proposed a novel, practical, and robust UAV navigation method. A
+novel cross-modal image matching method is proposed to efﬁciently and reliably match
+the aerial infrared image or aerial visible light image with the visible light satellite image.
+With the enhancement of the proposed cross-modal image matching method, our
+navigation method can provide long-time autonomous navigation for the UAV at GNSS
+denied environments, and it can work effectively in both daylight and night conditions.
+In addition, our method can efﬁciently run at a lower power common embedded
+platform and the experimental tests show that the states estimation is reliable and precise
+enough for most applications with UAVs.
+The real-time image has to be rectiﬁed before the coarse image matching, which
+means the proposed method cannot be applied to the system with uncalibrated camera. In
+addition, the attitude of the camera with a standard error of less than 3 degrees is required
+for real-time image rectiﬁcation.
+In the future work, we will focus on enhancing the precision of the positioning and
+improving the weather adaptability of the algorithm.
+[p.19]
+Appl. Sci. 2023, 13, 8238
+19 of 20
+Author Contributions: Conceptualization, S.H. and J.D.; methodology, S.H., J.D. and A.S.; soft-
+ware, S.H. and J.D.; validation, S.H., J.D. and K.W.; formal analysis, K.W.; investigation, S.H. and
+M.Z.; resources, S.H.; data curation, M.Z.; writing—original draft preparation, M.Z. and K.W.;
+writing—review and editing, S.H. and J.D.; visualization, M.Z.; supervision, S.H.; project adminis-
+tration, J.D.; funding acquisition, S.H. and J.D. All authors have read and agreed to the published
+version of the manuscript.
+Funding: This work was supported in part by the National Natural Science Foundation of China
+with Grant number 61203199; and in part by the National Natural Science Foundation of China with
+Grant number 61802423.
+Institutional Review Board Statement: Not applicable.
+Informed Consent Statement: Not applicable.
+Data Availability Statement: There are no new data is created.
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+References
+1.
+Tomczyk, A.M.; Ewertowski, M.W.; Stawska, M.; Rachlewicz, G. Detailed alluvial fan geomorphology in a high-arctic periglacial
+environment, Svalbard: Application of unmanned aerial vehicle (UAV) surveys. J. Maps 2019, 15, 460–473. [CrossRef]
+2.
+Shakhatreh, H.; Sawalmeh, A.H.; Al-Fuqaha, A.; Dou, Z.C.; Almaita, E.; Khalil, I.; Othman, N.S.; Khreishah, A.; Guizani,
+M. Unmanned Aerial Vehicles (UAVs): A Survey on Civil Applications and Key Research Challenges. IEEE Access 2019, 7,
+48572–48634. [CrossRef]
+3.
+Zhang, Y.; Ma, G.; Wu, J. Air-Ground Multi-Source Image Matching Based on High-Precision Reference Image. Remote Sens. 2022,
+14, 588. [CrossRef]
+4.
+Jahromi, A.J.; Broumandan, A.; Daneshmand, S.; Lachapelle, G.; Ioannides, R.T. Galileo signal authenticity veriﬁcation using
+signal quality monitoring methods. In Proceedings of the 2016 International Conference on Localization and GNSS (ICL-GNSS),
+Barcelona, Spain, 28–30 June 2016; pp. 1–8.
+5.
+Sivaneri, V.O.; Gross, J.N. UGV-to-UAV cooperative ranging for robust navigation in GNSS-challenged environments. Aerosp. Sci.
+Technol. 2017, 71, 245–255. [CrossRef]
+6.
+Kim, Y.; Hwang, D.-H. Vision/INS Integrated Navigation System for Poor Vision Navigation Environments. Sensors 2016, 16, 1672.
+[CrossRef] [PubMed]
+7.
+Mikov, A.; Cloitre, A.; Prikhodko, I. Stereo-Vision-Aided Inertial Navigation for Automotive Applications. IEEE Sens. Lett. 2021,
+5, 1–4. [CrossRef]
+8.
+Yol, A.; Delabarre, B.; Dame, A.; Dartois, J.É.; Marchand, E. Vision-based absolute localization for unmanned aerial vehicles.
+In Proceedings of the 2014 IEEE/RSJ International Conference on Intelligent Robots and Systems, Chicago, IL, USA, 14–18
+September 2014; pp. 3429–3434.
+9.
+Ye, Y.X.; Shan, J.; Bruzzone, L.; Shen, L. Robust Registration of Multimodal Remote Sensing Images Based on Structural Similarity.
+IEEE Trans. Geosci. Remote Sens. 2017, 55, 2941–2958. [CrossRef]
+10.
+Park, J.H.; Nam, W.J.; Lee, S.W. A Two-Stream Symmetric Network with Bidirectional Ensemble for Aerial Image Matching.
+Remote Sens. 2020, 12, 20. [CrossRef]
+11.
+Shan, M.; Wang, F.; Lin, F.; Gao, Z.; Tang, Y.Z.; Chen, B.M. Google map aided visual navigation for UAVs in GPS-denied
+environment. In Proceedings of the 2015 IEEE International Conference on Robotics and Biomimetics (ROBIO), Zhuhai, China,
+6–9 December 2015; pp. 114–119.
+12.
+Barron, J.L.; Fleet, D.J.; Beauchemin, S.S.; Burkitt, T.A. Performance of optical ﬂow techniques. In Proceedings of the 1992 IEEE
+Computer Society Conference on Computer Vision and Pattern Recognition, Champaign, IL, USA, 15–18 June 1992; pp. 236–242.
+13.
+Lai, T. A Review on Visual-SLAM: Advancements from Geometric Modelling to Learning-Based Semantic Scene Understanding
+Using Multi-Modal Sensor Fusion. Sensors 2022, 22, 7265. [CrossRef]
+14.
+Qin, T.; Li, P.; Shen, S. VINS-Mono: A Robust and Versatile Monocular Visual-Inertial State Estimator. IEEE Trans. Robot. 2018, 34,
+1004–1020. [CrossRef]
+15.
+Qin, T.; Li, P.; Shen, S. Relocalization, Global Optimization and Map Merging for Monocular Visual-Inertial SLAM. In Pro-
+ceedings of the 2018 IEEE International Conference on Robotics and Automation (ICRA), Brisbane, Australia, 21–25 May 2018;
+pp. 1197–1204.
+16.
+Bai, J.; Gao, J.; Lin, Y.; Liu, Z.; Lian, S.; Liu, D. A Novel Feedback Mechanism-Based Stereo Visual-Inertial SLAM. IEEE Access
+2019, 7, 147721–147731. [CrossRef]
+17.
+Coulin, J.; Guillemard, R.; Gay-Bellile, V.; Joly, C.; Fortelle, A.d.L. Tightly-Coupled Magneto-Visual-Inertial Fusion for Long Term
+Localization in Indoor Environment. IEEE Robot. Autom. Lett. 2022, 7, 952–959. [CrossRef]
+18.
+Gurturk, M.; Yuseﬁ, A.; Aslan, M.F.; Soycan, M.; Durdu, A.; Masiero, A. The YTU dataset and recurrent neural network based
+visual-inertial odometry. Measurement 2021, 184, 109878. [CrossRef]
+[p.20]
+Appl. Sci. 2023, 13, 8238
+20 of 20
+19.
+Mur-Artal, R.; Montiel, J.M.M.; Tardós, J.D. ORB-SLAM: A Versatile and Accurate Monocular SLAM System. IEEE Trans. Robot.
+2015, 31, 1147–1163. [CrossRef]
+20.
+Wang, Y.M.; Li, Y.; Zheng, J.B. A camera calibration technique based on OpenCV. In Proceedings of the 3rd International
+Conference on Information Sciences and Interaction Sciences, Chengdu, China, 23–25 June 2010; pp. 403–406.
+21.
+Marchand, E.; Uchiyama, H.; Spindler, F. Pose Estimation for Augmented Reality: A Hands-On Survey. IEEE Trans. Vis. Comput.
+Graph. 2016, 22, 2633–2651. [CrossRef] [PubMed]
+22.
+Dalal, N.; Triggs, B. Histograms of oriented gradients for human detection. In Proceedings of the 2005 IEEE Computer Society
+Conference on Computer Vision and Pattern Recognition (CVPR’05), San Diego, CA, USA, 20–25 June 2005; Volume 881,
+pp. 886–893.
+23.
+Nixon, M.S.; Aguado, A. Feature Extraction & Image Processing for Computer Vision, 3rd ed.; Academic Press: Cambridge, MA, USA,
+2012; p. 609.
+24.
+Rocco, I.; Arandjelovic, R.; Sivic, J. Convolutional Neural Network Architecture for Geometric Matching. IEEE Trans. Pattern Anal.
+Mach. Intell. 2019, 41, 2553–2567. [CrossRef]
+25.
+Chen, Y.; Zhang, Q.; Zhang, W.; Chen, L. Bidirectional Symmetry Network with Dual-Field Cyclic Attention for Multi-Temporal
+Aerial Remote Sensing Image Registration. Symmetry 2021, 13, 1863. [CrossRef]
+26.
+He, K.; Zhang, X.; Ren, S.; Sun, J. Deep Residual Learning for Image Recognition. In Proceedings of the 2016 IEEE Conference on
+Computer Vision and Pattern Recognition (CVPR), Las Vegas, NV, USA, 27–30 June 2016; pp. 770–778.
+27.
+Liu, S.; Deng, W. Very deep convolutional neural network based image classiﬁcation using small training sample size. In
+Proceedings of the 2015 3rd IAPR Asian Conference on Pattern Recognition (ACPR), Kuala Lumpur, Malaysia, 3–6 November
+2015; pp. 730–734.
+28.
+Rocco, I.; Arandjelovic, R.; Sivic, J. End-to-End Weakly-Supervised Semantic Alignment. In Proceedings of the 2018 IEEE/CVF
+Conference on Computer Vision and Pattern Recognition, Salt Lake City, UT, USA, 18–23 June 2018; pp. 6917–6925.
+29.
+Fischler, M.; Bolles, R. Random Sample Consensus: A Paradigm for Model Fitting with Applications To Image Analysis and
+Automated Cartography. Commun. ACM 1981, 24, 381–395. [CrossRef]
+30.
+Syed, Z.F.; Aggarwal, P.; Niu, X.; El-Sheimy, N. Civilian Vehicle Navigation: Required Alignment of the Inertial Sensors for
+Acceptable Navigation Accuracies. IEEE Trans. Veh. Technol. 2008, 57, 3402–3412. [CrossRef]
+31.
+Grenon, G.; An, P.E.; Smith, S.M.; Healey, A.J. Enhancement of the inertial navigation system for the Morpheus autonomous
+underwater vehicles. IEEE J. Ocean. Eng. 2001, 26, 548–560. [CrossRef]
+32.
+Savage, P.G. Strapdown Inertial Navigation Integration Algorithm Design Part 2: Velocity and Position Algorithms. J. Guid.
+Control Dyn. 1998, 21, 208–221. [CrossRef]
+33.
+Savage, P.G. Strapdown Inertial Navigation Integration Algorithm Design Part 1: Attitude Algorithms. J. Guid. Control Dyn. 1998,
+21, 19–28. [CrossRef]
+34.
+Yuan, W.; Gui, M.; Ning, X. Initial Attitude Estimation and Installation Errors Calibration of the IMU for Plane by SINS/CNS
+Integration. In Proceedings of the 2017 Chinese Intelligent Automation Conference, Tianjin, China, 2–4 June 2017; pp. 123–130.
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+=== END ===

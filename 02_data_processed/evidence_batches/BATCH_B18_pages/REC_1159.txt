@@ -1,0 +1,3241 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1159.pdf
+sha256: EC4F8554FADC5945E4728E59DDB71FA1F21F991D4C5B9B371565390DBA420AB1
+library: pymupdf (fitz) v1.28.2
+pages: 29
+=== BEGIN ===
+[p.1]
+Received: 29 June 2021   Revised: 15 April 2022   Accepted: 15 April 2022
+DOI: 10.33012/navi.533
+NAVIGATION, 69(3).	
+Licensed under CC-BY 4.0
+© 2022 Institute of Navigation
+O R I G I N A L A R T I C L E
+GPS-Denied Navigation Aided by Synthetic Aperture Radar 
+Using the Range-Doppler Algorithm
+Colton Lindstrom1  Dr. Randall Christensen1  Dr. Jacob Gunther1  Scott Jenkins2
+1  INTRODUCTION
+The popularity of using light aircraft such as UAVs is growing in a variety of 
+applications from military use to urban consumer use. Regardless of the applica­
+tion, precision navigation is necessary and usually dependent on a global naviga­
+tion satellite system (GNSS). Unfortunately, such systems, such as GPS, are easily 
+denied. GPS can, for example, be jammed or spoofed either accidentally or inten­
+tionally. It can also be obscured or subject to multipath in the presence of natural 
+or manmade structures obscuring the sky. The ease at which GPS can be denied 
+motivates the field of GPS-denied navigation.
+GPS-denied navigation can be accomplished in a variety of ways and typically 
+involves an inertial navigation system supplemented by auxiliary sensors such as 
+cameras, lidar, radar, etc. (Balamurugan et al., 2016). These supplementary sen­
+sors provide measurements that replace information lost by GPS denial. Some cur­
+rent research explores the feasibility of using synthetic aperture radar (SAR) as an 
+1Department of Electrical and Computer 
+Engineering, Utah State University, Utah, 
+USA
+2NPC and Systems Integration, Sandia 
+National Laboratories, New Mexico, USA
+Correspondence
+Dr. Randall Christensen, Department of 
+Electrical and Computer Engineering, 
+Utah State University, 4120 Old Main 
+Hill, Logan, UT 84322-4120, USA. 
+Email: randall.christensen@usu.edu
+Present address
+Randall Christensen, 4120 Old Main Hill, 
+Logan, UT 84322-4120
+Abstract
+The need to successfully navigate in the absence of GNSS has grown in recent 
+years. In particular, light aircraft such as UAVs are growing in popularity for a 
+variety of applications vulnerable to GPS denial. The research presented here 
+develops a GPS-denied navigation scheme for light aircraft employing images 
+formed from a synthetic aperture radar system. Past research has explored the 
+utility of radar telemetry in GPS-denied systems. This research advances previ­
+ous work by exploiting radar images to obtain range and cross-range position 
+measurements. Images are formed using the Range-Doppler Algorithm, an 
+efficient image formation algorithm ideal for the sometimes limited processing 
+packages available to light aircraft. An inertial navigation and radar processing 
+system is implemented using both real and simulated radar images to aid in esti­
+mating an aircraft’s state in a GPS-denied environment. The results show that 
+navigation in the absence of GPS using synthetic aperture radar is feasible with 
+converging and bounded estimation errors.
+Keywords
+GPS-denied, inertial navigation, Range-Doppler Algorithm, synthetic aperture 
+radar, UAV
+[p.2]
+LINDSTROM et al.
+    
+auxiliary sensor to GPS. SAR is a method of processing radar data to form images 
+of a landscape, typically from an aircraft or spacecraft. SAR is self-illuminating 
+and can be used in all weather conditions and at any time of day. The research 
+presented in this paper expands on previous research to further explore the utility 
+of SAR in aiding GPS-denied navigation.
+Specifically, images are created using the Range-Doppler Algorithm (RDA), 
+which is an efficient Fourier-based image formation technique. Navigation mea­
+surements are extracted from images through a comparison with known target 
+location data. Target comparison is performed via a 2D cross-correlation after auto­
+focusing to remove image blur due to velocity and attitude state estimation errors. 
+Measurements are applied to a local coordinate frame and take the form of range 
+and cross-range measurements.
+A 6DOF flight and radar simulations are implemented and verified via Monte 
+Carlo analysis. Algorithms developed in the simulated system are applied to 
+real navigation and radar data collected in Logan, Utah, by the Space Dynamics 
+Laboratory at Utah State University. Results for both the simulated data and real 
+data show successful GPS-denied navigation using RDA SAR images.
+1.1  Literature Review
+GPS is integral in most navigation systems. Without GPS, the position, velocity, 
+and attitude estimates would accumulate error over time. GPS denial occurs in a 
+variety of situations. For example, GPS is easily jammed or spoofed. GPS can also 
+be denied by natural or manmade structures obscuring the sky. Without GPS, a 
+vehicle must rely on information from other sensors to precisely navigate.
+GPS-denied navigation is typically performed using accelerometers and gyro­
+scopes coupled with a selection of supplementary sensors from which auxiliary 
+measurements are collected. Examples of possible supplementary sensors include 
+lidar, cameras, radar, range finders, etc. (Balamurugan et al., 2016). Auxiliary sen­
+sors attempt to supply knowledge sufficient to replace the knowledge lost by the 
+lack of GPS.
+This paper explores using synthetic aperture radar (SAR) as a supplementary 
+sensor to aid in navigation. Using SAR as an aid to navigation is advantageous 
+as radar pulses can penetrate cloud cover and are actively illuminating. As such, 
+images of a landscape using SAR can be formed during stormy weather and at 
+night. This presents an advantage over other imaging systems that employ cam­
+eras, which can’t image at night or during inclement weather, or lidar which may 
+have trouble in inclement weather depending on illumination wavelengths.
+Methods for using radar during navigation have been a topic of research inter­
+est and have been generally classified as methods of either relative navigation or 
+absolute navigation. Relative navigation is concerned with localizing the vehicle 
+relative to some reference location. Scannapieco (2019) and Scannapieco et al. 
+(2018) detected ground targets using a constant false alarm rate and tracked their 
+position using the global nearest neighbor in range-compressed data. Quist and 
+Beard (2016) exploited the fact that, for linear flight paths, prominent reflectors 
+manifest themselves as hyperbolic curves in the range-compressed vs. time image 
+(Niedfeldt et al., 2014). Features were tracked using a hyperbolic Hough trans­
+form, after which, successive pairs of range measurements were used to deter­
+mine changes in horizontal position. Mostafa et al. (2018) developed a combined 
+radar odometry and visual odometry method and demonstrated performance on 
+real data.
+[p.3]
+    
+LINDSTROM et al.
+Simultaneous localization and mapping (SLAM) is another example of relative 
+navigation. Where odometry approaches contain only states of the vehicle, SLAM 
+approaches augment the vehicle state vector with the position of the reflectors in 
+an extended Kalman filter (EKF) framework. The SLAM approach was studied 
+over a period of five years by a group from the Air Force Institute of Technology 
+(Kauffman, 2009; Kauffman et al., 2010a, 2010b, 2011a, 2011b, 2013a, 2013b). They 
+developed a SLAM architecture that utilized the range-compressed radar data 
+to detect, track, then estimate both the vehicle and reflector states culminating 
+in a hardware implementation with highly reflective targets. Quist et al. (2016) 
+extended research relying on the Hough transform by implementing a more effi­
+cient recursive RANSAC algorithm for data association and the tracking of reflec­
+tors. Here, reflector states were included in the state vector, resulting in a SLAM 
+framework that was demonstrated with real outdoor flight data.
+Autofocus algorithms for synthetic aperture radar (SAR) images may also be 
+considered as a form of relative navigation in which velocity errors are esti­
+mated to yield an improved SAR image (Samczynski, 2012; Samczynski & 
+Kulpa, 2010).
+In contrast with relative approaches, absolute navigation localizes the vehicle in 
+a global coordinate system such as latitude, longitude, and altitude, and does not 
+suffer from an unbounded growth of navigation errors. Terrain contour matching 
+is one approach to absolute navigation which exploits variations in terrain height 
+along the flight path of an aircraft to determine the location of the vehicle in a global 
+reference frame. Variations in terrain can be measured from radar nadir bounces or 
+from interferometric SAR. These methods have been explored by Hollowell (1990), 
+Bergman et al. (1999), Nordlund and Gustafsson (2009), Long Zhao et al. (2015), 
+and Jiang et al. (2018), each approach varying in complexity from grids of Kalman 
+filters to marginalized particle filters.
+Of note is the work done by Kim et al. (2018), where measurements from an 
+interferometric radar altimeter (IRA) provided the range to the nearest point to the 
+radar vehicle from the underlying terrain. This measurement is processed together 
+with information from a digital elevation model (DEM) in a particle filter to predict 
+a unique trajectory. Simulation results show less than 3 meters root-mean-square 
+(RMS) of absolute estimation error, with the major factor in navigation accuracy 
+being the accuracy of the DEM.
+Absolute radar-aided navigation using SAR images has been explored by the 
+SARINA project (Fabbrini et al., 2011; Greco et al., 2011a, 2011b, 2012; Nitti et al., 
+2015; Sjanic & Gustafsson, 2010). Assuming knowledge of the aircraft attitude, the 
+SARINA project correlated salient features in the online-generated SAR images 
+with geolocated features in a reference map.
+Consistent with results from the SARINA project, research performed by 
+Christensen et al. (2019) concluded that navigation estimation errors over time 
+induce specific error characteristics in SAR images that can be exploited to perform 
+GPS-denied navigation. This research demonstrates a potential method for how 
+this exploitation can be achieved.
+1.2  Contributions
+The research in this paper is an extension of these previous projects exploring 
+GPS-denied navigation. The results presented here build upon those results lever­
+aging SAR imagery to obtain precise navigation information. Specifically, a system 
+was developed that forms SAR images in a GPS-denied environment. This degrades 
+[p.4]
+LINDSTROM et al.
+    
+the quality of the images. The poorly formed SAR images are then used to infer 
+navigation errors.
+Furthermore, images were created using the Range-Doppler Algorithm, showing 
+that navigation errors can be inferred using images that leverage efficient Fourier 
+methods. This result suggests that SAR systems with lightweight processing pack­
+ages, such as those on an unmanned aerial vehicle, could perform GPS-denied 
+navigation.
+The navigation architecture developed in this research is an absolute, SAR 
+image-aided navigation approach that does not require the presence of significant 
+terrain variations, nor knowledge of the aircraft attitude. A radar-aided, inertial 
+navigation system (INS) based on an indirect EKF was developed. To bound the 
+growth of INS errors in the range and cross-range directions, the EKF exploited 
+apparent shifts after correcting for blurs in SAR images generated onboard an air­
+craft with respect to an error-free SAR image. The EKF was further aided by altime­
+ter measurements to constrain the growth of vertical errors. A measurement model 
+was proposed for the EKF that relates estimation errors in the aircraft position to 
+range and cross-range shifts of the generated SAR image.
+As a whole, this research strengthens the position of GPS-denied navigation 
+using SAR imagery. A working system was demonstrated and validated using both 
+real and simulated data as part of this work.
+The remainder of the paper is organized as follows. Section 2 provides a tutorial 
+on SAR image formation using the RDA paired with a mapdrift autofocus algo­
+rithm. Section 3 develops an inertial navigation system (INS) using SAR image 
+measurements incorporated via an EKF. Section 4 validates the EKF via Monte 
+Carlo analysis, presents the results of real and simulated data, and provides discus­
+sion. Section 5 concludes the document and suggests areas of future work.
+2  SYNTHETIC APERTURE RADAR IMAGING
+As the formation of synthetic aperture radar (SAR) images may be unfamiliar 
+to the typical navigation engineer, this section contains a discussion of SAR image 
+formation. The discussion ultimately leads to a derivation of the Range-Doppler 
+Algorithm (RDA), the imaging algorithm employed in this research.
+SAR is an imaging technique based on the transmission of radar pulses at inter­
+vals along a portion of an aircraft’s trajectory. This portion of the trajectory is called 
+the synthetic aperture. Return pulses are collected along the synthetic aperture 
+and are processed into an image. Fundamentally, forming a SAR image is a process 
+of matched filtering the return signals in the range and cross-range dimensions. 
+Matched filtering is essentially a correlation operation, where return data are cor­
+related with a copy of the expected return pulse. Peaks in the filter output indicate 
+high correlation and, thus, represent target returns of the original radar pulse.
+Several algorithms can be used to process SAR data into images. Differences 
+in image formation algorithms boil down to differences in how matched filter­
+ing is performed. For example, images can be formed using the Back-Projection 
+Algorithm (BPA) where images are processed with a time domain matched filter 
+on hyperbolic curves in the data. The time domain matched filter is flexible and 
+can accommodate complicated flight trajectories, but it is computationally expen­
+sive and sensitive to navigation errors (Duersch & Long, 2015).
+The RDA is an image formation algorithm that performs efficient matched filter­
+ing in the frequency domain where the filtering operation of convolution is equiv­
+alent to a complex point-wise multiplication of two vectors. Though the RDA is 
+[p.5]
+    
+LINDSTROM et al.
+less expensive, its most basic implementation requires straight trajectories to form 
+accurate images.
+The research in this paper uses the RDA to form images and to derive SAR-based 
+navigation measurements. This research is aimed toward the navigation of light 
+aircraft such as UAVs. As such, the RDA was chosen due to its computational effi­
+ciency, which is attractive for the potentially smaller processing packages available 
+to UAVs.
+SAR images are dependent on vehicle position and velocity. This dependence 
+means that errors in trajectory estimation will result in errors in the final SAR 
+image. For example, position estimation errors cause imaged targets to shift in, and 
+some types of velocity or attitude estimation errors cause imaged targets to both 
+shift and blur (Lindstrom et al., 2022). In this research, the errors induced on the 
+image by trajectory estimation errors are exploited to recover navigation informa­
+tion lost during GPS denial.
+2.1  The Range-Doppler Algorithm
+The RDA is a SAR image formation technique that takes advantage of the Fourier 
+domain to perform efficient matched filtering and can be summarized into the fol­
+lowing steps (Cumming & Wong, 2005):
+1.	 Perform range compression on backscattered radar signal 
+2.	 Compute the fast Fourier transform (FFT) in the azimuth dimension 
+3.	 Compensate for range cell migration 
+4.	 Perform azimuth compression 
+5.	 Return data to spatial domain using the inverse FFT 
+The process of forming RDA images begins by transmitting radar pulses at mul­
+tiple points along a vehicle trajectory. The backscattered pulses are collected by 
+the radar receiver as raw SAR data. Radar pulses can have various structures but 
+are commonly of a linear frequency modulated (LFM) form. LMF signals, or chirp 
+signals, are characterized by an instantaneous frequency that varies linearly with 
+time. Radar data is inherently complex and is represented by a complex exponen­
+tial. The transmitted LFM signal s
+t
+tx ( ) is therefore written as:
+	
+s
+t
+j
+f t
+j Kt
+t
+T
+tx ( )
+(
+),
+,
+=
++
+≤≤
+
+
+
+exp
+otherwise
+2
+0
+0
+0
+2
+π
+π
+
+(1)
+where f0 is the initial frequency, K is the linear FM rate in Hertz per second, and 
+T is the pulse duration. The bandwidth of the transmitted pulse is equal to the 
+product of the linear FM rate and the pulse duration, which can be interpreted as 
+the range of frequencies swept through during a single LFM pulse.
+The return LFM signal is denoted s
+t
+rx ( ). The return signal is written using a 
+stop-and-hop assumption, which assumes the vehicle transmits and receives each 
+radar pulse without traversing any distance.
+	
+s
+t
+As
+t
+rx
+tx
+( )
+(
+)
+=
+−τ 
+(2)
+In this equation, A is the attenuation of the signal and τ is the time delay 
+between the transmitted and received signal.
+[p.6]
+LINDSTROM et al.
+    
+After collecting raw radar data, the data is fed through a matched filter in 
+the range dimension to perform range compression. The matched filter is a 
+time-reversed conjugate version of the transmitted signal s
+t
+tx ( ), which is denoted 
+g t( ). For efficiency, the matched filter can be applied in the frequency domain. 
+Let a capital letter denote a signal in the frequency domain. The result of matched 
+filtering is denoted s
+t
+rc ( ), and is equal to:
+	
+s
+t
+s
+t
+g t
+s
+t
+g t
+S
+f
+G f
+rc
+rx
+rx
+rx
+( )
+( )
+( )
+( )
+( )
+( )
+( )
+=
+∗
+=
+{
+}⋅
+{
+}
+{
+}
+=
+⋅
+{
+}
+−
+−
+
+
+
+
+1
+1
+
+(3)
+Each output of the matched filter is collected together to form the aggregate 
+range compressed data, which will be denoted by augmenting s
+t
+rc ( ) to s
+t
+rc (
+),
+,η
+ 
+where η is the variable for azimuth time, as opposed to range time denoted by t. 
+Visually, range compressed data appears as a composition of several hyperbolic 
+arcs overlaid on top of each other. Each hyperbolic arc represents a ground target. 
+This is illustrated in Figure 1.
+Azimuth compression begins by taking an FFT of the range compressed data in 
+the azimuth dimension. The data in the range dimension is left in the time domain. 
+The azimuth-frequency range-time domain is referred to as the Range-Doppler 
+Domain. The data in the Range-Doppler Domain is denoted:
+	
+η
+η
+η
+s
+t
+S
+t f
+rc
+rc
+(
+)
+(
+)
+,
+,
+{
+} =
+
+(4)
+Note that the η subscript on  denotes the FFT in the azimuth dimension. 
+Range cell migration correction must be applied before applying a matched fil­
+ter to range-Doppler data. Range cell migration refers to the hyperbolic shape of 
+the targets in the data. Each of these hyperbolic arcs must be reformatted to form 
+a straight line within the data. Without correcting for range cell migration, the 
+final image will blur, and resolution will decrease. Figure 2 shows the data in the 
+Range-Doppler Domain before and after range cell migration correction.
+Range cell migration correction can be performed by interpolating and 
+re-indexing each row of the range-Doppler data according to a correction fac­
+tor. The extent and method of interpolation required is system dependent and is 
+FIGURE 1 Illustration of how ground targets at various locations (left) become hyperbolic 
+curves in the range compressed data (right); note that range in the right subfigure is synonymous 
+with slant range, which is the absolute distance from the flight trajectory to the radar scene taking 
+altitude into account.
+[p.7]
+    
+LINDSTROM et al.
+typically determined during the design of the radar system. The amount of correc­
+tion required for each range cell is denoted ∆R f
+(
+)
+η and is equal to:
+	
+∆
+=
+R f
+R f
+Vr
+(
+)
+η
+η
+λ2
+0
+2
+2
+8
+
+(5)
+where λ is the wavelength of the radar pulse’s center frequency, R0 is the range 
+of closest approach to a given target, fη is the azimuth Doppler frequency, and Vr 
+is the forward velocity of the radar vehicle (Cumming & Wong, 2005). The above 
+expression is derived from the hyperbolic range equation. The hyperbolic shape of 
+the radar data can be described by:
+	
+R
+R
+V
+R
+V
+R
+r
+r
+( )
+η
+η
+η
+=
++
+≈
++
+0
+2
+2
+2
+0
+2
+2
+0
+2
+
+(6)
+where the approximation comes from a Taylor series expansion and an assumption 
+that R
+Vr
+0 
+η. Similar to the FM rate, K, in the range dimension, the azimuth FM 
+rate is denoted Ka and is approximated by:
+	
+K
+V
+R
+a ≈2
+0
+2
+0
+λ
+
+(7)
+The azimuth frequency fη is related to the azimuth FM rate (Cumming & Wong, 
+2005) by:
+	
+f
+Ka
+η
+η
+= −
+
+(8)
+Using Equations (7), (8), and the quadratic portion of Equation (6), the range cell 
+migration correction factor can be derived as:
+	
+∆
+=
+=
+
+
+
+
+
+=
+R f
+V
+R
+V
+R
+f
+K
+R f
+V
+r
+r
+a
+r
+(
+)
+η
+η
+η
+η
+λ
+2
+2
+0
+2
+0
+2
+2
+0
+2
+2
+2
+2
+8
+
+(9)
+The data after the range cell migration correction is denoted S
+t f
+rcmc (
+)
+,
+.
+η
+ 
+After range cell migration correction, a matched filter is applied in the azimuth 
+FIGURE 2 Illustration of the data in the Range-Doppler Domain before (left) and after 
+(right) range cell migration correction
+[p.8]
+LINDSTROM et al.
+    
+dimension. The azimuth matched filter is denoted h( )
+η and is a phase-only filter 
+equal to the following:
+	
+h
+j
+V
+R
+r
+( )
+η
+π λ
+η
+=
+
+
+
+
+
+
+exp
+2
+2
+0
+2
+
+(10)
+Using Equation (7), the azimuth matched filter can be rewritten as:
+	
+h
+j Ka
+( )
+(
+)
+η
+π
+η
+= exp
+2 
+(11)
+which is of a similar form to the range matched filter, which is the conjugate of 
+Equation (1). The only differences between the range and azimuth matched filters 
+are the FM rates, the time index being used, and center frequency, which in the 
+azimuth case is equal to zero.
+Azimuth filtering is then the multiplication of the range cell migration corrected 
+data and the Fourier transformed matched filter, H f
+h
+(
+)
+{ ( )}.
+η
+η
+= 
+ The data after 
+this step is denoted S
+t f
+ac (
+)
+, η :
+	
+S
+t f
+S
+t f
+H f
+ac
+rcmc
+(
+)
+(
+)
+,
+,
+(
+)
+η
+η
+η
+=
+⋅
+
+(12)
+The final step in forming images using the RDA is to take the inverse FFT in the 
+Doppler dimension of S
+t f
+ac (
+)
+, η :
+	
+s
+t
+S
+t f
+ac
+ac
+(
+)
+(
+)
+,
+,
+η
+η
+=
+{
+}
+−
+1
+
+(13)
+Figure 3 shows a fully formed SAR image after azimuth compression. The image in 
+this case is formed and displayed in the slant plane. To display the image in the ground 
+plane, the SAR image can be projected down onto either a uniform plane representing 
+the ground or a digital elevation map of the radar scene (Cumming & Wong, 2005).
+2.2  Mapdrift Autofocus
+For a variety of reasons (such as motion error, FM rate estimation error, assump­
+tion violations, etc.), a SAR image can be blurred or distorted upon completion 
+FIGURE 3 Fully formed SAR image after azimuth matched filtering and inverse FFT
+[p.9]
+    
+LINDSTROM et al.
+of the image formation algorithm. This warrants the use of an autofocusing algo­
+rithm. Autofocusing algorithms modify the matched filters used in the image for­
+mation process to produce sharper images.
+There are several methods of autofocusing images ranging from contrast 
+maximization to a generalized phase gradient algorithm. Autofocusing algo­
+rithms can be classified as either magnitude- or phase-based and iterative or 
+non-iterative (Blacknell et al., 1992; Evers, 2019). The research in this paper per­
+forms a magnitude-based non-iterative mapdrift technique derived from the 
+text by Cumming and Wong (2005), which is sometimes called the Azimuth 
+Misregistration Algorithm.
+The mapdrift technique is based on multilook processing and azimuth misreg­
+istration. Multilook processing is a method of using only a portion of the collected 
+radar data to form the image of a target. For example, one could split the return 
+radar data into two sets and apply a separate matched filter to each set. If done cor­
+rectly, doing so will create two distinct images of the same target area.
+In the presence of phase errors in the matched filter or errors in the estimated 
+azimuth FM rate, imaged targets can become blurred and unfocused. In the con­
+text of multilook processing, blurred targets result in a misregistration, or loca­
+tion shift, of a target between each of the separate looks. This misregistration can 
+be used to estimate a phase correction for the matched filter and fix any blurring 
+induced by phase errors.
+For the research in this paper, azimuth FM rate errors were introduced into the 
+SAR imaging system when forward velocity or attitude errors (which induce addi­
+tional velocity errors) were present. Such errors result in a blurred image if not 
+corrected by an autofocusing algorithm (Lindstrom et al., 2022). To express azi­
+muth FM errors, let Kamf be the azimuth FM rate with an error included such that 
+K
+K
+K
+amf
+a
+=
++ ∆
+ where K
+∆
+ is the amount of error present in Kamf .
+The matched filter is adjusted to produce two different looks of the same tar­
+get. This is done by selecting two disjointed frequency bands within the frequency 
+range of the original matched filter. This means that rather than using fη from 
+Equation (8) in the matched filter, two separate frequencies are chosen, denoted 
+fη,1 and fη, ,
+2 where ∆
+=
+−
+f
+f
+f
+a
+η
+η
+,
+,
+2
+1 is the difference between the two frequencies.
+The amount of misregistration between the two separate looks is denoted ∆η 
+and is defined as:
+	
+∆
+= −∆
+−
+
+
+
+
+
+
+η
+f
+K
+K
+a
+a
+amf
+1
+1
+
+(14)
+∆η can be measured from the data by cross-correlating the two separate looks 
+produced by the fη,1 and fη,2 matched filters. The peak of the cross-correlation 
+shifts according to the amount of misregistration present.
+By rearranging Equation (14), the azimuth FM rate error can be expressed as:
+	
+∆
+≈−∆
+∆
+K
+K
+f
+amf
+a
+2
+η 
+(15)
+The matched filter from Equation (11) can be rewritten with the azimuth FM 
+rate correction represented by Equation (15) as:
+	
+exp j
+K
+K
+amf
+π
+η
+(
+)
+−∆
+{
+}
+2 
+(16)
+[p.10]
+LINDSTROM et al.
+    
+This new azimuth matched filter was used to perform azimuth compression. The 
+result was a focused image that could then be used for the navigation measure­
+ments described in subsequent sections. Figure 4 provides a demonstration of the 
+mapdrift autofocusing technique. The first subfigure is a blurred SAR image result­
+ing from a forward velocity error. The second subfigure shows the same SAR image 
+after mapdrift autofocus is performed.
+3  NAVIGATION SYSTEM AND MONTE CARLO 
+FRAMEWORK DEVELOPMENT
+This section develops the framework of an aided inertial navigation system (INS) 
+applicable to the short data collection times typical of SAR imagery. The INS frame­
+work utilizes concepts discussed in Farrell (2008), Grewal et al. (2020), and Savage 
+et al. (2000), and is most directly related to the so-called Tangent Frame kinematic 
+model (Farrell, 2008), with assumptions of constant gravity and a non-rotating 
+Earth, both of which are often applicable over the short timeframe typical of an 
+airborne SAR data collection.
+In the development that follows, the truth and navigation states are defined 
+with the associated differential equations. Consistent with an extended Kalman 
+filter framework, the truth state differential equations are linearized about the esti­
+mated navigation state to derive the differential equations of the estimation errors, 
+or error states. Models are presented for the SAR-based measurement and sub­
+sequently linearized. Finally, the covariance propagation, update, and navigation 
+state correction steps are defined.
+3.1  Truth and Navigation Models
+The truth state vector is comprised of the true position (
+),
+pn
+ velocity (
+),
+vn
+ 
+and attitude quaternion (
+)
+qb
+n of the vehicle, in addition to biases for the accel­
+erometer ba, gyroscope bg, altimeter bh, radar range br , and radar cross-range 
+measurements bc:
+	
+x
+p
+v
+q
+b
+b
+= 
+
+n
+n
+b
+n
+a
+g
+h
+r
+c
+T
+b
+b
+b
+
+(17)
+FIGURE 4 Comparison of a blurry SAR image with a forward velocity error before (left) and 
+after (right) mapdrift autofocusing
+[p.11]
+    
+LINDSTROM et al.
+where n and b refer to the navigation and body frame, respectively. The body 
+frame origin is coincidental with the navigation center of the inertial measurement 
+unit (IMU), with the axes aligned and rotating with the vehicle body axes. The nav­
+igation frame is defined with the x-axis pointing north, the y-axis pointing east, and 
+the z-axis pointing in the direction of gravity.
+Since the multiplicity of attitude quaternion conventions is often a point of con­
+fusion, an explanation sufficient for this paper is provided. For more detail, the 
+interested reader is referred to excellent discussions on topic (Farrell, 2008; Savage 
+et al., 2000; Zanetti, 2019). 
+The attitude quaternion qb
+n is a typical choice in inertial navigation systems to 
+efficiently represent the attitude of the vehicle without the singularities associated 
+with Euler angles. Another singularity-free representation is the attitude transfor­
+mation matrix, which is a 3 3
+×
+ matrix Tb
+n that transforms a vector expressed in the 
+b frame to the same vector expressed in the n frame (i.e., passive interpretation of 
+a rotation [Zanetti, 2019]).
+The quaternion is the generalization of the imaginary numbers to three dimen­
+sions and consists of a scalar term, a, and vector term, [
+] ,
+b
+c
+d T in the i, j, and k 
+directions, respectively.
+	
+q =
++
++
++
+a
+bi
+cj
+dk 
+(18)
+The scalar and vector portions are commonly packaged in a 4 1
+× vector:
+	
+q
+q
+= 
+
+
+
+
+
+
+
+q 
+(19)
+where q
+a
+=
+ and q =[
+] .
+b
+c
+d T Analytical relationships exist with the corre­
+sponding attitude transformation matrix (Savage et al., 2000). More importantly, 
+the composition of transformation matrices:
+	
+T
+T T
+a
+c
+b
+c
+a
+b
+=
+
+(20)
+is equivalently performed using quaternions:
+	
+q
+q
+q
+a
+c
+b
+c
+a
+b
+=
+⊗
+
+(21)
+where quaternion multiplication is defined as:
+	
+q
+q
+q
+q
+q
+q
+q
+q
+1
+2
+1 2
+1
+2
+1
+2
+2
+1
+1
+2
+⊗
+=
+−
+⋅
++
++
+×
+
+
+
+
+
+
+
+
+q q
+q
+q
+
+(22)
+Analogous to the transposition rule for transformation matrices:
+	
+T
+T
+b
+a
+a
+b T
+= (
+) 
+(23)
+the direction of an attitude quaternion is reversed via its complex conjugate or the 
+negation of the vector portion.
+	
+q
+q
+q
+b
+a
+a
+b
+a
+b
+a
+b
+q
+=(
+) = −
+
+
+
+
+
+
+
+
+*
+
+(24)
+[p.12]
+LINDSTROM et al.
+    
+In contrast with transformation matrices, many quaternion conventions unfor­
+tunately exist (Zanetti, 2019). The work described in this manuscript utilizes the 
+conventions in Savage et al. (2000).
+The truth state differential equations of position, velocity, and attitude are mod­
+eled via kinematic relationships, while the sensor biases follow modern best prac­
+tices of first-order Gauss-Markov (FOGM) models with associated time constants τ 
+and process noise w (Carpenter & D’Souza, 2018):
+	
+
+
+
+
+
+
+
+
+p
+v
+q
+b
+b
+v
+n
+n
+b
+n
+a
+g
+h
+r
+c
+n
+b
+b
+b
+b
+T
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=
+n
+b
+n
+b
+n
+b
+a
+a
+g
+g
+h
+h
+r
+a
+g
+h
+r
+b
+w
+b
+ν
+ω
++
+⊗
+
+
+
+
+
+
+
+
+−
++
+−
++
+−
++
+−
++
+g
+q
+b
+w
+b
+w
+1
+2
+1
+1
+1
+1
+0
+τ
+τ
+τ
+τ
+w
+b
+w
+r
+c
+c
+c
+−
++
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+τ
+
+(25)
+The vector gn is the local gravity expressed in the navigation frame. The vectors 
+ν b and ωb are true accelerometer and gyroscope measurements, free of noise or 
+bias. Realistic measurements from accelerometers and gyroscopes are corrupted by 
+noise, n, and bias, b, and are denoted with a tilde as ν b and ωb:
+	
+ν
+ν
+ν
+b
+b
+a
+=
++
++
+b
+n 
+(26)
+	
+ω
+ω
+b
+b
+g
+=
++
++
+ω
+b
+n 
+(27)
+The navigation states, distinguished from truth by the presence of the ( )
+^⋅ deco­
+ration, are defined identical to the truth states, but are propagated using compen­
+sated and noisy accelerometer and gyroscope measurements without the process 
+noise for the FOGM bias states.
+	
+(
+)
+1
+2
+1
+1
+1
+1
+1
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+0
+a
+g
+h
+r
+c
+n
+n
+n
+b
+n
+b
+a
+n
+n
+n
+b
+b
+b
+g
+a
+a
+g
+g
+h
+h
+r
+r
+c
+c
+T
+b
+b
+b
+b
+b
+b
+τ
+τ
+τ
+τ
+τ
+
+
+
+
+
+
+−
++
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+⊗
+
+
+
+
+
+−
+
+
+
+
+
+
+
+
+
+
+
+
+−
+=
+
+
+
+
+
+
+
+
+−
+
+
+
+
+
+
+
+
+−
+
+
+
+
+
+
+
+
+−
+
+
+
+
+
+
+
+
+
+
+−
+
+
+v
+p
+b
+g
+v
+q
+q
+b
+b
+b
+b
+b
+
+
+
+
+
+
+
+
+
+
+ν
+ω
+
+(28)
+[p.13]
+    
+LINDSTROM et al.
+3.2  Linear Error Model
+The estimation error, or error state vector, is comprised of perturbations in posi­
+tion, δ pn, velocity, δ vn, attitude, δθ n, and sensor biases, b:
+	
+δ
+δ
+δ
+δ
+δ
+δ
+δ
+δ
+δ
+x
+p
+v
+b
+b
+= 
+
+n
+n
+n
+a
+g
+h
+r
+c
+T
+b
+b
+b
+θ
+
+(29)
+ Attitude in the linear error model is represented as a three-component vector 
+rather than a quaternion. The vector δθ n contains the north, east, and down rota­
+tion angle errors synonymous with roll, pitch, and yaw angle errors, respectively.
+For all but the attitude states, the difference is defined by a simple subtraction. 
+For the attitude quaternion, the difference is defined by a quaternion product:
+	
+ˆ
+n
+n
+n
+δ
+=
+−
+p
+p
+p 
+(30)
+	
+ˆ
+n
+n
+n
+δ
+=
+−
+v
+v
+v 
+(31)
+	
+(
+)
+*
+1
+2
+ˆ
+1
+n
+n
+b
+b
+n
+q
+δ
+
+
+=
+⊗
+
+
+−
+
+
+
+
+q
+θ
+
+(32)
+	
+ˆ
+i
+i
+i
+b
+b
+b
+δ
+=
+−
+
+(33)
+where the subscript i on δbi is an index indicating any of the various bias terms. 
+It is also convenient to define the attitude errors in terms of the true and estimated 
+transformation matrices:
+	
+(
+)
+(
+)
+ˆ
+T
+n
+n
+n
+b
+b
+I
+T
+T
+δ
+
+
+−
+×
+=
+
+
+θ
+
+(34)
+where the cross operator, ×, is equivalent to a cross-product and defined 
+formally as:
+×
+→
+∀∈
+× =
+−
+−
+−
+
+
+
+
+
+
+
+
+
+
+×
+:
+, . .
+, (
+)
+
+
+
+3
+3 3
+3
+3
+2
+3
+1
+2
+1
+0
+0
+0
+s t
+a
+a
+a
+a
+a
+a
+a
+a
+Linearization of Equation (25) about the estimated state results in the error state 
+differential equation:
+	
+δ
+δ
+x
+x
+w
+=
++
+F
+B
+
+(35)
+where the error state dynamics matrix F is defined as:
+	
+F
+F
+F
+F
+= 
+
+
+
+
+
+
+
+×
+11
+12
+9 9
+22
+0
+
+(36)
+	
+3 3
+3 3
+3 3
+11
+3 3
+3 3
+3 3
+3 3
+3 3
+0
+0
+0
+0
+[
+]
+0
+0
+0
+ˆ
+ˆ (
+)
+n
+b
+b
+a
+I
+F
+T
+ν
+×
+×
+×
+×
+×
+×
+×
+×
+
+
+
+
+=
+−
+×
+
+
+
+
+
+
+b
+
+
+(37)
+[p.14]
+LINDSTROM et al.
+    
+	
+3 3
+3 3
+3 1
+3 1
+3 1
+21
+3 3
+3 1
+3 1
+3 1
+3 3
+3 1
+3 1
+3 1
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+ˆ
+ˆ
+0
+0
+n
+b
+n
+b
+F
+T
+T
+×
+×
+×
+×
+×
+×
+×
+×
+×
+×
+×
+×
+×
+
+
+
+
+= −
+
+
+
+
+
+
+
+(38)
+	
+F
+I
+I
+a
+g
+h
+22
+1
+3 3
+3 1
+3 1
+3 1
+3 3
+1
+3 1
+3 1
+3 1
+1 3
+1 3
+1
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+−
+−
+−
+×
+×
+×
+×
+×
+×
+×
+×
+×
+×
+τ
+τ
+τ
+0
+0
+0
+0
+0
+0
+0
+0
+0
+1 3
+1 3
+1
+1 3
+1 3
+1
+×
+×
+×
+×
+−
+−
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+τ
+τ
+r
+c
+
+(39)
+The process noise coupling matrix B is given by:
+	
+B
+B
+I
+= 
+
+
+
+
+
+
+
+×
+×
+×
+11
+9 9
+9 6
+9 9
+0
+0
+
+(40)
+	
+3 3
+3 3
+11
+3 3
+3 3
+0
+0
+ˆ
+ˆ
+0
+0
+n
+b
+n
+b
+B
+T
+T
+×
+×
+×
+×
+
+
+
+
+= −
+
+
+
+
+
+
+
+(41)
+The vector w is the noise vector and is comprised of accelerometer and gyroscope 
+measurement noise as well as the process noise driving the sensor bias states.
+	
+w
+n
+n
+w
+w
+=[
+,
+,
+,
+,
+,
+,
+]
+ν
+ω
+a
+g
+h
+r
+c
+T
+w
+w
+w
+
+(42)
+The error state covariance matrix propagates according to:
+	
+P
+FP
+PF
+BQBT
+=
++
++
+
+(43)
+where the Q matrix is the power spectral density of the noise vector w, defined as:
+	
+Q
+diag q
+I
+q
+I
+I
+I
+vrw
+arw
+ss b
+a
+ss b
+g
+a
+g
+=
+
+
+
+×
+×
+×
+×
+2
+3 3
+2
+3 3
+2
+3 3
+2
+3
+2
+2
+,
+,
+,
+,
+,
+σ
+τ
+σ
+τ
+3
+2
+2
+2
+2
+2
+2
+,
+,
+,
+,
+,
+,
+σ
+τ
+σ
+τ
+σ
+τ
+ss b
+h
+ss b
+r
+ss b
+c
+h
+r
+c 
+
+
+
+
+(44)
+where qvrw
+2
+ and qarw
+2
+ are defined, respectively, as the velocity random walk and 
+angular random walk of the accelerometer and gyroscope. Each σ ss i,
+2 term is a 
+steady-state variance term for the FOGM models governing each bias state and 
+each τi term is the time constant of the FOGM models.
+3.3  Measurement Modeling
+This section discusses the measurements provided to the EKF developed in 
+the previous section. In general, the measurement model used to design the EKF 
+[p.15]
+    
+LINDSTROM et al.
+differs from the true measurement model used to synthesize measurements. In the 
+case of the altimeter, the truth and design models were identical and modeled as 
+the vertical position of the vehicle corrupted by bias and noise.
+	
+z
+b
+n
+h
+n
+h
+h
+=
+−
+
+
++
++
+0
+0
+1 p
+
+(45)
+In the case of the SAR image-derived measurements, the truth and design 
+models differ; a detailed discussion regarding each model is included in what 
+follows. This measurement formulation assumes a roughly straight flight. For 
+the vast majority of SAR systems, including the system used in this research, 
+this assumption is very likely to be true during data collection. Furthermore, 
+the measurement model assumes a local coordinate system centered on an ori­
+gin located within the trajectory of the current SAR image’s subaperture. For 
+extended flights, the local coordinate system changes with the formation of each 
+new SAR subaperture.
+From each SAR image, range and cross-range measurements were taken. The 
+range and cross-range measurements provided information on apparent shifts 
+of the in-flight-generated SAR image in the range and cross-range directions as 
+compared to reference information of the imaged area. For the purposes of this 
+research, the reference information is in the form of SAR images with known geo­
+location data.
+In calculating range and cross-range shifts, this research assumed the availabil­
+ity of a geo-referenced SAR image transformed to the slant plane containing tar­
+gets of interest or distinctive features. Methods for identifying suitable scenes in 
+a geo-referenced SAR image database and subsequent transformation to the slant 
+plane are outside the scope of this research, which instead focuses on the mea­
+surement formulation and its incorporation into the EKF. The interested reader is 
+referred to the many publications on this topic (Bhanu & Lin, 2003; Gao et al., 2009; 
+Hounam & Wagel, 2001; Srinivas et al., 2014; Zhao & Principe, 2001).
+In this research, the reference image was formed in the slant plane using the 
+truth trajectory of the vehicle and the methods outlined in Section  2. For the 
+simulation-based results, the truth trajectory was easily obtained from the truth 
+state of the simulation. Simulated RDA SAR images were generated from back­
+scattered radiofrequency signals of randomly placed point targets on the ground. 
+For demonstration on the real flight data, the truth trajectory was obtained by 
+post-processing the IMU, GPS, and base station data using the NovAtel Waypoint 
+Explorer software. The result was a trajectory estimate accurate to approximately 2 
+cm which was used to generate the reference imagery.
+The range and cross-range shifts of the in-flight-generated SAR image were com­
+puted using a two-dimensional cross-correlation (Bourke, 1996) with the reference 
+SAR image defined by:
+	
+C k l
+X m n Y m
+k n
+l
+m
+M
+n
+N
+( , )
+(
+, ) (
+,
+)
+=
+−
+−
+=
+−
+=
+−
+∑∑
+0
+1
+0
+1
+
+(46)
+for−
++ ≤
+≤
+−
+−
++ ≤≤
+−
+M
+k
+M
+N
+l
+N
+1
+1
+1
+1
+where X and Y are two M
+N
+×
+ images and the bar over Y denotes complex 
+conjugation. The location of the peak of the cross-correlation was used to find the 
+offset from the true target location. The offsets were used to calculate the range and 
+cross-range measurements. This process is illustrated in Figure 5.
+[p.16]
+LINDSTROM et al.
+    
+It is important to note that the developed method does not depend on the 
+presence of a particular target in the SAR image, thus avoiding the complexity 
+of target recognition in SAR imagery as done by Zhao and Principe (2001) or 
+Sun et al. (2007). Rather, the in-flight-generated SAR image was cross-correlated 
+with a geolocated reference image to produce the range and cross-range mea­
+surements. The accuracy of the derived measurements was dependent on the 
+reference image content. Reference images with distinct features produce more 
+accurate results because the cross-correlation produces a more distinctive peak 
+without ambiguity.
+In general, navigation errors cause both shifting and blurring of the 
+in-flight-generated SAR image (Lindstrom et al., 2022). While shifting is easily 
+detected using the above-mentioned cross-correlation, the presence of blurring can 
+yield inaccurate results. The autofocusing algorithm described in Section 2 was, 
+therefore, performed prior to cross-correlation to remove blurring and increase the 
+accuracy of the derived measurement.
+The design model of the shift measurement in the range direction is:
+	
+z
+b
+n
+r
+targ
+n
+r
+r
+=
+−
+(
+) +
++
+p
+p
+η0
+
+(47)
+where ptarg is the known location of the imaged target and pn η0
+(
+) is the position 
+of the aircraft at the time of closest approach, η0. The time of closest approach is 
+the point in time during flight when the aircraft is closest to the target position (i.e., 
+the time of minimum range between the aircraft and target). The measurement 
+was corrupted by bias br and noise nr .
+The design model of the of the cross-range shift measurement was defined as the 
+along-track distance traveled by the aircraft from a reference point rorig
+n , corrupted 
+by bias bc and noise nc:
+	
+(
+)
+ˆ
+( )
+T
+n
+n
+c
+c
+orig
+c
+c
+z
+b
+n
+η
+=
+−
++
++
+u
+p
+r
+
+
+(48)
+where:
+	
+(
+)
+(
+)
+( )
+ˆ
+( )
+n
+n
+apt
+c
+n
+n
+apt
+η
+η
+η
+η
+−
+=
+−
+p
+p
+u
+p
+p
+
+(49)
+FIGURE 5 Illustrates the process of calculating radar measurements; a reference image 
+(distinguished with solid lines) and an image formed using the estimated flight trajectory 
+(distinguished with dotted lines) are cross-correlated with each other. Offsets in range, 
+,
+R
+∆
+ and 
+cross-range, 
+,
+CR
+∆
+ appear in the cross-correlation as a shift in the main peak.
+[p.17]
+    
+LINDSTROM et al.
+represents the along-track, or cross-range, direction of the aircraft and pn
+apt
+η(
+) 
+represents the position of the aircraft at the beginning of the synthetic aperture. 
+While no constraints were placed on the reference point rorig
+n , the numerical 
+value during an individual measurement was chosen to be equal to the position 
+of the vehicle at the beginning of the synthetic aperture. It follows that when 
+r
+p
+orig
+n
+n
+apt
+=
+(
+)
+η
+, the equation for zc collapses to a form similar to Equation (47).
+As part of the measurement processing in the Kalman update, the altitude, range, 
+and cross-range measurements must be predicted using state estimates. The form 
+of the estimated measurement equations is nearly identical to the design models 
+with the exception of the unknown measurement noise.
+	
+0
+0
+1
+ˆ
+ˆ
+ˆ
+( )
+n
+h
+h
+z
+b
+η
+
+
+=
+−
++
+
+p
+
+(50)
+	
+(
+)
+0
+ˆ
+ˆ
+ˆ
+n
+r
+targ
+r
+z
+b
+η
+=
+−
++
+p
+p
+
+(51)
+	
+(
+)
+ˆ
+ˆ
+ˆ
+ˆ
+( )
+T
+n
+n
+c
+c
+orig
+c
+z
+b
+η
+=
+−
++
+u
+p
+r
+
+(52)
+To process a Kalman update, the EKF must have a model of the first-order sensi­
+tivity of the measurement to estimation errors:
+	
+δ
+δ
+γ
+z
+x
+=
++
+H
+
+(53)
+where γ is the measurement noise of the measurement under consideration. The 
+quantity H is the sensitivity matrix and is derived by taking the Jacobian of design 
+models in Equations (45), (47), and (48), and evaluating it at the current state esti­
+mate. The sensitivities for each measurement are as follows:
+	
+Hh =
+−
+
+
+×
+×
+0
+0
+1
+0
+1
+0
+1 12
+1 2
+
+(54)
+	
+Hr
+T
+= 
+
+
+
+−
+×
+d
+d
+0
+1
+0
+1 13
+
+(55)
+	
+1 14
+0
+1
+ˆT
+r
+c
+H
+×
+
+
+= 
+
+u
+
+(56)
+where 
+(
+)
+0
+ˆ
+.
+n
+targ
+η
+=
+−
+d
+p
+p
+It is important to note that in the derivation of Equation (55), two approxima­
+tions were made, the validity of which is confirmed in the Monte Carlo simula­
+tions. First, the dependence of ˆc
+u on the estimated state was neglected and the 
+corresponding Jacobian was not evaluated. In the Monte Carlo verification that 
+follows, however, the quantity ˆc
+u was evaluated using the estimated change in 
+position, so as to not inform the filter of truth state values. Second, the approx­
+imation was made that the position errors at the time of closest approach were 
+approximately equal to the position errors at the end of the synthetic aperture, i.e., 
+δ
+δ
+p
+p
+n
+toc
+n
+t
+t
+(
+) ≈
+( ). While this approximation is valid across the small synthetic 
+apertures considered in this study, generalization to larger apertures requires 
+explicit modeling of time dependence:
+	
+δ
+δ
+p
+p
+n
+n
+toc
+t
+t
+( ) =
+(
+)
+Φ
+
+(57)
+via the state transition matrix Φ and a modification of the Kalman update to 
+account for the correlation between previous state errors and measurement noise 
+(Brown & Hwang, 2012).
+[p.18]
+LINDSTROM et al.
+    
+3.4  Measurement Update
+When a measurement becomes available from the altimeter or radar imaging 
+system, a Kalman update is performed. To perform a Kalman update, the Kalman 
+gain is first calculated:
+	
+K
+P H
+H P H
+R
+T
+T
+T
+=
++
+−
+−
+−
+[
+] 1 
+(58)
+where P− is the error state covariance before the Kalman update and R is the 
+covariance of the noise on the available measurement. The matrix H varies 
+between Hh and a concatenation of Hr and Hc, depending on the type of mea­
+surement available.
+The Kalman gain is then used to update the error state covariance using the 
+Joseph form:
+	
+P
+I
+K H P
+I
+K H
+KGRG K
+T
+T
+T
++
+−
+=
+−
+
+
+−
++
+[
+]
+
+(59)
+The Kalman gain is used together with the measurement residual to update the 
+estimate of the error state. The measurement residual is defined as the difference 
+between the true measurements, z, and estimated measurements, ˆ.z The quantity 
+contained inside the brackets in Equation (58) is referred to as residual covariance. 
+The update of the error state estimate then becomes:
+	
+ˆ
+ˆ
+K
+δ
++
+
+
+=
+−
+
+
+x
+z
+z
+
+
+(60)
+After updating the estimate of the error state vector, the navigation state is cor­
+rected according to a rearrangement of Equations (30) through (33):
+	
+1
+2
+(
+)
+(
+)
+1
+(
+)
+(
+)
+(
+)
+(
+)
+(
+)
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+(
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+)
+n
+n
+n
+n
+n
+b
+n
+b
+a
+a
+g
+g
+h
+h
+r
+r
+c
+c
+q
+b
+b
+b
+b
+b
+b
+δ
+δ
+δθ
+δ
+δ
+δ
+δ
+δ
+−
+−
+−
+−
++
+−
+−
+−
+−
+
+
++
+
+
++
+
+
+
+
+
+
+
+
+⊗
+
+
+
+
+−
+
+
+
+
+
+
++
+= 
+
+
+
++
+
+
+
+
++
+
+
+
+
++
+
+
++
+
+
+
+
+p
+p
+v
+v
+b
+b
+x
+b
+b
+
+(61)
+4  RESULTS
+The system described above was implemented on both simulated and real data. 
+Results of both types of data are given in the subsections that follow.
+4.1  Simulated Data
+A 6DOF inertial navigation and radar processing simulation was created to 
+test the feasibility of the work described in the previous sections. The true flight 
+[p.19]
+    
+LINDSTROM et al.
+trajectory was a straight and level flight flying northward. The radar scene was a 
+random field of radar scatterers dense enough to ensure that a few targets would 
+appear in every SAR image. The flight was 50 s long and was split into 51-s subap­
+ertures with each subaperture formed during straight flight. The plot in Figure 6 
+illustrates the general geometry of the simulation. This figure is similar in con­
+struct to Figure 1 where the blue line on the left represents the flight trajectory and 
+where the ground targets are placed on the right side of the image. In this case, the 
+targets are represented by a red bounding box, inside of which, the ground targets 
+are randomly placed.
+The INS was initialized approximately equal to the truth states, but with esti­
+mation errors consistent with the initial covariance matrix defined in Table 1. 
+The values in the initial covariance matrix were produced by the trajectory 
+estimation of the data in the presence of GPS measurements. Such a setup 
+represents a scenario in which GPS measurements were available for a por­
+tion of the flight and were subsequently denied, making SAR measurements 
+necessary.
+TABLE 1
+Summary of Initial 3σ State Uncertainties
+State 
+3σ Initial Uncertainty
+Position 
+[ . , . , . ]
+1 9 1 9 4 4 T m
+Velocity 
+[ . , . , . ]
+0 3 0 3 0 5 T m/sec 
+Attitude 
+[ .
+, .
+, .
+]
+0 002 0 002 0 006 T rad 
+Accelerometer Bias 
+[ .
+, .
+, .
+]
+0 01 0 01 0 01 T g 
+Gyroscope Bias 
+[ , , ]
+5 5 5 T deg/hr 
+Altimeter Bias 
+0.25 m 
+SAR Range Bias 
+0.25 m 
+SAR Cross-Range Bias 
+0.25 m 
+FIGURE 6 Illustration of the simulation geometry; the flight trajectory is shown in blue 
+and the ground targets are randomly placed within the target scene represented by the red 
+bounding box.
+[p.20]
+LINDSTROM et al.
+    
+Once initialized, the simulation proceeded as follows:
+1.	 The INS used noisy accelerometer and gyroscope measurements to propagate 
+the navigation states according to Equation (28). IMU noise parameters are 
+specified in Table 2.
+2.	 The Kalman filter was updated by noisy SAR and altimeter measurements. 
+The noise parameters for the filter measurements are, again, specified in 
+Table 2.
+3.	 Throughout the subaperture, the flight computer collected radar data with the 
+parameters specified in Table 3. After one second of flight, a SAR image was 
+formed using the RDA and the estimated vehicle state. 
+4.	 The range and cross-range shift measurements were extracted from the in-
+flight and reference SAR images and processed in the EKF alongside an 
+altimeter measurement. 
+5.	 Finally, the true trajectory and the estimated trajectory produced by the EKF 
+were compared and estimation errors were calculated. 
+6.	 Within the Monte Carlo framework, Steps 1 through 5 were repeated 200 times. 
+The results of the simulated Monte Carlo analysis are provided in Figures 7 
+through 10. Figure 7 shows the residuals for the altimeter, range, and cross-range 
+measurements. It is observed that the residuals were zero mean, white, and prop­
+erly bounded by the EKF’s estimate of the residual covariance. This result suggests 
+that the design models developed in Section 3.3 adequately captured the sensitivi­
+ties and uncertainties of the measurements under consideration.
+TABLE 2
+Summary of 3σ IMU and Measurement Noise 
+Specifications Used in Simulation
+IMU Noise 
+3σ Uncertainty 
+Velocity random walk 
+0.1 m/s/sqrt(hr) 
+Angular random walk 
+0.1 deg/sqrt(hr) 
+Measurement Noise 
+3σ Uncertainty 
+Altimeter 
+4 m 
+SAR Range 
+0.75 m 
+SAR Cross-Range 
+0.75 m
+TABLE 3
+Summary of Radar Parameters Used in Simulation
+SAR Parameter 
+Value 
+LFM pulse center frequency 
+9.75 GHz
+Bandwidth 
+500 MHz 
+Theoretical range resolution 
+0.15 m 
+Pulse repetition frequency (PRF)
+100 Hz 
+Aircraft velocity 
+10 m/sec 
+Theoretical azimuth resolution 
+0.1 m 
+Min/Max (slant) range 
+2000 m/2210 m 
+Sub aperture length 
+1 sec (10 m)
+[p.21]
+    
+LINDSTROM et al.
+Figure 8 shows the estimation error of the aircraft position, calculated as the 
+difference between the true and estimated trajectories. Figures 9 and 10 show sim­
+ilar information for the aircraft velocity and attitude, respectively. In all cases, the 
+estimation errors were zero mean and properly bounded by the EKF’s estimate of 
+uncertainty.
+The EKF was able to either maintain the initial level of errors or substantially 
+improve the estimates, as was the case for north (along-track) and down positions. 
+Similar results were observed for velocity. In the case of attitude, the horizontal com­
+ponents were observable, as indicated by the slight decrease in uncertainty, while 
+the vertical component was not. The lack of heading observability is common and 
+expected for a straight and level flight with measurements sensitive only to position.
+FIGURE 7 Measurement residuals for altimeter measurements (left), range measurements 
+(middle), and cross-range measurements (right); dotted lines signify 3σ covariance bounds and 
+solid lines represent residual measurements.
+FIGURE 8 Estimation errors for north position (left), east position (middle), and down 
+position (right); red lines signify 3σ covariance bounds and individual gray lines represent 
+individual runs of the Monte Carlo simulation.
+FIGURE 9 Estimation errors for north velocity (left), east velocity (middle), and down 
+velocity (right); red lines signify 3σ covariance bounds and individual gray lines represent 
+individual runs of the Monte Carlo simulation.
+[p.22]
+LINDSTROM et al.
+    
+In summary, the simulation results show that the proposed navigation and 
+radar system are capable of estimating the aircraft state in the absence of GPS. 
+The measurement residuals were white and zero mean. The estimation error 
+converged and remained bounded over the course of the trajectory. The posi­
+tion was estimated in all dimensions to less than 3 meters. Velocity was esti­
+mated to within 0.5 meters per second. North and east attitudes were estimated 
+within 2 milli-radians, and the down component of attitude remained within 7 
+milli-radians of error.
+4.2  Real Data
+A scenario similar to the simulated data was analyzed for the case of real flight 
+and radar data. As with simulated data, the real flight length was 50 seconds, which 
+was split into 50 sub-apertures, with each sub-aperture formed during straight 
+flight collection periods.
+Flight and radar data were collected and provided by the Space Dynamics Lab 
+at Utah State University in Logan, Utah. The data were collected on the FlexSAR 
+system, a low-cost, high-quality prototyping SAR instrument (Jensen et al., 
+2016), paired with a NovAtel SPAN CPT7 tactical grade IMU (Novatel, 2020). A 
+GPS-based navigation solution was available for the trajectory, which was taken to 
+be the truth trajectory. This solution was achieved via post-processing in Waypoint 
+software by NovAtel and is accurate to less than 2 cm. Altimeter measurements 
+were synthesized using parameters based on the Honeywell Precision Barometer 
+HPB (Honeywell, 2007).
+Tables 4 and 5 list the initial state uncertainties along with the IMU and mea­
+surement noise parameters applicable to the flight tests. In contrast with the results 
+in Section 4.1 from a well-controlled simulation environment, results from real 
+flight tests must account for the effects of Earth’s rotation.
+While the rotation of Earth impacts the propagation of velocity and attitude, 
+the effects are constant in the Tangent Frame discussed in Farrell (2008). For an 
+aircraft flying straight and level, the attitude of the aircraft Tb
+n is approximately 
+constant. Hence, the effect of Earth’s rotation manifests as a bias in the acceler­
+ometer and gyroscope measurements. Given the aircraft velocity, Coriolis accel­
+erations were approximately 0.001 g, less than the accelerometer bias of 0.01 g. 
+The gyroscope bias specification, however, had to be increased to accommodate 
+the 15 deg/hr rotation of the Earth. Table 6 lists the radar parameters specific to the 
+FlexSAR system and aircraft.
+FIGURE 10 Estimation errors for north attitude/roll (left), east attitude/pitch (middle), 
+and down attitude/yaw (right); red lines signify 3σ covariance bounds and individual gray lines 
+represent individual runs of the Monte Carlo simulation.
+[p.23]
+    
+LINDSTROM et al.
+For demonstration of the developed EKF on real data, residuals and estimation 
+errors were analyzed for a single flight line. Accelerometer and gyroscope measure­
+ments were provided from the SPAN CPT7 system and were used to propagate the 
+navigation state forward in time. At the end of each subaperture, a SAR image was 
+formed and measurements were extracted. 
+The SAR-based measurements, along with synthesized altimeter measurements, 
+were then processed in the EKF. Finally, estimation errors were computed through­
+out the flight and are displayed as was the case for the simulation results.
+The estimation results for the case of real flight data are shown in Figures 11 
+through 14. The measurement residuals are shown in Figure 11 for the altimeter, 
+TABLE 4
+Summary of Initial 3σ State Uncertainties
+State 
+3σ Initial Uncertainty
+Position 
+[ . , . , . ]
+1 9 1 9 4 4 T m
+Velocity 
+[ . , . , . ]
+0 3 0 3 0 5 T m/sec 
+Attitude 
+[ .
+, .
+, .
+]
+0 002 0 002 0 006 T rad 
+Accelerometer bias 
+[ .
+, .
+, .
+]
+0 01 0 01 0 01 T g 
+Gyroscope bias 
+[
+,
+,
+]
+15 15 15 T deg/hr 
+Altimeter bias 
+0.25 m 
+SAR range bias 
+0.25 m 
+SAR cross-range bias 
+0.25 m 
+TABLE 5
+Summary of 3σ IMU and Measurement Noise 
+Specifications Used for the Flight Tests
+IMU Noise 
+3σ Uncertainty 
+Velocity random walk 
+0.1 m/s/sqrt(hr) 
+Angular random walk 
+0.1 deg/sqrt(hr) 
+Measurement Noise 
+3σ Uncertainty 
+Altimeter 
+1.3 m (0.4 hPa) 
+SAR Range 
+0.25 m 
+SAR Cross-Range 
+0.25 m
+TABLE 6
+Summary of Radar Parameters Specific to the FlexSAR System
+SAR Parameter 
+Value 
+LFM pulse center frequency 
+9.75 GHz
+Bandwidth 
+500 MHz 
+Theoretical range resolution 
+0.2998 m 
+PRF 
+5,000 Hz (decimated to 1,667 Hz) 
+Aircraft velocity 
+60 m/sec 
+Theoretical azimuth resolution 0.0378 m 
+Min/Max (slant) range 
+1,948 m/2,112 m 
+Subaperture length 
+1 sec (60 m)
+[p.24]
+LINDSTROM et al.
+    
+range, and cross-range measurements. Although a small amount of time correla­
+tion is observed in the cross-range component, the residuals are observed to be 
+approximately zero mean and adequately bounded by the EKF’s estimate of resid­
+ual covariance.
+The estimation error plots of Figures 12, 13, and 14 are consistent with the sim­
+ulation results, with the corresponding errors properly bounded by the filter’s esti­
+mate covariance. Over the course of a 51-second GPS-denied flight, position errors 
+stayed bounded within approximately 3 meters. Velocity errors stayed bounded 
+within approximately 0.4 meters per second. Attitude errors stayed bounded within 
+approximately 7 milli-radians in the north and east case, and 15 milli-radians in the 
+down case.
+FIGURE 11 Measurement residuals from the real data set for the altimeter measurements 
+(left), range measurements (middle), and cross-range measurements (right); dotted lines signify 
+3σ covariance bounds and solid lines represent residual measurements.
+FIGURE 12 Estimation errors from the real data set for north position (left), east position 
+(middle), and down position (right); red lines signify 3σ covariance bounds and gray lines 
+represent actual estimation error.
+FIGURE 13 Estimation errors from the real data set for north velocity (left), east velocity 
+(middle), and down velocity (right); red lines signify 3σ covariance bounds and gray lines 
+represent actual estimation error.
+[p.25]
+    
+LINDSTROM et al.
+To highlight the effect of the radar measurements on estimation errors, Figure 15 
+has been provided. This figure plots estimation error bounds for north, east, and 
+down positions. Each sub-figure shows two bounds on a logarithmic scale. The 
+dotted line represents the estimation error 3σ bound when no SAR measurements 
+were processed. The solid line shows the same bound when SAR measurements 
+were processed. As expected, the omission of SAR measurements degrades the 
+north and east estimates and they begin to grow without bound. The down esti­
+mate stays bounded due to altimeter measurements.
+5  CONCLUSION
+This paper investigates an absolute SAR-image-based method for GPS-denied 
+navigation. Navigation information was extracted from RDA SAR images formed 
+using erroneous navigation state estimates. Range and cross-range measurements 
+were extracted via correlation between online SAR images and known target loca­
+tions. Measurements were, then, processed in an indirect extended Kalman filter. 
+This method was demonstrated on both simulated data and real data. Estimation 
+using simulated data was shown to have converging errors bounded within 3σ 
+values of the state covariance matrix. Estimation errors using the real data were 
+similarly bounded. In both cases, errors in position were estimated within approx­
+imately 3 meters of truth.
+These results further conclude that using SAR images in GPS-denied situations 
+is a viable solution for GPS-denied navigation.
+FIGURE 14 Estimation errors from the real data set for north attitude/roll (left), east 
+attitude/pitch (middle), and down attitude/yaw (right); red lines signify 3σ covariance bounds 
+and gray lines represent actual estimation error.
+FIGURE 15 Comparison of position estimation error bounds while using SAR 
+measurements and while omitting SAR measurements; dotted lines indicate the bounds given 
+omission of SAR measurements and solid lines indicate the bounds given the use of SAR 
+measurements.
+[p.26]
+LINDSTROM et al.
+    
+5.1  Future Work
+The SAR-based measurements in this paper are based on identifying the loca­
+tion of the cross-correlation peak between the online generated and reference SAR 
+images. The precision with which this was achieved, and the resulting measure­
+ment noise, was dependent on the presence of salient features in the area imaged 
+by the radar. On simulated data, a level of measurement noise was added to model 
+errors in locating the center of the correlation peak. In the case of real data, how­
+ever, the measurement noise changed based on the prominence of reflectors and 
+the uniqueness of the scene. Further investigation is required to determine the 
+relationship between SAR image content and the resulting range and cross-range 
+measurement noise.
+Any implementation of this research in a real system requires knowledge of the 
+area of GPS denial, whether that be terrain knowledge or target location knowl­
+edge. In this research, it was assumed that geo-referenced SAR images were avail­
+able to correlate against. Other methods of obtaining area information should be 
+explored for a real-time system such as previously collected SAR images, optical 
+satellite images, and synthesized SAR images using known terrain and target loca­
+tions, digital maps, etc.
+ac kn ow le d g e m e n ts
+This research was funded in part by Sandia National Laboratories under Grants 
+202136 and 202854. Raw SAR and navigation data was provided by the Space 
+Dynamics Laboratory at Utah State University.
+aut h or c on t r ib u tio ns
+The views expressed in this paper are those of the authors and do not reflect the 
+official policy or position of Utah State University, the Space Dynamics Laboratories, 
+Sandia National Laboratories, the Department of Energy, or the US government.
+p rod uc t e n d or s em ent disc l aim er
+Reference herein to any specific commercial product, process, or service by trade 
+name, trademark, manufacturer, or otherwise does not necessarily constitute or 
+imply its endorsement, recommendation, or favor by Utah State University, the 
+Space Dynamics Laboratories, Sandia National Laboratories, the Department of 
+Energy, or the US government.
+c on f lic t of in t e rest
+The authors declare no potential conflict of interests.
+r e f e r e n c e s
+Balamurugan, G., Valarmathi, J., & Naidu, V. P. S. (2016). Survey on UAV navigation in GPS denied 
+environments. 2016 International Conference on Signal Processing, Communication, Power 
+and Embedded System (SCOPES), Paralakhemundi, India, 198–204. https://doi.org/10.1109/
+SCOPES.2016.7955787
+Bergman, N., Ljung, L., & Gustafsson, F. (1999. Terrain navigation using Bayesian statistics. IEEE 
+Control Systems Magazine, 19(3), 33–40. https://doi.org/10.1109/37.768538
+Bhanu, B., & Lin, Y. (2003). Genetic algorithm based feature selection for target detection in 
+SAR images. Image and Vision Computing, 21(7), 591–608. https://doi.org/10.1016/S0262-
+8856(03)00057-X
+Blacknell, D., Blake, A. P., Oliver, C. J., & White, R. G. (1992). A comparison of SAR multilook 
+registration and contrast optimisation autofocus algorithms applied to real SAR data. 92 
+International Conference on Radar, Brighton, UK, 363–366. https://ieeexplore.ieee.org/
+document/187118
+[p.27]
+    
+LINDSTROM et al.
+Bourke, P. (1996). Cross correlation: AutoCorrelation—2D Pattern Identification. http://paulbourke.
+net/miscellaneous/correlate
+Brown, R. G., & Hwang, P. Y. C. (2012). Introduction to random signals and applied Kalman 
+filtering: With MATLAB exercises (4th ed.). John Wiley. 
+Carpenter, J. R., & D’Souza, C. N. (2018). Navigation Filter Best Practices (Technical Report No. 2018-
+219822). NASA. https://ntrs.nasa.gov/api/citations/20180003657/downloads/20180003657.pdf
+Christensen, R. S., Gunther, J., & Long, D. (2019). Toward GPS-denied navigation utilizing back 
+projection-based synthetic aperture radar imagery. Proc. of the ION 2019 Pacific PNT Meeting, 
+Honolulu, HI, 108–119. https://doi.org/10.33012/2019.16797
+Cumming, I. G., & Wong, F. H. (2005). Digital processing of synthetic aperture radar 
+data: 
+Algorithms 
+and 
+Implementation. 
+Artech 
+house. 
+https://pdfs.semanticscholar.
+org/23eb/33af4f0495edff01402ec8eb019e80717897.pdf
+Duersch, M. I., & Long, D. G. (2015). Analysis of time-domain back-projection for stripmap SAR. 
+International Journal of Remote Sensing, 36(8), 2010–2036. https://doi.org/10.1080/01431161.2
+015.1030044
+Evers, A. (2019). A generalized phase gradient autofocus algorithm. Theses and Dissertations, 
+2240. Air Force Institute of Technology. https://scholar.afit.edu/etd/2240/
+Fabbrini, L., Messina, M., Greco, M., & Pinelli, G. (2011). Linear landmark extraction in 
+SAR images with application to augmented integrity aero-navigation: An overview to a 
+novel processing chain. Proceedings Volume 8008: Photonics Applications in Astronomy, 
+Communications, Industry, and High-Energy Physics Experiments 2011, Wilga, Poland. https://
+doi.org/10.1117/12.905022
+Farrell, J. (2008). Aided navigation: GPS with high rate sensors. McGraw-Hill. 
+Gao, G., Liu, L., Zhao, L., Shi, G., & Kuang, G. (2009). An adaptive and fast CFAR algorithm 
+based on automatic censoring for target detection in high-resolution SAR images. IEEE 
+Transactions on Geoscience and Remote Sensing, 47(6), 1685–1697. https://doi.org/10.1109/
+TGRS.2008.2006504
+Greco, M., Pinelli, G., Kulpa, K., Samczynski, P., Querry, B., & Querry, S. (2011a). The study 
+on SAR images exploitation for air platform navigation purposes. 12th International Radar 
+Symposium (IRS), Leipzig, Germany. https://ieeexplore.ieee.org/document/6042158
+Greco, M., Kulpa, K., Pinelli, G., & Samczynski, P. (2011b). SAR and InSAR georeferencing 
+algorithms for inertial navigation systems. Proceedings: Photonics Applications in Astronomy, 
+Communications, Industry, and High-Energy Physics Experiments 2011 (Vol. 8008), Wilga, 
+Poland. https://doi.org/10.1117/12.904971
+Greco, M., Querry, S., Pinelli, G., Kulpa, K., Samczynski, P., Gromek, D., Gromek, A., Malanowski, 
+M., Querry, B., & Bonsignore, A. (2012). SAR-based augmented integrity navigation architecture. 
+2012 13th International Radar Symposium, Warsaw, Poland. https://doi.org/10.1109/
+IRS.2012.6233320
+Grewal, M. S., Andrews, A. P., & Bartone, C. G. (2020). Global navigation satellite systems, inertial 
+navigation, and integration. John Wiley & Sons. 
+Hollowell, J. (1990). Heli/SITAN: A terrain referenced navigation algorithm for helicopters. IEEE 
+Symposium on Position, Location, and Navigation: A Decade of Excellence in the Navigation 
+Sciences, Las Vegas, NV. https://doi.org/10.1109/PLANS.1990.66236
+Honeywell. (2007, November). Honeywell Precision Barometer and Altimeter (HPB/HPA). 
+[Online]. 
+http://www.aerospace.honeywell.com/en/learn/products/sensors/honeywell-
+precision-barometer-and-altimeter
+Hounam, D., & Wagel, K. -H. (2001). A technique for the identification and localization of SAR 
+targets using encoding transponders. IEEE Transactions on Geoscience and Remote Sensing, 
+39(1), 3–7. https://doi.org/10.1109/36.898660
+Jensen, M., Knight, C., & Haslem, B. (2016). FlexSAR, a high quality, flexible, cost effective, 
+prototype SAR system. Proceedings: Radar Sensor Technology XX (Vol. 9829). International 
+Society for Optics and Photonics. https://doi.org/10.1117/12.2224951
+Jiang, S., Xiang, M., Xikai, F., Sun, X., Hu, X., Qian, Q., &Wang, B. (2018). The InSAR/INS 
+integrated navigation based on interferograms matching. EUSAR 2018––12th European 
+Conference on Synthetic Aperture Radar, Aachen, Germany. https://www.vde-verlag.de/
+proceedings-en/454636222.html
+Kauffman, K. (2009). Fast target tracking technique for synthetic aperture radars [Unpublished 
+doctoral dissertation]. Miami University. 
+Kauffman, K., Morton, Y., Raquet, J., & Garmatyuk, D. (2010a). Simulation study of UWB-OFDM 
+SAR for dead-reckoning navigation. Proc. of the 2010 International Technical Meeting of the 
+Institute of Navigation, San Diego, CA, 153–160. https://www.ion.org/publications/abstract.
+cfm?articleID=8792
+Kauffman, K., Raquet, J., Morton, Y., & Garmatyuk, D. (2010b). Simulation study of UWB-OFDM 
+SAR for navigation using an extended Kalman filter. Proc. of the 23rd International Technical 
+Meeting of the Satellite Division of the Institute of Navigation (ION GNSS 2010), Portland, OR, 
+2443–2451. https://www.ion.org/publications/abstract.cfm?articleID=9350
+[p.28]
+LINDSTROM et al.
+    
+Kauffman, K., Raquet, J., Morton, Y., & Garmatyuk, D. (2011a). Enhanced feature detection and 
+tracking algorithm for UWB-OFDM SAR navigation. Proc. of the 2011 IEEE National Aerospace 
+and Electronics Conference (NAECON), Dayton, OH, 261–269. https://doi.org/10.1109/
+NAECON.2011.6183112
+Kauffman, K., Raquet, J., Morton, Y., & Garmatyuk, D. (2011b). Simulation study of UWB-OFDM 
+SAR for navigation with INS integration. Proc. of the 2011 International Technical Meeting of 
+the Institute of Navigation, San Diego, CA, 184–191. https://www.ion.org/publications/abstract.
+cfm?articleID=9459
+Kauffman, K., Raquet, J., Morton, Y., & Garmatyuk, D. (2012). Experimental study of UWB-
+OFDM SAR for indoor navigation with INS integration. Proc. of the 25th International Technical 
+Meeting of the Satellite Division of the Institute of Navigation (ION GNSS 2012), Nashville, TN, 
+3847–3852. https://www.ion.org/publications/abstract.cfm?articleID=10560
+Kauffman, K., Raquet, J., Morton, Y., & Garmatyuk, D. (2013a). Experimental study of two-channel 
+UWB-OFDM radar for indoor navigation with INS integration. Proc. of the 26th International 
+Technical Meeting of the Satellite Division of the Institute of Navigation (ION GNSS+ 2013), 
+Nashville, TN, 756–761. https://www.ion.org/publications/abstract.cfm?articleID=11183
+Kauffman, K., Raquet, J., Morton, Y., & Garmatyuk, D. (2013b). Real-time UWB-OFDM radar-
+based navigation in unknown terrain. IEEE Transactions on Aerospace and Electronic Systems, 
+49(3), 1453–1466. https://doi.org/10.1109/TAES.2013.6557998
+Kim, Y., Park, J., & Bang, H. (2018). Terrain-referenced navigation using an interferometric radar 
+altimeter. NAVIGATION, 65(2), 157–167. https://doi.org/10.1002/navi.233
+Lindstrom, C., Christensen, R., Gunther, J., & Jenkins, S. (2022). Sensitivity of back-projection 
+algorithm (BPA) synthetic aperture radar (SAR) image formation to initial position, velocity, 
+and attitude navigation errors. IET Radar, Sonar & Navigation, 16(2), 364–378. https://doi.
+org/10.1049/rsn2.12189
+Zhao, L., Gao, N., Huang, B., Wang, Q., & Zhou, J. (2015). A novel terrain-aided navigation 
+algorithm combined With the TERCOM Algorithm and particle filter. IEEE Sensors Journal, 
+15(2), 1124–1131. https://doi.org/10.1109/JSEN.2014.2360916
+Mostafa, M., Zahran, S., Moussa, A., El-Sheimy, N., & Sesay, A. (2018). Radar and visual odometry 
+integrated system aided navigation for UAVS in GNSS denied environment. Sensors, 18(9), 
+2776. https://doi.org/10.3390/s18092776
+Niedfeldt, P. C., Quist, E. B., & Beard, R. W. (2014). Characterizing range progression of SAR point 
+scatterers with recursive RANSAC. 2014 IEEE Radar Conference, Cincinnati, OH, 712–0717. 
+https://doi.org/10.1109/RADAR.2014.6875683
+Nitti, D. O., Bovenga, F., Chiaradia, M. T., Greco, M., & Pinelli, G. (2015). Feasibility of using 
+synthetic aperture radar to aid UAV navigation. Sensors, 15(8), 18334–18359. https://doi.
+org/10.3390/s150818334
+Nordlund, P. -J., & Gustafsson, F. (2009). Marginalized particle filter for accurate and reliable 
+terrain-aided navigation. IEEE Transactions on Aerospace and Electronic Systems, 45(4), 1385–
+1399. https://doi.org/10.1109/TAES.2009.5310306
+Novatel. (2020). Novatel GNSS/INS Module: SPAN-CPT Single Enclosure GNSS/INS Receiver. 
+[Online]. http://www.novatel.com/products/span-gnss-inertial-navigation-systems
+Quist, E. B., & Beard, R. W. (2016). Radar odometry on fixed-wing small unmanned aircraft. IEEE 
+Transactions on Aerospace and Electronic Systems, 52(1), 396–410. https://doi.org/10.1109/
+TAES.2015.140186
+Quist, E. B., Niedfeldt, P. C., & Beard, R. W. (2016). Radar odometry with recursive-RANSAC. IEEE 
+Transactions on Aerospace and Electronic Systems, 52(4), 1618–1630. https://doi.org/10.1109/
+TAES.2016.140829
+Samczynski, P. (2012). Superconvergent velocity estimator for an autofocus coherent MapDrift 
+technique. IEEE Geoscience and Remote Sensing Letters, 9(2), 204–208. https://doi.org/10.1109/
+LGRS.2011.2163700
+Samczynski, P., & Kulpa, K. S. (2010). Coherent MapDrift technique. IEEE Transactions on 
+Geoscience and Remote Sensing, 48(3), 1505–1517. https://doi.org/10.1109/TGRS.2009.2032241
+Savage, P. G., et al. (2000). Strapdown analytics (Vol. 2). Strapdown Associates Maple Plain, MN. 
+Scannapieco, A. F. (2019). A novel outlier removal method for two-dimensional radar odometry. 
+IET Radar, Sonar & Navigation, 13(10), 1705–1712. https://doi.org/10.1049/iet-rsn.2018.5661
+Scannapieco, A. F., Renga, A., Fasano, G., & Moccia, A. (2018). Experimental analysis of radar 
+odometry by commercial ultralight radar sensor for miniaturized UAS. Journal of Intelligent & 
+Robotic Systems, 90(3), 485–503. https://doi.org/10.1007/s10846-017-0688-1
+Sjanic, Z., & Gustafsson, F. (2010). Simultaneous navigation and SAR auto-focusing. 2010 13th 
+International Conference on Information Fusion, Edinburgh, UK. https://doi.org/10.1109/
+ICIF.2010.5711931
+Srinivas, U., Monga, V., & Raj, R. G. (2014). SAR automatic target recognition using discriminative 
+graphical models. IEEE Transactions on Aerospace and Electronic Systems, 50(1), 591–606. 
+https://doi.org/10.1109/TAES.2013.120340
+[p.29]
+    
+LINDSTROM et al.
+Sun, Y., Liu, Z., Todorovic, S., & Li, J. (2007). Adaptive boosting for SAR automatic target 
+recognition. IEEE Transactions on Aerospace and Electronic Systems, 43(1), 112–125. https://
+doi.org/10.1109/TAES.2007.357120
+Zanetti, R. (2019). Rotations, transformations, left quaternions, right quaternions? The Journal of 
+the Astronautical Sciences, 66(3), 361–381. https://doi.org/10.1007/s40295-018-00151-2
+Zhao, Q., & Principe, J. C. (2001). Support vector machines for SAR automatic target recognition. 
+IEEE Transactions on Aerospace and Electronic Systems, 37(2), 643–654. https://doi.
+org/10.1109/7.937475
+How to cite this article: Lindstrom, C., Christensen, R., Gunther, J., & 
+Jenkins, S. (2022) GPS-denied navigation aided by synthetic aperture radar 
+using the Range-Doppler Algorithm. NAVIGATION, 69(3). https://doi.
+org/10.33012/navi.533
+=== END ===

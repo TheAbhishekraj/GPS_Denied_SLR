@@ -1,0 +1,1810 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0218.pdf
+sha256: 1168C318FF1798BCCDFF20E2B7C7DB6E8E53653A9EA2F1D05E76EF66A6D7BC8C
+library: pymupdf (fitz) v1.28.2
+pages: 10
+=== BEGIN ===
+[p.1]
+A Unified Error-State Kalman Filtering Framework for Multi-Sensor
+Navigation of Fixed-Wing UAVs in GNSS-Denied Scenarios
+Guillermo E. V. Hernandez1, Rafael C. Fernandes1, Artem Sorokin1, Maheedhar Korimi1, and Felipe O. Silva2
+Abstract— Reliable navigation in Global Navigation Satellite
+System (GNSS)-denied environments remains a critical chal-
+lenge for fixed-wing Unmanned Aerial Vehicles (UAVs). In
+such conditions, Inertial Navigation Systems (INSs) must be
+aided by heterogeneous sensors to mitigate drift and ensure
+long-term accuracy. This paper presents the development,
+implementation, and experimental validation of a unified Error-
+State Extended Kalman Filter (ESEKF) designed for fixed-
+wing UAV navigation under GNSS-denied and GNSS-degraded
+scenarios. The proposed framework integrates an INS with
+magnetometer, barometer, pitot tube with pseudovanes, Visual-
+Inertial Odometry (VIO), and Computer Vision (CV) Convolu-
+tional Neural Network (CNN)-based position estimates within a
+unified estimation architecture. A comprehensive mathematical
+description of the ESEKF is provided, with special attention
+given to the modeling of sensor systematic errors, which are
+explicitly included in the augmented error-state vector. The
+estimator performance is evaluated through a flight exper-
+iment using a custom fixed-wing UAV platform, where the
+contribution of each aiding sensor is assessed via systematic
+sensor deactivation under GNSS outage conditions. Experi-
+mental results demonstrate the robustness and modularity of
+the proposed ESEKF architecture, highlighting its ability to
+maintain navigation accuracy despite the loss of individual
+aiding sensors (except barometer and CV). The presented
+framework consolidates previously fragmented sensor fusion
+approaches into a single, self-consistent navigation solution,
+providing both a practical implementation reference and a
+foundation for future extensions and tuning strategies.
+I. INTRODUCTION
+Reliable navigation is a fundamental requirement for
+Unmanned Aerial Vehicles (UAVs), particularly fixed-wing
+platforms operating in complex and contested environments.
+In nominal conditions, Global Navigation Satellite Systems
+(GNSSs) provide accurate and drift-free estimates of position
+and velocity, enabling precise guidance and control. How-
+ever, GNSS signals are vulnerable to blockage, multipath,
+interference, and intentional jamming, making GNSS-denied
+*This study was financed in part by the Brazilian National Coun-
+cil for Scientific and Technological Development (CNPq), under grant
+312194/2022-6, in part by the Minas Gerais State Agency for Research
+and Development (FAPEMIG), under grant APQ-04659-22, and in part the
+Federal University of Lavras (UFLA), under grant 23090.000874/2026-48.
+1Guillermo
+E.
+V.
+Hernandez,
+Rafael
+C.
+Fernandes,
+Artem
+Sorokin, and Maheedhar Korimi are with the Autonomous Robotics
+Research Center, Technology Innovation Institute, Masdar City, Abu
+Dhabi
+20015,
+UAE
+guillermo.villalobos@tii.ae,
+rafael.fernandes@tii.ae, artem.sorokin@tii.ae,
+maheedhar.korimi@tii.ae
+2Felipe
+O.
+Silva
+is
+with
+Department
+of
+Automatics,
+Federal
+University
+of
+Lavras,
+Lavras,
+MG
+37200-900,
+Brazil
+felipe.oliveira@ufla.br
+or GNSS-degraded operation a critical challenge for modern
+UAV systems [1]–[3]. This challenge is exacerbated for small
+UAVs, where constraints on size, weight, power, and cost
+limit sensor redundancy and quality [4]–[6].
+In GNSS-denied environments, Inertial Navigation Sys-
+tems (INSs) form the backbone of the navigation solution.
+Strapdown INS architectures provide high-rate estimates of
+attitude, velocity, and position through dead reckoning, but
+their errors grow unbounded due to sensor biases and noise
+digital integration [7]. To mitigate this drift, INSs must be
+aided by external sensors whose measurements are fused
+through probabilistic state estimation frameworks, most com-
+monly Kalman Filter (KF)-based approaches [8], [9].
+Among the available aiding sensors, magnetometers play
+a central role in constraining heading errors, particularly
+for low-cost inertial systems. However, magnetometer mea-
+surements are highly sensitive to hard-iron and soft-iron
+effects, scale factor errors, and sensor misalignment, which,
+if unaccounted for, can significantly degrade navigation per-
+formance [10], [11]. Over the past decades, a wide range of
+calibration strategies have been proposed, including attitude-
+independent formulations and two-step analytical methods
+[12], [13]. More recently, extended formulations capable of
+operating with distributed, non-simultaneous, and redundant
+measurements have been introduced to improve robustness
+in practical applications [14], [15]. Accurate geomagnetic
+field modeling, typically based on global references such as
+the World Magnetic Model (WMM), is also essential for
+consistent magnetometer integration [16].
+Altitude estimation represents another critical aspect of
+GNSS-denied navigation. Barometric sensors provide high-
+resolution relative altitude measurements but are affected by
+temperature, weather variations, and sensor-specific system-
+atic errors [17], [18]. Several baro-aided INS architectures
+have been proposed to mitigate vertical drift, ranging from
+fixed gains servo-mechanism-based feedback loops [19], to
+Loosely Coupled (LC) and/or Tightly Coupled (TC) KF-
+based integrations that explicitly estimate barometric biases
+and scale factor errors [20], [21]. Incorporating temperature-
+dependent models has been shown to significantly improve
+long-term altitude consistency in real-world operations [22].
+Vision-based navigation has emerged as a powerful al-
+ternative for GNSS-denied operation, with Visual-Inertial
+Odometry (VIO) systems providing drift-bounded velocity
+and pose estimates over extended periods. Foundational
+works in monocular Simultaneous Localization and Map-
+2026 International Conference on Unmanned Aircraft Systems (ICUAS)
+June 15-18, 2026. Corfu, Greece
+979-8-3315-9316-2/26/$31.00 ©2026 IEEE
+519
+2026 International Conference on Unmanned Aircraft Systems (ICUAS) | 979-8-3315-9316-2/26/$31.00 ©2026 IEEE | DOI: 10.1109/ICUAS69441.2026.11598562
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:44 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+ping (SLAM) introduced inverse-depth parameterizations to
+handle distant landmarks and improve numerical stability
+[23]. These ideas were later integrated into TC visual-inertial
+frameworks, such as the Multi-State Constraint Kalman Filter
+(MSCKF), enabling real-time vision-aided inertial naviga-
+tion with bounded computational complexity [24]. More
+recent advances have formalized Inertial Measurement Unit
+(IMU) preintegration on manifolds, improving consistency
+and efficiency in batch and filtering-based estimators [25],
+while Lie group formulations have provided a unifying
+theoretical foundation for error-state estimation on nonlinear
+state spaces [26].
+For fixed-wing UAVs, airspeed-related measurements offer
+an additional source of information that can be exploited for
+navigation [5]. Pitot tubes combined with flow-angle sensors,
+i.e. vanes, enable the estimation of airspeed and aerodynamic
+angles, which can be leveraged to constrain velocity states
+and estimate wind components [27]. Such measurements are
+particularly valuable in environments where both GNSS and
+vision-based sensors are unavailable or unreliable, comple-
+menting traditional inertial and barometric aiding strategies.
+Despite the availability of multiple aiding sensors, the per-
+formance of integrated navigation systems critically depends
+on proper stochastic modeling and parameter tuning. Inac-
+curate noise characterization can lead to filter inconsistency
+or suboptimal performance, motivating extensive research on
+sensor error modeling using, e.g., Allan variance analysis
+[9], [28], [29]. More recently, optimization-based and data-
+driven tuning strategies, including genetic algorithms and
+machine learning techniques, have been explored to automate
+parameter selection and improve robustness across operating
+conditions [20], [21], [30], [31].
+In this context, the Error-State Extended Kalman Fil-
+ter (ESEKF) has become a de facto standard for multi-
+sensor navigation systems due to its favorable numerical
+properties, modular structure, and clear separation between
+nominal state propagation and error dynamics [1]–[3], [32]–
+[34]. However, existing literature often presents fragmented
+descriptions of specific sensor integrations or isolated sub-
+systems, making it difficult to reproduce, extend, or system-
+atically evaluate complete navigation architectures.
+This paper addresses this gap by presenting a compre-
+hensive development, testing, and validation of a unified
+ESEKF-based navigation system for fixed-wing UAVs op-
+erating in GNSS-denied environments. The proposed system
+integrates an INS with magnetometer, barometer, pitot tube
+with pseudovanes, monocular VIO that provide real scale ve-
+locity estimations, and Computer Vision (CV) Convolutional
+Neural Network (CNN)-based position estimates obtained
+by matching UAV images against satellite imagery within a
+unified estimation framework. While several of these sensor
+integrations have been previously investigated in isolation,
+this work consolidates their mathematical models, error-state
+formulations, and practical implementation aspects into a
+single coherent architecture.
+The main contributions of this paper are twofold. First,
+we provide a unified and self-consistent description of the
+ESEKF architecture, including reference frames, nominal
+INS propagation, linearized error dynamics, and measure-
+ment models for all integrated sensors. Second, we present a
+rigorous experimental evaluation using a custom fixed-wing
+UAV platform, which assesses the contribution of each aiding
+sensor through systematic sensor deactivation tests under
+GNSS outage conditions.
+The remainder of this paper is organized as follows:
+Section II gives an overview of the system, as well as intro-
+duces the reference frames and main modeling assumptions.
+Section III reviews the nominal INS propagation model,
+while Section IV presents the error-state formulation and
+linearized dynamics of the ESEKF. Section V details the
+measurement models of the integrated sensors, including
+magnetometer, barometer, airspeed, vision-based, and GNSS
+measurements, as well as the outlier rejection mechanism and
+error state injection. Section VI describes the experimental
+setup and validation methodology, as well as discusses the
+results. Finally, Section VII concludes the paper and outlines
+directions for future work. An appendix is also provided to
+detail the derivation of the magnetometer error model.
+II. SYSTEM OVERVIEW AND PROBLEM FORMULATION
+This section presents a high-level overview of the pro-
+posed navigation system and formally defines the problem
+addressed in this work. The adopted reference frames, mod-
+eling assumptions, and state representations are introduced
+to provide a consistent basis for the developments in the
+subsequent sections.
+A. System Overview
+Figure 1 illustrates the overall architecture of the proposed
+navigation system, whose core is a unified ESEKF, responsi-
+ble for fusing inertial and auxiliary sensor measurements to
+estimate the navigation states of a fixed-wing UAV operating
+in GNSS-denied or GNSS-degraded environments.
+The INS, composed of a tri-axial accelerometer and rate
+gyro, provides high-rate measurements that are used to prop-
+agate the nominal navigation states. These states are period-
+ically corrected using measurements from multiple aiding
+Fig. 1.
+Overview of the proposed ESEKF architecture.
+520
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:44 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+sensors, including a magnetometer, a barometer, a pitot tube
+combined with pseudovanes, a VIO system, a CV CNN-
+based position estimator, and GNSS measurements when
+available. Each aiding sensor contributes through a dedicated
+measurement update, allowing the ESEKF to operate in a
+flexible and fault-tolerant manner.
+The modular structure of the filter enables individual
+sensors to be activated or deactivated without altering the
+core estimation framework, which is a key feature exploited
+in the experimental validation presented later in this paper.
+B. Reference Frames
+Multiple reference frames are employed to describe the
+vehicle dynamics, sensor measurements, and environmental
+quantities. The following are used throughout this work:
+• Inertial frame (i): An Earth-Centered Inertial (ECI)
+frame, assumed to be non-accelerating and non-rotating,
+used as a theoretical reference for defining inertial
+motion.
+• Earth
+frame
+(e):
+An
+Earth-Centered
+Earth-Fixed
+(ECEF) frame, rotating with the Earth, commonly used
+to represent geodetic quantities such as latitude, longi-
+tude, and altitude.
+• Navigation frame (n): A local-level North-East-Down
+(NED) frame, with its origin attached to the vehicle’s
+Center of Mass (CoM). This frame is used to express
+navigation states such as attitude, velocity, and wind.
+• Body frame (b): A body-fixed Forward-Right-Down
+(FRD) frame, rigidly attached to the UAV’s CoM and
+aligned with its principal axes. Inertial sensor measure-
+ments are expressed in this frame.
+• Magnetometer frame (m): A sensor-fixed frame associ-
+ated with the magnetometer triad, generally misaligned
+w.r.t. the body frame due to installation imperfections
+and/or soft-iron magnetism.
+• Camera frame (c): A sensor-fixed frame associated with
+the vision system, used to express VIO measurements.
+This frame may be misaligned w.r.t. the body frame.
+Rotations between frames are represented using Direction
+Cosine Matrices (DCMs), while small attitude errors are
+modeled using three-dimensional error vectors.
+C. Modeling Assumptions
+The proposed navigation framework relies on the follow-
+ing assumptions:
+• The vehicle is a fixed-wing UAV operating in the
+atmosphere, with dynamics compatible with standard
+strapdown inertial navigation formulations.
+• Wind is modeled as a slowly varying vector expressed
+in the navigation frame and is explicitly included in the
+state vector.
+• Attitude
+errors
+are
+represented
+using
+a
+left-
+multiplicative error formulation [2].
+• Certain aiding sensors exhibit systematic errors, such
+as biases, scale factors, and misalignment parameters,
+which are explicitly estimated by augmenting the error
+state vector with corresponding scalar Gauss-Markov
+(GM) or Random-Walk (RW) processes.
+These assumptions are consistent with standard practices
+in inertial navigation and error-state filtering and allow a
+unified treatment of heterogeneous sensor measurements
+within the ESEKF framework.
+D. Nominal State Vector
+The nominal state vector represents the best estimate
+(symbol ˆ(·)) of the vehicle’s navigation states and sensor
+parameters. It includes the vehicle attitude DCM, Cn
+b , ve-
+locity, vn
+eb, and curvilinear position, i.e., latitude, longitude
+and altitude, pb ≜[Lb λb hb]⊤, as well as selected sensor-
+related systematic errors required for measurement modeling
+and error compensation. The nominal state is propagated
+using the nonlinear INS equations and corrected through
+measurement updates/error state injection.
+For clarity, the nominal state vector is not explicitly
+expanded here, as its components are directly related to the
+corresponding error-state definitions introduced next.
+E. Error-State Vector
+The ESEKF estimates a 34-dimensional error-state vector,
+which captures small deviations between the true system
+states and their nominal estimates. The error-state vector is
+defined as δx =
+
+δx⊤
+INS δx⊤
+AUG
+⊤, with
+δxINS =
+
+(δψn
+bn)⊤
+(δvn
+eb)⊤
+δp⊤
+b
+δb⊤
+a
+δb⊤
+g
+⊤,
+(1)
+δxAUG =
+
+δbp
+δsp
+δb⊤
+m
+δs⊤
+m
+· · ·
+(δψm
+bm)⊤
+δs⊤
+v
+(δψc
+bc)⊤
+(δvn
+ew)⊤
+⊤
+,
+(2)
+where δψn
+bn ∈R3 is the INS attitude error between the
+body and navigation frames, δvn
+eb ∈R3 is the INS velocity
+error expressed in the navigation frame, δpb ∈R3 is the
+INS curvilinear position error, expressed in terms of latitude,
+longitude, and altitude, δba ∈R3, δbg ∈R3, δbp ∈R, and
+δbm ∈R3 are the accelerometer, rate gyro, barometer, and
+magnetometer bias errors, respectively, δsp ∈R, δsm ∈R3,
+and δsv ∈R2 are the barometer, magnetometer, and VIO
+scale factor errors, respectively, δψm
+bm ∈R3 and δψc
+bc ∈R3
+are the magnetometer-to-body and camera-to-body misalign-
+ment errors, also respectively, and δvn
+ew ∈R3 is the wind
+velocity error expressed in the navigation frame.
+This augmented error-state formulation enables the ES-
+EKF to consistently estimate navigation states and compen-
+sate for sensor systematic errors within a unified probabilistic
+framework.
+III. NOMINAL INS PROPAGATION
+This section presents the nonlinear propagation model of
+the nominal navigation states. They are propagated outside
+(and in parallel to) the ESEKF using a precision strapdown
+inertial navigation formulation expressed in the navigation
+frame [2], [7].
+521
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:44 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+A. Inertial Sensor Measurements
+The IMU provides measurements (symbol ˜(·)) of specific
+force, f b
+ib, and angular rate, ωb
+ib, expressed in the body
+frame. These measurements are modeled as ˜f
+b
+ib = f b
+ib +
+ba + na, and ˜ωb
+ib = ωb
+ib + bg + ng, where ba and bg
+denote accelerometer and rate gyro biases, respectively, and
+na and ng represent zero-mean white noise processes. In the
+nominal propagation, bias estimates are treated as constant
+over the integration interval.
+B. Attitude Propagation
+The vehicle attitude is represented by the DCM Cn
+b ,
+mapping vectors from the body frame to the navigation
+frame. Attitude propagation is driven by the measured body
+angular rate w.r.t. the inertial frame. Let αb
+ib = ωb
+ib ∆t denote
+the incremental rotation over the integration interval ∆t. The
+corresponding skew-symmetric matrix is denoted by Ab
+ib =
+
+αb
+ib
+
+×. The Earth rotation rate expressed in the navigation
+frame is given by ωn
+ie = ωie
+cos Lb
+0
+−sin Lb
+⊤, where
+ωie is the Earth rotation rate magnitude.
+The angular rate of the navigation frame w.r.t. the Earth
+frame (i.e., the transport rate), expressed in the navigation
+frame, is computed as
+ωn
+en =
+
+vn
+eb,E
+RE + hb
+−
+vn
+eb,N
+RN + hb
+−
+vn
+eb,E tan Lb
+RE + hb
+⊤
+,
+(3)
+where vn
+eb = [vn
+eb,N vn
+eb,E vn
+eb,D]⊤, and RN and RE denote
+the meridian and transverse radii of curvature, respectively.
+Using a first-order approximation consistent with precision
+strapdown formulations, the attitude update is given by [2]
+Cn
+b (+) =
+
+I3 −
+
+ωn
+ie + 1
+2ωn
+en(−) + 1
+2ωn
+en(+)
+
+× ∆t
+
+Cn
+b (−)Cb−
+b+,
+(4)
+with
+Cb−
+b+ = I3 + sin ∥αb
+ib∥
+∥αb
+ib∥
+Ab
+ib + 1 −cos ∥αb
+ib∥
+∥αb
+ib∥2
+(Ab
+ib)2,
+(5)
+where (+) and (−) indicate variables at current and previous
+computation epochs, respectively, and Im is an identity ma-
+trix of size m. After propagation, the DCM is orthogonalized
+and normalized following, e.g., what is suggested in [7].
+C. Specific Force Transformation
+To accurately account for body rotation and navigation-
+frame rotation during the integration interval, the specific
+force is transformed using an averaged body-to-navigation
+DCM. This average transformation matrix is computed as
+¯
+Cn
+b = Cn
+b (−)Cb−
+¯b
+−1
+2 [ωn
+ie(−) + ωn
+en(−)]× Cn
+b (−)∆t (6)
+with
+Cb−
+¯b
+= I3 + 1 −cos ∥αb
+ib∥
+∥αb
+ib∥2
+Ab
+ib +
+1 −sin ∥αb
+ib∥
+∥αb
+ib∥
+∥αb
+ib∥2
+(Ab
+ib)2. (7)
+The specific force resolved in the navigation frame is then
+f n
+ib = ¯Cn
+b f b
+ib.
+D. Velocity Propagation
+The velocity of the vehicle is propagated according to
+vn
+eb(+) = vn
+eb(−)+
+ f n
+ib + gn(−) −[ωn
+en(−) + 2ωn
+ie(−)]× vn
+eb(−)
+
+∆t,
+(8)
+where gn denotes the gravity vector expressed in the naviga-
+tion frame. A gravity model that accounts for Earth rotation
+effects is employed, consistent with high-fidelity strapdown
+navigation formulations [7].
+E. Position Propagation
+Lastly, the curvilinear position of the vehicle is propagated
+using trapezoidal integration:
+hb(+) = hb(−) −∆t
+2
+ vn
+eb,D(−) + vn
+eb,D(+)
+
+,
+(9)
+Lb(+) = Lb(−) + ∆t
+2
+
+vn
+eb,N(−)
+RN + hb(−) +
+vn
+eb,N(+)
+RN + hb(+)
+
+,
+(10)
+λb(+) = λb(−) + ∆t
+2
+ 
+vn
+eb,E(−)
+(RE + hb(−)) cos Lb(−)
++
+vn
+eb,E(+)
+(RE + hb(+)) cos Lb(+)
+!
+.
+(11)
+IV. ESEKF PROPAGATION MODEL
+This section presents the core ESEKF formulation adopted
+in this work. The filter follows the standard error-state
+paradigm in which the nonlinear nominal INS solution is
+propagated outside (and in parallel to) the filter, while the
+ESEKF estimates a small error-state vector (which is used to
+correct the nominal states) and its covariance [2], [3], [34].
+Between measurement updates, the error-state dynam-
+ics are governed by the continuous-time linearized time-
+varying model δ ˙x(t) = F(t) δx(t) + G(t) w(t), where
+F = blkdiag (FINS, FAUG) is the system matrix, G =
+blkdiag (GINS, I19) is the noise distribution matrix, and
+w =
+
+w⊤
+INS w⊤
+AUG
+⊤is a zero-mean white noise process
+vector, such that E{w(t)w⊤(t′)} = S δ(t −t′), where S =
+blkdiag (SINS, SAUG) is the process noise Power Spectral
+Density (PSD) matrix.
+The inertial navigation subsystem comprises the first
+fifteen error states of δxINS, i.e., (1). The corresponding
+continuous-time error dynamics are given by δ ˙xINS
+=
+FINS δxINS + GINS wINS, where [2]
+FINS =
+
+
+−[ωn
+in]×
+Fψv
+Fψp
+0
+−Cn
+b
+[f n
+ib]×
+Fvv
+Fvp
+Cn
+b
+0
+0
+Fpv
+Fpp
+0
+0
+0
+0
+0
+−T−1
+a
+0
+0
+0
+0
+0
+−T−1
+g
+
+
+, (12)
+GINS =
+
+
+0
+−Cn
+b
+0
+0
+Cn
+b
+0
+0
+0
+0
+0
+0
+0
+0
+0
+I3
+0
+0
+0
+0
+I3
+
+
+,
+(13)
+522
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:44 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+with
+Fψv =
+
+
+0
+1
+RE + hb
+0
+−
+1
+RN + hb
+0
+0
+0
+−tan Lb
+RE + hb
+0
+
+
+,
+(14)
+Fψp =
+
+
+−ωie sin Lb
+0
+−
+vn
+eb,E
+ RE + hb
+2
+0
+0
+vn
+eb,N
+ RN + hb
+2
+−ωie cos Lb −
+vn
+eb,E
+ RE + hb
+
+cos2 Lb
+0
+vn
+eb,E tan Lb
+ RE + hb
+2
+
+
+,
+(15)
+Fpv =
+
+
+1
+RN + hb
+0
+0
+0
+1
+ RE + hb
+
+cos Lb
+0
+0
+0
+−1
+
+
+,
+(16)
+Fpp =
+
+
+0
+0
+−
+vn
+eb,N
+ RN + hb
+2
+vn
+eb,E sin Lb
+ RE + hb
+
+cos2 Lb
+0
+−
+vn
+eb,E
+ RE + hb
+2 cos Lb
+0
+0
+0
+
+
+,
+(17)
+Fvv =
+
+
+vn
+eb,D
+RN + hb
+−
+2vn
+eb,E tan Lb
+RE + hb
+−2ωie sin Lb
+vn
+eb,N
+RN + hb
+vn
+eb,E tan Lb
+RE + hb
++ 2ωie sin Lb
+vn
+eb,N tan Lb + vn
+eb,D
+RE + hb
+vn
+eb,E
+RE + hb
++ 2ωie cos Lb
+−
+2vn
+eb,N
+RN + hb
+−
+2vn
+eb,E
+RE + hb
+−2ωie cos Lb
+0
+
+
+,
+(18)
+Fvp =
+
+
+−
+ vn
+eb,E sec Lb
+2
+RE + hb
+−2vn
+eb,Eωie cos Lb
+0
+ vn
+eb,E
+2 tan Lb
+ RE + hb
+2
+−
+vn
+eb,Nvn
+eb,D
+ RN + hb
+2
+vn
+eb,Nvn
+eb,E sec2 Lb
+RE + hb
++ 2vn
+eb,Nωie cos Lb −2vn
+eb,Dωie sin Lb
+0
+−
+vn
+eb,Nvn
+eb,E tan Lb + vn
+eb,Evn
+eb,D
+ RE + hb
+2
+2vn
+eb,Eωie sin Lb
+0
+ vn
+eb,E
+2
+ RE + hb
+2 +
+ vn
+eb,N
+2
+ RN + hb
+2 −2g0
+reS
+
+
+,
+(19)
+In (12) to (19), ωn
+in = ωn
+ie + ωn
+en, matrices Ta and Tg
+are diagonal correlation-time matrices for accelerometer and
+gyro biases, respectively, g0 is the magnitude of standard
+gravity, and reS is the Earth radius at the vehicle location.
+The noise vector driving the INS error dynamics is defined
+as wINS =
+na
+ng
+wba
+wbg
+⊤, where na and ng are
+accelerometer and gyro measurement noise, and wba and
+wbg are the bias driving noises, respectively. The associated
+PSD matrix, SINS, is assumed diagonal.
+The remaining error states of the filter, δxAUG, are mod-
+eled as independent scalar GM or RW processes, which
+are augmented to the INS subsystem to form the com-
+plete 34-error state model. Their dynamics are described by
+δ ˙xAUG = FAUG δxAUG + wAUG, where FAUG is diagonal,
+with each element given by either −
+1
+τAUG (for a scalar GM
+process), or 0 (for a RW), where τAUG is the correlation
+time of the augmented error state. The noise vector driving
+the augmented error states, wAUG, has its associated PSD
+matrix, SAUG, which is also assumed diagonal. The latter
+formulation is applied to barometer bias and scale factor,
+magnetometer bias, scale factor and misalignment, VIO scale
+factors, camera-to-body misalignment, and wind velocity
+error states.
+In the discrete-time implementation of the proposed ES-
+EKF, the continuous-time error dynamics are discretized
+using standard KF equations, with particular emphasis on the
+Van Loan method for consistent discretization of the system
+and process noise covariance matrices [1].
+V. ESEKF MEASUREMENT MODELS
+This section presents the measurement models adopted
+in the proposed ESEKF framework. Each aiding sensor
+contributes through an independent and asynchronous mea-
+surement update, whose formulation is fully consistent with
+the error-state definition introduced in Section II and the error
+propagation model detailed in Section IV.
+For each sensor, the measurement innovation equation is
+expressed in the standard form δz = ˜z −ˆ˜z ≜H δx + v,
+where ˜z denotes the raw measurement, ˆ˜z is the nonlinear
+measurement estimate computed from the nominal states, H
+is the measurement sensitivity matrix, and v is a zero-mean
+white noise process with covariance matrix R.
+523
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:44 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+A. Magnetometer Measurement Model
+The tri-axial magnetometer provides measurements of the
+local Earth magnetic flux density expressed in the magne-
+tometer frame, ˜mm
+E ∈R3. The latter are modeled as
+˜mm
+E = (I3 + Sm) Cm
+b (Cn
+b )⊤mn
+E + bm + nm,
+(20)
+with Sm = diag(sm), where sm ∈R3 is the scale factor
+vector (also accounting for soft-iron magnetism), Cm
+b is the
+body-to-magnetometer DCM, bm ∈R3 is the magnetometer
+bias vector (also accounting for hard-iron magnetism), and
+nm is a zero-mean white Gaussian noise process.
+The predicted magnetic field expressed in the magnetome-
+ter frame is given by
+ˆ˜mm
+E = (I3 + ˆSm) ˆCm
+b ( ˆCn
+b )⊤ˆmn
+E + ˆbm,
+(21)
+where the Earth magnetic flux density expressed in the
+navigation frame, ˆmn
+E, is obtained from a geomagnetic field
+model (e.g., WMM) evaluated at the nominal position and
+time [16].
+The TC magnetometer measurement innovation is
+δzm = ˜mm
+m −ˆ˜mm
+m.
+(22)
+Linearizing1 the latter w.r.t. the error-state vector yields
+δzm = Hm δx + nm, with
+Hm =
+Hm
+ψn
+03×14
+−I3
+Hm
+sm
+Hm
+ψm
+03×8
+
+, (23)
+where Hm
+ψn
+=
+(I3 + Sm)Cm
+b (Cn
+b )⊤[mn
+E]×, Hm
+sm
+=
+−diag(mm
+E ) and Hm
+ψm = −(I3 + Sm) [mm
+E ]×, with mm
+E =
+Cm
+b (Cn
+b )⊤mn
+E.
+The magnetometer measurement noise covariance matrix
+is modeled as Rm = σ2
+mI3, where σm is the magnetometer
+noise standard deviation, assumed equal along all axes.
+B. Barometer Measurement Model
+The barometer measures the absolute (static) atmospheric
+pressure at the vehicle location, denoted by ˜pb ∈R. The
+scalar TC measurement innovation is defined as δzp = ˜pb −
+ˆ˜pb. Accordingly, the predicted barometric measurement is
+given by ˆ˜pb = (1 + ˆsp) ˆpb + ˆbp, with
+ˆpb = pref/10
+
+(ˆhb−href ) g0 log10(e)
+R ˜
+Ts
+
+,
+(24)
+obtained from a temperature-dependent hydrostatic atmo-
+spheric model with local reference [22].
+In (24), bp is an additive bias, sp is a multiplicative scale
+factor, both of which are included (in the form of small
+perturbations) in the augmented error-state vector, Ts is the
+static outside air temperature, R = 287.05307 J/(Kg.K) is the
+specific gas constant for dry air, and (pref, href) denote the
+reference pressure and altitude, respectively.
+Linearizing the measurement equation w.r.t. the error-state,
+the Jacobian is written as
+Hp =
+01×8
+Hp
+h
+01×6
+−1
+−pb
+01×17
+
+,
+(25)
+1The complete derivation of this Jacobian is provided in Appendix I.
+with
+Hp
+h = (1 + sp)
+g0 pref
+R Tref
+
+1 + kT (hb−href)
+Tref
+
+g0
+RkT +1 ,
+(26)
+where Tref is the reference temperature and kT = 0.0065
+K/m is the standard atmospheric temperature lapse rate.
+The barometer measurement noise is modeled as scalar
+white Gaussian noise with variance Rp = σ2
+p.
+C. Airspeed Sensor Measurement Model
+The airspeed sensing suite considered in this work con-
+sists of a forward-mounted pitot tube combined with an
+airflow temperature sensor. The pitot tube measures the
+impact pressure, ˜qc, which, together with the barometer’s
+ambient atmospheric pressure, ˜pb, and airflow temperature,
+˜Ta, allows the computation of the vehicle airspeed relative to
+the surrounding air along the body-frame longitudinal axis,
+namely, ˜vb
+wb,x = ˜cs ˜
+M, with ˜cs =
+q
+γR ˜Ts being the speed
+of sound, and ˜Ts = ˜Ta/
+
+1 + γ−1
+2
+˜
+M 2
+.
+Assuming compressible and isentropic flow, the Mach
+number is obtained as [5],
+˜
+M =
+v
+u
+u
+t
+2
+γ −1
+" ˜qc
+˜pb
++ 1
+ γ−1
+γ
+−1
+#
+,
+(27)
+where γ ≈1.4 denotes the ratio of specific heats of air.
+In the absence of physical angle-of-attack and sideslip
+vanes, and assuming small and almost constant wind ve-
+locities, lateral and vertical airspeed components can be
+constrained to zero [27], yielding the combined pitot with
+“pseudovanes” measurement vector, ˜vb
+wb =
+˜vb
+wb,x
+0
+0⊤.
+The LC measurement innovation is defined as δzw =
+˜vb
+wb−ˆ˜vb
+wb, where the predicted air-relative velocity expressed
+in the body frame is obtained from the INS-estimated
+ground velocity, vn
+eb, and wind velocity, vn
+ew, as ˆ˜vb
+wb =
+( ˆCn
+b )⊤(ˆvn
+eb −ˆvn
+ew).
+Linearizing the measurement equation w.r.t. the error-state
+vector yields the Jacobian
+Hw =
+(Cn
+b )⊤[vn
+eb −vn
+ew]×
+−(Cn
+b )⊤
+03×25
+(Cn
+b )⊤
+.
+(28)
+The pitot and pseudovane measurement noise is modeled
+as zero-mean white Gaussian, with covariance Rw = σ2
+wI3,
+where σw denotes the standard deviation of the airspeed
+measurement noise, identically applied to the longitudinal
+airspeed and pseudovane constraints.
+D. VIO Velocity Measurement Model
+The VIO subsystem provides planar velocity measure-
+ments resolved in the camera frame, denoted by ˜vc
+ec,2 =
+˜vc
+ec,x
+˜vc
+ec,y
+⊤. Disregarding the lever-arm between the
+camera and the vehicle CoM, the LC innovation vector is
+defined as δzv = ˜vc
+ec,2 −ˆ˜vc
+eb,2, with the predicted VIO
+measurement given by ˆ˜vc
+eb,2 = (I2 + diag(ˆsv)) ˆvc
+eb,2, where
+ˆvc
+eb,2 =
+ˆvc
+eb,x
+ˆvc
+eb,y
+⊤, and sv = [sv,x sv,y]⊤is the two-
+dimensional VIO scale factor vector.
+524
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:44 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+The INS-predicted Earth-referenced velocity expressed in
+the camera frame is computed as ˆv c
+eb = ˆCc
+b ( ˆCn
+b )⊤ˆv n
+eb,
+where Cc
+b is the body-to-camera DCM. Linearizing the
+measurement equation w.r.t. the error-state vector yields the
+measurement Jacobian
+Hv =
+Hv
+ψn
+Hv
+v
+02×20
+Hv
+sv
+Hv
+ψc
+02×3
+
+,
+(29)
+with
+Hv
+ψn
+=
+
+J Cc
+b (Cn
+b )⊤[v n
+eb]×
+
+1:2,:,
+Hv
+v
+=
+−
+
+J Cc
+b (Cn
+b )⊤
+1:2,:,
+Hv
+sv
+=
+−[diag(v c
+eb)]1:2,1:2,
+and
+Hv
+ψc = −[J [v c
+eb]×]1:2,:, where J ≜I3 + diag
+ sv
+0⊤.
+The VIO velocity measurement noise is modeled as zero-
+mean white Gaussian with covariance Rv = σ2
+vI2, where σv
+is the (per-axis) standard deviation associated with the planar
+VIO velocity measurement.
+E. CV Position Measurement Model
+The CV subsystem provides absolute position measure-
+ments in geodetic coordinates, namely latitude, ˜Lc, and
+longitude, ˜λc. The LC position measurement innovation is
+defined as the difference between the measured and estimated
+geodetic coordinates, δzc =
+˜Lc −ˆLb
+˜λc −ˆλb
+⊤, where
+ˆLb and ˆλb are the INS-estimated latitude and longitude.
+Linearizing the measurement equation w.r.t. the error-state
+vector yields the Jacobian Hc =
+02×6
+−I2×3
+02×25
+
+.
+The CV position measurement noise is modeled as zero-
+mean
+white
+Gaussian
+noise
+with
+covariance
+Rc
+=
+diag
+ σ2
+L, σ2
+λ
+
+, where σL and σλ denote the standard de-
+viations associated with the CV’s latitude and longitude
+measurements.
+F. GNSS Measurement Model
+The GNSS aiding is employed only when satellite naviga-
+tion measurements are available and is used to calibrate the
+systematic errors of the remaining aiding sensors. The GNSS
+receiver provides geodetic position, ˜pg, and horizontal veloc-
+ity measurements, ˜vn
+eg,N, ˜vn
+eg,E. The LC GNSS measurement
+innovation is defined as
+δzg =
+(˜pg −ˆpb)⊤
+˜vn
+eg,N −ˆvn
+eb,N
+˜vn
+eg,E −ˆvn
+eb,E
+⊤,
+(30)
+where ˆpb and (ˆveb,N, ˆveb,E) are the INS-estimated position
+and velocity components, and the lever-arm between the
+GNSS antenna and the vehicle CoM has been ignored.
+Linearizing the measurement equation w.r.t. the error-state
+vector yields the Jacobian
+Hg =
+
+03×3
+03×3
+−I3×3
+03×25
+02×3
+−I2×3
+02×3
+02×25
+
+.
+(31)
+The GNSS measurement noise is modeled as zero-
+mean
+white
+Gaussian
+noise
+with
+covariance
+Rg
+=
+diag(ΣLλ, σ2
+h, Σv), where ΣLλ = diag(σ2
+L, σ2
+λ) denotes the
+latitude and longitude noise covariance, σ2
+h is the altitude
+noise variance, and Σv = diag(σ2
+vN , σ2
+vE) corresponds to
+the horizontal velocity measurement noise covariance.
+G. Innovation Filtering and Error Injection
+All measurement updates employed in this work are
+protected against outliers through scalar innovation filtering
+[2]. After computing the measurement innovation δz and
+its covariance, each scalar component is individually tested
+against a predefined threshold. Innovations whose normal-
+ized magnitude exceeds this threshold are rejected, while
+the remaining components are retained for the update. This
+strategy allows partial acceptance of multi-dimensional mea-
+surements and prevents corrupted observations from degrad-
+ing the filter consistency, while preserving valid information
+from unaffected channels.
+Following a successful measurement update, the estimated
+error-state vector is injected into the nominal navigation
+states. For a generic scalar state x, vector state x, and rotation
+matrix C, the injection mechanism can be written as ˆx+ =
+ˆx−−δˆx, ˆx+ = ˆx−−δˆx, and ˆC+ =
+
+I3 + [δ ˆψ×]
+
+ˆC−,
+where (·)−and (·)+ denote the pre- and post-injection quan-
+tities. This formulation is consistently applied to attitude,
+velocity, position, sensor biases, scale factors, misalignment
+parameters, and wind velocity states. After injection, the
+corresponding error states are reset to zero, ensuring that
+the error-state formulation remains locally valid and that the
+nominal states fully absorb the correction.
+VI. EXPERIMENTAL RESULTS
+Aiming at assessing the performance of the proposed
+multi-sensor-based unified ESEKF framework, a flight test
+was conducted with a custom fixed-wing UAV. On May 12,
+2025, the UAV executed a reconnaissance mission of ap-
+proximately 2 hours over a desert region near Abu Dhabi,
+which comprised the following phases: Take-Off (TO),
+Climb Loitering (CL), Mission Execution (ME), Descent
+Loitering (DL) and Landing (L). During the ME phase of
+this flight, the UAV executed several coordinate turns, flying
+at approximately 770 meters above mean sea level, with an
+average ground speed of 55 m/s (Fig. 2).
+Fig. 2.
+UAV flight trajectory.
+525
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:44 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+Fig. 3.
+Navigation errors.
+The sensor suite onboard the UAV comprised: (a)
+an Advanced Navigation Micro-Electro-Mechanical Sys-
+tems (MEMS)-based Spatial IMU; (b) a three-axial Drotek
+RM3100 magneto-inductive sensor; (c) a Cube Orange au-
+topilot comprising an MS5611 digital barometer; (d) a CUAV
+SKYE2 pitot/external temperature probe; (e) an in-house-
+developed monocular camera-based vision navigation sys-
+tem2; and (f) a CUAV C-RTK 9Ps GNSS receiver, featuring
+a Real-Time Kinematics (RTK)-capable, dual-band, multi-
+constellation ublox ZED-F9P module. The Ground-Truth
+(GT) values for position and velocity were obtained from
+the CUAV C-RTK 9Ps GNSS receiver, while for attitude, we
+employed the native solution running inside Cube Orange.
+Figure 3 depict the first 40 minutes of the CL and
+ME phases of the UAV flight (identified by the dashed
+black vertical lines), as well as the errors in the naviga-
+tion solution computed by the ESEKF3 (red curves labeled
+“None off”) w.r.t. the GTs. The corresponding Root Mean
+Square Errors (RMSEs) are additionally summarized in Table
+I. Aiming at simulating a scenario of GNSS signal out-
+age/jamming/spoofing, we intentionally disabled the GNSS
+update/aiding of the ESEKF (depicted by the light-orange
+2For this system, we developed a custom factor graph-based solution
+that can benefit from additional sensors and reliable prior information from
+the INS. This allows the system to achieve real-scale monocular VIO and
+partially mitigate the fundamental monocular limitation of unobservable
+scale.
+3ESEKF tuning was performed following the procedure/parameterizations
+suggested in [9], based on the aiding sensors manufacturer’s specs.
+shady areas in Fig. 3) slightly after the beginning of the ME
+phase of the UAV. As can be seen, the proposed ESEKF was
+able to maintain a globally bounded and relatively accurate
+navigation solution, regardless of the long (approximately 35
+minutes) GNSS-denied flight segment.
+Subsequently, we tested the ESEKF robustness against the
+loss/deactivation of each of its individual aiding sensors.
+The idea was to assess the extent of which each of them
+would possible contribute to the loss of performance of
+the ESEKF. The green, blue, cyan, magenta, and yellow
+curves in Fig. 3 depict, respectively, the deployment of
+corresponding ESEKF versions without: (a) magnetometers;
+(b) barometer; (c) pitot/pseudovanes; (d) VIO; and (e) CV
+aiding updates. RMSEs are equally summarized in Table I,
+with worst and best results highlighted using red and green
+colors, respectively.
+First, the analysis of the magnetometer-denied ESKEF’s
+outcomes shows that, differently from what we expected, no
+significant loss of performance was noticed w.r.t. the fully-
+aided ESKEF. This is an indicative that, not only the magne-
+tometers might be redundant in the current configuration, as
+well as, the ESEKF was unable to properly (and separately)
+observe/calibrate the nine extra states that were augmented to
+account for the magnetometer systematic errors (even when
+the GNSS was active).
+The analysis of the barometer-denied ESEKF, in sequence,
+shows that, although the horizontal channel (i.e., latitude,
+longitude, and north-east velocities) performance has been
+favored in this configuration, the latter came at the cost of
+526
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:44 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+TABLE I
+PERFORMANCE METRICS.
+ESEKF version
+Position RMSEs (m)
+Velocity RMSEs (m/s)
+Attitude RMSEs (deg)
+L2-norm
+North
+East
+Down
+North
+East
+Down
+Roll
+Pitch
+Heading
+None off
+16.40
+18.21
+1.80
+0.42
+0.38
+0.09
+1.04
+1.41
+1.45
+1.18
+Mag off
+16.41
+18.18
+1.71
+0.43
+0.38
+0.09
+1.05
+1.44
+1.44
+1.41
+Baro off
+16.18
+17.82
+511.61
+0.43
+0.36
+1.20
+1.00
+1.38
+1.43
+1.61
+Pitot off
+18.37
+20.01
+1.39
+0.44
+0.45
+0.08
+0.94
+1.30
+1.54
+0.09
+VIO off
+21.12
+22.24
+1.71
+0.66
+0.79
+0.08
+1.02
+1.38
+1.36
+0.92
+CV off
+188.39
+194.48
+1.63
+3.42
+2.71
+0.09
+1.02
+1.40
+3.55
+2.46
+a severe degradation in the vertical channel (i.e., altitude
+and down velocity). While the barometer proved to be a
+key sensor for aiding the ESEKF vertical channel solution
+(specially during GNSS outages), the very opposite is found
+to be true for the pitot (with pseudovane constraints). As
+can be clearly seen in Fig. 3 and Table I, the removal of the
+pitot/pseudovanes aiding from the ESKEF actually improved
+the vertical channel and roll/pitch navigation performance,
+which might be related to: (a) the filter inability to properly
+estimate wind velocity fluctuations in the absence of GNSS
+signals; and/or (b) a mismatch between the pseudovane
+constraints, i.e., enforced zero lateral and cross wind speeds,
+with the actual wind conditions experienced during the
+concerned flight.
+Lastly, turning off the vision-based navigation systems
+(VIO and CV) proved to have different impacts on the
+unified ESEKF solution, affecting mainly the UAV horizontal
+channel and heading solutions though. While the smaller
+impact of not having VIO is somehow intuitive (as the
+pitot/pseudovanes act as replacement for the velocity aiding
+provided by the latter), CV-denied navigation is expected to
+have a more significant impact for longer GNSS-degraded
+periods as, in this case, the ESEKF position solution will
+depend entirely on the digital integration of the “as much
+calibrated as possible” velocity information, very likely
+accumulating errors over time. Looking at Table I, we
+might have the wrong impression that the CV-denied ESKEF
+performed quite well (horizontal position RMSEs of only
+a few hundreds of meters in 35 minutes of GNSS-denied
+navigation); however, we shall notice that the latter metrics
+were a direct consequence of the error cancellation that took
+place as a function of the “zigzag” trajectory performed by
+the UAV during the experiment (see Fig. 3 for details).
+In order to better quantify the impact of each tested version
+of the ESEKF, we normalized the metrics of Table I in the
+range [0,1] and then computed the L2-norm of the resulting
+vector, for each approach. The results, summarized in the last
+column of Table I corroborate the preceding verifications,
+namely: (a) the apparent redundancy of the magnetometers
+aiding; (b) the lack of observability of the full 34-error
+state vector; (c) the paramount importance of the barometer
+and CV sensors for mitigating position drift in the INS
+horizontal and vertical channels, respectively; and (d) the
+slight to moderate performance degradation of the ESEKF in
+the presence of pitot aiding with pseudovanes enforcement,
+and/or absence of VIO aiding.
+VII. CONCLUSION
+This paper presented the development and experimental
+validation of a unified ESEKF framework for multi-sensor
+navigation of fixed-wing UAVs operating in GNSS-denied
+and GNSS-degraded environments. The proposed architec-
+ture consolidated INS propagation and heterogeneous aid-
+ing sensors, including magnetometer, barometer, pitot tube
+with pseudovanes, VIO velocity estimates, CV CNN-based
+position updates, and GNSS measurements, into a single
+self-consistent estimation structure with explicit modeling of
+sensor systematic errors through an augmented error-state
+vector.
+A real flight experiment with intentional GNSS outages
+demonstrated that the proposed unified ESEKF maintains
+bounded navigation errors. Systematic sensor deactivation
+tests further highlighted the modularity of the framework
+and quantified the role of each aiding sensor, showing that
+barometric aiding is essential for vertical stability, while CV
+position updates play a key role in horizontal channel and
+heading performance.
+The results also indicated that magnetometer aiding may
+be redundant under the tested conditions, suggesting limited
+observability of the corresponding augmented calibration
+states, which motivates further investigation. Future work
+will focus on a formal observability analysis of the complete
+filter structure and on the systematic evaluation of TC
+measurement models for all auxiliary sensors to improve ro-
+bustness and consistency in extended GNSS-denied missions.
+APPENDIX I
+MAGNETOMETER MEASUREMENT MODEL DERIVATION
+This appendix derives the magnetometer measurement
+model and the corresponding Jacobian used in Subsection V-
+A. The derivation is presented in detail because it serves
+as a template for the linearization of the remaining sensor
+measurement models.
+In Subsection V-A, the magnetometer measurements were
+modeled as in (20). Let the following linearly perturbed
+model be assigned to the estimated magnetometer measure-
+ments (and equivalently to any nominal variable)
+ˆ˜mm
+E = ˜mm
+E + δ ˜mm
+E
+(32)
+where δ ˜mm
+E is a generic error in
+˜mm
+E , which can be
+derived by applying linear differentiation to the deterministic
+elements of (20), i.e.
+δ ˜mm
+E = δ (I3 + Sm) mm
+E + (I3 + Sm) [δCm
+b (Cn
+b )⊤mn
+E
+527
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:44 UTC from IEEE Xplore.  Restrictions apply. 
+[p.10]
++ Cm
+b (δCn
+b )⊤mn
+E + Cm
+b (Cn
+b )⊤δmn
+E] + δbm
+(33)
+where mm
+E = Cm
+b (Cn
+b )⊤mn
+E.
+Disregarding errors in the magnetic flux density ob-
+tained from geomagnetic field models, and assuming a left-
+multiplicative definition for the attitude error DCMs [2], i.e.,
+δCm
+b = −[δψm
+bm]×Cm
+b and δCn
+b = −[δψn
+bn]×Cn
+b yields
+δ ˜mm
+E = δSmmm
+E +(I3 + Sm) [−[δψm
+bm]×Cm
+b (Cn
+b )⊤mn
+E
++ Cm
+b (−[δψn
+bn]×Cn
+b )⊤mn
+E] + δbm
+(34)
+where δSm = diag(δsm).
+Recalling that, for arbitrary vectors a and b, and arbitrary
+matrices A and B, a × b = −b × a and (AB)⊤= B⊤A⊤,
+(34) can be simplified as follows
+δ ˜mm
+E = diag(mm
+E )δsm + (I3 + Sm) [mm
+E ]×δψm
+bm
+−(I3 + Sm) Cm
+b (Cn
+b )⊤[mn
+E]×δψn
+bn + δbm.
+(35)
+Since the magnetometer measurement innovation has been
+defined as in (22), plugging (20) and (32) into the latter yields
+δzm = −δ ˜mm
+E .
+(36)
+Hence, plugging (35) in (32), and assuming the error state
+vector of (1)-(2), leads to the magnetometer measurement
+Jacobian of (23), Q.E.D.
+REFERENCES
+[1] J. A. Farrell, Aided Navigation: GPS with High Rate Sensors.
+McGraw-Hill, Inc., 2008.
+[2] P. D. Groves, Principles of GNSS, Inertial, and Multisensor Integrated
+Navigation Systems, 2nd ed.
+Artech House Publishers, 2013.
+[3] M. S. Grewal, L. R. Weill, and A. P. Andrews, Global Positioning
+Systems, Inertial Navigation, and Integration, 3rd ed.
+Wiley, 2020.
+[4] G. M. Siouris, Aerospace Avionics Systems: A Modern Synthesis.
+Academic Press, 1993.
+[5] M. Kayton and W. R. Fried, Avionics Navigation Systems, 2nd ed.
+Wiley, 1997.
+[6] R. W. Beard and T. W. McLain, Small Unmanned Aircraft: Theory
+and Practice.
+Princeton, NJ: Princeton University Press, 2012.
+[7] P. G. Savage, Strapdown Analytics.
+Strapdown Associates, 2007.
+[8] J. A. Farrell and J. Wendel, “GNSS/INS integration,” in Springer
+Handbook of Global Navigation Satellite Systems, P. J. Teunissen and
+O. Montenbruck, Eds.
+Cham: Springer, 2017, pp. 811–840.
+[9] J. A. Farrell, F. O. Silva, F. Rahman, and J. Wendel, “Inertial
+measurement unit error modeling tutorial: Inertial navigation system
+state estimation with real-time sensor calibration,” IEEE Contr. Syst.
+Mag., vol. 42, no. 6, pp. 40–66, 2022.
+[10] D. S. Batista, F. Granziera, M. C. Tosin, and L. F. Melo, “Attitude-
+independent magnetometer calibration using nonlinear least squares,”
+IEEE Sens. J., vol. 23, no. 13, pp. 14 002–14 016, Jul. 2023.
+[11] Y. Wu and W. Shi, “On calibration of three-axis magnetometer,” IEEE
+Sens. J., vol. 15, no. 11, pp. 6424–6431, Nov. 2015.
+[12] R. Alonso and M. D. Shuster, “TWOSTEP: A fast robust algorithm for
+attitude-independent magnetometer-bias determination,” J. Astronaut.
+Sci., vol. 50, no. 4, pp. 433–451, Dec. 2002.
+[13] ——, “Complete linear attitude-independent magnetometer calibra-
+tion,” J. Astronaut. Sci., vol. 50, no. 4, pp. 477–490, Dec. 2002.
+[14] R. P. Menezes Filho, F. O. Silva, L. A. Vieira, V. E. Rocha, H. K. Kuga,
+and E. A. Barros, “Attitude-independent magnetometer calibration
+from distributed, non-simultaneous, and redundant vector observa-
+tions,” IEEE Trans. Aerosp. Electron. Syst., vol. 60, no. 3, pp. 3488–
+3504, Jun. 2024.
+[15] R. P. Menezes Filho, F. O. e. Silva, G. E. V. Hernandez, A. Wakode,
+I. Campos, and C. d. Souza Jr., “Two-dimensional solution for the
+analytical extended two-step magnetometer calibration,” IEEE Sens.
+J., vol. 25, no. 7, pp. 10 879–10 893, Apr. 2025.
+[16] A. Chulliat et al., “The U.S./U.K. World Magnetic Model for 2020–
+2025,” Natl. Centers Environ. Inf., NOAA, Asheville, NC, USA,
+NOAA Tech. Rep. NESDIS 150, 2020.
+[17] K.-W. Chiang, H.-W. Chang, Y.-H. Li, G.-J. Tsai, C.-L. Tseng, Y.-C.
+Tien, and P.-C. Hsu, “Assessment for INS/GNSS/odometer/barometer
+integration in loosely-coupled and tightly-coupled scheme in a GNSS-
+degraded environment,” IEEE Sens. J., vol. 20, no. 6, pp. 3057–3069,
+2020.
+[18] M. Simonetti and O. G. Crespillo, “Geodetic altitude from barometer
+and weather data for GNSS integrity monitoring in aviation,” NAVI-
+GATION, vol. 71, no. 2, pp. 637–646, 2023.
+[19] L. A. Vieira and F. O. Silva, “Vertical channel stabilization of
+barometer-aided inertial navigation systems by optimal control,” Asian
+J. Control, vol. 25, no. 5, 2023.
+[20] V. M. G. B. Cavalcanti, F. O. Silva, and D. A. de Lima, “Genetic
+Algorithm-Based Tunings for Baro-Fused Inertial Navigation Sys-
+tems,” in Proc. Int. Conf. Inf. Fusion (FUSION), 2024, pp. 1–8.
+[21] V. M. G. B. Cavalcanti, F. O. Silva, C. R. C. Dur˜ao, G. E. V.
+Hernandez, T. C. Ferrari, C. de Souza Jr., and J. A. Farrell, “On the
+Impact of Optimized Stochastic Error Modeling on the Performance
+of EKF-based Baro-aided INS,” in Proc. IEEE Conf. Decis. Control
+(CDC), Rio de Janeiro, Brazil, Dec. 2025, pp. 488–495.
+[22] F. O. Silva, G. E. H. Villalobos, and C. S. Jr., “Temperature-dependent
+baro-aided INS for GNSS-denied intelligent vehicle applications,” in
+2025 IEEE Intelligent Vehicles Symposium (IV), 2025.
+[23] J. Civera, A. J. Davison, and J. M. M. Montiel, “Inverse depth
+parametrization for monocular slam,” IEEE Trans. Robot., vol. 24,
+no. 5, pp. 932–945, 2008.
+[24] A. I. Mourikis and S. I. Roumeliotis, “A multi-state constraint Kalman
+filter for vision-aided inertial navigation,” in Proceedings 2007 IEEE
+International Conference on Robotics and Automation, 2007, pp.
+3565–3572.
+[25] C. Forster, L. Carlone, F. Dellaert, and D. Scaramuzza, “IMU
+Preintegration on Manifold for Efficient Visual-Inertial Maximum-a-
+Posteriori Estimation,” in Proc. Robotics: Science and Systems (RSS),
+Rome, Italy, Jul. 2015.
+[26] J.
+Sol`a,
+J.
+Deray,
+and
+D.
+Atchuthan,
+“A
+micro
+Lie
+theory
+for
+state
+estimation
+in
+robotics,”
+2021.
+[Online].
+Available:
+https://arxiv.org/abs/1812.01537
+[27] F. O. Silva, G. E. V. Hernandez, and C. de Souza Jr., “Airspeed-Aided
+Inertial Navigation with Pseudovanes and Non-Optical Sensors for
+GNSS- and Vision-Denied UAV Environments,” in Proc. of the ION
+GNSS+ Conference.
+Baltimore, MD, USA: Institute of Navigation
+(ION), Sep. 2025.
+[28] N. El-Sheimy, H. Hou, and X. Niu, “Analysis and Modeling of Inertial
+Sensors Using Allan Variance,” IEEE Trans. Instrum. Meas., vol. 57,
+no. 1, pp. 140–149, 2008.
+[29] J. Hidalgo-Carri´o, S. Arnold, and P. Poulakis, “On the Design of
+Attitude-Heading Reference Systems Using the Allan Variance,” IEEE
+Trans. Ultrason. Ferroelectr. Freq. Control, vol. 63, no. 4, pp. 656–
+665, 2016.
+[30] A. Zhang and M. M. Atia, “An Efficient Tuning Framework for
+Kalman Filter Parameter Optimization Using Design of Experiments
+and Genetic Algorithms,” J. Inst. Navig., vol. 67, no. 4, pp. 775–793,
+2020.
+[31] T. C. Ferrari and F. O. Silva, “Improving AHRS Performance via Ma-
+chine Learning-driven Parameters Fine-Tuning,” in Proc. IEEE/SICE
+Int. Symp. Syst. Integr. (SII), 2026, pp. 1–8.
+[32] R. Mahony, T. Hamel, and J.-M. Pflimlin, “Nonlinear Complementary
+Filters on the Special Orthogonal Group,” IEEE Trans. Autom. Control,
+vol. 53, no. 5, pp. 1203–1218, 2008.
+[33] L. Chang, F. Zha, and F. Qin, “Indirect Kalman Filtering Based
+Attitude Estimation for Low-Cost Attitude and Heading Reference
+Systems,” IEEE/ASME Trans. Mechatronics, vol. 22, no. 4, pp. 1850–
+1858, 2017.
+[34] M. M. Atia, Sensor Fusion Approaches for Positioning, Navigation
+and Mapping.
+IEEE Press, 2025.
+528
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:44 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

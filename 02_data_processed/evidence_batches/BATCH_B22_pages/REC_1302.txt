@@ -1,0 +1,1607 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1302.pdf
+sha256: 5D12CF76744152031E7ECC44D907F1B48EDB5387A176F503503C252B67087C94
+library: pymupdf (fitz) v1.28.2
+pages: 29
+=== BEGIN ===
+[p.1]
+Academic Editors: Flavio Canavero
+and Aryya Gangopadhyay
+Received: 2 April 2026
+Revised: 10 June 2026
+Accepted: 8 July 2026
+Published: 13 July 2026
+Copyright: © 2026 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license.
+Article
+Federated Energy-Aware Deep Reinforcement Learning for
+GNSS-Independent Swarm UAV Autonomy †
+Nikolaos Almalis 1,*, George Tsihrintzis 2
+, George Baris 1 and Nikolaos Armenakis 1
+1
+Hellenic Research Technological Development and Innovation Center (KETAK), 166 72 Vari, Greece;
+georgebaris5@gmail.com (G.B.); nikos.armenakis.75@gmail.com (N.A.)
+2
+Department of Informatics, University of Piraeus, 185 34 Piraeus, Greece; geoatsi@unipi.gr
+*
+Correspondence: nikosalmalis@gmail.com
+†
+This paper is an extended version of our paper published in Almalis, N.D.; Tsihrintzis, G.A.; Mitsios, M.;
+Tilemachos, T. Learning to Navigate and Track: A Decentralized Reinforcement Learning Framework for UAV
+Operations in GNSS-Denied Terrain. In International Conference on Innovative Techniques and Applications of
+Artificial Intelligence; Springer Nature: Cham, Switzerland, 2025; pp. 300–307; and Almalis, N.D.; Tsihrintzis,
+G.A.; Stergioulis, A.; Michail, M. Federated Deep Reinforcement Learning for Collaborative Autonomous
+Navigation in GPS-Denied Environments. In International Conference on Information, Intelligence, Systems &
+Applications (IISA); IEEE: New York, NY, USA, 2025; pp. 1–8.
+Abstract
+Achieving scalable swarm autonomy in Global Navigation Satellite System (GNSS)-denied
+and communication-constrained environments remains an open challenge at the intersec-
+tion of robotics, distributed optimization, and reinforcement learning. Existing unmanned
+aerial vehicle (UAV) autonomy frameworks typically decouple navigation, perception, and
+distributed learning, while assuming centralized coordination or reliable global positioning.
+This paper introduces a unified federated deep reinforcement learning architecture that
+enables GNSS-independent multi-UAV autonomy through the principled integration of
+multi-modal perception, decentralized policy optimization, energy-aware control, and
+edge-compliant inference. The proposed framework formulates joint navigation and dy-
+namic target tracking as a partially observable Markov decision process optimized via
+Proximal Policy Optimization (PPO) over structured motion primitives. A communication-
+efficient federated learning mechanism enables distributed policy convergence under
+non-independent and identically distributed (non-IID) agent experiences without sharing
+raw data, establishing a scalable alternative to centralized training. To address sim-to-real
+discrepancies, the architecture incorporates domain randomization, structured sensor noise
+modeling, and curriculum-based training to promote robust zero-shot deployment. Multi-
+agent simulation experiments evaluate the swarm-level and federated-learning behavior of
+the proposed framework, while single-UAV field deployment evidence using a DJI Matrice
+100 platform supports the feasibility of the onboard sensing, perception, and edge-inference
+pipeline under realistic outdoor conditions. The evaluation demonstrates stable decen-
+tralized convergence, improved energy efficiency relative to centralized baselines, robust
+target-tracking performance under GNSS-denied conditions, and real-time edge-compliant
+inference. The results establish that federated reinforcement learning can serve as a viable
+systems-level foundation for resilient, energy-aware, and scalable aerial swarm intelligence,
+advancing the state of the art in distributed autonomous robotics.
+Keywords: federated reinforcement learning; GNSS-Denied UAV autonomy; energy-aware
+swarm control; edge AI deployment; multi-modal perception; sim-to-real transfer
+Electronics 2026, 15, 3064
+https://doi.org/10.3390/electronics15143064
+[p.2]
+Electronics 2026, 15, 3064
+2 of 29
+1. Introduction
+1.1. Problem Context
+The increasing operational demand for autonomous unmanned aerial vehicles (UAVs)
+has made the development of advanced autonomous navigation systems independent
+of Global Navigation Satellite System (GNSS) both critical and urgent [1]. In modern op-
+erational environments, such as urban canyons with dense high-rise buildings, indoor
+infrastructures (e.g., industrial facilities, warehouses, tunnels), forested or densely vege-
+tated areas, and regions affected by GNSS jamming or spoofing, satellite-based positioning
+is often degraded, unreliable, or completely unavailable [2,3]. These constraints pose sig-
+nificant challenges for localization, navigation, obstacle avoidance, flight stability, and
+multi-agent coordination [4,5].
+At the same time, the missions assigned to UAV systems are becoming increasingly
+complex and demanding. An example could be in search-and-rescue operations, UAVs
+must autonomously navigate unknown or partially destroyed environments while de-
+tecting and tracking human targets in real time [6]. In surveillance and reconnaissance
+scenarios, maintaining stable tracking under dynamic conditions and limited visibil-
+ity is essential [7]. During disaster response missions, UAVs are required to operate in
+infrastructure-compromised environments with unstable communication links [6,8]. In
+tactical operations, resilience to hostile interference and the ability to function without
+remote control are crucial [8]. In addition to GNSS disruption, UAV systems may also be
+exposed to communication-level threats, including cyber-attacks and network intrusions.
+Recent studies have explored intrusion detection mechanisms in UAV communication
+networks using deep learning approaches, as well as system-level strategies for improving
+robustness and data reliability in autonomous UAV operations [9,10].
+These evolving operational requirements highlight the necessity for decentralized,
+intelligent, and resilient autonomy frameworks capable of ensuring reliable performance
+in environments where GNSS availability cannot be assumed [11,12].
+1.2. Core Challenges
+Autonomous UAV operation in GNSS-denied environments faces a set of fundamental
+technical challenges that greatly complicate reliable deployment. First, GNSS unavailability
+removes access to absolute positioning, forcing the system to depend solely on onboard
+sensing and relative localization techniques [3,5]. Without satellite-based corrections, nav-
+igation must be maintained through vision, inertial sensing, or learned policies, which
+increases vulnerability to drift and cumulative estimation errors [4].
+A second major challenge is partial observability. Real-world environments are dy-
+namic, cluttered, and often unpredictable. Obstacles may be occluded, lighting conditions
+may vary, and sensor measurements can be noisy or incomplete. UAV agents must there-
+fore operate under uncertainty, making sequential decisions without full knowledge of the
+global state of the environment, a condition formally modeled as a partially observable
+Markov decision process (POMDP) [13,14].
+Operational energy constraints further restrict autonomy. UAV platforms are inher-
+ently limited by battery capacity, and advanced perception and learning algorithms increase
+computational load. Balancing navigation performance, tracking accuracy, and energy effi-
+ciency becomes essential to prevent premature mission termination and ensure sustained
+operation [15,16].
+Furthermore, bandwidth limitations pose significant constraints on communication
+between UAVs or between agents and ground stations. In disaster zones or contested
+environments, connectivity is often intermittent or degraded. Because UAVs cannot reli-
+ably depend on continuous communication for centralized coordination, there is a critical
+https://doi.org/10.3390/electronics15143064
+[p.3]
+Electronics 2026, 15, 3064
+3 of 29
+need for communication-efficient learning mechanisms [8,17] and the shifting of real-time
+processing directly to edge hardware. By processing data locally, autonomous control
+decisions can be generated within the strict latency bounds required to guarantee safe
+obstacle avoidance and stable tracking. However, this shift to the edge introduces its own
+bottleneck: UAV platforms typically rely on embedded computing units with limited mem-
+ory and processing capacity, imposing strict efficiency constraints on onboard perception
+and reinforcement learning models [18].
+Finally, enabling multi-agent coordination without centralized control introduces
+additional complexity. Swarm-level autonomy requires agents to learn collaboratively
+while maintaining independent decision-making capabilities. Achieving convergence,
+stability, and robustness under decentralized learning and asynchronous communication
+remains a non-trivial challenge [19–21].
+Together, these constraints define the technical foundation upon which resilient, de-
+centralized UAV autonomy frameworks must be designed.
+1.3. Research Gap & Core Contributions
+Despite significant progress in UAV autonomy, critical limitations remain within
+the existing body of work. A substantial portion of prior research treats navigation and
+dynamic target tracking as isolated tasks rather than addressing them jointly [7,15]. More-
+over, many deep reinforcement learning (DRL) frameworks rely on centralized training
+architectures that assume stable communication and full observability [15,17]. While cen-
+tralized approaches simplify convergence, they are fundamentally ill-suited for bandwidth-
+constrained or contested environments where persistent connectivity cannot be guaranteed.
+Furthermore, existing tracking systems often implicitly assume GNSS-based stabilization,
+and while visual-inertial odometry offers an alternative, it is prone to drift and high compu-
+tational costs on embedded platforms [4,5]. Finally, a large body of work remains validated
+exclusively in simulation, lacking systematic methodologies to address the sensor noise,
+environmental variability, and hardware limitations inherent to the physical world [21].
+Existing studies typically address these components in isolation, either federated learning
+without full perception-control integration [22,23], edge inference without collaborative
+learning [18], or reinforcement learning without bandwidth-aware synchronization [15].
+To the best of our knowledge, no existing architecture fully unifies reinforcement
+learning, real-time edge deployment, and multi-modal perception into a single, GNSS-
+denied swarm autonomy framework. To bridge this critical systems-level gap, this work
+proposes a unified, scalable, and federated-decentralized DRL framework designed to
+enable robust UAV autonomy in GNSS-denied environments. Specifically, this paper makes
+the following primary contributions:
+Unified Navigation and Tracking: We introduce a single combined control system
+that jointly optimizes obstacle-aware navigation and dynamic human target tracking,
+eliminating reliance on centralized coordination.
+GNSS-Independent Multi-Modal Perception: The framework ensures robust envi-
+ronmental awareness by fusing RGB, depth, and inertial (IMU) measurements, allowing
+UAVs to operate reliably in environments affected by signal obstruction, jamming, or
+spoofing [3,5].
+Communication-Aware Federated Optimization: To support scalable multi-agent
+learning without transmitting heavy raw data, we implement a federated reinforce-
+ment learning mechanism inspired by communication-efficient decentralized learning
+paradigms [24]. Agents collaboratively improve a shared Proximal Policy Optimiza-
+tion (PPO)-based policy [25] over discrete motion primitives by exchanging compressed
+model updates.
+https://doi.org/10.3390/electronics15143064
+[p.4]
+Electronics 2026, 15, 3064
+4 of 29
+Edge-Compliant Real-Time Deployment: Unlike prior decentralized UAV DRL ap-
+proaches that focus primarily on energy optimization [15], this system is explicitly engi-
+neered for embedded hardware (e.g., NVIDIA Jetson NX-class devices), ensuring inference
+within strict latency constraints [18].
+Structured Sim-to-Real Transfer Pipeline: We bridge the simulation-to-reality gap
+by integrating domain randomization and curriculum learning to promote robust zero-
+shot generalization.
+Multi-Agent Simulation Validation with Field Deployment Support: The framework
+is evaluated through multi-agent simulation experiments for swarm-level coordination,
+federated optimization, and GNSS-dropout robustness. These experiments are comple-
+mented by single-UAV DJI Matrice 100 field deployment evidence, which supports the
+feasibility of the onboard sensing, perception, and edge-inference pipeline under realistic
+outdoor conditions.
+Together, these contributions establish a cohesive framework for decentralized, col-
+laborative, and energy-aware UAV autonomy system capable of operating reliably in
+communication-constrained environments.
+2. Materials and Methods
+2.1. Related Work
+2.1.1. Deep Reinforcement Learning (DRL) for UAV Navigation
+DRL has emerged as a dominant paradigm for autonomous UAV navigation in com-
+plex and partially observable environments. Policy-gradient methods, particularly Proximal
+Policy Optimization (PPO), have gained widespread adoption due to their training sta-
+bility and robustness under stochastic dynamics [25]. PPO-based navigation frameworks
+have demonstrated effective obstacle avoidance and goal-directed control in indoor and
+cluttered environments [15]. In this context, ongoing research efforts within our group
+have also investigated learning-based navigation strategies and perception-driven control
+mechanisms for UAV autonomy, contributing incremental advances in mission efficiency
+and environmental adaptability [26,27].
+Recent advancements incorporate attention mechanisms and transformer-based archi-
+tectures to enhance long-range spatial reasoning and temporal consistency in sequential
+decision-making [28]. Additionally, multi-sensor fusion strategies combining vision and
+depth or LiDAR inputs have been shown to improve environmental awareness and naviga-
+tion robustness [4].
+Despite these developments, most DRL-based UAV navigation systems rely on central-
+ized training pipelines and, to do so, assume stable communication infrastructures [15,29].
+Furthermore, many frameworks evaluate performance using static goal-reaching tasks
+rather than dynamic target tracking scenarios, limiting applicability in real-world missions
+requiring joint navigation and pursuit under uncertainty.
+2.1.2. Vision-Based UAV Tracking
+Vision-based tracking is fundamental for surveillance, search-and-rescue, and disaster
+response operations [6]. Modern approaches integrate object detection with online tracking
+algorithms such as DeepSort [30] or CenterTrack [31], enabling frame-to-frame identity
+association and trajectory estimation.
+Thermal-enhanced tracking has demonstrated improved robustness in low-visibility
+or forested environments [32,33], while occlusion-aware re-identification techniques aim
+to mitigate identity switching in cluttered scenes. Multi-modal fusion approaches further
+improve detection reliability under illumination variability and partial occlusions.
+https://doi.org/10.3390/electronics15143064
+[p.5]
+Electronics 2026, 15, 3064
+5 of 29
+2.1.3. GNSS-Free Localization
+GNSS-independent localization has been extensively addressed through SLAM and
+Visual-Inertial Odometry (VIO) systems [4,5]. Vision-based navigation using deep semantic
+cues has also been explored for real-time autonomous UAV inspection tasks, demonstrating
+the relevance of perception-driven navigation in structured operational environments [34].
+These techniques estimate UAV pose through continuous integration of visual and inertial
+measurements, enabling operation in indoor and urban canyon environments [3].
+While accurate in short-term estimation, SLAM and VIO methods remain susceptible
+to drift accumulation, particularly in large-scale or feature-deprived environments. Loop
+closure techniques alleviate this issue but increase algorithmic and computational complex-
+ity. Moreover, deploying full SLAM pipelines on edge hardware introduces latency and
+memory constraints that may conflict with real-time control requirements [18].
+Consequently, purely geometric localization approaches may be insufficient for scal-
+able swarm autonomy, motivating the integration of learning-based decision policies
+capable of compensating for localization uncertainty.
+2.1.4. Federated & Decentralized Learning in UAV Swarms
+Scalable swarm autonomy requires distributed intelligence mechanisms capable of
+operating under bandwidth constraints and intermittent connectivity [8]. Federated learn-
+ing has emerged as a communication-efficient paradigm for collaborative model training
+without centralized data aggregation [17]. Extensions to federated meta-learning enable
+adaptation across heterogeneous agents [11].
+In the context of UAV systems, decentralized reinforcement learning and energy-aware
+DRL formulations have been proposed to balance mission performance and battery con-
+straints [13]. Consensus-based coordination strategies further support distributed control
+under limited communication [19,35].
+Nevertheless, existing studies often remain confined to simulation environments and
+do not fully integrate federated reinforcement learning with perception-driven control
+pipelines deployed on edge hardware. Real-world validation of federated DRL for GNSS-
+denied UAV navigation and tracking remains limited, particularly in scenarios combining
+multi-modal perception, decentralized optimization, and sim-to-real transfer.
+2.1.5. Research Positioning Table
+To systematically assess the current state of the art, Table 1 provides a structured com-
+parison of representative works in UAV navigation, tracking, localization, and distributed
+learning. The analysis focuses on five critical dimensions for scalable swarm autonomy:
+GNSS-free operation, person tracking capability, federated reinforcement learning, edge-
+compliant deployment, and real-world validation. As demonstrated in Table 1, prior
+approaches generally optimize individual components, resulting in fragmented solutions,
+rather than delivering an integrated, end-to-end architecture. The proposed framework
+provides a unified approach to jointly addressing these five dimensions. For completeness,
+our prior works [26,27] are also included in the comparison. These studies address specific
+components of the problem but do not provide a fully integrated architecture.
+2.2. System Architecture
+2.2.1. Overall Framework Overview
+The proposed system architecture is designed as a unified, modular, and resource-
+aware framework that integrates multi-modal perception, tracking, localization, reinforce-
+ment learning-based control, federated model optimization, and edge-compliant deploy-
+https://doi.org/10.3390/electronics15143064
+[p.6]
+Electronics 2026, 15, 3064
+6 of 29
+ment within a cohesive end-to-end pipeline. The design explicitly targets scalability,
+robustness, and real-time operation in GNSS-denied environments.
+Table 1. Comparative Analysis of Existing Approaches. ✓indicates that the corresponding feature is
+supported or explicitly addressed by the referenced work; ✗indicates that the feature is not supported,
+not addressed, or not reported. “Limited,” “Partial,” “Rare,” and “Mostly Simulation” indicate partial
+or constrained support as described in the corresponding study.
+Work
+GNSS-Free
+Person
+Tracking
+Federated
+RL
+Edge
+Deployment
+Real-World
+Validation
+SLAM Survey [4]
+✓
+✗
+✗
+✗
+✓
+VINS-Mono [5]
+✓
+✗
+✗
+Limited
+✓
+Thermal UAV Tracking [7]
+✗
+✓
+✗
+Limited
+✓
+Decentralized DRL [15]
+✗
+✗
+Partial
+✗
+Simulation
+Federated Meta-Learning [11]
+✗
+✗
+✓
+✗
+Simulation
+Federated Learning [17]
+✗
+✗
+✓
+✗
+Theoretical/Cross-
+domain
+Decentralized DRL Navigation [26]
+✓
+✓
+✗
+✗
+Simulation
+Federated DRL Navigation [27]
+✗
+✗
+✓
+✗
+Simulation
+Typical PPO-based UAV Navigation
+Partial
+✗
+✗
+Rare
+Mostly Simulation
+Proposed Framework
+✓
+✓
+✓
+✓
+✓
+At the front-end, a multi-modal perception module processes raw sensory inputs from
+RGB, thermal, depth, and inertial sensors. This module extracts semantic and geometric rep-
+resentations of the environment, including human target detections and obstacle structures.
+The resulting features are forwarded to a tracking and localization unit, which estimates
+the relative target position and constructs a structured representation of environmental
+constraints suitable for decision-making under partial observability.
+The processed state representation is subsequently provided to the reinforcement learn-
+ing (RL) control module, which generates motion commands through a policy optimized
+using Proximal Policy Optimization (PPO). The policy outputs discrete flight primitives
+that govern low-level control, enabling obstacle-aware navigation and dynamic human
+target tracking within GNSS-denied environments.
+To support collaborative learning across multiple UAV agents, a federated update
+layer aggregates locally trained policy parameters using a communication-efficient strategy.
+Model aggregation follows a federated averaging (FedAvg) scheme [17], allowing decen-
+tralized policy synchronization without sharing raw sensory data. Instead of transmitting
+local experience buffers, agents exchange compressed model parameters, preserving band-
+width efficiency and enabling scalable adaptation under intermittent connectivity and
+heterogeneous data distributions.
+Finally, the entire pipeline is deployed on embedded edge hardware platforms to
+ensure real-time inference and control within strict latency constraints. This tight inte-
+gration of perception, distributed optimization, and edge deployment enables scalable
+swarm autonomy while maintaining GNSS independence, communication efficiency, and
+operational robustness.
+Each UAV agent is modeled as a tuple
+Ai = (Pi, Φi, πθi, F)
+where
+https://doi.org/10.3390/electronics15143064
+[p.7]
+Electronics 2026, 15, 3064
+7 of 29
+•
+Pi denotes the perception module;
+•
+Φi the structured state encoder;
+•
+πθi the PPO-based policy parameterized;
+•
+F the federated aggregation operator.
+The architecture follows a layered information flow
+xt
+P→zt
+Φ→st
+πθ
+→at
+where xt represents raw multi-modal sensory inputs, zt intermediate semantic-geometric
+representations, st the structured state vector, at and the discrete control action.
+2.2.2. Multi-Modal Perception Module
+At the front-end, the perception module processes synchronized RGB, thermal, depth,
+and inertial measurements to generate robust environmental representations. Human target
+detection is performed using a YOLOv8-based architecture [36], optionally employing a
+lightweight YOLOv8-nano backbone for embedded deployment [37]. The model achieves
+real-time inference while maintaining detection robustness under partial occlusion.
+Scene-level semantic understanding is provided by a DeepLabv3+ segmentation net-
+work [38], extracting structural information including walkable regions and static obstacles.
+The segmentation output is transformed into an occupancy-aware spatial representation
+suitable for downstream control [39].
+To enhance robustness, RGB and thermal detections are fused through confidence-
+weighted integration. In scenarios of visual degradation, thermal-driven localization
+operates as a fallback mechanism, mitigating detection dropout.
+Detected targets are projected into a relative coordinate frame using geometric trans-
+formations and depth estimation. A Kalman filter smooths these relative position estimates
+and mitigates sensor noise. During temporary occlusions, triggered when detection confi-
+dence drops below a predefined threshold, the filter seamlessly transitions the system into
+a prediction-based tracking mode, preserving trajectory continuity.
+2.2.3. Structured State Representation
+The reinforcement learning controller operates on a structured state vector constructed
+from the outputs of the perception and tracking modules such as
+st = Φ(zt, ht−1)
+where ht−1 denotes historical information retained through temporal aggregation.
+The state vector encodes:
+•
+Relative target position (range and bearing);
+•
+Obstacle proximity map derived from segmentation and depth;
+•
+Compact depth summary statistics;
+•
+Thermal gradient confidence indicators;
+•
+UAV orientation from IMU;
+•
+Linear velocity estimates.
+To mitigate partial observability and temporal noise, the architecture incorporates a
+temporal aggregation mechanism via a Long Short-Term Memory (LSTM) module [40] or a
+fixed-length history buffer. This allows the policy to exploit sequential correlations and
+maintain stability under intermittent perception updates. Frame continuity handling, and
+tracking, further ensures robustness against temporary occlusions or sensor degradation.
+Ultimately, this structured encoding reduces raw sensory dimensionality while preserving
+https://doi.org/10.3390/electronics15143064
+[p.8]
+Electronics 2026, 15, 3064
+8 of 29
+task-relevant information. By promoting stable and sample-efficient reinforcement learning,
+this approach enables deployment on edge devices.
+2.2.4. Federated Policy Optimization Layer
+To enable scalable multi-agent learning, local policy updates are aggregated via a
+communication-efficient federated averaging scheme [17]
+θ(t+1) =
+N
+∑
+i=1
+ni
+n θ(t)
+i
+where ni denotes the local sample size and N the number of agents.
+Instead of sharing raw trajectories, agents transmit compressed model parameters
+(~350 KB per round), preserving bandwidth efficiency and privacy. The aggregation op-
+erator mitigates representation drift across agents operating under heterogeneous visual
+domains and non-IID environmental exposure.
+Asynchronous synchronization is supported to accommodate intermittent connectivity,
+ensuring robustness in communication-constrained scenarios. Communication complexity
+scales approximately O(N) with swarm size under periodic synchronization intervals.
+2.2.5. Edge Deployment and Scalability Considerations
+The complete perception-control-federation pipeline is deployed on embedded
+edge hardware (Jetson-class devices), eliminating reliance on cloud-based computation.
+Resource-aware design choices include:
+•
+Lightweight detection backbone (YOLOv8-nano option);
+•
+Discrete action space to reduce policy complexity;
+•
+Bounded model size for memory compliance;
+•
+Periodic federated synchronization to limit communication overhead.
+This tight integration of perception, distributed optimization, and edge inference
+establishes a scalable foundation for GNSS-independent swarm autonomy.
+2.3. Reinforcement Learning & Energy-Aware Formulation
+2.3.1. Reinforcement Learning
+Markov Decision Process (MDP) Definition
+The autonomous navigation problem is formulated as a Markov Decision Process
+(MDP), defined as
+M = (S, A, T, R, γ)
+where S denotes the state space, A the action space, T the transition dynamics, R the reward
+function, and g ϵ (0, 1) the discount factor [14].
+State Space S
+The state vector st ϵ S encodes multi-modal and temporally smoothed information
+derived from the perception and tracking modules. Specifically, the state representa-
+tion includes:
+•
+Relative target position (xtrel, ytrel);
+•
+Obstacle proximity map;
+•
+Depth summary features;
+•
+Thermal gradient confidence;
+•
+IMU-based orientation;
+•
+Linear and angular velocity estimates.
+https://doi.org/10.3390/electronics15143064
+[p.9]
+Electronics 2026, 15, 3064
+9 of 29
+Given the presence of partial observability due to occlusions and sensor noise, the prob-
+lem can be interpreted as a partially observable MDP (POMDP) [13]. Temporal smoothing
+via LSTM [40] or history buffers approximates belief-state estimation.
+Action Space A
+The action space at ϵ A defines the set of all possible maneuvers the reinforcement
+learning agent can select at each time step. To ensure system stability and practical deploy-
+ment, the action space is structured as a discrete set of motion primitives:
+A = {a1, a2, . . . , aK}
+By utilizing discrete primitives rather than continuous high-dimensional control, the
+model reduces policy instability and improves training convergence [41]. Each primitive
+corresponds to a predefined low-level flight command, such as forward motion, yaw
+adjustments, or altitude changes.
+Transition Function
+The transition function
+T(st+1|st, at)
+captures UAV dynamics, environmental interactions, obstacle constraints, and target mo-
+tion. The dynamics are stochastic due to sensor noise, wind disturbances, and perception
+uncertainty. During simulation, domain randomization is applied to approximate real-
+world variability.
+Reward Function R
+The reward function is defined as a composite objective balancing tracking perfor-
+mance, navigation accuracy, energy efficiency, and safety
+Rt = a ∗TrackingAccuracyt −β ∗NavigationDeviationt −γ ∗Energyt −δ ∗CollisionPenaltyt
+where α, β, γ, δ are positive weighting coefficients.
+The reward design follows a multi-objective shaping strategy that balances mission-
+level objectives and safety constraints. Tracking accuracy is computed using bounding box
+overlap or relative distance consistency, while deviation penalizes lateral displacement
+from the desired pursuit trajectory. Energy consumption is approximated through velocity
+magnitude and control effort, and collision penalties impose large negative rewards to
+enforce safety.
+Reward shaping is carefully tuned to avoid dominance of any single objective, which
+could lead to suboptimal policy convergence. Excessive emphasis on tracking may induce
+aggressive maneuvers, whereas over-penalization of energy consumption may result in
+passive hovering behavior. Empirically, stable training behavior was observed when reward
+components were normalized within comparable ranges.
+The discounted return is defined as
+J(π) =
+"
+T
+∑
+t=0
+γt Rt
+#
+and the objective is to optimize policy parameters θ to maximize expected cumulative
+reward [14].
+https://doi.org/10.3390/electronics15143064
+[p.10]
+Electronics 2026, 15, 3064
+10 of 29
+PPO
+Policy optimization is performed using Proximal Policy Optimization (PPO), a clipped
+surrogate objective method designed to ensure stable and monotonic policy updates [25,42].
+The PPO objective is defined as
+LCLIP(θ) = Et
+
+min
+ rt(θ) ˆAt, clip(rt(θ), 1 −ϵ, 1 + ϵ)
+ ˆAt
+
+where
+rt(θ) =
+πθ(at|st)
+πθold(at|st)
+and ˆAt denotes the generalized advantage estimate.
+Generalized Advantage Estimation (GAE) is used to reduce variance
+ˆAGAE(λ)
+t
+with discount γ and smoothing parameter λ.
+Training Hyperparameters
+The training configuration includes:
+•
+Learning rate: 3 × 10−4;
+•
+Batch size: 1024;
+•
+Discount factor γ = 0.99;
+•
+GAE parameter λ = 0.95;
+•
+Entropy coefficient: 0.01;
+•
+Clip range ϵ = 0.2;
+•
+Policy update interval: every 2048 environment steps.
+Convergence Behavior
+Policy convergence was achieved after approximately 3 million simulation steps under
+domain-randomized training conditions. Real-world stabilization required fewer than
+50 on-field episodes due to pre-trained initialization and sim-to-real transfer mechanisms.
+The clipped surrogate objective and entropy regularization contributed to stable policy
+improvement while preventing catastrophic updates, particularly under stochastic GNSS-
+denied dynamics [25,42].
+2.3.2. Energy-Aware Route Optimization
+Autonomous UAV navigation in GNSS-denied environments requires not only accu-
+rate tracking and obstacle avoidance but also energy-efficient trajectory planning. Given the
+inherent battery limitations of aerial platforms, route optimization must balance mission
+objectives with resource constraints. To address this, we define a composite cost function
+that captures path deviation, energy expenditure, and obstacle-related risk. The total route
+cost is formulated as
+C = wd ∗D + we ∗E + wo ∗O
+where the weighting coefficients wd, we, wo are positive scalars that regulate the trade-off
+among navigation accuracy, energy efficiency, and safety.
+To ensure stable tracking performance, the path deviation metric D measures the
+geometric divergence between the executed UAV trajectory and the desired pursuit path
+relative to the tracked target, often represented as the shortest path. This term is critical for
+maintaining trajectory smoothness and preventing excessive lateral oscillations. Addition-
+ally, the estimated energy consumption E is modeled as a function of velocity magnitude,
+acceleration effort, and control actuation frequency. Since propulsion energy dominates
+https://doi.org/10.3390/electronics15143064
+[p.11]
+Electronics 2026, 15, 3064
+11 of 29
+UAV power usage, this specific cost term penalizes aggressive maneuvers and prolonged
+high-speed flight. Similar energy-aware deep reinforcement learning formulations have
+been explored in decentralized UAV control contexts [12], highlighting the importance
+of incorporating battery constraints directly into the optimization objective. Finally, to
+enforce safety, the obstacle risk metric O encodes proximity-based penalties derived from
+depth sensing. Higher costs are dynamically assigned to trajectories approaching static or
+dynamic obstacles, effectively shaping much safer navigation policies.
+Integration with PPO-Based Reinforcement Learning
+The cost formulation is integrated into the reinforcement learning objective through
+reward shaping. Specifically, the composite cost C is transformed into a penalization
+component within the reward function:
+Rt = Rt, tracking −Ct
+This approach preserves the standard MDP objective of maximizing discounted
+return [14] while embedding energy-aware and safety-aware constraints within policy
+optimization.
+Hybrid Planning in Structured Terrains
+In semi-structured or partially known environments, the cost-based formulation can
+be combined with classical graph-based planning methods such as A* [43] or D* Lite [44].
+In such hybrid configurations, A* or D* Lite computes a global reference path over a
+discretized occupancy map, minimizing a heuristic cost-to-go estimate. The RL controller
+then operates as a local reactive planner, refining actions based on real-time perception and
+dynamic target motion.
+This hybrid strategy combines the global optimality properties of graph-search plan-
+ners with the adaptability of learning-based policies. In GNSS-denied scenarios where
+global maps may be partially available, D* Lite provides incremental replanning capabilities
+under environmental changes [44].
+Energy-Performance Trade-Off Analysis
+Balancing energy consumption and mission performance introduces an inherent trade-
+off. Excessive penalization of energy leads to conservative behavior, delayed target pursuit,
+or increased tracking loss. Conversely, minimizing deviation without energy constraints
+results in aggressive maneuvers and reduced mission endurance.
+The weighting parameters wd, we, wo therefore define a Pareto frontier between track-
+ing accuracy and operational longevity. In practice, these coefficients are tuned to ensure
+that the marginal gain in tracking precision does not outweigh the marginal cost in energy
+expenditure. Such multi-objective optimization within reinforcement learning aligns with
+established policy optimization frameworks [14], while maintaining practical feasibility for
+embedded UAV deployment.
+2.4. Distributed Learning & Sim-to-Real Strategy
+2.4.1. Federated & Decentralized Reinforcement Learning
+To enable scalable swarm autonomy under communication and resource constraints,
+we extend the reinforcement learning framework to a federated and decentralized setting.
+The objective is to allow multiple UAV agents to collaboratively improve a shared policy
+while preserving local autonomy and minimizing communication overhead.
+https://doi.org/10.3390/electronics15143064
+[p.12]
+Electronics 2026, 15, 3064
+12 of 29
+Local On-Device Learning Under Edge Constraints
+Each UAV agent maintains a local copy of the policy network parameterized by θi.
+Policy optimization is performed onboard using Proximal Policy Optimization (PPO) [25],
+based solely on locally collected trajectories.
+Agents perform on-device policy updates by collecting experience tuples (st, at, rt,
+st+1), representing the current state, action taken, reward achieved and next state accord-
+ingly, which are stored in a bounded experience buffer. After accumulating a predefined
+number of transitions, local PPO updates are executed using mini-batch stochastic gradient
+descent. This on-device training paradigm eliminates the need for centralized experience
+aggregation and preserves data locality.
+To accommodate memory limitations on embedded edge hardware, the experience
+replay buffer is implemented as a sliding window with fixed capacity. Older trajectories
+are discarded to maintain bounded storage requirements and prevent stale gradient contri-
+butions. Trajectory normalization and advantage estimation are performed locally prior
+to aggregation.
+Given the computational limitations of Jetson-class devices, model architectures are
+optimized for parameter efficiency and inference latency. Local training frequency is
+regulated to avoid interference with real-time control loops, ensuring that policy updates
+do not compromise flight stability.
+Federated Aggregation and Communication Framework
+After a predefined number of local updates, agents participate in a federated aggrega-
+tion round. Let θ(k)
+i
+denote the local parameters of agenti i at round k. Global aggregation
+follows a federated averaging (FedAvg) scheme [17]
+θ(κ+1) =
+N
+∑
+i=1
+ni
+∑j nj
+θ(k)
+i
+where ni represents the number of local samples used by agent i.
+Instead of transmitting full experience datasets, each agent exchanges compressed
+model parameters. The communication payload is approximately 350 KB per round,
+enabling bandwidth-efficient synchronization even under constrained links. Parameter
+quantization and sparsification are optionally applied to further reduce overhead.
+To accommodate intermittent connectivity, aggregation is performed asynchronously.
+Agents that fail to participate in a given round continue local updates and rejoin in sub-
+sequent synchronization cycles. This design avoids global training stalls and improves
+resilience under unreliable communication.
+The communication layer assumes intermittent connectivity and heterogeneous band-
+width availability across agents [8]. Bandwidth-aware scheduling is implemented to priori-
+tize synchronization when network conditions are favorable.
+Latency resilience is achieved by decoupling policy inference from aggregation. Real-
+time control relies exclusively on locally available parameters, while federated updates
+operate in the background. Consequently, temporary communication outages do not affect
+flight stability or tracking performance.
+Theoretical Stability Discussion
+The federated reinforcement learning process can be interpreted as decentralized
+stochastic optimization under non-IID data distributions. Each UAV observes environment-
+specific trajectories, leading to heterogeneous gradient updates across agents. Such non-IID
+effects may induce policy divergence if aggregation intervals are excessively long [45].
+https://doi.org/10.3390/electronics15143064
+[p.13]
+Electronics 2026, 15, 3064
+13 of 29
+From a distributed systems perspective, convergence depends on bounded gradient
+variance and sufficiently frequent synchronization. Under mild assumptions of smooth
+policy objectives and limited parameter drift, federated averaging approximates centralized
+optimization [17].
+Furthermore, consensus-based stability principles [46,47] suggest that bounded com-
+munication delays and periodic synchronization are sufficient to maintain collective policy
+coherence across agents. Empirically, limiting local update steps between aggregation
+rounds mitigates divergence and stabilizes training.
+The overall optimization objective remains the maximization of expected cumulative
+reward [14]:
+max
+θ Eπθ
+"
+T
+∑
+t=0
+γtRt
+#
+with PPO providing stable gradient-based updates at the local level [25]. The federated
+layer acts as a communication-efficient distributed optimizer built on top of standard policy
+gradient learning.
+2.4.2. Sim-to-Real Transfer Strategy
+Bridging the gap between simulation and real-world deployment remains a central
+challenge in learning-based robotics systems. Policies trained exclusively in simulation
+often suffer performance degradation when exposed to sensor noise, environmental vari-
+ability, and unmodeled dynamics [48]. To mitigate this sim-to-real discrepancy, we employ
+a structured transfer strategy combining domain randomization, noise injection, curriculum
+learning, and systematic transfer evaluation.
+Robustness-Oriented Training Strategies
+Domain randomization is applied during simulation training to expose the reinforce-
+ment learning policy to a wide distribution of environmental variations. By intentionally
+perturbing visual, physical, and sensor parameters, the learned policy becomes robust to
+real-world uncertainty [49,50]. The following factors are randomized during training:
+•
+Lighting conditions: variation in intensity, direction, and color temperature.
+•
+Textures: randomized ground patterns, building facades, and obstacle surfaces.
+•
+Occlusions: partial visibility of the target and intermittent obstruction events.
+•
+Wind simulation: stochastic lateral and vertical disturbances affecting UAV dynamics.
+•
+Sensor perturbations: camera blur, exposure shifts, and depth sensor noise.
+This stochastic training environment forces the policy to rely on invariant features
+rather than simulation-specific artifacts, improving generalization during deployment.
+Beyond environmental randomization, explicit sensor-level noise modeling is incorporated
+to better approximate real hardware behavior.
+•
+RGB corruption: Gaussian noise, motion blur, and brightness jitter are injected into
+camera streams.
+•
+Thermal noise: additive noise and contrast variability simulate real thermal sensor
+behavior under changing ambient conditions.
+•
+IMU drift modeling: bias drift and stochastic noise are applied to inertial measure-
+ments to emulate cumulative orientation errors.
+•
+Depth dropout simulation: random pixel dropout and range truncation simulate
+structured-light and stereo sensor imperfections.
+These perturbations prevent overfitting to idealized sensor outputs and promote
+robustness against real-world measurement uncertainty.
+https://doi.org/10.3390/electronics15143064
+[p.14]
+Electronics 2026, 15, 3064
+14 of 29
+To stabilize training under high environmental variability, a curriculum learning strat-
+egy is adopted. Rather than exposing the policy to maximum difficulty from the outset,
+environmental complexity increases progressively. Training begins in simplified environ-
+ments with static obstacles and predictable target motion. Subsequently, the difficulty is
+increased by introducing dynamic obstacles, stronger wind disturbances, partial occlu-
+sions, and reduced sensor reliability. This staged progression improves policy convergence
+stability and mitigates catastrophic learning failures. From an optimization perspective,
+curriculum learning reduces gradient variance during early PPO updates [25], enabling
+smoother policy improvement before confronting high-complexity scenarios.
+Transfer Evaluation
+To assess sim-to-real robustness, we conduct structured transfer evaluation across
+multiple real-world scenarios. Two primary metrics are analyzed:
+Performance Degradation Analysis: The relative drop in tracking accuracy, naviga-
+tion deviation, and energy efficiency between simulation and real-world deployment is
+quantified. This provides a direct measure of sim-to-real generalization capacity [51].
+Zero-Shot Deployment Results: The trained policy is deployed in real-world environ-
+ments without additional fine-tuning to evaluate zero-shot performance. Stability, tracking
+continuity, and collision avoidance are measured over multiple flight trials. Empirically,
+policies trained under domain randomization exhibit significantly reduced performance
+degradation compared to baseline simulation-trained models [52].
+2.5. Experimental Setup
+To validate the proposed federated reinforcement learning framework, the evaluation
+was organized into two complementary levels. Multi-UAV simulation experiments were
+used to assess swarm-level coordination, federated aggregation, communication efficiency,
+and scalability under GNSS-denied conditions. Single-UAV field deployment trials were
+used to support the feasibility of the physical sensing, perception, and edge-computing
+pipeline in a real outdoor environment.
+2.5.1. Hardware Platform
+Single-UAV field deployment trials were conducted using a DJI Matrice 100 quadro-
+tor platform (DJI, Shenzhen, China), selected for its modularity, payload flexibility, and
+suitability for research-level autonomous UAV experiments. The UAV was deployed in
+the outdoor field-test environment, illustrating both the physical platform and the semi-
+structured terrain conditions under which the system was evaluated (Figure 1). The UAV
+was equipped with a multi-modal sensing suite to support perception, target tracking, local-
+ization, and obstacle awareness during GNSS-denied operation. The sensing configuration
+included a 1080p RGB camera for real-time visual detection, a forward-looking infrared
+(FLIR) thermal camera (Teledyne FLIR, Wilsonville, OR, USA) to improve target-detection
+robustness under low-light or partially occluded conditions, an Intel RealSense D435 depth
+sensor (Intel Corporation, Santa Clara, CA, USA) for obstacle proximity estimation and
+depth-aware navigation, and a 9-DOF IMU for orientation, angular velocity, and acceler-
+ation measurements. All onboard computation was performed using an NVIDIA Jetson
+Xavier NX module (NVIDIA Corporation, Santa Clara, CA, USA), enabling edge-compliant
+perception processing, reinforcement-learning inference, and local policy updates while
+maintaining real-time flight-control capability.
+https://doi.org/10.3390/electronics15143064
+[p.15]
+Electronics 2026, 15, 3064
+15 of 29
+ 
+Figure 1. DJI Matrice 100 on the ground in the field environment.
+2.5.2. Software Stack
+The system was implemented using a modular robotics software stack built on Robot
+Operating System (ROS) Noetic (Open Robotics, Mountain View, CA, USA), ensuring
+distributed node communication and real-time sensor integration.
+Deep learning models were implemented using PyTorch (PyTorch Foundation, San
+Francisco, CA, USA) (for PPO and perception networks), with optional TensorFlow 2.x
+(Google LLC, Mountain View, CA, USA) compatibility for segmentation components.
+Image processing and sensor pre-processing pipelines were handled through OpenCV.
+Simulation-based training and evaluation were conducted using Microsoft AirSim (Mi-
+crosoft Corporation, Redmond, WA, USA) and Gazebo (Open Source Robotics Foundation,
+Mountain View, CA, USA), both widely adapted for robotics simulation and reinforcement
+learning validation. AirSim provides photorealistic rendering and physics-based UAV
+modeling, facilitating sim-to-real experimentation under domain randomization conditions.
+To ensure deployment consistency and reproducibility, all components were containerized
+using Docker (Docker Inc., Palo Alto, CA, USA), allowing identical runtime environments
+across simulation and onboard edge devices.
+2.5.3. Test Environments
+The proposed framework was evaluated across diverse operational scenarios designed
+to assess robustness under GNSS-denied and communication-constrained conditions. To
+test the system’s spatial awareness, evaluations were conducted in two complementary
+settings. First, a high-density urban simulation was constructed, featuring narrow corridors,
+high-rise structures, and dynamic objects to stress obstacle avoidance and perception under
+complex geometric constraints. Second, single-UAV agricultural field deployment trials
+were conducted in semi-structured outdoor terrain (Figure 2). The depicted environment
+includes irregular ground surface, sparse vegetation, natural obstacles, uneven illumina-
+tion, and open-field conditions representative of practical UAV operation. This physical
+deployment setting was used to evaluate the feasibility of onboard sensing, perception,
+and edge inference under natural environmental variability.
+Across the simulation environment and the field deployment setting, GNSS-denied
+operation was assessed by disabling satellite-based positioning inputs during the relevant
+trials or scenarios. Under this constraint, the UAV relied on onboard sensing and learned
+reinforcement learning policies rather than GNSS-based position feedback. This setup was
+used to assess GNSS-independent perception-driven operation.
+Finally, the core tracking capabilities were assessed through two distinct mission
+profiles. Initial baseline tests involved Static Target Tracking in controlled experiments,
+where the UAV tracked stationary human subjects to evaluate localization stability without
+https://doi.org/10.3390/electronics15143064
+[p.16]
+Electronics 2026, 15, 3064
+16 of 29
+the added complexity of target-induced motion uncertainty. Following this, the system was
+subjected to Dynamic Target Tracking, a significantly more challenging scenario involving
+moving human targets exhibiting unpredictable, non-linear trajectories. These dynamic
+tests thoroughly evaluated the UAV’s pursuit stability, trajectory smoothness, and real-time
+collision avoidance capabilities.
+ 
+Figure 2. DJI Matrice 100 during outdoor field operation.
+2.5.4. Evaluation Metrics
+To comprehensively assess the performance of the proposed federated reinforcement
+learning framework, we evaluate navigation, perception, efficiency, robustness, commu-
+nication cost, and training behavior using a multi-dimensional metric suite. The selected
+metrics reflect both mission-level effectiveness and system-level constraints relevant to
+GNSS-denied UAV autonomy.
+Specifically, navigation performance is measured using tracking accuracy and naviga-
+tion deviation, perception capability is quantified via detection accuracy, and efficiency is
+assessed through energy consumption, time to completion, and inference latency. Robust-
+ness is evaluated using a composite robustness score under perturbations, communication
+cost is measured by average communication overhead per training round, and training
+dynamics are analyzed through convergence speed.
+Tracking Accuracy
+Tracking performance is quantified using the Intersection-over-Union (IoU) [53] be-
+tween predicted and ground-truth bounding boxes
+IoU =
+Bpred ∩Bgt
+Bpred ∪Bgt
+where Bpred and Bgt denote predicted and ground-truth bounding regions, respectively.
+Average IoU over all frames is reported to evaluate tracking stability and spatial precision.
+Detection Accuracy
+Detection performance is evaluated using standard object detection metrics, including:
+•
+Precision;
+•
+Recall;
+•
+Mean Average Precision (mAP).
+Precision (P) is defined as the fraction of detected objects that are correctly identified,
+while recall (R) is the fraction of relevant objects that are successfully detected. Mean
+Average Precision (mAP) provides a single-figure measure of detection quality across recall
+levels [54]. These metrics collectively quantify the performance of the perception module
+under varying lighting, occlusion, and environmental conditions.
+https://doi.org/10.3390/electronics15143064
+[p.17]
+Electronics 2026, 15, 3064
+17 of 29
+Navigation Deviation
+Navigation accuracy is quantified as the mean Euclidean deviation (in meters) between
+the UAV’s executed trajectory and the desired target-relative path:
+Dnav = 1
+T
+T
+∑
+t=1
+∥pt, actual −pt, desired∥
+This metric captures path smoothness and tracking alignment performance.
+Energy Consumption
+Energy efficiency is measured in watt-hours (Wh) based on onboard battery telemetry
+and estimated propulsion power usage. The cumulative energy expenditure per mission is
+reported, along with energy normalized by mission duration.
+Time to completion
+Mission efficiency is evaluated using total time required to complete a tracking or
+navigation task. Shorter completion times indicate more efficient pursuit and decision-
+making under equivalent environmental constraints.
+Inference Latency
+Real-time capability is assessed through average inference latency (in milliseconds)
+per control cycle. This includes perception processing and policy forward-pass time on the
+embedded edge device. Maintaining low latency is critical for stable obstacle avoidance
+and high-speed maneuvering.
+Robustness Score
+To quantify resilience under GNSS denial and environmental perturbations, a compos-
+ite robustness score is defined. The score aggregates:
+•
+Collision-free operation rate;
+•
+Tracking continuity percentage;
+•
+Stability under sensor degradation.
+The robustness metric reflects the system’s ability to sustain mission objectives
+under uncertainty.
+Communication Overhead
+For the federated learning component, communication efficiency is evaluated
+by measuring:
+•
+Data transmitted per aggregation round (KB);
+•
+Total communication volume per mission;
+•
+Synchronization frequency.
+These metrics assess scalability under bandwidth-constrained conditions.
+Convergence Speed
+Training efficiency is evaluated through convergence speed, defined as the number
+of simulation steps required to reach 90% of peak tracking performance. Additionally,
+real-world stabilization episodes required after sim-to-real transfer are reported.
+3. Results & Comparative Analysis
+All quantitative results reported in this section are derived from experiments con-
+ducted using the unified framework proposed in this work. While prior studies [26,27]
+investigated individual system components, the present results reflect the performance
+https://doi.org/10.3390/electronics15143064
+[p.18]
+Electronics 2026, 15, 3064
+18 of 29
+of the fully integrated architecture under consistent experimental conditions. To evalu-
+ate the effectiveness of the proposed federated GNSS-independent UAV framework, we
+conducted multi-agent simulation experiments for swarm-level and federated-learning
+assessment, complemented by single-UAV field deployment evidence for physical platform
+feasibility. Accordingly, results related to federated aggregation, communication over-
+head, multi-agent convergence, and scalability should be interpreted as simulation-based
+swarm-level results, while the field deployment evidence supports onboard sensing and
+edge-inference feasibility. The performance was compared against representative baseline
+approaches to assess improvements in tracking, navigation, energy efficiency, robustness,
+and communication overhead.
+3.1. Baselines
+Three baseline configurations were implemented for comparative evaluation:
+•
+Rule-Based Controller: A heuristic navigation controller combining obstacle avoidance
+logic and proportional tracking control was implemented. The controller relied on
+geometric pursuit rules and fixed safety margins without learning-based adaptation.
+This baseline represents traditional deterministic UAV control.
+•
+Centralized PPO: A centralized reinforcement learning setup was implemented using
+PPO with full aggregation of experience trajectories in a single training node. Un-
+like the proposed federated approach, all data were pooled and optimized centrally,
+assuming stable communication and full synchronization.
+•
+Commercial DJI SDK Controller: The built-in DJI SDK autonomous flight capabilities
+were used as a commercial benchmark [55,56]. This controller supports waypoint navi-
+gation and stabilized flight but does not incorporate adaptive learning or decentralized
+policy optimization.
+3.2. Quantitative Improvements
+Detection and Tracking Performance
+The proposed framework achieved a mean detection accuracy of approximately 92%
+(Figure 3). This result was obtained from experiments conducted using the integrated sys-
+tem presented in this work. Prior studies [27] investigated related perception components
+in isolation. Tracking performance yielded an average IoU of 0.83 (Figure 4), demon-
+strating stable target localization under GNSS-denied conditions. This result reflects the
+performance of the integrated framework proposed in this work, while prior studies [26]
+focused on navigation and tracking components in isolation. Analysis across multiple trials
+demonstrates improved IoU and more consistent tracking continuity compared to baseline
+methods, indicating enhanced robustness under environmental perturbations.
+ 
+Figure 3. Chart of Detection Accuracy.
+https://doi.org/10.3390/electronics15143064
+[p.19]
+Electronics 2026, 15, 3064
+19 of 29
+ 
+Figure 4. Chart of tracking accuracy measured using Intersection over Union (IoU).
+Navigation Accuracy
+Mean navigation deviation was approximately 1.2 m (Figure 5), reflecting stable
+trajectory tracking. This result is derived from the unified experimental setup, while
+prior work [26] examined related navigation strategies independently. Energy-aware cost
+shaping contributed to smoother trajectories and reduced oscillatory behavior.
+ 
+Figure 5. Chart of Navigation Deviation.
+Energy Efficiency
+Energy consumption analysis (Figure 6) revealed an approximately 30% reduction
+in total mission energy expenditure relative to baseline methods. This improvement is
+observed in the integrated framework evaluated in this work, while prior studies [27]
+investigated energy-aware components separately. The proposed composite cost function
+balances tracking accuracy and energy consumption, while the hybrid planning mechanism
+improves efficiency in structured terrains.
+ 
+Figure 6. Chart of Energy Consumption.
+Inference Latency
+Average inference latency remained below 120 ms per control cycle on the Jetson Xavier
+NX platform, satisfying real-time constraints for safe obstacle avoidance and tracking [27].
+https://doi.org/10.3390/electronics15143064
+[p.20]
+Electronics 2026, 15, 3064
+20 of 29
+This latency result is reported to demonstrate that the proposed perception-control pipeline
+satisfies real-time embedded deployment requirements on Jetson Xavier NX. It is not
+intended as a latency superiority claim over alternative perception or control pipelines,
+since a same-hardware baseline latency comparison was not conducted in the present study.
+The system maintains stable execution during federated synchronization without critical
+latency spikes.
+Robustness and GNSS Dropout Resilience
+The robustness score exceeded 90–95% across GNSS-denied scenarios (Figure 7), indi-
+cating stable operation under environmental perturbations. This performance is obtained
+from the proposed integrated system, while prior work [26] evaluated related components
+independently. Under simulated GNSS dropout (Figure 8), the proposed system maintained
+stable performance with minimal degradation in IoU and navigation deviation. In contrast,
+the commercial DJI SDK baseline exhibited substantial instability due to reliance on satellite
+positioning. GNSS resilience analysis confirms that decentralized perception-driven control
+effectively compensates for the absence of absolute positioning signals.
+ 
+Figure 7. Chart of Robustness Score.
+Figure 8. Comparative performance across three scenarios: (1) Static tracking (2) Dynamic Tracking
+and (3) GNSS Dropout.
+Communication Overhead
+Federated aggregation required approximately 350 KB per communication round,
+reflecting the communication-efficient design of the proposed framework. This aligns with
+https://doi.org/10.3390/electronics15143064
+[p.21]
+Electronics 2026, 15, 3064
+21 of 29
+principles established in federated learning literature [17]. Communication frequency was
+regulated to maintain bandwidth efficiency without compromising convergence.
+Convergence Analysis
+Training convergence was achieved after approximately 3 million simulation steps.
+This result reflects the training behavior of the integrated federated framework proposed
+in this work, while prior studies [27] examined convergence properties in more limited
+settings. Real-world fine-tuning required fewer than 50 deployment episodes to achieve
+performance stabilization, validating the effectiveness of the sim-to-real transfer strategy.
+Convergence plots further indicate that federated updates mitigate policy oscillation and
+improve stability under heterogeneous environmental exposure.
+These results indicate that, within the selected experimental setup, the proposed
+framework achieves a stronger balance across tracking performance, energy efficiency,
+robustness, and communication scalability than the evaluated baselines.
+3.3. Ablation Studies
+To systematically evaluate the contribution of each architectural component, we con-
+ducted a series of controlled ablation experiments. In each configuration, a single module
+was removed or modified while maintaining identical training conditions, hyperparame-
+ters, and evaluation protocols. Performance was assessed using tracking accuracy (IoU),
+navigation deviation, energy consumption, robustness score, and convergence speed. All
+reported values represent the mean over five independent trials.
+Effect of Thermal Fusion
+To quantify the contribution of thermal sensing, the thermal modality was removed
+and the perception module operated solely on RGB and depth inputs. The absence of
+thermal fusion resulted in a reduction in mean IoU from 0.83 to 0.76 and a decrease in
+robustness under low-visibility and occlusion scenarios. Tracking continuity was par-
+ticularly affected in forested and low-contrast environments. These results indicate that
+multi-modal fusion significantly enhances perception reliability and target discrimination
+under challenging environmental conditions.
+Effect of Federated Learning
+To evaluate the federated layer, agents were trained independently without parameter
+synchronization. While individual tracking performance remained comparable (IoU = 0.81),
+convergence required substantially more training steps, and swarm-level behavioral consis-
+tency decreased. Navigation deviation increased from 1.2 m to 1.5 m, and robustness under
+heterogeneous environmental exposure declined. These findings demonstrate that feder-
+ated averaging improves distributed convergence stability and mitigates policy divergence
+under non-IID experiences.
+Effect of Domain Randomization
+Domain randomization and structured sensor noise injection were removed during
+training to assess sim-to-real transfer robustness. When deployed in real-world GNSS-
+denied scenarios, policies trained without environmental variability exhibited significant
+degradation due to overfitting to the idealized simulation dynamics. IoU decreased to 0.72,
+navigation deviation increased to 1.8 m, and energy consumption rose due to unstable
+corrective maneuvers. The results confirm that environmental stochasticity during training
+is critical for robust zero-shot deployment.
+https://doi.org/10.3390/electronics15143064
+[p.22]
+Electronics 2026, 15, 3064
+22 of 29
+Discrete Action Space
+An alternative configuration replaced discrete motion primitives with continuous ve-
+locity commands. Although continuous control offers theoretically finer granularity, it intro-
+duced training instability and increased convergence time (4.5 M vs. 3.0 M simulation steps).
+Early-stage oscillatory behaviors were more pronounced, and safety violations during train-
+ing increased. The discrete action formulation demonstrated superior training stability and
+sample efficiency, justifying its adoption for edge-constrained reinforcement learning.
+Energy-Aware Rewards vs. Naive Reward
+To isolate the role of energy modeling, the energy penalty term was removed from
+the composite reward. While tracking IoU slightly increased (0.84), total mission energy
+consumption rose by approximately 20%, and trajectory smoothness deteriorated. Agents
+exhibited aggressive pursuit behaviors with increased oscillatory motion. The energy-aware
+formulation achieves a balanced trade-off between precision and endurance, supporting
+sustainable mission execution without substantial tracking degradation.
+Summary of Ablation Findings
+Across all experimental variants, measurable performance degradation was observed
+when removing key architectural components. Thermal fusion improved perception ro-
+bustness, federated learning stabilized distributed convergence, domain randomization
+ensured sim-to-real generalization, discrete action primitives enhanced training stability,
+and energy-aware reward shaping promoted mission sustainability. These results confirm
+that the overall system performance emerges from the principled integration of its com-
+ponents rather than isolated design choices, validating the architectural coherence of the
+proposed federated UAV autonomy framework.
+4. Discussion
+The experimental results demonstrate that the proposed federated and GNSS-
+independent UAV autonomy framework achieves a balanced integration of perception,
+control, distributed learning, and edge deployment. This section discusses the principal
+strengths of the system as well as its current limitations and practical considerations.
+4.1. Advantages
+Scalability: The federated reinforcement learning architecture enables scalable
+multi-agent training without centralized data aggregation. By exchanging compressed
+model parameters rather than raw experience data, the system reduces communica-
+tion overhead while preserving collaborative policy improvement. This design supports
+swarm-level deployment under bandwidth-constrained conditions and heterogeneous
+environmental exposure.
+GNSS Independence: A key strength of the framework is its complete independence
+from satellite-based localization. Through multi-modal perception, relative target estima-
+tion, and reinforcement learning-based control, the UAV maintains stable navigation and
+tracking under GNSS dropout and signal-denied scenarios. This capability is particularly
+relevant for urban canyons, indoor infrastructures, and adversarial environments.
+Energy-Aware Autonomy: The integration of energy-aware cost modeling into the
+reward function ensures balanced mission execution. Unlike naive tracking policies that
+prioritize short-term precision, the proposed formulation explicitly accounts for energy
+consumption and obstacle risk. This results in smoother trajectories, improved mission
+endurance, and safer maneuvering behavior.
+Edge Deployability: The architecture is explicitly designed for deployment on em-
+bedded edge hardware. Model compression, discrete action primitives, and bounded
+https://doi.org/10.3390/electronics15143064
+[p.23]
+Electronics 2026, 15, 3064
+23 of 29
+inference latency (<120 ms) ensure real-time control without reliance on external com-
+putation resources. This edge-compliant design strengthens operational autonomy in
+communication-limited settings.
+Field Deployment Feasibility: Unlike purely simulation-only studies, the proposed
+framework is complemented by single-UAV field deployment evidence using a DJI Matrice
+100 platform. This supports the practical feasibility of the onboard sensing, perception,
+and edge-computing pipeline under semi-structured outdoor conditions. Full physical
+swarm-scale validation remains outside the scope of the present study and is identified as
+future work.
+4.2. Limitations
+Extreme Lighting Conditions: Although thermal fusion improves robustness, extreme
+lighting transitions, such as direct sunlight glare or complete darkness, can still degrade
+RGB-based detection reliability.
+Wind Disturbances: While moderate wind disturbances are simulated during training,
+sudden high-magnitude gusts introduce nonlinear aerodynamic effects that are not fully
+captured by the current dynamic model. This may lead to temporary tracking instability or
+increased energy expenditure under severe environmental conditions.
+Edge Training Constraints: On-device training is limited by computational and mem-
+ory constraints of embedded platforms. Although local PPO updates are feasible, large-
+scale model architectures or frequent update cycles may introduce thermal throttling or
+latency spikes.
+Federated Synchronization Delay: Asynchronous federated aggregation improves robust-
+ness to connectivity interruptions; however, prolonged synchronization delays may increase
+policy divergence among agents operating under highly heterogeneous environments.
+Physical Swarm-Scale Validation: A limitation of the present study is that physical
+field deployment evidence is limited to single-UAV trials. Accordingly, the real-world
+deployment component supports platform-level feasibility, onboard sensing, and edge-
+inference validation, while swarm-level coordination, federated aggregation, and scalability
+are evaluated in simulation. Full physical validation with multiple UAVs will require
+synchronized multi-UAV flight logs, inter-agent communication measurements, and real-
+world federated aggregation analysis.
+Overall, the proposed framework demonstrates that integrating multi-modal percep-
+tion, energy-aware reinforcement learning, federated optimization, and edge deployment
+within a unified architecture enables robust GNSS-independent UAV autonomy. While
+certain environmental and hardware limitations persist, the results indicate strong potential
+for scalable and resilient deployment in real-world operational scenarios.
+4.3. Theoretical and Practical Implications
+The proposed federated and GNSS-independent UAV autonomy framework carries
+significant theoretical and practical implications for distributed robotics, reinforcement
+learning, and edge AI systems. By integrating multi-modal perception, decentralized
+optimization, and real-time control within a unified architecture, this work contributes to
+broader efforts aimed at developing scalable swarm intelligence and resilient autonomous
+platforms capable of operating under communication and localization constraints.
+From a systems-level perspective, architecture demonstrates that scalable swarm
+autonomy can be achieved without centralized coordination or persistent reliance on global
+positioning systems. The integration of federated reinforcement learning with perception-
+driven control provides a viable pathway toward distributed policy optimization under
+bandwidth limitations and intermittent connectivity. Rather than depending on centralized
+https://doi.org/10.3390/electronics15143064
+[p.24]
+Electronics 2026, 15, 3064
+24 of 29
+planners, collective behavior emerges through coordinated decentralized updates under
+bounded synchronization intervals. The modular separation between perception, control,
+and federated aggregation layers offers a structured blueprint for future swarm autonomy
+frameworks prioritizing robustness, scalability, and communication efficiency.
+The framework also holds direct relevance for defense and security applications, where
+GNSS signals may be degraded, jammed, or spoofed. GNSS-independent navigation com-
+bined with onboard perception enhances operational resilience in contested environments.
+Furthermore, communication-efficient federated learning enables coordinated multi-agent
+adaptation without transmitting raw sensory data, an important property for secure and
+privacy-sensitive operations conducted under adversarial conditions.
+In the context of disaster-response robotics, the proposed architecture supports reliable
+deployment in environments where infrastructure damage obstructs satellite signals and
+communication reliability is compromised. Multi-modal perception improves robustness
+in visually degraded settings, while energy-aware control extends operational endurance,
+an essential requirement for prolonged search-and-rescue missions. The ability to perform
+zero-shot deployment following simulation training further reduces preparation time in
+time-critical emergency scenarios.
+The work additionally contributes to research on federated reinforcement learning
+under heterogeneous and non-IID data distributions. Because each UAV experiences
+environment-specific trajectories, gradient updates are inherently biased by local obser-
+vations. The empirical findings suggest that bounded synchronization intervals and
+communication-efficient aggregation mitigate divergence while preserving distributed
+learning benefits. This supports the applicability of federated learning beyond static super-
+vised tasks, extending it to sequential decision-making problems characterized by dynamic,
+agent-specific state distributions.
+Finally, the proposed system exemplifies the broader convergence of edge AI and
+distributed intelligence. By executing perception, policy inference, and partial policy
+optimization directly on embedded hardware, the framework reduces dependence on
+cloud infrastructure and centralized computation. This architectural shift reflects a grow-
+ing trend toward localized intelligence augmented by intermittent collaborative learning.
+The tight integration of edge-based inference with federated optimization illustrates how
+distributed autonomous systems can achieve both real-time responsiveness and scalable
+collective adaptation.
+Overall, the theoretical and practical implications of this work highlight the feasibility
+of resilient, swarm-ready UAV autonomy grounded in federated reinforcement learning
+and edge-compliant system design. The presented framework thus contributes not only a
+functional architecture but also a systems-level paradigm for distributed aerial intelligence
+in complex and constrained environments.
+4.4. Future Research Directions
+While the proposed framework demonstrates strong performance in GNSS-denied and
+communication-constrained environments, several promising research directions emerge
+to extend both its theoretical foundations and practical scalability. The convergence of
+federated reinforcement learning, edge AI, and swarm robotics opens a broad design space
+that remains only partially explored.
+One important direction concerns the integration of hierarchical multi-agent reinforce-
+ment learning architectures. A hierarchical formulation could decompose decision-making
+into strategic and tactical layers, where high-level policies coordinate swarm-wide objec-
+tives and mission planning, while low-level controllers handle reactive navigation and
+https://doi.org/10.3390/electronics15143064
+[p.25]
+Electronics 2026, 15, 3064
+25 of 29
+target tracking. Such decomposition may improve scalability in large swarms by reducing
+coordination complexity and facilitating modular convergence across distributed agents.
+Advancements in transformer-based spatial reasoning also represent a compelling
+extension. Although the current framework relies primarily on convolutional perception
+pipelines, attention-based models could enhance long-range spatial dependency modeling
+and temporal coherence. Transformer architectures may improve performance in cluttered
+urban environments, multi-target tracking scenarios, and complex dynamic settings where
+contextual reasoning over extended spatial regions is required.
+Meta-reinforcement learning offers another promising pathway toward improved
+adaptability. By learning environment-invariant priors during simulation training, UAV
+agents could achieve rapid online adaptation to previously unseen environments without
+extensive retraining. Such zero-shot or few-shot adaptation capabilities would be par-
+ticularly valuable in disaster-response missions, where operational conditions may vary
+unpredictably and immediate deployment is essential.
+Beyond collaborative policy optimization, future swarm systems may incorporate
+decentralized task allocation mechanisms. Auction-based coordination schemes, consensus-
+driven role assignments, or market-inspired allocation strategies could complement fed-
+erated learning by enabling dynamic mission reconfiguration. Integrating task allocation
+with distributed reinforcement learning would allow swarms to balance coverage, pursuit,
+and surveillance objectives more effectively.
+As UAV autonomy systems expand into safety-critical domains, explainability be-
+comes increasingly important. Explainable reinforcement learning techniques could pro-
+vide interpretable policy representations, enabling post-mission auditing, operator trust
+enhancement, and regulatory compliance. Transparent decision-making models may also
+facilitate debugging and validation in complex multi-agent scenarios.
+Formal verification of learned UAV policies remains an open and challenging problem.
+Establishing safety guarantees under bounded uncertainty, proving collision avoidance
+properties, and ensuring stability under GNSS-denied conditions are critical steps to-
+ward certifiable autonomous flight systems. Bridging the gap between data-driven policy
+optimization and formal safety analysis will be essential for large-scale deployment in
+regulated environments.
+From an experimental perspective, hardware-in-the-loop (HIL) validation represents
+an intermediate step between pure simulation and full deployment. Real-time interac-
+tion between physical flight controllers and high-fidelity simulation environments could
+provide safer and more scalable testing of distributed learning policies before large-scale
+field trials.
+Future work will also include same-hardware latency benchmarking against alter-
+native baseline perception and control pipelines. This would better contextualize the
+reported Jetson Xavier NX inference latency and determine whether the observed real-time
+performance reflects architectural efficiency or hardware-level constraints. Furthermore,
+future work will include controlled side-by-side flight experiments to directly compare
+policies trained with and without energy-aware reward shaping, as well as to analyze the
+correlation between reward-based energy proxies and actual battery consumption (Wh).
+Future work will include physical swarm-scale validation with multiple UAV agents,
+including synchronized multi-UAV flight trajectories, inter-agent communication mea-
+surements, real-world federated aggregation logs, and quantitative analysis of policy
+divergence under non-IID field conditions. Such experiments are necessary to fully assess
+the scalability limits of federated reinforcement learning in real-world operational contexts.
+Collectively, these research directions indicate that the development of distributed
+UAV intelligence is transitioning from isolated algorithmic advances toward integrated,
+https://doi.org/10.3390/electronics15143064
+[p.26]
+Electronics 2026, 15, 3064
+26 of 29
+scalable, and verifiable autonomy frameworks. Continued progress will depend on unify-
+ing theoretical rigor with systems-level engineering, enabling the deployment of resilient
+swarm intelligence in complex and dynamic environments.
+5. Conclusions
+This work presented a unified decentralized–federated deep reinforcement learning
+architecture for GNSS-independent UAV autonomy. The proposed framework integrates
+multi-modal perception, energy-aware control, distributed policy optimization, and edge-
+compliant deployment within a cohesive and scalable system design.
+By combining RGB, thermal, depth, and IMU sensing with PPO-based control and
+communication-efficient federated aggregation, the system enables robust navigation and
+human target tracking without reliance on satellite positioning. The energy-aware reward
+formulation further ensures balanced mission execution, promoting smoother trajectories
+and improved endurance under real-world operational constraints.
+Multi-agent simulation experiments and single-UAV field deployment evidence
+demonstrated the feasibility of the proposed framework. The simulation results support the
+swarm-level and federated-learning aspects of the method, while the field deployment evi-
+dence supports the practical feasibility of onboard perception, sensing, and edge-compliant
+inference under realistic outdoor conditions. Comparative analysis and ablation studies
+confirmed that performance gains arise from the principled integration of perception fusion,
+decentralized learning, domain randomization, and energy-aware optimization.
+Overall, the results indicate that scalable swarm-ready UAV autonomy is a promis-
+ing direction through the convergence of federated reinforcement learning and edge AI,
+with full physical swarm validation remaining an important future step. The presented
+framework provides a practical and extensible foundation for resilient, distributed aerial
+intelligence in communication-constrained and GNSS-denied environments.
+Author Contributions: Conceptualization, N.A. (Nikolaos Almalis); methodology, N.A. (Nikolaos
+Almalis); software, N.A. (Nikolaos Almalis); validation, N.A. (Nikolaos Armenakis) and G.B.; for-
+mal analysis, N.A. (Nikolaos Almalis); investigation, N.A. (Nikolaos Almalis) and N.A. (Nikolaos
+Armenakis); resources, G.T.; data curation, N.A. (Nikolaos Almalis); writing—original draft prepa-
+ration, N.A. (Nikolaos Almalis); writing—review and editing, N.A. (Nikolaos Almalis) and G.T.;
+visualization, N.A. (Nikolaos Armenakis); supervision, G.T.; project administration, N.A. (Nikolaos
+Almalis); funding acquisition, G.T. All authors have read and agreed to the published version of
+the manuscript.
+Funding: This research received no external funding.
+Data Availability Statement: The data supporting the findings of this study are not publicly available
+due to confidentiality, operational security, and institutional restrictions. Requests to access the
+datasets should be directed to the corresponding author and will be considered subject to applicable
+restrictions and approval procedures.
+Acknowledgments: The authors would like to express their sincere gratitude to Konstantinos A.
+Ouzounthanasis for his support in the preparation, editing, and refinement of the manuscript.
+Conflicts of Interest: The authors declare no conflicts of interest.
+Abbreviations
+The following abbreviations are used in this manuscript:
+A*
+A-star algorithm
+AI
+Artificial Intelligence
+DRL
+Deep Reinforcement Learning
+https://doi.org/10.3390/electronics15143064
+[p.27]
+Electronics 2026, 15, 3064
+27 of 29
+FL
+Federated Learning
+FedAvg
+Federated Averaging
+GAE
+Generalized Advantage Estimation
+GNSS
+Global Navigation Satellite System
+IMU
+Inertial Measurement Unit
+IoU
+Intersection over Union
+LSTM
+Long Short-Term Memory
+MADDPG
+Multi-Agent Deep Deterministic Policy Gradient
+MARL
+Multi-Agent Reinforcement Learning
+MDP
+Markov Decision Process
+POMDP
+Partially Observable Markov Decision Process
+PPO
+Proximal Policy Optimization
+RL
+Reinforcement Learning
+SLAM
+Simultaneous Localization and Mapping
+UAV
+Unmanned Aerial Vehicle
+VIO
+Visual-Inertial Odometry
+References
+1.
+Alghamdi, S.; Alahmari, S.; Yonbawi, S.; Alsaleem, K.; Ateeq, F.; Almushir, F. Autonomous Navigation Systems in GPS-Denied
+Environments: A Review of Techniques and Applications. In 2025 11th International Conference on Automation, Robotics, and
+Applications (ICARA); IEEE: New York, NY, USA, 2025; pp. 290–299. [CrossRef]
+2.
+Humphreys, T.E.; Ledvina, B.M.; Psiaki, M.L.; O’Hanlon, B.W.; Kintner, P.M. Assessing the Spoofing Threat: Development of a
+Portable GPS Civilian Spoofer. In Proceedings of the 21st International Technical Meeting of the Satellite Division of the Institute
+of Navigation, Savannah, GA, USA, 16–19 September 2008.
+3.
+Groves, P.D. Shadow Matching: A New GNSS Positioning Technique for Urban Canyons. J. Navig. 2011, 64, 417–430. [CrossRef]
+4.
+Cadena, C.; Carlone, L.; Carrillo, H.; Latif, Y.; Scaramuzza, D.; Neira, J.; Reid, I.; Leonard, J.J. Past, Present, and Future of
+Simultaneous Localization and Mapping: Toward the Robust-Perception Age. IEEE Trans. Robot. 2016, 32, 1309–1332. [CrossRef]
+5.
+Qin, T.; Li, P.; Shen, S. VINS-Mono: A Robust and Versatile Monocular Visual-Inertial State Estimator. IEEE Trans. Robot. 2018, 34,
+1004–1020. [CrossRef]
+6.
+Erdelj, M.; Król, M.; Natalizio, E. Wireless Sensor Networks and Multi-UAV Systems for Natural Disaster Management. Comput.
+Netw. 2017, 124, 72–86. [CrossRef]
+7.
+Ramírez-Ayala, O.; González-Hernández, I.; Salazar, S.; Flores, J.; Lozano, R. Real-Time Person Detection in Wooded Areas Using
+Thermal Images from an Aerial Perspective. Sensors 2023, 23, 9216. [CrossRef] [PubMed]
+8.
+Gupta, L.; Jain, R.; Vaszkun, G. Survey of Important Issues in UAV Communication Networks. IEEE Commun. Surv. Tutor. 2016,
+18, 1123–1152. [CrossRef]
+9.
+Hamad, A.H.; Hussein, N.K.; Abdulghani, A.M. A Deep Learning Paradigm for Intrusion Detection in Unmanned Aerial Vehicle
+Networks Using Extended LSTM. Int. J. Intell. Eng. Syst. 2025, 18, 507–523. [CrossRef]
+10.
+Tsiakas, K.; Bellone, M.; Mariolis, I.; Gasteratos, A.; Tzovaras, D.; Giakoumis, D. Toward Sustainable Data Collection Processes for
+Autonomous Vehicles. IEEE Access 2026, 14, 6877–6895. [CrossRef]
+11.
+Yuksek, B.; Yu, Z.; Suri, N.; Inalhan, G. Federated Meta Learning for Visual Navigation in GPS-Denied Urban Airspace. In 2023
+IEEE/AIAA 42nd Digital Avionics Systems Conference (DASC); IEEE: New York, NY, USA, 2023; pp. 1–7. [CrossRef]
+12.
+Wu, Y.; Qiu, X.; Song, B.; Ke, Y.; Xu, L.; Yang, Y. Multi-Agent Deep Reinforcement Learning for Coding-Aware and Energy-
+Balanced Routing in Dynamic Drone Networks. Drones 2026, 10, 184. [CrossRef]
+13.
+Kaelbling, L.P.; Littman, M.L.; Cassandra, A.R. Planning and Acting in Partially Observable Stochastic Domains. Artif. Intell.
+1998, 101, 99–134. [CrossRef]
+14.
+Sutton, R.S.; Barto, A.G. Reinforcement Learning: An Introduction, 2nd ed.; MIT Press: Cambridge, MA, USA, 2018.
+15.
+Li, S.; Hu, X.; Du, Y. Deep Reinforcement Learning for Computation Offloading and Resource Allocation in Unmanned-Aerial-
+Vehicle Assisted Edge Computing. Sensors 2021, 21, 6499. [CrossRef] [PubMed]
+16.
+Chen, J.; Ran, X. Deep Learning With Edge Computing: A Review. Proc. IEEE 2019, 107, 1655–1674. [CrossRef]
+17.
+McMahan, B.; Moore, E.; Ramage, D.; Hampson, S.; Agüera y Arcas, B. Communication-Efficient Learning of Deep Networks
+from Decentralized Data. In 20th International Conference on Artificial Intelligence and Statistics (AISTATS); PMLR: Cambridge, MA,
+USA, 2017; pp. 1273–1282.
+18.
+Li, L.; Ota, K.; Dong, M. Deep Learning for Smart Industry: Efficient Manufacture Inspection System With Fog Computing. IEEE
+Trans. Ind. Inform. 2018, 14, 4665–4673. [CrossRef]
+https://doi.org/10.3390/electronics15143064
+[p.28]
+Electronics 2026, 15, 3064
+28 of 29
+19.
+Olfati-Saber, R.; Fax, J.A.; Murray, R.M. Consensus and Cooperation in Networked Multi-Agent Systems. Proc. IEEE 2007, 95,
+215–233. [CrossRef]
+20.
+Zhang, K.; Yang, Z.; Ba¸sar, T. Multi-Agent Reinforcement Learning: A Selective Overview of Theories and Algorithms. In Handbook
+of Reinforcement Learning and Control; Springer International Publishing: Cham, Switzerland, 2021; pp. 321–384. [CrossRef]
+21.
+Scaramuzza, D.; Achtelik, M.C.; Doitsidis, L.; Friedrich, F.; Kosmatopoulos, E.; Martinelli, A.; Achtelik, M.W.; Chli, M.;
+Chatzichristofis, S.; Kneip, L.; et al. Vision-Controlled Micro Flying Robots: From System Design to Autonomous Naviga-
+tion and Mapping in GPS-Denied Environments. IEEE Robot. Autom. Mag. 2014, 21, 26–40. [CrossRef]
+22.
+Khodak, M.; Balcan, M.-F.; Talwalkar, A. Adaptive Gradient-Based Meta-Learning Methods. In Advances in Neural Information
+Processing Systems; Curran Associates, Inc.: Red Hook, NY, USA, 2019.
+23.
+Zhuo, H.H.; Feng, W.; Lin, Y.; Xu, Q.; Yang, Q. Federated Deep Reinforcement Learning. arXiv 2020, arXiv:1901.08277v3.
+24.
+Li, T.; Sahu, A.K.; Talwalkar, A.; Smith, V. Federated Optimization in Heterogeneous Networks. In Proceedings of the Machine
+Learning and Systems; MLSys: Austin, TX, USA, 2020.
+25.
+Schulman, J.; Wolski, F.; Dhariwal, P.; Radford, A.; Klimov, O. Proximal Policy Optimization Algorithms. arXiv 2017,
+arXiv:1707.06347v2.
+26.
+Almalis, N.D.; Tsihrintzis, G.A.; Mitsios, M.; Tilemachos, T. Learning to Navigate and Track: A Decentralized Reinforcement
+Learning Framework for UAV Operations in GNSS-Denied Terrain. In International Conference on Innovative Techniques and
+Applications of Artificial Intelligence; Springer Nature: Cham, Switzerland, 2025; pp. 300–307.
+27.
+Almalis, N.D.; Tsihrintzis, G.A.; Stergioulis, A.; Michail, M. Federated Deep Reinforcement Learning for Collaborative Au-
+tonomous Navigation in GPS-Denied Environments. In International Conference on Information, Intelligence, Systems & Applications
+(IISA); IEEE: New York, NY, USA, 2025; pp. 1–8.
+28.
+Vaswani, A.; Shazeer, N.; Parmar, N.; Uszkoreit, J.; Jones, L.; Gomez, A.N.; Kaiser, L.; Polosukhin, I. Attention Is All You Need. In
+Advances in Neural Information Processing Systems; Curran Associates, Inc.: Red Hook, NY, USA, 2017.
+29.
+Teerapittayanon, S.; McDanel, B.; Kung, H.T. Distributed Deep Neural Networks Over the Cloud, the Edge and End Devices. In
+2017 IEEE 37th International Conference on Distributed Computing Systems (ICDCS); IEEE: New York, NY, USA, 2017; pp. 328–339.
+[CrossRef]
+30.
+Wojke, N.; Bewley, A.; Paulus, D. Simple Online and Realtime Tracking with a Deep Association Metric. In 2017 IEEE International
+Conference on Image Processing (ICIP); IEEE: New York, NY, USA, 2017.
+31.
+Zhou, X.; Koltun, V.; Krähenbühl, P. Tracking Objects as Points. In European Conference on Computer Vision; Springer International
+Publishing: Cham, Switzerland, 2020.
+32.
+Kendall, A.; Grimes, M.; Cipolla, R. PoseNet: A Convolutional Network for Real-Time 6-DOF Camera Relocalization. In 2015
+IEEE International Conference on Computer Vision (ICCV); IEEE: New York, NY, USA, 2015; pp. 2938–2946. [CrossRef]
+33.
+Ross, S.; Melik-Barkhudarov, N.; Shankar, K.S.; Wendel, A.; Dey, D.; Bagnell, J.A.; Hebert, M. Learning Monocular Reactive UAV
+Control in Cluttered Natural Environments. In 2013 IEEE International Conference on Robotics and Automation; IEEE: New York, NY,
+USA, 2013; pp. 1765–1772. [CrossRef]
+34.
+Alexiou, D.; Zampokas, G.; Skartados, E.; Tsiakas, K.; Kostavelis, I.; Giakoumis, D.; Gasteratos, A.; Tzovaras, D. Visual Navigation
+Based on Deep Semantic Cues for Real-Time Autonomous Power Line Inspection. In 2023 International Conference on Unmanned
+Aircraft Systems (ICUAS); IEEE: New York, NY, USA, 2023; pp. 1262–1269. [CrossRef]
+35.
+Foerster, J.N.; Assael, Y.M.; de Freitas, N.; Whiteson, S. Learning to Communicate with Deep Multi-Agent Reinforcement Learning.
+In Advances in Neural Information Processing Systems (NeurIPS); Curran Associates, Inc.: Red Hook, NY, USA, 2016.
+36.
+Ultralytics. YOLOv8, State-of-the-Art Object Detection Model. Available online: https://docs.ultralytics.com/models/yolov8/
+(accessed on 5 March 2026).
+37.
+Baldovino, R.G.; Vidad, A.J.P.; Abastillas, R.P.B.; Bugtai, N.T.; Dadios, E.P.; Vicerra, R.R.P.; Bandala, A.A.; See, A.R.; Roxas, N.R.
+Comprehensive Analysis on Ultralytics-Supported YOLO Models for Detection and Recognition of Large Office Objects for
+Indoor Navigation. Procedia Comput. Sci. 2024, 246, 3851–3858. [CrossRef]
+38.
+Cao, Q.; Li, M.; Yang, G.; Tao, Q.; Luo, Y.; Wang, R.; Chen, P. Urban Vegetation Classification for Unmanned Aerial Vehicle Remote
+Sensing Combining Feature Engineering and Improved DeepLabV3+. Forests 2024, 15, 382. [CrossRef]
+39.
+Chen, L.-C.; Zhu, Y.; Papandreou, G.; Schroff, F.; Adam, H. Encoder-Decoder with Atrous Separable Convolution for Semantic
+Image Segmentation. In Proceedings of the European Conference on Computer Vision (ECCV), Munich, Germany, 8–14 September
+2018; pp. 833–851. [CrossRef]
+40.
+Hochreiter, S.; Schmidhuber, J. Long Short-Term Memory. Neural Comput. 1997, 9, 1735–1780. [CrossRef] [PubMed]
+41.
+Tang, Y.; Agrawal, S. Discretizing Continuous Action Space for On-Policy Optimization. Proc. AAAI Conf. Artif. Intell. 2020, 34,
+5981–5988. [CrossRef]
+42.
+Yu, C.; Velu, A.; Vinitsky, E.; Gao, J.; Wang, Y.; Bayen, A.; Wu, Y. The Surprising Effectiveness of PPO in Cooperative Multi-Agent
+Games. In Advances in Neural Information Processing Systems; Curran Associates, Inc.: Red Hook, NY, USA, 2022.
+https://doi.org/10.3390/electronics15143064
+[p.29]
+Electronics 2026, 15, 3064
+29 of 29
+43.
+Hart, P.; Nilsson, N.; Raphael, B. A Formal Basis for the Heuristic Determination of Minimum Cost Paths. IEEE Trans. Syst. Sci.
+Cybern. 1968, 4, 100–107. [CrossRef]
+44.
+Koenig, S.; Likhachev, M. D* Lite. In Eighteenth National Conference on Artificial Intelligence (AAAI); The AAAI Press: Palo Alto, CA,
+USA, 2002; pp. 476–483.
+45.
+Wang, J.; Liu, Q.; Liang, H.; Joshi, G.; Poor, H.V. Tackling the Objective Inconsistency Problem in Heterogeneous Federated
+Optimization. In Advances in Neural Information Processing Systems; Curran Associates, Inc.: Red Hook, NY, USA, 2020.
+46.
+Lowe, R.; Wu, Y.; Tamar, A.; Harb, J.; Abbeel, P.; Mordatch, I. Multi-Agent Actor-Critic for Mixed Cooperative-Competitive
+Environments. In Advances in Neural Information Processing Systems; Curran Associates, Inc.: Red Hook, NY, USA, 2017.
+47.
+Rashid, T.; Samvelyan, M.; Schroeder, C.; Farquhar, G.; Foerster, J.; Whiteson, S. QMIX: Monotonic Value Function Factorisation
+for Deep Multi-Agent Reinforcement Learning. J. Mach. Learn. Res. 2020, 21, 1–51. [CrossRef]
+48.
+Hsu, K.-C.; Ren, A.Z.; Nguyen, D.P.; Majumdar, A.; Fisac, J.F. Sim-to-Lab-to-Real: Safe Reinforcement Learning with Shielding
+and Generalization Guarantees. Artif. Intell. 2023, 314, 103811. [CrossRef]
+49.
+Tobin, J.; Fong, R.; Ray, A.; Schneider, J.; Zaremba, W.; Abbeel, P. Domain Randomization for Transferring Deep Neural Networks
+from Simulation to the Real World. In Proceedings of the 2017 IEEE/RSJ International Conference on Intelligent Robots and
+Systems (IROS), Vancouver, BC, Canada, 24–28 September 2017.
+50.
+Sadeghi, F.; Levine, S. CAD2RL: Real Single-Image Flight without a Single Real Image. arXiv 2017, arXiv:1611.04201v4.
+51.
+Zhao, W.; Queralta, J.P.; Westerlund, T. Sim-to-Real Transfer in Deep Reinforcement Learning for Robotics: A Survey. In
+Proceedings of the 2020 IEEE Symposium Series on Computational Intelligence (SSCI), Canberra, Australia, 1–4 December 2020.
+[CrossRef]
+52.
+Mehta, B.; Diaz, M.; Golemo, F.; Pal, C.J.; Paull, L. Active Domain Randomization. In Conference on Robot Learning; PMLR:
+Cambridge, MA, USA, 2020; pp. 1162–1176.
+53.
+Rezatofighi, H.; Tsoi, N.; Gwak, J.; Sadeghian, A.; Reid, I.; Savarese, S. Generalized Intersection Over Union: A Metric and a Loss
+for Bounding Box Regression. In 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR); IEEE: New York,
+NY, USA, 2019; pp. 658–666. [CrossRef]
+54.
+Manning, C.D.; Raghavan, P.; Schütze, H. Introduction to Information Retrieval; Cambridge University Press: Cambridge, UK, 2008.
+55.
+DJI. DJI Mobile SDK Documentation. Available online: https://developer.dji.com/mobile-sdk/ (accessed on 5 March 2026).
+56.
+Krupáš, M.; Paˇcuta, K.; Zolotová, I. Towards Autonomous Uwb-Based Uav Indoor Navigation. Acta Electrotech. Inform. 2025, 25,
+10–14. [CrossRef]
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+https://doi.org/10.3390/electronics15143064
+=== END ===

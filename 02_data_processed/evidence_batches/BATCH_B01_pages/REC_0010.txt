@@ -1,0 +1,556 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0010.pdf
+sha256: CD47DDE8A3E07AB98B0B8941C37498A368150A83092EC2F9E12FB6C1A03982C6
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+Autonomous long-range navigation in GNSS-denied 
+environment with low-cost UAV platform
+André Rossi Kuroswiski 
+Department of Electronic Engineering 
+Instituto Tecnológico de Aeronáutica (ITA) 
+São José dos Campos-SP, Brazil 
+kuroswiskiark@fab.mil.br 
+Neusa Maria Franco de Oliveira 
+Department of Electronic Engineering 
+Instituto Tecnológico de Aeronáutica(ITA) 
+São José dos Campos-SP, Brazil 
+neusa@ita.br 
+Élcio Hideiti Shiguemori 
+Geo-Intelligence Division 
+Institute of Advanced Studies 
+São José dos Campos-SP, Brazil 
+elcio@ieav.cta.br 
+ 
+Abstract— The capability of an Unmanned Aerial Vehicle to 
+navigate in GNSS-denied environments is desired in many 
+situations, especially in situation in which the GNSS signal is not 
+trustable. In this work is presented a solution based on a low-cost 
+UAV platform, that uses a Landmark Recognition algorithm to 
+compensate the inertial sensors errors cumulation, aiming to 
+perform a long-range navigation, independently of GNSS 
+information. The results in a real-time simulation demonstrated 
+the effectiveness of the integration between the UAV control and 
+the computer vision, performing a successful navigation of 20.7 
+km long at 400 meters high, where the system has been able to 
+estimate the coordinates during the whole route, with an average 
+error lower than 6 meters.   
+Keywords— Computer Vision; UAV; Autonomous Navigation 
+I.  INTRODUCTION 
+ 
+The utilization of computer vision algorithms in navigation, 
+control and guidance modules of Unmanned Aerial Vehicles 
+(UAV) shown to be a promising solution to increase the 
+capabilities of these aircrafts, being a common target of many 
+studies recently [1]. A recurrent application of these techniques 
+is work as a backup to Global Navigation Satellite Systems 
+(GNSS), since these systems can be unreliable in some 
+situations, sometimes due to atmospheric conditions [2] or 
+even due to intentional interference [3]. The dependency of the 
+GNSS signal to navigate is common because most inertial 
+systems of aircrafts cannot guarantee a trustable positioning 
+information during too much time, since the errors accumulate 
+continuously, mainly for small and low cost systems[4]. The 
+evolution of these solutions is directly related to the current 
+advances in UAV platforms, that bring many new possibilities, 
+with more powerful and compact components, as flight 
+controllers, onboard processors and sensors [5], [6]. A key 
+point in these systems is the integration between the computer 
+vision and the aircraft flight controllers that affect directly the 
+development of the algorithms, depending on the flexibility, 
+the cost, the level of integration and the simulations resources.  
+ 
+This work aims to present a low-cost platform with a 
+simple integration between computer vision algorithms and the 
+UAV flight controllers, allowing real-time simulations to 
+evaluate the performance and integration of the solutions.  
+Additionally, an algorithm that uses landmark recognition as 
+the main resource to perform an autonomous navigation flight, 
+independently of GNSS, is proposed and tested, showing 
+successful results in a long range simulated flight, confirming 
+the effectiveness of the integration and of the developed 
+algorithm.  
+II. INTEGRATED PLATFORM 
+ 
+ The platform considered for this work is based on low-cost 
+solutions, with open hardware and software components, that 
+bring the possibility to evaluating different computer vision 
+algorithms in real flight or simulations. The solution is based 
+on [7], adding the possibility to perform real-time simulations 
+with image processing This possibility increases significantly 
+the efficiency in the computer vision algorithms’ development. 
+ 
+The solution is based on the flight controller suite  
+Ardupilot [8], that has being developed by an online 
+community since 2009. The flight controller, besides the 
+flexible UAV control system, also includes several resources, 
+such as ground stations, optimized communications protocols, 
+models’ simulation and integration with many extra sensors. 
+Among these resources, the MAVLink protocol [9] is used in 
+this work to establish the connections between the flight 
+controller and  the image processing system. This protocol 
+allows not only receiving information about all subsystems of 
+the controller, but it is also an efficient way to control the UAV 
+flight. Fig. 1 presents a possible solution using these resources, 
+in this case, a Raspberry Pi [10] computer was selected as the 
+processing unit aiming low-cost and flexibility. Internally the 
+system has been split in two modules, the integration module 
+and the image processing module, in such way that it become 
+easy to exchange the image processing algorithm, without too 
+many changes in the integration of the flight controller.  
+ 
+Fig. 1 Integrated Platform of computer vision and flight controller system 
+978-1-5386-3664-0/18/$31.00 ©2018 IEEE
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:57 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+ 
+ 
+ 
+The first module, the Integration Module, makes the 
+bridge between the flight controller and the image processing 
+solution, receiving data and sending commands to the 
+Ardupilot, while interpreting the high-level information 
+extracted from the images. The Image Processing module is 
+flexible enough to work with as many solutions as desired and 
+shall will be able to receive the images from the camera, 
+extract the information of interest, such as estimates of 
+coordinates and speed, or detection of a specific reference. This 
+module shall also be able to send the high-level information to 
+the Integration Module, where the data will be applied to the 
+desired resource, resulting in commands to the UAV controller. 
+The flight control of the UAV will be responsibility of the 
+Ardupilot, which will use the inputs received from the 
+Integration Module. The Integration Module will implement 
+the Guidance and Navigation algorithms and both of them will 
+take advantage of the data extracted from images.  
+III. AUTONOMOUS NAVIGATION ALGORITHM 
+The main goal of this work was to develop and evaluate a 
+system that is capable of performing a totally autonomous 
+long-range navigation without GPS information. The concept 
+was use the resources available in the Ardupilot system, in 
+high level, to control the UAV flight and apply the computer 
+vision to compensate the error cumulation of the inertial 
+systems. The idea is to fly relying on the flight controller 
+solutions, correcting the path through updated information 
+extracted from the processed image.     
+ 
+A. Computer Vision Algorithm 
+The main task for the computer vision algorithm is to 
+eliminate the errors cumulated in the flight path. To do this, a 
+Landmark Recognition algorithm has been selected, that is 
+able to estimate the current coordinate, matching previously 
+loaded references with the current captured image [11]. For 
+the utilization of this algorithm, distinct areas or objects in the 
+flight region need to be selected from previous geo-referenced 
+images. Then, during the flight, when the algorithm identifies 
+a match, knowing the coordinate of the pre-loaded image, it 
+calculates the estimated position. Certainly, this solution has 
+some drawbacks, such as the dependency of previous images 
+and the availability of good landmarks. However, only a 
+positive identification guarantees the total elimination of the 
+cumulated errors, with only the intrinsic errors remaining, that 
+can be just a few meters [11]. In this work, the Landmark 
+Recognition will be considered as a black box that has the pre-
+loaded image and its georeferenced information, receives as 
+input the acquired images from an embedded camera in the 
+UAV and has as output the indication if a previously loaded 
+reference was identified. 
+ 
+B. Navigation Route 
+Considering the capabilities of the Landmark Recognition, 
+the navigation route was defined based on Control Points (CP) 
+and Auxiliary Points (AP). The CPs define the route itself, 
+being positions that the aircraft need to overfly and change the 
+flight in the direction of the next CP. The APs are positions 
+defined by landmarks spread all over the flight region, mainly 
+close to the expected flight path, working as references that 
+allow the system to update the estimated position between two 
+CP. Both kind of points shall be related to distinct areas or 
+objects in the terrain, available in previous image of the 
+region. They shall work as input for the Landmark 
+Recognition algorithm, allowing the UAV fly the path 
+between all CPs, using the APs to get the positions updates 
+most continuously as possible.  
+ 
+C. Controlling the UAV 
+Due the characteristics of the navigation path through 
+landmarks, we defined three main methods to interact with the 
+flight controller in a such way that, only using these methods, 
+the guidance algorithm would be able to perform all the 
+planned routes. The methods are: control the flight speed over 
+the ground, control the flight direction and perform lateral 
+adjusts in the current path. However, without external 
+information, as GPS for example, we know that the precision 
+of these methods would be considerably unreliable, mainly for 
+small and low-cost components, as those ones considered for 
+this study [12]. Therefore, the idea of the methods is to be an 
+initial reference to command the UAV flight, and then, using 
+the computer vision information, update the flight state 
+comparing it with the desired route.  
+Aiming to be able to create the defined methods to control 
+the UAV flight, the first step was the selection of the operation 
+mode of the flight controller, those which are called flight 
+modes in the Ardupilot, and the determination of how the 
+aircraft will respond to external commands [8]. The selected 
+mode was the GUIDED_NOGPS, that is an experimental 
+mode that accept direct commands of pitch, roll and yaw, 
+holding the UAV stable in the selected attitude, changing or 
+not the flight altitude, depending on the command. This mode 
+relies only on the internal filtered data of inertial systems of 
+the flight controller, do not using any external information. 
+Using the capabilities of this flight mode, it was proposed 
+three relative simple solutions for the desired methods to 
+control the UAV: 
+ 
+Control the Flight Speed: the correlation between the pitch 
+attitude and the horizontal stabilized speed shall be modeled 
+through empirical tests. The tests consisted in perform many 
+flights in different pitch attitudes. For each pitch commanded, 
+the average aircraft horizontal speed was calculated. At the 
+end, for each pitch angle there was an expected aircraft speed. 
+These results can work as reference to send specific 
+commands of pitch angle to the GUIDED_NOGPS mode, 
+depending on the desired horizontal speed. 
+ 
+Control Flight Direction: the reference selected for the 
+direction of the displacement was the magnetic heading, and 
+then, the new desired direction can be reached sending yaw 
+commands to the flight controller.  
+ 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:57 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+Lateral Adjustments: the correlation between roll attitude and 
+the lateral stabilized speed is modeled through empirical tests 
+as in the horizontal speed determination tests. The results 
+allow to send specific commands via the GUIDED_NOGPS 
+mode, defining a roll angle during a necessary time to correct 
+the estimated lateral error in the path. 
+ 
+Using these solutions, it is possible to have enough control 
+of the UAV in high level to perform the desired missions, the 
+long-range navigation, taking advantage of the Ardupilot 
+resources to simplify the work, allowing to keep the focus on 
+the development of the Guidance algorithm that incorporate 
+the processed image information. In this project, the 
+coordinates’ 
+information 
+is 
+estimated 
+through 
+the 
+identification of a previous selected landmark, received from 
+the Landmark Recognition algorithm, as implemented in [11]. 
+However, the selection of which landmark to consider for each 
+moment of the flight is a different problem. 
+ 
+D. Landmarks adaptive selection 
+To perform the proposed long-range navigation, a huge 
+number of landmark references can be demanded to ensure a 
+continuous update of the estimates. However, in each moment 
+of the flight only a small number would be real candidates to 
+be identified, since they need to be in the field of view of the 
+UAV camera. Therefore, to ensure an optimized performance, 
+avoiding unnecessary processing and reducing the risk of false 
+positives, an adaptive selection of the landmark candidates was 
+proposed aiming to only feed the algorithm with the landmarks 
+that can really be in the captured images.  
+The first reference is the distances that the image represents 
+in the ground (DGround). Since in this project, for the whole 
+flight, the camera will be in nadir position, looking down, the 
+calculation of DGround can be simplified, only using the flight 
+height (h) and the camera field of view (α) by the equation: 
+ 
+                           
+
+
+2
+tan
+/ 2
+Ground
+D
+h
+
+
+
+                       (1) 
+ 
+Considering this information available it is possible to 
+check which of the landmarks  could be in the region of the 
+captured image. However, it would be necessary to repeat this 
+calculation constantly during the flight. Since the number of 
+landmarks to be checked can be huge, it demands a lot of 
+processing capacity. The second problem is that, since the 
+position is an estimate, the area defined relying on this 
+information may not correspond to the real situation, and 
+landmarks that are in the image should be considered in the 
+algorithm. The solution was to create a process to define which 
+of the APs should be considered in each part of the route, 
+including an expected maximum error in the estimated 
+coordinate to expand the search area.  
+This process to identify the candidates for each path of the 
+route and the decision about which of them should be 
+considered at each position of the UAV during the mission is 
+done based on maximum expected error when flying relying 
+only on the inertial systems. This expected error depends on  
+the characteristic of the model and the onboard sensors [12]. In 
+this work, based on the methods applied to control the UAV, 
+two references were considered, the maximum expected error 
+in the estimated flight direction (HMaxErr) and the maximum 
+expected error in the estimated ground speed (GSMaxErr).  
+In the first step, the estimated maximum errors are used to 
+define the area in which the landmarks will be considered as 
+reference for each path. This is done calculating the maximum 
+lateral and longitudinal errors in the case that the UAV flies 
+with maximum errors rates the whole time between two CPs. 
+Then, the distance captured by the camera is added to the 
+maximum lateral error, based on (1), resulting in the total 
+maximum lateral distance from the path in which a landmark 
+can still be considered to coordinate estimate. The maximum 
+longitudinal error, in similar way, defines the distance after the 
+CP in which landmarks are considered, and then, using these 
+two results the total area of landmark candidates is created. 
+This is presented in Fig. 2. In the diagram, ϴ is the HMaxErr, Eh 
+is the maximum expected lateral error for the flight between 
+the CPs, Egs is the maximum expected longitudinal error, the 
+green rectangle is the area visualized by the camera and the 
+rectangle with dashed red lines is the area of added APs. 
+ 
+This heuristic process restricted the number of APs 
+considered for each part of the route, however, depending on 
+the distance between two CPs and the number of landmarks, 
+the amount of APs can still be big, reducing the performance of 
+the Landmark Recognition algorithm. The solution was to 
+define a dynamic criterion to create a sorted list of the APs to 
+be included in the algorithm search for each path. The criteria 
+utilizes the distance of the projection of the AP in the route to 
+the next CP, so, knowing the distance from the estimated 
+position to the next CP, the difference work as the reference to 
+add the AP in the search or not. In the end, a pile with the APs 
+of each path is created considering these distances, and then, 
+during the flight only the next candidate is evaluated, the 
+closest of the current estimated position, and, if the AP is close 
+enough to be in the captured image, it is included in the search 
+of the Landmark Recognition and removed from the pile.  
+ 
+ 
+Fig. 2 – Calculation of the landmark candidates’ area 
+ 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:57 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+Additionally, the uncertainty about the position is included 
+utilizing GSMaxErr to calculate the maximum expected error 
+since the last landmark was recognized. This value is added to 
+the minimum distance to include the next AP of the pile, which 
+expands the search area dynamically depending on the 
+accumulation of errors. 
+ 
+These solutions are certainly not the optimal processes; 
+however, they are a simple way to reduce significantly the 
+demands of the Landmark Recognition algorithm. Furthermore, 
+these processes do not reduce the probability of success in the 
+identification of new references, since all landmarks really 
+present in the captured image will be in the search procedure at 
+the correct moment. 
+E. Guidance algorithm 
+ 
+After the definition of the methods to control the UAV, and 
+techniques to select the landmarks to search during each 
+moment of the flight, the Guidance algorithm, basically, shall 
+merge the resources to operate in real-time during the flight.  
+ 
+Considering the methods developed to control the UAV 
+and the capabilities of the Landmark Recognition, the guidance 
+shall operate continuously in the following process:  
+ 
+Considering the last recognized position, fly with 
+desired speed, within the necessary timeframe, in the 
+required direction to reach the next CP. 
+ 
+If during the path a new AP, identified through the 
+landmark, indicates an error related to the desired 
+path, do the necessary lateral correction to go back to 
+the correct route. 
+ 
+If the recognized landmark is the next CP, change the 
+direction to overfly the point. 
+ 
+Once the point is reached and overflown, the next CP 
+is updated, and the flight direction is changed again, 
+starting the same process in the new path. 
+IV. EXPERIMENTAL EVALUATION 
+ 
+The first evaluation of the proposed solution to perform a 
+long-range flight navigation in a denied-GPS environment was 
+done in the developed simulation platform presented in Fig. 3. 
+All the subsystem of the real UAV were simulated using the 
+Simulation in The Loop (SITL)[13] resource present in the 
+Ardupilot system. The model was a quadcopter based in [14] 
+already integrated with the SITL.  
+A. Planned Mission 
+The test consisted in a planned navigation route in the 
+nearby areas of the Berlin Tegel Airport, an area that contain a 
+great variety in the terrain characteristics and have available 
+good quality satellite images. The planed route, at 400 meters 
+high, was defined by 10 CP and 71 AP. The CPs indicate 
+changes in the flight direction, and the Aps work as reference 
+to update the estimated positions during the route paths, 
+totalizing 20.7 kilometers of navigation.  
+ 
+ 
+ 
+Fig. 3 – Diagram of the simulation platform 
+ 
+B. Navigation Results 
+The results were analyzed over a qualitative approach, 
+about the mission accomplishment, and quantitatively about 
+the errors in the estimated coordinate, comparing the 
+calculated positions with the simulated GPS information. 
+The planned route is presented in yellow in Fig. 4, 
+overlapped by the navigation results, shown in magenta. As it 
+is possible to see, the path followed by the UAV is almost all 
+the time over the planned route, excepting some parts when 
+the absence of distinct landmarks did not guarantee constant 
+corrections.   
+A closer view of some paths is shown in Fig. 5 and Fig. 6, 
+where the white circumferences represents APs available 
+during the flight. In Fig. 5 are presented paths with some parts 
+without enough APs to have an appropriated continuous 
+update of position estimate. In these cases, it is possible to see 
+that sometimes the UAV losses the correct flight direction 
+until find a new reference. On the other hand,  Fig. 6 shows 
+paths where the availability of APs is spread all over the 
+course, and then, the UAV was able to correct its position 
+continuously, flying almost all the time over the planned route.  
+ 
+ 
+ 
+Fig. 4 Planned and performed navigation in Berlin Tegel Airport nearby 
+ 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:57 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+ 
+Fig. 5 Navigation paths in regions with low concentration of APs 
+ 
+ 
+Fig. 6 Navigation paths in regions with high concentration of APs 
+ 
+The second evaluation, about the precision of the 
+coordinates’ estimation, found that, considering all the flight, 
+the average error was 5.75 meters, while, considering only the 
+estimates based on identified landmarks, the average decreases 
+to 3.77 meters. All the errors in the estimated positions during 
+the navigation is presented in Fig. 7. As it is possible to see, in 
+some parts of the flight the error increased significantly, 
+reaching  its maximum  in the path between the CPs 2 and 3, 
+presented in Fig. 5. In this part, the error reached 64.4 meters 
+due a flight without any update done by landmark information 
+for 72 seconds. However, as soon a new AP was identified, 
+the error was immediately reduced to less than 5 meters and 
+the UAV returned to the correct path. 
+ 
+ 
+Fig. 7 Errors in the estimated coordinate during the flight 
+ 
+V. CONCLUSION 
+The initial results confirmed the effectiveness of the 
+proposed solution. It shown that the integration worked as 
+expected and the utilization of the Landmark Recognition 
+algorithm to perform a long-range navigation independently of 
+satellite positioning systems is feasible in regions with enough 
+distinct references in the terrain. The methods to control the 
+UAV shown to be enough in the evaluated conditions, 
+allowing to explore the well-established algorithms of the 
+Ardupilot suite in high level, to perform the autonomous long-
+range navigation. However, since the current results are 
+limited to the simulation and restricted to a specific scenario, 
+some drawbacks may not be clear as, for example, the effects 
+of weather conditions in the Landmark Recognition and in the 
+proposed methods for UAV control. Therefore, the next step 
+will be the evaluation of the system in a real flight, using the 
+same platform, aiming to compare the results and identify 
+possible restrictions for the proposed methods.  
+ 
+REFERENCES 
+ 
+[1] 
+C. Kanellakis and G. Nikolakopoulos, “Survey on Computer Vision 
+for UAVs: Current Developments and Trends,” J. Intell. Robot. 
+Syst. Theory Appl., vol. 87, no. 1, pp. 141–168, 2017. 
+[2] 
+K. Wezka, I. Herrera-Pinzon, and R. Galas, “Reliability monitoring 
+of GNSS observables under the influence of ionospheric 
+disturbances,” Proc. IEEE/ION Position, Locat. Navig. Symp. 
+PLANS 2016, pp. 431–441, 2016. 
+[3] 
+J. A. Larcom and H. Liu, “Modeling and characterization of GPS 
+spoofing,” in 2013 IEEE International Conference on Technologies 
+for Homeland Security, HST 2013, 2013, pp. 729–734. 
+[4] 
+P. F. F. Silva Filho, “Automatic Landmark Recognition in Aerial 
+Images for Autonomous Navigation System of Unmanned Aerial 
+Vehicles,” Instituto Tecnológico de Aeronáutica, 2016. 
+[5] 
+G. Cai, J. Dias, and L. Seneviratne, “A Survey of Small-Scale 
+Unmanned Aerial Vehicles: Recent Advances and Future 
+Development Trends,” Unmanned Syst., vol. 2, no. 2, pp. 175–199, 
+2014. 
+[6] 
+Z. Yang, F. Lin, and B. M. Chen, “Survey of autopilot for multi-
+rotor unmanned aerial vehicles,” in IECON 2016 - 42nd Annual 
+Conference of the IEEE Industrial Electronics Society, 2016, pp. 
+6122–6127. 
+[7] 
+L. Meier, P. Tanskanen, F. Fraundorfer, and M. Pollefeys, “the 
+Pixhawk Open-Source Computer Vision Framework for Mavs,” 
+ISPRS - Int. Arch. Photogramm. Remote Sens. Spat. Inf. Sci., vol. 
+XXXVIII-1/, no. September, pp. 13–18, 2012. 
+[8] 
+Ardupilot Development Team, “ArduPilot Autopilot Suite,” 2016. 
+[Online]. Available: http://ardupilot.org/ardupilot/. [Accessed: 12-
+Jul-2017]. 
+[9] 
+L. Meier, “MAVLink Micro Air Vehicle Communication Protocol - 
+QGroundControl GCS,” http://qgroundcontrol.org/mavlink/start, 
+2009. [Online]. Available: http://qgroundcontrol.org/mavlink/start. 
+[Accessed: 30-May-2017]. 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:57 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+[10] 
+Raspberry Pi Foundation, “Raspberry Pi,” Ultim. Guid. to 
+Raspberry Pi, no. 324, pp. 105–119, 2014. 
+[11] 
+P. S. Filho, E. H. Shiguemori, and O. Saotome, “UAV VISUAL 
+AUTOLOCALIZATON BASED on AUTOMATIC LANDMARK 
+RECOGNITION,” in ISPRS Annals of the Photogrammetry, Remote 
+Sensing and Spatial Information Sciences, 2017, vol. 4, no. 2W3, 
+pp. 89–94. 
+[12] 
+M. Bryson and S. Sukkarieh, “Uav localization using inertial 
+sensors and satellite positioning systems,” in Handbook of 
+Unmanned Aerial Vehicles, 2015, pp. 433–460. 
+[13] 
+Ardupilot Development Team, “SITL Simulator (Software in the 
+Loop),” 2016. [Online]. Available: http://ardupilot.org/dev/docs/sitl-
+simulator-software-in-the-loop.html. [Accessed: 18-Oct-2017]. 
+[14] 
+J. M. Goppert, “An adaptable, low cost test-bed for unmanned 
+vehicle systems research,” Pudue University, 2011. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:57 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

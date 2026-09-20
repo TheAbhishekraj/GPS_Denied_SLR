@@ -1,0 +1,1835 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0859.pdf
+sha256: 1125D6A6C27774BD0C2351B9B6DFBF3BDC4DDEACFF6B58FE08731BFCBA7A3E10
+library: pymupdf (fitz) v1.28.2
+pages: 10
+=== BEGIN ===
+[p.1]
+ 
+ 
+ 
+ 
+A Multimode Visual-Inertial Navigation Method for Fixed-wing Aircraft Approach 
+and Landing in GPS-denied and Low Visibility Environments  
+Xiaogang Song, School of Computer Science & Engineering, Xi’an University of Technology, Xian, China
+Lei Zhang+, School of Computer Science and Technology, Northwestern Polytechnical University, Xian, China 
+Zhengjun Zhai, School of Computer Science and Technology, Northwestern Polytechnical University, Xian, China 
+Guanfeng Yu, AVIC Xi’an Aeronautics Computing Technique Research Institute, Xi'an, China 
+ 
+Abstract—The landing safety is still one of the greatest 
+challenges for fixed-wing aircraft, meanwhile not all airport 
+runways are equipped with instrument landing system (ILS), 
+and global positioning system (GPS) is not always available. It 
+is necessary for aircraft to autonomously acquire high 
+accuracy and stable navigation data during approach and 
+landing in case of GPS loss and ILS unavailability. In this 
+paper, we propose a multimode visual-inertial navigation 
+method that combines the inertial measurement unit (IMU), 
+the forward-looking infrared (FLIR) camera and the 
+barometer into unscented kalman filter (UKF) adaptively 
+according to flight height. In order to obtain accurate motion 
+estimation, different sensing measurements are used at 
+different flight phase. This proposed method run on three 
+significant stages: 1) initial approach (flight height: 1000-200 
+feet), runway azimuth information and inertia data are fused 
+to estimate aircraft motion; 2) precision approach (flight 
+height: 200-100 feet), sparse runway features extracted from 
+the FLIR images, airport geo-information and inertia data are 
+integrated to obtain precise motion estimation; 3) precision 
+landing (flight height: 100-0 feet), visual simultaneous 
+localization and mapping (VSLAM)and inertial measurements 
+are used to estimate motion states. A general aircraft is 
+elaborately equipped with a short-wave infrared (SWIR) 
+camera, an IMU, a barometer and a flight data recorder to 
+collect real flight data for algorithm verification. Finally, the 
+experimental results demonstrate that the proposed approach 
+can be used for fixed-wing aircraft accurate approach and 
+landing in low visibility and GPS-denied environments 
+robustly. Furthermore, its accuracy has been reached to the 
+level of Inertial/Differential GPS integration.  
+Keywords - Visual-inertial navigation; Approach and landing; 
+Fixed-wing aircraft; GPS-denied; Low visibility  
+I. 
+ INTRODUCTION  
+The landing is the most accident-prone phase for both 
+military and civil aircraft since it is a high maneuver process 
+to exhaust the large amount of kinetic energy of the airplane 
+in a narrow and long airspace. Fixed-wing aircraft usually 
+descend smoothly at a constant angle, pointing in the 
+direction of the runway centerline, and touch down at the 
+beginning of the runway. The flight accidents of aircraft 
+landing stage account for more than 70% of the total flight 
+period accidents worldwide, of which 30% of all fatal 
+accidents are categorized as Controlled Flight Into Terrain 
+(CFIT) [1] due to the incorrect guidance information. If low 
+visibility conditions (e.g. fog or haze) are encountered, the 
+pilots have no choice but to manipulate the aircraft to land 
+using navigation instruments. If the conventional radio 
+navigation systems are disturbed or disabled, they can 
+mislead the pilots and cause a CFIT accident. In addition, 
+most airports are equipped with simple and coarse radio 
+beacons rather than expensive and precise ground-based 
+guidance systems. Nowadays neither avionics systems, nor 
+airport infrastructures are perfectly designed to support 
+precision landing. Faced with these challenges, an 
+autonomous, accurate and affordable landing navigation 
+mechanism is extremely necessary for most fixed-wing 
+aircrafts. In this paper, an adaptive multimode visual-inertial 
+navigation method is proposed to estimate motion for fixed-
+wing aircraft approach and landing in GPS-denied and low 
+visibility conditions.  
+II. 
+RELATED WORK  
+As a traditional navigation mechanism, the instrument 
+landing system (ILS) can meet the landing of most aircraft I 
+and II classes, however ILS with high cost and constant 
+maintenance is not suitable for the large number of general 
+airports. One of the most commonly used methods is the 
+INS/GPS integrated navigation, but GPS signals are 
+vulnerable to jamming or disable. In recent years, many 
+visual pose estimation methods for fixed wing aircraft landing 
+have been proposed, which can be divided into two 
+categories, the ground-based methods [2,3] and the airborne 
+visual aided methods [4-9]. The former often utilizes cameras 
+located on the ground to detect, track and positioning the 
+aircraft, which has high accuracy but high cost. The latter 
+fully utilizes the airborne sensors and visual navigation 
+algorithms to achieve autonomous navigation. Gui et al. [4] 
+propose an airborne vision-based navigation approach for 
+UAV accuracy landing based on artificial markers. This 
+method needs to install a visible light camera integrated with 
+a DSP processor on the UAV and place four infrared lamps 
+on the runway. Cai et al. [5] adopt SR-UKF to fuse 
+homography and inertial measurements to implement the 
+UAV auto landing navigation. Fan et al. [6] employ spectral 
+residual saliency map to detect region of interest, then select 
+978-1-7281-0649-6/19/$31.00 ©2019 IEEE
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:50 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+ 
+ 
+ 
+ 
+sparse coding and spatial pyramid matching to recognize 
+runway and use orthogonal iteration to estimate position and 
+attitude. Ruchanurucks et al. [7] use Efficient Perspective-n-
+Point (EPnP) solution to estimate relative pose for an 
+automatic landing aided system for landing a fixed-wing 
+UAV on the runway. Nevertheless, the accuracy of this 
+method is more susceptible to the errors of image detection. 
+Patruno et al. [8] proposed a landing approach based on 
+human-made land marker for multi-rotor unmanned aerial 
+vehicle. It is not suitable for approach and landing navigation 
+of fixed-wing aircraft. Gibert et al. in Airbus [9] design two 
+nonlinear observers based on high gain approach and sliding 
+mode theory and apply them to a vision-based landing 
+solution for civil aircraft in an unknown runway. However, 
+the above methods are only verified by ideal simulation 
+experiments and cannot operate under low visibility 
+conditions normally. Recent years visual-inertial information 
+fusion has been studied actively in aerial vehicle autonomous 
+navigation [10-15].  
+Visual sensors can provide rich information for robust 
+visual tracking and structure from motion at low frame-rates. 
+INS, on the other hand, measures accelerations and rotational 
+velocities at high update rate. The two types of sensors 
+complement each other in nature and integrate well in a filter 
+framework. However, these methods are mainly used in 
+multi-rotor 
+UAVs 
+flying 
+in 
+small 
+scale 
+structured 
+environments e.g. urban or indoor, and rarely applied to the 
+civil aircrafts landing in large scale airport.  
+In this paper, we propose an adaptive visual-inertial 
+navigation to estimate kinetics parameters for fixed-wing 
+aircraft approach and landing. To our knowledge, it is the 
+only full-stage autonomous vision-aided landing navigation 
+method that runs in three working modes in turn according to 
+landing height above threshold elevation (THRE). This is in 
+contrast to single vision observation such as [7], which revert 
+to multiple measurements for state estimation. In the initial 
+approach mode, runway azimuth, barometric pressure and 
+inertial data are fused to position aircraft. In the precision 
+approach mode, runway features, airport geo-information and 
+inertia data are integrated into the filter. In the precision 
+landing mode, visual SLAM and inertial measurements are 
+used to estimate pose. To accommodate low visibility 
+scenarios, a SWIR camera is installed to capture the FLIR 
+image. Finally, the real flight data verify that the method is 
+accurate and robust. 
+III. 
+SYSTEM SETUP  
+A. Approach and Landing  
+In general, a landing procedure of fixed-wing manned 
+aircraft are divided into two parts: instrument flight segment 
+(IFS) and vision flight segment (VFS). The Decision Altitude 
+(DA = 200 feet (ft)) above the Threshold Elevation (THRE) is 
+a watershed. Before descending to DA, the crew rely on 
+cockpit instrument indications, such as ILS, to maneuver the 
+aircraft. When approaching DA, the pilots look for the 
+approach lighting system that can help them align the aircraft 
+with the runway and provide position and distance remaining 
+information. At 100 feet above THRE, the visual transition 
+point, the pilot decides to continue the approach or pull up the 
+aircraft at once by visual references.  
+Compared with fixed-wing manned aircrafts, fixed-wing 
+unmanned aerial vehicle (UAV) rely on autonomous landing 
+navigation without manual work. In order to further refine the 
+navigation requirements of fixed-wing UAV landing, this 
+procedure can be divided into three substages according to 
+flight altitude, namely initial approach, precision approach 
+and precision landing, as shown in Figure 1. Initial approach 
+is defined as the sub-stage in which an aircraft descends from 
+1000 ft to 200 ft above THRE, needs accurate position data to 
+approach airport runway along the glide slide. Precision 
+approach refers to the sub-stage in which an aircraft glides 
+from 200 ft to 100 ft above THRE at a deceleration speed and 
+requires precision pose to align with the runway and judge 
+whether the runway meets the landing conditions. Landing 
+from 100 ft to THRE is the final sub-stage, precision landing, 
+during which the aircraft needs more accurate pose 
+parameters to adjust its attitude and be flattened before 
+touching the ground. 
+ 
+Figure 1. an approach and landing procedure
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:50 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+ 
+ 
+ 
+ 
+B. Method Framework   
+Under the conditions of GPS-denied and low visibility, the 
+available sensors in each sub-stage are different. Inertial 
+measurement unit (IMU) is not constrained by environmental 
+conditions and has the advantages of autonomous work and 
+high instantaneous accuracy, but its errors will accumulate 
+over time. As primary navigation instrument, it needs 
+complement with other sensors, such as barometer, radio 
+meter and camera. Firstly, the accuracy of barometric data is 
+not high intrinsically, especially at low altitude. However, it 
+can be used as a powerful supplement to the altitude 
+measurement. Secondly, radio altimeter is often limited by 
+measuring range, and is only used at low altitude. Thirdly, the 
+vision cues extracted from the image is greatly influenced by 
+the scale of the scene. As the aircraft descends, the more 
+texture belongs to the image, then the more vision 
+information can be extracted. To meet the navigation 
+requirements of each landing sub-stage, it is necessary to 
+combine different sensors and design a reasonable filtering 
+framework. The proposed integrated navigation algorithm 
+consists of three work modes according to the required 
+navigation performance of each sub-stage. In the initial 
+approach, the aircraft is far from the airport runway, and the 
+runway contour in the image is small. The center coordinates 
+of the runway ROI can be used as the runway azimuth. In the 
+precise approach, the runway details in the image is clear and 
+complete, and the detected runway edge lines and vanishing 
+point can be used as vision cues. In the precision landing, the 
+aircraft is close to the ground, then the scale is significantly 
+smaller. The accurate visual positioning information can be 
+obtained by VSLAM. The foundation of the proposed 
+approach is the SR-UKF that fuse inertial data with high 
+accurate vision observations and runway geographic data. All 
+input images are captured and synchronized with the IMU 
+according to unified time stamp. In the SR-UKF, the 
+processing model is derived by inertial data. As shown in 
+Figure 2, the part in blue box is the core of this algorithm 
+framework.  
+ 
+Figure 2.  Framework of the proposed algorithm 
+C. Coordinate System  
+The reference frames used in this paper is conformed to 
+right-hand. {D}represents the geodetic reference frame, any 
+point i in {D} is D
+iP . {E}is the earth centered earth fixed 
+(ECEF) reference frame, any point i in {E} is
+3
+E
+i ∈ℜ
+P
+. {G} 
+denotes the geographic reference frame, any point i in {G} is 
+3
+G
+i ∈ℜ
+P
+. {N} is the navigation reference frame, which is 
+east-north-up (E-N-U) direction in this paper. Any point i in 
+{N} is
+3
+N
+i ∈ℜ
+P
+. {B} represents the body reference frame. Its 
+origin is at the center of INS, XB-axis points toward right, YB-
+axis points towards front of body, and ZB-axis is determined 
+by right hand law. Any point i in {B} denotes
+3
+B
+i ∈ℜ
+P
+. {C} 
+is the camera reference frame with the origin OC at the 
+camera optical center. Zc-axis points toward front, Xc-axis 
+points to column scan direction, while Yc-axis faces to row 
+scan direction. Any point i in {C} denotes
+3
+C
+i ∈ℜ
+P
+. {P} 
+denotes the pixel reference frame with its origin Op located at 
+the upper left of image plane. u-axis points toward row scan 
+direction, v-axis points toward column scan direction. Any 
+point i in {P} denotes
+3
+P
+i ∈ℜ
+P
+.  
+D. Vehicle and Sensors Setup  
+The flight data is gathered at a general aviation airport 
+(China, Pucheng) under different weather conditions such as 
+foggy, hazy, cloudy and sunny. As shown in Figure 3, the 
+general aviation aircraft (Y-12F) is equipped with an image 
+sensing suite (ISS), an INS (Applanix AV510), a flight 
+parameter recorder (FPR, AMPEX miniR 700), a flight video 
+recorder (FVR, VM-4), an air data computer (BARO, XSC-
+6E) and a radio altimeter (RALT, Honeywell KRA405b). An 
+ISS mounted on the aircraft radome contains a SWIR camera 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:50 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+ 
+ 
+ 
+ 
+(NIP PHK03M100CSW0) and a visible light camera. 
+Furthermore, an INS, FPR, and FVR are installed on the deck 
+of aircraft cabin. The flight date mainly includes FLIR video 
+(frame rate 24Hz), inertial measurements (update 100Hz), air 
+pressure height (update 16Hz) and radio altimeter (update 
+20Hz) which are labeled by recorders with time stamps to 
+synchronize measurements. In addition, a DGPS ground 
+station (Trimble R5) is used for DGPS-inertial integration 
+navigation to provide the ground truth. 
+ 
+ 
+ 
+             (a)                         (b)                              (c)   
+ 
+ 
+(d)                                            (e) 
+Figure 3.  Vehicle and Sensors Setup: (a) ISS; (b) ISS installation; (c) aircraft 
+landing; (d) instruments for flight data acquisition; (e) DGPS ground station 
+Experiment platform is a Nvidia Jetson TX2 embedded 
+computer board with 6 ARM CPU cores, 256 Pascal GPU 
+cores, 8GB memory, as shown in Figure 4.  
+ Figure 4. The block diagram of the experimental platform 
+To get accurate motion estimations, precise FLIR camera 
+parameters and camera/INS relative pose are needed. The 
+classical calibration method based on chessboard pattern [45] 
+is adopted to obtain intrinsic parameters of the FLIR camera. 
+The world coordinates of FLIR camera and INS are 
+individually measured by an electronic total station, then the 
+FLIR camera/INS relative pose can be calculated through 
+vector relation between them [10].  
+IV. 
+VISION OBSERVATIONS 
+In the process of approach and landing, the spatial scale 
+of the image is gradually reduced and the runway area is 
+gradually visible. As the texture in the FLIR image becomes 
+dense from sparse, the visual information in the FLIR image 
+becomes more abundant. In order to maximize the accuracy 
+of visual features, the methods that can be used should also 
+be changed, rather than a fixed way. Therefore, for a 
+specific sub-stage, the corresponding processing method is 
+used to extract visual information as accurately as possible. 
+In this paper, vision observations of the three sub-stages are 
+runway azimuth, runway edges and camera pose extracted 
+by three different ways respectively.  
+A. Runway Projection 
+The synthetic runway features are derived by the runway 
+geographic information and the measured pose of INS. This 
+vision 
+projection 
+process 
+involves 
+five 
+coordinate 
+transformations as follows. 
+1) From {D} to {E}  
+The geodetic coordinate that contains the longitude, 
+latitude and altitude information can be transformed into the 
+ECEF coordinate by the following equation.  
+[
+(
+)
+(
+)
+2
+(
+) cos
+cos
+,(
+) cos
+sin
+1
+sin
+N
+i
+i
+i
+N
+i
+i
+E
+T
+N
+i
+i
+R
+h
+L
+R
+h
+L
+e
+R
+h
+L
+λ
+λ
++
+⋅
+⋅
++
+⋅
+⋅
+=
+
+−
+⋅
++
+⋅
+
+iP
+        (1) 
+2) From {E} to {G}   
+Any known point in the ECEF can be projected into the 
+geographic coordinate system with the IMU center as its 
+origin. 
+(
+)
+sin
+cos
+sin
+sin
+cos
+sin
+cos
+0
+cos
+cos
+cos
+sin
+sin
+a
+a
+a
+a
+a
+G
+E
+E
+i
+a
+a
+i
+a
+a
+a
+a
+a
+a
+L
+L
+L
+L
+L
+L
+λ
+λ
+λ
+λ
+λ
+λ
+−
+⋅
+−
+⋅
+
+
+
+
+=
+−
+⋅
+−
+
+
+
+
+−
+⋅
+−
+⋅
+−
+
+
+P
+P
+P
+ (2) 
+To simplify the calculation, the geographic coordinate 
+system {G} is selected as the navigation coordinate system 
+{N}. 
+3) From {N} to {B}   
+The navigation coordinate system{N}has the same origin 
+with the body coordinate system{B}, the former rotates 
+yaw-pitch-roll angle round XN-YN-ZN axis to the latter in 
+sequence, as follow: 
+B
+nT
+N
+i
+b
+i
+=
+⋅
+P
+C
+P                                                                   (3) 
+where
+b
+n
+C denotes the attitude matrix. 
+4) From {B} to {C}   
+The rigid connection between aircraft body and camera 
+contains a relative rotation 
+C
+B
+R
+and translation
+C
+B
+T that has 
+been accurately calibrated before flight. 
+C
+C
+B
+C
+f
+B
+f
+B
+=
+⋅
++
+P
+R
+P
+T                                                          (4) 
+5) From {C} to {P}   
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:50 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+ 
+ 
+ 
+ 
+According to the pinhole imaging model, the pixel 
+coordinate projection of any point in the pixel coordinate 
+system is: 
+0
+0
+i
+1
+0
+0
+1
+0
+1
+0
+0
+0
+0
+1
+0
+0
+1
+P
+C
+i
+C
+dx
+s
+u
+f
+dy
+v
+f
+Z
+
+
+
+
+
+
+=
+⋅
+⋅
+
+
+
+
+
+
+
+
+
+i
+P
+P              (5) 
+      Equations (1) ~ (5) give a complete vision projection 
+from the runway plane to the pixel plane. Therefore, any 
+point
+3
+D
+f ∈ℜ
+P
+on the airport runway can be projected onto 
+the pixel plane as a point 
+2
+P
+f ∈ℜ
+P
+. The equivalent function 
+is written as follow: 
+F
+,
+, ,
+P
+D
+i
+i
+a
+a
+a
+L ,
+,h ,
+λ
+ψ θ φ
+=
+P
+P
+（
+）                                         (6)  
+6) Vertexes Projection 
+The pixel coordinates of the front left and right corners 
+(point a and point d), the back left and right corners (point b 
+and point c) and the vanishing point (point v) of the runway 
+are calculated individually.  
+[
+]
+ˆ
+ˆ
+ˆ
+T
+P
+a
+r
+c
+a
+a
+=
+P
+,
+ˆ
+ˆ
+ˆ
+T
+P
+d
+r
+c
+d
+d
+
+
+= 
+
+P
+,
+ˆ
+ˆ
+ˆ
+T
+P
+b
+r
+c
+b
+b
+
+
+= 
+
+P
+,
+[
+]
+ˆ
+ˆ
+ˆ
+T
+P
+c
+r
+c
+c
+c
+=
+P
+ and 
+[
+]
+ˆ
+ˆ
+ˆ
+T
+P
+v
+r
+c
+v
+v
+=
+P
+.  
+7) Center of Runway Contour 
+The center of synthetic runway is selected as the center 
+coordinate 
+[
+]
+ˆ
+ˆ
+ˆ
+T
+P
+o
+r
+c
+o
+o
+=
+P
+of runway contour which can be 
+calculated by Equation (6).  
+B. Runway Detection 
+Visible images have high spatial resolution and rich texture 
+details, but these images can be easily influenced by severe 
+conditions, such as poor illumination, fog, and other effects of 
+bad weather. Visible images capture reflected light, whereas 
+infrared images capture thermal radiation. In general, infrared 
+images are resistant to these disturbances. In the present 
+paper, we adopt the SWIR camera to capture FLIR images 
+with important airfield features in low visibility. However, 
+infrared images typically have defects of low resolution and 
+poor texture [16]. Existing runway detection algorithms [17–
+19] cannot satisfy the requirements of robustness and 
+accuracy in airborne extract runway features from FLIR 
+images accurately and robustly. Improvements have been 
+made on the basis of our recently proposed method [20]. 
+This paper improves a hierarchical approach from coarse to 
+fine to accurate detect and extract runway features from the 
+FLIR image. In the coarse layer, YOLO (You Only Look 
+Once) algorithm [21,22] is trained to detect range of interest 
+(ROI) of the runway. Due to its special geometry, line 
+segments give a high-level description of airport runway. In 
+the fine layer, the line segments are extracted from ROI by 
+EDlines 
+detector 
+[23] 
+and 
+are 
+classified 
+into 
+the 
+corresponding line set according its neighborhood and slope. 
+Some random points are selected from the line segment by its 
+weight. Then these random points in each line set are fitted 
+into a complete runway line by RANSAC. Finally, three 
+vertexes of the runway triangle contour can be calculated by 
+the right edge, the left edge and the front edge of the runway. 
+1) ROI Detection 
+In this paper, the YOLO is used to detect ROI of the airport 
+runway, which is a target detection system based on a single 
+neural network. The detection process is: (1) an input image 
+is divided into 7×7 networks; (2) give each network a 
+prediction of two borders; (3) remove the less possible 
+window according to the 7×7× 2 target windows predicted in 
+the last step and use the Non-Maximum Suppression (NMS) 
+to remove the redundant windows. 
+2) Line Segments Extraction 
+An ideal line segment detection algorithm could process 
+any images regardless of its origin, orientation or size, and 
+produce robust and accurate line segments in real-time 
+without parameters tuning. Among existing algorithms, Line 
+Segments Detector (LSD) [24] and EDLines Detector can 
+satisfy 
+the 
+above-mentioned 
+requirements. 
+However, 
+EDLines runs up to 11 times faster than LSD, which makes it 
+more suitable for real-time runway detection. 
+3) Runway Line Fitting 
+Due to low illumination, weak contrast, blurry in FLIR 
+image, there are two major problems when the EDLines are 
+applied to the FLIR images: (1) the detected object edges are 
+composed of small line segments with different orientations, 
+(2) there are often gap-filling segments leading to 
+discontinuity of edges of the infrastructure objects. When the 
+aircraft is still far from the runway, the projection region of 
+runway onto the image plane is relatively small. It is very 
+difficult to accurately detect and extract the back edge of the 
+runway from the FLIR image. This paper uses only three 
+vertexes of the runway triangle as visual measurements and 
+proposes a fast method to classify and fit three sets of 
+adjacent line segments into three long runway edges, as 
+shown in Figure 5. Firstly, some symbols are defined to 
+depict these line segments quantitatively, as follow: 
+a) 
+ab
+T , 
+cd
+T or 
+ad
+T
+represents the neighborhood width of 
+the ideal runway line
+ab
+L ,
+cd
+L or
+ad
+L
+. 
+max{
+,
+}
+ab
+a
+b
+T
+N
+N
+=
+, 
+max{
+,
+}
+cd
+c
+d
+T
+N
+N
+=
+ and 
+max{
+,
+}
+ad
+a
+d
+T
+N
+N
+=
+, where
+a
+N , 
+b
+N , 
+c
+N and 
+d
+N denote the neighborhood width of 
+endpoints. 
+b) (
+)
+i
+ab
+L ,L
+θ
+, (
+)
+i
+cd
+L ,L
+θ
+or (
+)
+i
+ad
+L ,L
+θ
+is the angle between 
+any line segment
+iL and the ideal runway line
+ab
+L ,
+cd
+L or
+ad
+L
+. 
+If a line segment
+iL falls into the neighborhood of the ideal 
+runway line
+ab
+L
+ and-
+(
+)
+2
+2
+i
+ab
+L ,L
+θ
+° ≤
+≤° , then the line 
+segment
+iL is reserved in the line segment set of line
+ab
+L . In 
+the same way each detected line segment
+iL will be reserved 
+in its corresponding set or abandoned. Therefore, all line 
+segments are divided into three sets (
+L
+S ,
+R
+S and
+F
+S
+). In 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:50 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+ 
+ 
+ 
+ 
+addition, each line segment is given its weight which is equal 
+to line width multiplied by line length and decides the number 
+of random points selected from this line segment. Thus, these 
+random points selected from the line segments in each set can 
+be fitted into a long runway line by RANSAC.  
+ˆa
+ˆd
+ˆc
+ˆb
+ 
+Figure 5. Runway Line Segments Fitting 
+4) Vertexes Calculation 
+The right edge, the left edge and the front edge of the 
+runway intersect each other, so three intersection points are 
+the 
+vertexes 
+of 
+the 
+runway 
+triangle, 
+which 
+are 
+[
+]
+T
+P
+a
+r
+c
+a
+a
+=
+P
+, 
+[
+]
+T
+P
+d
+r
+c
+d
+d
+=
+P
+and
+[
+]
+T
+P
+v
+r
+c
+v
+v
+=
+P
+. 
+5) Runway Azimuth 
+The center of runway ROI is considered as the runway 
+azimuth 
+[
+]
+T
+P
+o
+r
+c
+o
+o
+=
+P
+in the FLIR image.  
+C. DSO 
+Direct 
+sparse 
+odometry 
+is 
+based 
+on 
+continuous 
+optimization of the photometric error over a window of recent 
+frames, taking into account a photometrically calibrated 
+model for image formation. In contrast to existing direct 
+SLAM methods, DSO jointly optimize for all involved 
+parameters such as camera intrinsic & extrinsic parameters 
+and inverse depth values, effectively performing the 
+photometric 
+equivalent 
+of 
+windowed 
+sparse 
+bundle 
+adjustment.  DSO runs on the real flight data (flight height = 
+100 ft → 0 ft) and outputs the camera motion, as shown in 
+Figure 6.  
+1) Photometric Calbiration 
+In contrast to existing approaches, DSO takes full 
+advantage of photometric camera calibration, including len 
+attenuation, gamma correction, and known exposure times. 
+The photometric camera model maps real-world energy 
+received by a pixel on the sensor (irradiance) to the 
+respective intensity value. The image formation mode is 
+given by 
+( )
+( )
+( )
+(
+)
+i
+i
+i
+I
+x
+G tV x B x
+=
+                                              (9) 
+where
+[
+]
+:
+0,255
+G R →
+denotes the non-linear response 
+function, 
+[
+]
+0,1
+V Ω →
+:
+is lens attenuation (vignetting),
+iB and 
+iI are the irradiance and the observed pixel intensity in 
+frame i , and
+it is the exposure time. The model is applied 
+by photometrically correcting each video frame as very first 
+step, by computing 
+( )
+( )
+( )
+(
+)
+( )
+1
+:
+i
+i
+i
+i
+G
+I
+x
+I
+x
+t B x
+V x
+−
+′
+=
+=
+                                       (10) 
+ This integrated photometric calibration further increase 
+accuracy and robustness. 
+ 
+(a) lateral view 
+ 
+(b) vertical view 
+Figure 6. DSO output 
+2) Photometric Error 
+The photometric error of a point
+i
+p∈Ω in reference frame 
+i observed in another frame j is defined as follows: 
+[
+]
+(
+)
+[ ]
+(
+)
+j
+i
+p
+a
+i
+pj
+p
+j
+j
+i
+i
+a
+i
+t e
+E
+I
+p
+b
+I
+p
+b
+t e
+γ
+ω
+∈
+′
+=
+−
+−
+−
+
+P N
+            (11) 
+where
+p
+N
+is a small set of pixels around the point p , 
+iI and 
+jI are images of respective frames, 
+it ,
+jt are the exposure 
+times, 
+ia ,
+ib ,
+ja ,
+jb are the coefficients to correct for affine 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:50 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+ 
+ 
+ 
+ 
+illumination changes, γ is the Huber norm, 
+p
+ω is a gradient-
+dependent weighting and p′ is the point projected into
+jI . The 
+photometric error can be formulated as follow.  
+( )
+F
+P
+=
+i
+photo
+pj
+i
+p
+j obs p
+E
+E
+∈
+∈
+∈
+
+                                         (12) 
+where F is a set of keyframes that can be optimized, 
+i
+P is a 
+sparse set of points in keyframe i , and 
+( )
+obs p is s set of 
+observations of the same point in other keyframes.   
+3) Windowed Optimization 
+DSO adopts the Gauss-Newton algorithm to optimize the 
+photometric errors in a sliding window, as described below 
+T
+H=J WJ and 
+T
+b=-J Wr                                                (13) 
+where W
+Rn n
+×
+∈
+is the diagonal matrix containing the 
+weight, r
+R n
+∈
+ is the stacked residual vector, and
+n d
+J
+R ×
+∈
+ is 
+the Jacobian of r .  
+V. 
+STATE ESTIMATION  
+A. Propagtion Process  
+The state of the filter is composed of the position 
+i
+np of the 
+IMU in the navigation frame {N}, its velocity, and its attitude 
+quaternion describing a rotation from the navigation frame 
+{N} into the body frame {B}. The gyro and acceleration non-
+static biases bω and 
+ab as well as scale factor ρ are also added 
+in the state. This yield an 18-element state vector X : 
+XT
+bT
+bT
+bT
+T
+T
+n
+n
+n
+a
+p
+v
+q
+b
+b
+ω
+ρ
+
+
+= 
+ 
+The following different equations govern the state: 
+b
+b
+n
+n
+p
+v
+•
+=
+                                                                              (14) 
+(
+)
+b
+n
+b
+T
+n
+m
+a
+a
+q
+v
+C
+a
+b
+n
+g
+•
+=
+−
+−
+−
+                                                  (15) 
+(
+)
+1
+2
+b
+b
+n
+m
+n
+q
+b
+n
+q
+ω
+ω
+ω
+•
+=
+Ω
+−
+−
+                                                 (16) 
+0
+0
+0
+a
+b
+b
+ω
+ρ
+•
+•
+•
+=
+=
+=
+                                                      (17) 
+The linearized continuous-time state equations can be written 
+to the discrete-time model.  
+(
+)
+/
+1
+1
+1
+k
+k k
+k
+k
+x
+x
+w
+−
+−
+−
+=
++
+Φ
+                                                (18) 
+B. Measurement Update  
+1) Initial Approach Mode  
+In initial approach mode, the vision measurement model can 
+be given as follow  
+(
+)
+h
+k
+IA
+k
+IA
+x
+=
++
+y
+n
+                                                             (19) 
+[
+]
+T
+k
+r
+c
+bh
+o
+o
+h
+=
+y
+                                                          (20) 
+ˆ
+ˆ
+ˆ
+T
+LA
+or
+oc
+bh
+n
+n
+n
+
+
+= 
+
+n
+                                                   (21) 
+(
+)
+[
+]
+ˆ
+ˆ
+h
+T
+LA
+k
+c
+r
+imu
+x
+o
+o
+h
+=
+                                                (22) 
+where
+LA
+n
+is assumed to be zero-mean Gaussian white noise, 
+bh
+h is the barometric height,
+( )
+3
+b
+imu
+n
+h
+p
+=
+ is the IMU height 
+above THRE.  
+2) Precision Approach Mode  
+In precision approach mode, the vision measurement model 
+is given by  
+(
+)
+h
+k
+PA
+k
+PA
+x
+=
++
+y
+n
+                                                         (23) 
+[
+]
+T
+k
+r
+c
+r
+c
+r
+c
+a
+a
+d
+d
+v
+v
+=
+y
+                                   (24) 
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+ˆ
+T
+PA
+ar
+ac
+vr
+vc
+dr
+dc
+n
+n
+n
+n
+n
+n
+
+
+= 
+
+n
+                        (25) 
+where
+PA
+n
+is assumed to be zero-mean Gaussian white noise, 
+k
+y is the set of the runway vertexes extracted from the FLIR 
+image, 
+(
+)
+h PA
+kx
+ function is equal to Equation (6).   
+3) Precision Landing Mode 
+In precision landing mode, the vision measurement model can 
+be given as follow  
+(
+)
+h
+k
+PL
+k
+PL
+x
+=
++
+y
+n
+                                                            (26) 
+1 3
+T
+c
+c
+k
+n
+n
+ralt
+p
+q
+e
+h
+×
+
+
+= 
+
+y
+                                             (27) 
+(
+)
+h
+b
+n
+b
+T
+c
+n
+b
+q
+c
+b
+b
+n
+PL
+k
+bT
+b
+n
+n
+imu
+p
+C p
+q
+q
+x
+q q
+h
+ρ
+ρ
+
+
++
+
+
+⊗
+
+
+= 
+
+
+
+
+
+
+
+                                             (28) 
+where 
+PL
+n
+is assumed to be zero-mean Gaussian white noise, 
+ralt
+h
+ is the height of radio altimeter.   
+C. Nonlinear Filtering 
+As a typical nonlinear filtering algorithm, the unscented 
+Kalman filter (UKF) uses a finite number of sigma points to 
+capture high-order system characteristics, leading to the high 
+filtering precision and good convergence. However, it need 
+calculate square root of state covariance matrix during sigma 
+points at each time update, it may cause negative definite 
+state covariance matrix. Nevertheless, the SR-UKF [25] 
+adopts a Cholesky factorization of state covariance matrix in 
+propagation directly to guarantee positive semi-definiteness 
+of the state covariances. Considering the flight safety of 
+fixed-wing aircraft, the SR-UKF is suitable to integrate 
+inertial data and vision measurements.  
+VI. 
+RESULTS  
+A. Runway Detection  
+Runway detection algorithm include two parts: runway 
+detection and feature extraction. In the first part, tiny YOLO 
+is used to detect and recognize runway target from FLIR 
+video. YOLO needs to be trained on the workstation with 
+Intel Core i7-6700, 3.40GHz CPU, 8GB RAM, NVIDIA 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:50 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+ 
+ 
+ 
+ 
+display card 1070 and OS Ubuntu14.04. In this paper, 1000 
+photos are selected from the FLIR video, in which 800 photos 
+are used as training sets and 200 photos as test sets. This 
+training process iterates 80200 times and runs 36 hours. 
+Therefore, the trained YOLO runs on the embedded computer 
+board TX2, read FLIR video and recognize runway ROI. In 
+the second part, EDLines detector is used to extract line 
+segments from ROI, then these line segments are fitted into 
+runway edges, as shown in Figure 7. 
+B. Motion Estimation 
+As shown in Figure 8, the landing trajectories from the two 
+landing navigation methods are presented. The red curve 
+represents INS/DGPS data, and the green is the motion 
+estimation of the proposed method. The blue pattern denotes 
+the airport runway area. The aircraft descended from 500 ft to 
+0 ft, through three typical altitudes of 200 ft, 100 ft, 60 ft, and 
+0 ft, which lasted 73.73s. Six time points are marked in this 
+figure. In our experiments, the results of INS/DGPS 
+navigation are selected as the ground truth.  
+The proposed method is compared with GPS/INS integration 
+[26] and INS/BARO/RALT integration [27]. As shown in 
+Figure 9, the pose error of INS/GPS integration is slightly 
+larger than the other two method, while the pose error of the 
+proposed algorithm is smaller than those of the other two 
+methods. The experimental results shown that the fusion of 
+infrared and inertial information is effective.  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Figure 7. Runway detection  
+ 
+Figure 8. Trajectory of approach and landing 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:50 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+ 
+ 
+ 
+ 
+  [deg]
+  [deg]
+  [deg]
+     
+ 
+(a) Euler angle                                                                                                 (b) Position  
+ 
+(c) Velocity  
+Figure 9. Pose errors estimation  
+C. Discussion 
+The reasonable vision observations, accuracy features 
+extraction and multimode visual-inertial fusion method are 
+essential for precision motion estimation. Experimental 
+results have supported such notion. Based on the 
+experimental results, we have obtained the following key 
+observations:  1) Because of employing a SWIR camera, the 
+proposed method can capture the FLIR image clearly under 
+low visibility conditions and extract visual features from it. 
+Meanwhile, IMU can measure accelerations and rotational 
+velocities at high update. The two type of sensors can be 
+integrated well in a filtering framework. 2) The pose accuracy 
+of the proposed method is not only superior to INS/GPS 
+integration, but also comparable to INS/DGPS integration. 
+Ultimately, the results are derived from accurate runway 
+detection, reasonable features selection and efficient visual-
+inertial fusion. 3) Compared with the conventional integrated 
+navigation methods, our method has higher pose accuracy. 
+Due to poor measurement accuracy of GPS, the traditional 
+navigation methods are inferior to our proposed method.  
+VII. CONCLUSION 
+In this paper, a novel visual-inertial navigation for the fixed-
+wing aircraft approach and landing in GPS-denied and low-
+visibility environments is proposed. Three reasonable vision 
+observations are designed to meet required navigation 
+performances. Through SR-UKF fusion of visual information 
+and inertial data, the random error of inertial sensors can be 
+eliminated and the accuracy of pose estimation can be 
+improved. Finally, the validity of the algorithm is verified by 
+real flight data.  
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:50 UTC from IEEE Xplore.  Restrictions apply. 
+[p.10]
+ 
+ 
+ 
+ 
+ACKNOWLEDGMENT 
+This work was supported by the Aviation Science Foundation 
+under Grant No.20181953021 and No. 2017ZC31008.  
+REFERENCES 
+[1] International Civil Aviation Organization (ICAO), “A Statistical 
+Analysis of Commercial Aviation Accidents 1958-2016, pp.23-29. 
+[2] W. Kong, T. Hu, D. Zhang, L. Shen, J. Zhang, “Localization 
+Framework for Real-Time UAV Autonomous Landing: An On-
+Ground Deployed Visual Approach,” Sensors, vol.17, 2017, pp. 
+1437-1453. 
+[3] T. Yang, G. Li, J. Li, Y. Zhang, X. Zhang, Z. Zhang, Z. Li, “A 
+Ground-Based Near Infrared Camera Array System for UAV Auto-
+Landing in GPS-Denied Environment,” Sensors, vol.16, 2016, pp. 
+1393-1412. 
+[4] Y. Gui, P. Guo, H. Zhang, Z. Lei, X. Zhou, J. Du, Q. Yu. “Airborne 
+Vision-Based Navigation Method for UAV Accuracy Landing Using 
+Infrared Lamps,” J. Intell. Robot. Syst. , vol.72, 2013, pp. 197-218.  
+[5] M. Cai, X. Sun, S. Xu, X. Liu, “Vision Aided INS for UAV Auto 
+Landing 
+Navigation 
+Using 
+SR-UKF 
+Based 
+on 
+Two-View 
+Homography,”  Proc. IEEE Chinese Guidance, Navigation and 
+Control Conference, IEEE Press, Yantai, China, 8-10 Aug, 2014, 
+pp.518-522, doi: 10.1109/CGNCC.2014.7007276 
+[6] Y. Fan, M. Ding, Y. Cao, “Vision algorithms for fixed-wing 
+unmanned aerial vehicle landing system,” Sci. China Tech. Sci., 
+vol.60, 2017, pp. 434-443. 
+[7] M. Ruchanurucks, P. Rakprayoon, S. Kongkaew, “Automatic 
+Landing Assist System Using IMU+PnP for Robust Positioning of 
+Fixed-Wing UAVs,” J. Intell. Robot. Syst. vol.90, 2018, pp. 189-199. 
+[8] C. Patruno, M. Nitti, A. Petitti, E. Stella, T. D’Orazio. “A Vision-
+Based Approach for Unmanned Aerial Vehicle Landing,” J. Intell. 
+Robot. Syst.  2018, pp. 1-20 
+[9] V. Gibert, F. Plestan, L. Burlion, J. Boada, A. Chriette, “Visual 
+estimation of deviations for the civil aircraft landing,” Control 
+Engineering Practice vol.75, 2018, pp. 17-25. 
+[10] F. Santoso, M.A. Garratt, S.G. Anavatti, “Visual Inertial Navigation 
+Systems for Aerial Robotics Sensor Fusion and Technology,” IEEE 
+Trans. Auto. Sci. Eng., vol.14, 2017,  pp. 260-275. 
+[11] S. Lynen, M.W. Achtelik, S. Weiss, M. Chli, R. Siegwart, “A Robust 
+and Modular Multi-Sensor Fusion Approach Applied to MAV 
+Navigation,” Proc. IEEE International Conference on Intelligent 
+Robots and Systems, IEEE Press, Tokyo, Japan, Nov 3-7, 2013, 
+pp.3923-3929. doi:10.1109/IROS.2013.6696917.  
+[12] T. Liu, S. Shen, “High Altitude Monocular Visual-Inertial State 
+Estimation: 
+Initialization 
+and 
+Sensor 
+Fusion,” 
+Proc. 
+IEEE 
+International Conference on Robotics and Automation, IEEE Press, 
+Singapore,Singapore, May 29 - June 3, 2017. pp. 4544-4551, doi: 
+10.1109/ICRA. 2017.7989528.  
+[13] M. Bloesch, M. Burri, S. Omari, “Iterated extended Kalman filter 
+based visual-inertial odometry using direct photometric feedback,” 
+The International Journal of Robtics Research vol.36, 10,  2017,  pp. 
+1053-1072. 
+[14] E. Hong, J. Lim, “Visual Inertial Odometry using Coupled Nonlinear 
+Optimization,” Proc. IEEE International Conference on Intelligent 
+Robots and Systems, IEEE Press, Sept 24-28, 2017, pp. 6879-6885, 
+doi: 10.1109/IROS.2017.8206610.  
+[15]  Y. Lin, F. Gao, T. Qin, W. Gao, T. Liu, Q. Wu, Z. Yang, S. Shen, 
+“Autonomous aerial navigation using monocular visual-inertial 
+fusion,” J. Field Robot., Vol.35, 2018, pp. 23-51. 
+[16]  P. Borges, S. Vidas, “Practical Infrared Visual Odometry,” IEEE 
+Trans. Intell. Transp. Syst. Vol.17, 2016, pp. 2205-2213. 
+[17] C. Liu, Q. Zhao, Y. Zhang, K. Tan, “Runway Extraction in Low 
+Visibility Conditions Based on Sensor Fusion Method,” IEEE Sens. J. 
+Vo. 14, 2016, pp. 1980–1987.  
+[18] V. Kumar, S. Kashyao, “Detection of Runway and Obstacles using 
+Electro-optical and Infrared Sensors before Landing,” Def. Sci. J. 
+Vol. 64, 2014, pp. 67–76.  
+[19] Wu, W.; Xia, R.; Xiang, W.; Hui, B.; Chang, Z.; Liu, Y.; Zhang, Y. 
+“Efficient Airport Detection Using Line Segment Detector and Fisher 
+Vector Representation,” IEEE Geosci. Remote Sens. Vol.13, 2016, 
+pp. 1079–1083. 
+[20] L. Zhang, Y. Cheng, Z.J. Zhai, “Real-time Accurate Runway 
+Detection based on Airborne Multi-sensors Fusion,” Def. Sci. J., 
+vol.67, 5, 2017, pp. 48-56. 
+[21] J. Redmon, S. Divvala, R. Girshick, “You Only Look Once: Unified, 
+Real-Time Object Detection,” Proc. IEEE Conference on Computer 
+Vision and Pattern, IEEE Press, USA, Las Vegas, June 26 – July 1,  
+2016, pp.779-788, doi: 10.1109/CVPR.2016.91. 
+[22] J. Redmon, A. Farhadi, “YOLO9000: Better, Faster, Stronger,” Proc. 
+IEEE Conference on Computer Vision and Pattern, IEEE Press, USA, 
+Honolulu, July 21-26, 2017, pp.6517-6525. doi: 10.1109/CVPR.2017. 
+690.  
+[23] C. Akinlar, C. Topal, “EDLines: A real-time line segment detector 
+with a false detection control,” Pattern Recognition Lett., vol.32, 
+2011, pp. 1633-1642.  
+[24] R. Grompone Von Gioi, J. Jakubowicz, J.M. Morel,  G. Randall, 
+“LSD: a line segment detector,” Image Processing On Line, 2012-03-
+24, pp.35-55.  
+[25] V.D. Rudolph, A.W. Eric, “The Square-root Unscented Kalman Filter 
+for State and Parameter-estimation,” Proc. IEEE International 
+Conference on Acoustics, Speech, and Signal Processing 2001, Salt 
+Lake City, UT, USA, 7–11 May 2001; pp. 3461–3464. 
+doi:10.1109/ICASSP.2001.940586.  
+[26] W. Khalaf, I. Chouaib, M. Wainakh, “Novel adaptive UKF for 
+tightly-coupled INS/GPS integration with experimental validation on 
+an 
+UAV,” 
+Gyrosc. 
+Navig. 
+Vol. 
+8, 
+2017, 
+259–269, 
+doi:10.1134/S2075108717040083. 
+[27] R. Gay, P. Maybeck, “An Integrated GPS/INS/BARO and Radar 
+Altimeter System for Aircraft Precision Approach Landings,” Proc. 
+IEEE National Aerospace and Electronics Conference, Dayton, OH, 
+USA, 22–26 May 1995; pp. 161–168.  doi:10.1109/NAECON. 
+1995.521930.   
+ 
+  
+ 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:50 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

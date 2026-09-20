@@ -1,0 +1,1907 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0993.pdf
+sha256: 9DBCFDAED53362478BC7CEE5ED7BF0375EAA0C60C5269BAD199B05F134C6AD48
+library: pymupdf (fitz) v1.28.2
+pages: 30
+=== BEGIN ===
+[p.1]
+Fast, Autonomous Flight in GPS-Denied and
+Cluttered Environments
+Kartik Mohta
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+kmohta@seas.upenn.edu
+Michael Watterson
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+wami@seas.upenn.edu
+Yash Mulgaonkar
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+yashm@seas.upenn.edu
+Sikang Liu
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+sikang@seas.upenn.edu
+Chao Qu
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+quchao@seas.upenn.edu
+Anurag Makineni
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+makineni@seas.upenn.edu
+Kelsey Saulnier
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+saulnier@seas.upenn.edu
+Ke Sun
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+sunke@seas.upenn.edu
+Alex Zhu
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+alexzhu@seas.upenn.edu
+Jeﬀrey Delmerico
+Robotics and Perception Group
+University of Zurich
+Zurich, Switzerland
+jeffdelmerico@ifi.uzh.ch
+Konstantinos Karydis
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+kkarydis@seas.upenn.edu
+Nikolay Atanasov
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+atanasov@seas.upenn.edu
+Giuseppe Loianno
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+loiannog@seas.upenn.edu
+Davide Scaramuzza
+Robotics and Perception Group
+University of Zurich
+Zurich, Switzerland
+sdavide@ifi.uzh.ch
+Kostas Daniilidis
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+kostas@seas.upenn.edu
+Camillo Jose Taylor
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+cjtaylor@seas.upenn.edu
+Vijay Kumar
+GRASP Lab
+University of Pennsylvania
+Philadelphia, PA, USA
+kumar@seas.upenn.edu
+Abstract
+One of the most challenging tasks for a ﬂying robot is to autonomously navigate between
+target locations quickly and reliably while avoiding obstacles in its path, and with little to no
+a-priori knowledge of the operating environment. This challenge is addressed in the present
+paper. We describe the system design and software architecture of our proposed solution,
+arXiv:1712.02052v1  [cs.RO]  6 Dec 2017
+[p.2]
+and showcase how all the distinct components can be integrated to enable smooth robot
+operation. We provide critical insight on hardware and software component selection and
+development, and present results from extensive experimental testing in real-world ware-
+house environments. Experimental testing reveals that our proposed solution can deliver
+fast and robust aerial robot autonomous navigation in cluttered, GPS-denied environments.
+1
+Introduction
+In recent times, there has been an explosion of research on micro-aerial vehicles (MAVs), ranging from low-
+level control (Lee et al., 2010) to high-level, speciﬁcation-based planning (Wolﬀet al., 2014). One class of
+MAVs, the quadrotor, has become popular in academia and industry alike due to its mechanical and control
+simplicity, high maneuverability and low cost of entry point compared to other aerial robots (Karydis and
+Kumar, 2016). Indeed, there have been numerous applications of quadrotors to ﬁelds such as Intelligence,
+Surveillance and Reconnaissance (ISR), aerial photography, structural inspection (¨Ozaslan et al., 2016),
+robotic ﬁrst responders (Mohta et al., 2016), and cooperative construction (Augugliaro et al., 2014) and
+aerial manipulation (Thomas et al., 2014). Such recent advances have pushed forward the capabilities of
+quadrotors.
+Most of these works rely on the availability of ground truth measurements to enable smooth robot perfor-
+mance. Ground truth can be provided by motion capture systems in lab settings, GPS in outdoor settings,
+or by appropriately placed special tags in known environments. However, real-world environments are dy-
+namic, partially-known and often GPS-denied. Therefore, there is need to push further on developing fully
+autonomous navigation systems that rely on onboard sensing only in order to fully realize the potential of
+quadrotors in real-world applications. Our work aims at narrowing this gap.
+Speciﬁcally, the focus of this paper is to provide a detailed description of a quadrotor system that is able to
+navigate at high speeds between a start and a goal pose (position and orientation) in cluttered 3D indoor
+and outdoor environments while using only onboard sensing and computation for state estimation, control,
+mapping and planning. The motivation for this problem comes from the recently announced DARPA Fast
+Lightweight Autonomy program1. The main challenge in creating such small, completely autonomous MAVs
+is due to the size and weight constraints imposed on the payload carried by these platforms. This restricts
+the kinds of sensors and computation that can be carried by the robot and requires careful consideration
+when choosing the components to be used for a particular application. Also, since the goal is fast ﬂight, we
+want to keep the weight as low as possible in order to allow the robot to accelerate, decelerate and change
+directions quickly.
+Any robot navigation system is composed of the standard building blocks of state estimation, control,
+mapping and planning. Each of these blocks builds on top of the previous ones in order to construct the
+full navigation system. For example, the controller requires a working state estimator while the planner
+requires a working state estimator, controller and mapping system. Initial works on state estimation for
+aerial robots with purely onboard sensing used laser rangeﬁnders as the sensing modality due to the limited
+computational capacity available on the platforms (Bachrach et al., 2009; Achtelik et al., 2009; Grzonka
+et al., 2009). Due to the limitations of laser scan matching coupled with limited computational capability,
+these works were limited to slow speeds. Since the small and lightweight laser rangeﬁnders that could be
+carried by the aerial robots only measured distances in a single plane, these methods also required certain
+simplifying assumptions about the environment, for example assuming 2.5D structure. As the computational
+power grew and more eﬃcient algorithms were proposed, it became possible to use vision for state estimation
+for aerial robots (Achtelik et al., 2009; Bl¨osch et al., 2010). Using cameras for state estimation allowed ﬂights
+in 3D unstructured environments and also faster speeds (Shen et al., 2013). As the vision algorithms have
+improved (Klein and Murray, 2007; Mourikis and Roumeliotis, 2007; Jones and Soatto, 2011; Forster et al.,
+1http://www.darpa.mil/program/fast-lightweight-autonomy
+[p.3]
+2014; Mur-Artal et al., 2015; Bloesch et al., 2015) and the computational power available on small computers
+has grown, cameras have now become the sensor of choice for state estimation for aerial robots. We use
+the visual odometry algorithm described in (Forster et al., 2017) for our platform due to the fast run time,
+ability to use wide angle lenses without requiring undistortion of the full image, allowing the use of multiple
+cameras to improve robustness of the system and incorporation of edgelet features in addition to the usual
+point features.
+The dynamics of the quadrotor are nonlinear due to the rotational degrees of freedom. In the control design
+for these robots, special care has to be taken in order to take this nonlinearity into account in order to utilize
+the full dynamics of the robot. Most early works in control design for quadrotors (Bouabdallah et al., 2004;
+Bouabdallah and Siegwart, 2005; Escareno et al., 2006; Hoﬀmann et al., 2007; Bouabdallah and Siegwart,
+2007) used the small angle approximation for the orientation controller to convert the problem into a linear
+one and proposed PID and backstepping controllers to stabilize the simpliﬁed system. Due to the small angle
+assumption, these controllers are not able to handle large orientation errors and have large tracking errors
+for aggressive trajectories. A nonlinear controller using quaternions (instead of Euler angles) was developed
+in (Guenard et al., 2005) where the quadrotor was commanded to follow velocity commands. (Lee et al.,
+2010) deﬁned an orientation error metric directly in the SO(3) space and proposed a globally asymptotic
+controller that can stabilize the quadrotor from large position and orientation errors. Our controller is based
+upon this work and has good tracking performance even when following aggressive trajectories.
+It has been shown that the trajectory generation for multi-rotor MAVs can be formulated as a Quadratic
+Program (QP) (Mellinger and Kumar, 2011). Since the quadrotor is a diﬀerentially ﬂat system, the trajectory
+can be optimized as an nth order polynomial parameterized in time (Mellinger and Kumar, 2011). Generating
+a collision-free trajectory is more complicated, in which additional constraints for collision checking are
+required. Using Mixed Integer optimization methods to solve this problem has been discussed in (Mellinger
+et al., 2012) and recently other approaches have been proposed to remove the integer variables and solve the
+QP in a more eﬃcient way (Richter et al., 2016; Deits and Tedrake, 2015b; Watterson and Kumar, 2015).
+Our pipeline uses a linear piece-wise path from a search-based planning algorithm to guide the convex
+decomposition of the map to ﬁnd a safe corridor in free space as described in (Liu et al., 2016). The safe
+corridor is formed as linear equality constraints in the QP for collision checking. We also consider dynamic
+constraints on velocity, acceleration and jerk in the QP to ensure that the generated trajectory does not
+violate the system’s dynamics. In order to increase the safety, we propose a modiﬁed cost functional in the
+trajectory generation step such that the generated trajectory will be close to the center of the safe corridor.
+We couple our trajectory generation method described above with a receding horizon method (Bellingham
+et al., 2002) for replanning. As the robot moves, we only keep a local robot centric map and use a local
+planner to generate the trajectory. The main reasons behind this approach are: ﬁrst, updating and planning
+in global map is expensive; second, the map far away from the robot is less accurate and less important.
+Since we are using a local planning algorithm, dead-ends are a well-known challenge. In order to eﬃciently
+solve this, we build a hybrid map consisting of a 3D local map and a 2D global map and our planner searches
+in this hybrid map to provide a globally consistent local action.
+The purpose of a navigation system is to enable a robot to successfully traverse from a start pose to a goal
+pose in either a known or an unknown environment. The problem of navigating in an unknown environment
+is especially diﬃcult, because in addition to having good state estimation and control, the robot needs to
+build an accurate map as it moves, and also generate collision-free trajectories quickly in the known map
+so that the replanning can be done at a high rate as the robot gets new sensor data. The initial works
+on navigation in unknown environments with quadrotors used oﬀboard computation in order to run the
+planning due to the limited computation capability available on the platforms. (He et al., 2008) presented a
+navigation system that uses a known map and takes the localization sensor model into account when planning
+so as to avoid regions that would lead to bad localization quality. (Grzonka et al., 2009) demonstrated a
+quadrotor system that is able to localize and navigate in a known map using laser rangeﬁnders as the main
+source of localization and mapping. Both of these transferred the sensor data to an oﬀboard computer for
+processing. With a more powerful computer onboard the robot, (Bachrach et al., 2011) were able to run
+[p.4]
+a scan matching based localization system and the position and orientation controllers on the robot while
+the planner and a SLAM system to produce a globally consistent map ran on an oﬀboard computer. (Shen
+et al., 2011) was the ﬁrst to demonstrated a full navigation system running onboard the robot without a
+known map of the environment. Since then, multiple groups have demonstrated similar capabilities (Valenti
+et al., 2014; Schmid et al., 2014).
+In this paper, we describe our navigation system that allows a quadrotor to go from a starting position to
+a goal location while avoiding obstacles during the ﬂight. We believe this is one of the ﬁrst systems that
+is capable of fast aerial robot navigation through cluttered GPS-denied environments using only onboard
+sensing and computation. The navigation system has been tested thoroughly in the lab and in real world
+obstacle-rich environments that were set up as part of the DARPA FLA program.
+This paper is organized as follows. In Section 2 we describe our platform and the design decisions made in
+order to choose the current conﬁguration. In Section 3, we describe our estimation and control algorithms. In
+this section, we also elaborate upon our sensor fusion methodology that is crucial to get good state estimates
+in order to control the robot. Section 4 describes our mapping, planning and trajectory generation modules.
+In Section 5 we show results from various experiments performed in order to benchmark and test our full
+navigation system. Finally, we conclude in Section 6 with some discussion about the results and give some
+directions of future work that would help improve our system.
+2
+System Design
+In this section we describe our overall system design. Speciﬁcally, we discuss platform design considerations,
+describe our computation, sensing and communication modules, and highlight critical software architecture
+components that enable the system to operate smoothly.
+Figure 1: Our robot conﬁguration showing the platform with stereo cameras and a nodding lidar.
+2.1
+Platform Design
+The guiding principle in the design of the platform was fast and agile ﬂight.
+The desired capability of
+the platform was to be able to reach speeds of more than 20 m/s while avoiding obstacles. This leads to
+a secondary and stronger requirement that the platform has to be able to stop from those speeds within
+typical sensor detection distances, which are around 20–25 m. This implies that the platform should be
+capable of accelerations of up to 10 m/s2. Reaching such high accelerations while maintaining the altitude
+requires a thrust-to-weight ratio of at around 1.5. In order to have some margin for control during these high
+acceleration phases, we searched for an oﬀ-the-shelf platform that had suﬃcient thrust to provide a thrust-
+to-weight ratio of more than 2.0 when fully loaded. This included an expected sensing and computation
+payload of up to 1 kg and a battery suﬃcient for desired ﬂight time of around 5 min.
+A list of various
+commercially available options is shown in Table 1.
+[p.5]
+Table 1: Speciﬁcations of diﬀerent commercially available oﬀthe shelf platforms. We expect a sensing and
+computation payload of approximately 1 kg, which has been added in the All-up mass. The mass of the
+battery is based upon the recommended battery for each platform.
+Platform
+Frame
+Battery
+All-up
+Max Thrust
+Thrust/Weight
+(kg)
+(kg)
+(kg)
+(kgf)
+Ratio
+3DR X8+
+1.855
+0.817 (4S)
+3.672
+10.560
+2.876
+DJI F550 + E310
+1.278
+0.600 (4S)
+2.878
+5.316
+1.847
+DJI F550 + E600
+1.494
+0.721 (6S)
+3.215
+9.600
+2.986
+DJI F450 + E310
+0.826
+0.400 (3S)
+2.226
+3.200
+1.438
+DJI F450 + E600
+0.970
+0.721 (6S)
+2.691
+6.400
+2.378
+Based on the survey of the available platforms, we selected the platform conﬁguration consisting of the
+DJI Flamewheel 450 base along with the DJI E600 motors, propellers and speed controllers since it closely
+matches our performance requirement.
+Each of the E600 motor and propeller combination has a rated
+maximum thrust of approximately 1.6 kgf. This leads to total thrust of around 6.4 kgf for our quadrotor
+conﬁguration. For the low-level controller, we selected the Pixhawk (Meier et al., 2015) which is a popular
+open-source autopilot. The main reason behind choosing the Pixhawk is that the ﬁrmware is open-source
+and customizable, giving us the capability of easily modifying or adding low-level capabilities as desired. In
+comparison, most of the commercially available autopilot boards are usually black boxes with an interface to
+send commands and receive sensor data. The base platform consisting of the F450 frame, E600 propulsion
+system and the Pixhawk has a mass of approximately 1.1 kg. Adding the sensing and computation payload
+leads to a platform weight of 2.1 kg without the battery. In order to achieve the ﬂight time requirement, we
+need to select the correct battery taking into account that the maximum total mass of the platform should
+be below 3 kg.
+ 0
+ 2
+ 4
+ 6
+ 8
+ 10
+ 12
+ 14
+ 16
+ 110
+ 120
+ 130
+ 140
+ 150
+ 160
+Speciﬁc Energy [Wh/kg]
+Figure 2: Histogram of speciﬁc energy values for a set of 36 6S rated hobby grade lithium polymer batteries.
+The batteries used in MAVs are based on lithium polymer chemistry due to their high energy and power
+densities.
+The DJI E600 propulsion system requires a 6S battery, i.e. a battery with rated voltage of
+approximately 22.2 V. Given that, the main design choice available is the battery capacity. Typical hobby
+grade lithium polymer batteries have speciﬁc energy values are around 130–140 W h/kg (Fig. 2). The power
+required to hover for quadrotors is approximately 200 W/kg (Mulgaonkar et al., 2014), so for a platform with
+a total mass between 2.5–3 kg, the power consumption would be 500–600 W. Assuming an overall eﬃciency
+of around 60%, (Theys et al., 2016) going from the supplied power from the battery to the mechanical power
+output at the propellers, the energy capacity of the battery for a 5 min ﬂight time needs to be approximately
+69.4–83.3 W h. In practice, we never use the full capacity of the battery in order to preserve the life of the
+battery and also to have some reserve capacity for unforeseen circumstances. If we only use 80% of the rated
+capacity of the battery, it leads to a required battery energy capacity of 86.8–104.1 W h. Using the average
+[p.6]
+speciﬁc energy value of 135 W h/kg, we expect the mass of the battery to be between 0.64–0.77 kg which ﬁts
+in well with our total mass budget. Based on the available battery capacities, we selected batteries with
+capacities of 88.8 W h and 99.9 W h in order to provide some ﬂexibility in terms of having higher performance
+or higher endurance.
+• 120W DC-DC Converters
+•
+120W Regulated Outputs
+• 12V & 5V, 4A Connectors
+•
+600A MOSFET Switch
+• Micro Battery Monitor
+• Pixhawk Power Connector
+• 20A Solid State Fuses
+•
+200A Current Sensor
+160 mm
+160 mm
+Figure 3: Power Distribution Board.
+In order to power all the sensors and the computer onboard the robot, we required regulated power supplies
+for 12 V and 5 V. We designed a custom power distribution board, shown in Fig. 3, consisting of a power
+conditioning circuit, DC-DC converters, power connectors, and a battery monitor. The board is capable of
+providing ﬁltered 12 V and 5 V supply at a maximum of 120 W each. In addition to power management, for
+weight saving reasons, the board replaces the top plate of the standard commercially available conﬁguration,
+forming an integral part of the robot frame.
+2.2
+Sensing, Computation and Communication
+The robot needs to navigate through cluttered 3D environments with purely on-board sensing and computa-
+tion. This requires the correct selection of sensors and the onboard computer in order to be able to perform
+the desired task while keeping the mass low. The two tasks that the robot has to perform which require
+proper sensor selection are state estimation and mapping. The two solutions for state estimation for MAVs
+are either vision based or lidar based. For unstructured 3D environments, the vision based systems have
+been more successful that lidar based ones, so we decided on using cameras as our primary state estimation
+sensors. More details about why the stereo conﬁguration was selected are provided in Section 3. In addition
+to the cameras, we added a downward pointing lidar (Garmin Lidar-Lite) and a VectorNav VN-100 IMU for
+state estimation. The VN-100 IMU is also used to trigger the capture from the cameras in order to have
+time synchronization between the cameras and IMU.
+The situation for mapping is a bit diﬀerent. Current vision based dense mapping algorithms are either not
+accurate enough or too computationally expensive to run in real time, so lidar based mapping is still the
+preferred choice for MAVs. In order to keep our weight low, we decided to use a Hokuyo 2D lidar instead of
+a heavy 3D lidar. We still required a 3D map for planning, so we decided to mount the 2D lidar on a one
+degree of freedom nodding gimbal as shown in Fig. 4.
+In order to handle all the computations for estimation, control, mapping and planning onboard the robot, we
+selected the Intel NUC i7 computer. This single board computer is based on the Intel i7-5557U processor and
+supports up to 16GB of RAM and an M.2 SSD for storage. This provides suﬃcient computing power to run
+our full software stack on the robot without overloading the CPU and also gives us ample amount of storage
+for recording sensor data for long ﬂights. While the robot is ﬂying, we need to have a communication link in
+[p.7]
+Figure 4: Our mapping solution consisting of a 2D lidar mounted on a nodding gimbal.
+order to monitor the status of the various modules running on the robot. We wanted a link that has good
+bandwidth, so that during development we can stream the sensor data back to the base station, but also good
+range so that we do not loose the link when running long range (up to 200 m) experiments. In addition, since
+we use ROS as our software framework, having a wireless link that behaves like a wireless local area network
+was preferred in order to be able to use the standard ROS message transport mechanism. Based on these
+requirements, we selected the Ubiquity Networks Picostation M2 for the robot side and the Nanostation M2
+for the base station. These are high power wireless radios that incorporate Ubiquity Networks’ proprietary
+airMAX protocol, which improves latency and reliability for long range wireless links compared to the 802.11
+protocol, which was designed mainly for indoor use. The Picostation is the smaller and lighter of the two,
+weighing at around 50 g (after taking oﬀthe outer plastic case) compared to 400 g for the Nanostation. This
+lower weight comes with the compromise of lower transmit power and lower bandwidth, but the performance
+was suﬃcient for our purpose, providing a bandwidth of more than 50 Mbps up to distances of 200 m.
+2.3
+Software Architecture
+Planner
+Position
+Controller
+Attitude
+Controller
+Onboard
+filter
+UKF
+Actuators
+Rigid body
+dynamics
+Sensors
+Pixhawk
+Thrust
+Rdes
+Ωdes
+Pos Vel
+Acc Jerk
+Yaw 
+Yaw rate
+Motor
+Speeds
+IMU
+    Pos  Vel  R
+R  Ω
+Intel NUC
+Sensors +
+VO
+Robot
+R
+Figure 5: A high level block diagram of our system architecture.
+Any big system requires all of the individual components to work together in order to allow the full system
+to function properly. Figure 5 shows a high level block diagram of our system illustrating the diﬀerent
+components and how they are connected to each other. The software components in our system can be
+grouped under four categories: Estimation, Control, Mapping and Planning.
+Each of these is in turn
+separated into smaller parts, and we use ROS as the framework for all the high level software running on the
+robot. ROS is chosen because it provides a natural way to separate each component into its own package
+allowing distributed development and ease of testing and debugging. Each executable unit in a ROS system
+is called a node and diﬀerent nodes communicate with each other using message passing. In this way, a ROS
+system can be thought of as a computational graph consisting of a peer-to-peer network of nodes processing
+and passing data among them. One convenient feature of this system is that the nodes can be run on diﬀerent
+[p.8]
+computers, since the message passing uses the TCP transport, which allows us to run a subset of the nodes
+on the robot while the remaining can be run on a workstation computer making it easier to analyze and
+debug problems leading to a faster development phase. We also beneﬁt from the whole ROS ecosystem of
+tools and utilities that have been developed in order to perform routine but useful tasks when developing a
+system such as tools for logging and playing back the messages passed between nodes or tools to visualize
+the data being sent between nodes.
+3
+Estimation and Control
+There has been a lot of research in recent times on visual and visual-inertial odometry for MAVs with a
+variety of proposed algorithms (Klein and Murray, 2007; Mourikis and Roumeliotis, 2007; Jones and Soatto,
+2011; Forster et al., 2014; Mur-Artal et al., 2015; Bloesch et al., 2015). The algorithms can be classiﬁed
+based on the number and type of cameras required into three groups: monocular, stereo, or multi-camera.
+There are also algorithms using depth cameras but these cameras don’t work well outdoors with sunlight
+so we do not consider them. An overview of the advantages and disadvantages of the algorithms is shown
+in Table 2. Looking at these, it is clear that the multi-camera setup would be the most preferred but the
+software complexity is still a hurdle in terms of real-world usage. Monocular algorithms have received a
+lot of research attention in the last few years and have improved to a level that they can be reliably used
+as the only source of odometry for a MAV system. One problem of the monocular algorithms is that they
+require an initialization process during which the estimates are either not available or are not reliable. In
+comparison, the stereo algorithms can be initialized using a single frame making them much more robust
+in case the algorithm needs to be reinitialized while ﬂying if, for example, there is a sudden rotation. One
+more advantage of using stereo cameras is that in the extreme case that stereo matching is not possible due
+to features being too far away, we can use the input from only one of the cameras from the stereo pair and
+treat it as a monocular camera setup.
+Table 2: Advantages and disadvantages of diﬀerent visual odometry algorithms.
+Monocular
+Stereo
+Multi-camera
+Mechanical complexity
+Low
+Medium
+Low
+Software complexity
+Medium
+Low-Medium
+High
+Robustness
+Low-Medium
+Medium
+High
+Feature distance
+High
+Medium-High
+High
+3.1
+Visual Odometry
+3.1.1
+Overview of SVO
+To estimate the six degree-of-freedom motion of the platform, we use the Semi-direct Visual Odometry
+(SVO) framework proposed in (Forster et al., 2017). SVO combines the advantages of both feature-based
+methods, which minimize the reprojection error of a sparse set of features, anddirect methods, which minimize
+photometric error between image pixels. This approach estimates frame-to-frame motion of the camera by
+ﬁrst aligning the images using a sparse set of salient features (e.g. corners) and their neighborhoods in the
+images, estimating the 3D positions of the feature points with recursive Bayesian depth estimation, and
+ﬁnally reﬁning the structure and camera poses with optimization (e.g. bundle adjustment). Our eﬃcient
+implementation of this approach is capable of estimating the pose of a camera frame in as little as 2.5
+milliseconds, while achieving comparable accuracy to more computationally intensive methods.
+The system is decomposed into two parallel threads: one for estimating camera motion, and one for mapping
+the environment (see Fig. 6). The motion-estimation thread proceeds by ﬁrst performing a sparse image
+[p.9]
+Sparse Model-based
+Image Alignment
+Feature Alignment
+Pose & Structure 
+Reﬁnement
+Motion Estimation Thread
+New Image
+Last Frame
+Map
+Frame
+Queue
+Feature
+Extraction
+Initialize
+Depth-Filters
+Mapping Thread
+Is 
+Keyframe?
+yes
+Update
+Depth-Filters
+yes:
+insert
+new Point
+no
+Converged?
+Figure 6: A high level diagram of the SVO software architecture.
+ρ3
+Tk,k−1
+u′
+3
+Ic
+k−1
+Ic
+k
+u3
+ρ2
+ρ1
+u1
+u2
+u′
+1
+u′
+2
+TCB
+TCB
+Figure 7: Changing the relative pose Tk,k−1 between the current and the previous frame implicitly moves
+the position of the reprojected points in the new image u′
+i. Sparse image alignment seeks to ﬁnd Tk,k−1
+that minimizes the photometric diﬀerence between image patches corresponding to the same 3D point (blue
+squares).
+alignment between the two most recent frames, then obtaining sub-pixel feature correspondence using direct
+methods on patches around each sparse feature, and ﬁnally pose reﬁnement on the induced reprojection
+error.
+A brief overview of the notation used in describing the method is presented here. The intensity image from
+camera C at timestep k is denoted by IC
+k : ΩC ⊂R2 7→R, where ΩC is the image domain. A point in 3D
+space ρ ∈R3 maps to image coordinates u ∈R2 through the camera projection model, u = π(ρ), which we
+assume is known. Given the inverse scene depth ρ > 0 for a pixel u ∈RC
+k, the position of the corresponding
+3D point is obtained using the back-projection model ρ = π−1
+ρ (u). We denote RC
+k ⊆Ωthe set of pixels for
+which the depth is known at time k in camera C. The position and orientation of the world frame W with
+respect to the kth camera frame is described by the rigid body transformation TkW ∈SE(3). A 3D point Wρ
+that is expressed in world coordinates can be transformed to the kth camera frame using: kρ = TkW Wρ.
+3.1.2
+Motion Estimation
+Consider a body frame B that is rigidly attached to the camera frame C with known extrinsic calibration
+TCB ∈SE(3) (see Fig. 7). Our goal is to estimate the incremental motion of the body frame Tkk−1 .= TBkBk−1
+[p.10]
+such that the photometric error is minimized:
+T⋆
+kk−1 = arg min
+Tkk−1
+X
+u∈¯
+RC
+k−1
+1
+2∥rIC
+u (Tkk−1)∥2
+ΣI,
+(1)
+where the photometric residual rIC
+u is deﬁned by the intensity diﬀerence of pixels in subsequent images IC
+k
+and IC
+k−1 that observe the same 3D point ρu:
+rIC
+u (Tkk−1) .= IC
+k
+ π(TCBTkk−1 ρu)
+
+−IC
+k−1
+ π(TCB ρu)
+
+.
+(2)
+The corresponding 3D point ρu for a pixel with known depth, expressed in the reference Bk−1 frame, is
+computed by means of back-projection:
+ρu = TBC π−1
+ρ (u),
+∀u ∈RC
+k−1.
+(3)
+Sparse image alignment solves the non-linear least squares problem in Eq. (1) with RC
+k−1 corresponding
+to small patches centered at features with known depth, using standard iterative non-linear least squares
+algorithms.
+In the next step, we relax the geometric constraints given by the reprojection of 3D points and perform
+an individual 2D alignment of corresponding feature patches. In order to minimize feature drift over the
+camera trajectory, the alignment of each patch in the new frame is performed with respect to a reference
+patch from the frame where the feature was ﬁrst extracted. However, this step generates a reprojection
+error, representing the diﬀerence between the projected 3D point and the aligned feature position.
+We detect both edge and corner features, representing points of strong gradient in the image.
+Feature
+alignment in the image minimizes the intensity diﬀerence of a small image patch P that is centered at the
+projected feature position u′ in the newest frame k with respect to a reference patch from the frame r where
+the feature was ﬁrst observed. For corner features, the optimization computes a correction δu⋆∈R2 to the
+predicted feature position u′ that minimizes the photometric cost:
+u′⋆= u′ + δu⋆,
+with
+u′ = π
+ TCB Tkr TBC π−1
+ρ (u)
+
+(4)
+δu⋆= arg min
+δu
+X
+∆u∈P
+1
+2
+
+
+
+IC
+k
+ u′+δu+∆u
+
+−IC
+r (u + A∆u)
+
+
+
+
+2
+,
+where ∆u is the iterator variable that is used to compute the sum over the patch P. For features on edges,
+we therefore optimize for a scalar correction δu⋆∈R in the direction of the edge normal n to obtain the
+corresponding feature position u′⋆in the newest frame:
+u′⋆= u′ + δu⋆· n,
+with
+(5)
+δu⋆=arg min
+δu
+X
+∆u∈P
+1
+2
+
+
+
+IC
+k
+ u′+δu·n+∆u
+
+−IC
+r (u + A∆u)
+
+
+
+
+2
+.
+In the previous step, we established feature correspondence with subpixel accuracy, but this feature alignment
+violated the epipolar constraints and introduced a reprojection error δu, which is typically well below 0.5
+pixels. Therefore, in the last step of motion estimation, we reﬁne the camera poses and landmark positions
+X = {TkW, ρi} by minimizing the squared sum of reprojection errors:
+X ⋆= arg min
+X
+X
+k∈K
+X
+i∈LC
+k
+1
+2∥u′⋆
+i −π
+ TCB TkW ρi
+
+∥2
+(6)
++
+X
+k∈K
+X
+i∈LE
+k
+1
+2∥nT
+i
+ u′⋆
+i −π
+ TCB TkW ρi
+
+∥2
+[p.11]
+where K is the set of all keyframes in the map, LC
+k the set of all landmarks corresponding to corner features,
+and LE
+k the set of all edge features that were observed in the kth camera frame.
+While optimization over the whole trajectory in Eq. (6) with bundle adjustment results in higher accuracy,
+for MAV motion estimation, it is suﬃcient to only optimize the latest camera pose and the 3D points
+separately, which permits more eﬃcient computation.
+3.1.3
+Mapping
+In the derivation of motion estimation, we assumed that the depth at sparse feature locations in the image
+was known. Here, we describe how the mapping thread estimates this depth for newly detected features,
+assuming that the camera poses are known from the motion estimation thread.
+The depth at a single pixel is estimated from multiple observations by means of a recursive Bayesian depth
+ﬁlter. When the number of tracked features falls below some threshold, a new keyframe is selected and new
+depth ﬁlters are initialized at corner and edge features in that frame. Every depth ﬁlter is associated to
+this reference keyframe r, and the initial depth uncertainty is initialized with a large value. For a set of
+previous keyframes as well as every subsequent frame with known relative pose {Ik, Tkr}, we search for a
+patch along the epipolar line that has the highest correlation via zero mean sum of squared diﬀerences (see
+Fig. 8). From the pixel with maximum correlation, we triangulate the depth measurement ˜ρk
+i , which is
+used to update the depth ﬁlter. If enough measurements have been obtained such that uncertainty in the
+depth is below a certain threshold, we initialize a new 3D point at the estimated depth in our map, which
+subsequently can be used for motion estimation (see system overview in Fig. 6).
+Tr,k
+Ir
+Ik
+ˆρi
+ui
+u′
+i
+˜ρk
+i
+ρmin
+i
+ρmax
+i
+Figure 8: Probabilistic depth estimate ˆρi for feature i in the reference frame r. The point at the true depth
+projects to similar image regions in both images (blue squares). Thus, the depth estimate is updated with
+the triangulated depth ˜ρk
+i computed from the point u′
+i of highest correlation with the reference patch. The
+point of highest correlation lies always on the epipolar line in the new image.
+We model the depth ﬁlter according to (Vogiatzis and Hern´andez, 2011) with a two dimensional distribution:
+the ﬁrst dimension is the inverse depth ρ (Civera et al., 2008), while the second dimension γ is the inlier
+probability. Hence, a measurement ˜ρk
+i is modeled with a Gaussian + Uniform mixture model distribution:
+an inlier measurement is normally distributed around the true inverse depth ρi while an outlier measurement
+arises from a uniform distribution in the interval [ρmin
+i
+, ρmax
+i
+]:
+p(˜ρk
+i |ρi, γi) = γiN
+ ˜ρk
+i
+ρi, τ 2
+i
+
++ (1−γi)U
+ ˜ρk
+i
+ρmin
+i
+, ρmax
+i
+
+,
+(7)
+where τ 2
+i the variance of a good measurement that can be computed geometrically by assuming a disparity
+variance of one pixel in the image plane (Pizzoli et al., 2014). We refer to the original work (Vogiatzis and
+Hern´andez, 2011) and the (Forster et al., 2017) for more details.
+3.1.4
+Implementation Details
+Our system utilizes multiple cameras, so consider a camera rig with M cameras (see Fig. 9). We assume
+that the relative pose of the individual cameras c ∈C with respect to the body frame TCB is known from
+[p.12]
+TBC2
+TBC1
+Tkk−1
+Body Frame
+Figure 9: Visual odometry with multiple rigidly attached and synchronized cameras. The relative pose of
+each camera to the body frame TBCj is known from extrinsic calibration and the goal is to estimate the
+relative motion of the body frame Tkk−1.
+extrinsic calibration. To generalize sparse image alignment to multiple cameras, we simply need to add an
+extra summation in the cost function of Eq. (1):
+T⋆
+kk−1 = arg min
+Tkk−1
+X
+C∈C
+X
+u∈¯
+RC
+k−1
+1
+2∥rIC
+u (Tkk−1)∥2
+ΣI.
+(8)
+The same summation is necessary in the bundle adjustment step to sum the reprojection errors from all
+cameras. The remaining steps of feature alignment and mapping are independent of how many cameras are
+used, except that more images are available to update the depth ﬁlters. An initial map is computed during
+initialization using stereo matching.
+We additionally apply motion priors within the SVO framework by assuming a constant velocity relative
+translation prior ˜pkk−1 and a relative rotation prior ˜Rkk−1 from a gyroscope. We employ the motion prior
+by adding additional terms to the cost of the sparse image alignment step:
+T⋆
+kk−1 = arg min
+Tkk−1
+X
+C∈C
+X
+u∈¯
+RC
+k−1
+1
+2∥rIC
+u (Tkk−1)∥2
+ΣI
+(9)
++ 1
+2∥pkk−1 −˜pkk−1∥2
+Σp
++ 1
+2∥log(˜RT
+kk−1Rkk−1)∨∥2
+ΣR,
+where the covariances Σp, ΣR are set according to the uncertainty of the motion prior, the variables
+(pkk−1, Rkk−1) .= Tkk−1 are the current estimate of the relative position and orientation (expressed in body
+coordinates B), and the logarithm map maps a rotation matrix to its rotation vector.
+We apply the sparse image alignment algorithm in a coarse-to-ﬁne scheme, half-sampling the image to create
+an image pyramid of ﬁve levels, and use a patch size of 4 × 4 pixels. The photometric cost is then optimized
+at the coarsest level until convergence, starting from the initial condition Tkk−1 = I4×4, before continuing
+at the ﬁner levels to improve the precision.
+In the mapping thread, we divide the image in cells of ﬁxed size (e.g., 32 × 32 pixels). For every keyframe a
+new depth-ﬁlter is initialized at the FAST corner (Rosten et al., 2010) with highest score in the cell, unless
+there is already a 2D-to-3D correspondence present. In cells where no corner is found, we detect the pixel
+with highest gradient magnitude and initialize an edge feature. This results in evenly distributed features in
+the image. To speed up the depth-estimation we only sample a short range along the epipolar line; in our
+case, the range corresponds to twice the standard deviation of the current depth estimate. We use a 8 × 8
+pixel patch size for the epipolar search.
+We refer the reader to the original paper (Forster et al., 2017) for further details about both the approach
+and its performance.
+[p.13]
+3.2
+Sensor Fusion
+We have multiple sensors on the platform, each providing partial information about the state of the robot.
+Moreover, the sensors provide output at diﬀerent rates, for example, we run the stereo cameras at 40 Hz while
+the downward pointing distance sensor runs at 20 Hz. We need to merge these pieces of partial information
+into a single consistent estimate of the full state of the robot. The typical method used for such sensor fusion
+tasks is some variant of the Kalman ﬁlter. The quadrotor is a nonlinear system due to its rotational degrees
+of freedom. This requires the use of either an Extended Kalman ﬁlter (EKF) or an Unscented Kalman ﬁlter
+(UKF). The UKF has the advantage of better handling the system nonlinearities with only a small increase
+in computation, so we chose the UKF for our system. Fig 10 shows the inputs and outputs of the UKF
+module running on the robot. The state vector used in the UKF is,
+x =
+h
+pT
+˙pT
+φ
+θ
+ψ
+bT
+a
+bT
+ω
+iT
+where p is the world-frame position of the robot, ˙p is the world-frame velocity, φ, θ and ψ are the roll, pitch
+and yaw respectively, ba is the accelerometer bias while bω is the gyroscope bias. We use the ZYX convention
+for representing the rotations in terms of the Euler angles φ, θ and ψ. The Euler angle representation was
+chosen for representing the orientation primarily because of its simplicity. The well-known problem of gimbal
+lock when using Euler angles is not an issue in this case since the desired and expected roll and pitch of the
+robot is always less than 90◦.
+Stereo Camera
+Gyroscope
+Height sensor
+Accelerometer
+SVO
+UKF
+40 Hz
+200 Hz
+200 Hz
+20 Hz
+40 Hz
+200 Hz
+Position
+Velocity
+Orientation
+Figure 10: Data ﬂow diagram of the UKF used on the robot.
+The UKF consists of a prediction step which uses the IMU data as the input and multiple update steps, one
+for each of the other sensors. The update step is performed whenever the corresponding sensor measurement
+arrives. The prediction step is nonlinear since the accelerometer and gyroscope measurements are in the body
+frame while the position and velocity in the state are in the world frame, which requires the transformation
+of the measured quantities from body to world frame using the estimated orientation.
+Given that the state at iteration k, xk (dimension n), has mean ¯xk and covariance Pk, we augment it with
+the process noise (dimension p) having mean ¯vk and covariance Qk, creating the augmented state xa
+k and
+covariance matrix P a
+k ,
+¯xa
+k =
+¯xk
+¯vk
+
+,
+P a
+k =
+Pk
+0
+0
+Qk
+
+Then, we generate a set of sigma points by applying the Unscented transform (Julier et al., 1995) to the
+augmented state,
+X a
+0(k) = ¯xa
+k
+X a
+i (k) = ¯xa
+k +
+q
+(L + λ) P a
+k
+i = 1, . . . , L
+X a
+i (k) = ¯xa
+k −
+q
+(L + λ) P a
+k
+i = L + 1, . . . , 2L
+(10)
+where L = n + p is the dimension of the augmented state and λ is a scaling parameter (Wan and Merwe,
+2000).
+[p.14]
+These sigma points are then propagated through the process model with the accelerometer and gyroscope
+measurements as input.
+X x
+i (k + 1 | k) = f
+ X x
+i (k), u(k), X v
+i (k)
+
+where X x
+i is the state part of the augmented state while X v
+i is the process noise part. The process model,
+f (xk, uk, vk), for our system is given by
+uk =
+h
+aT
+meas
+ωT
+meas
+iT
+vk =
+h
+vT
+a
+vT
+ω
+vT
+ba
+vT
+bω
+iT
+a = ameas −ba + va
+ω = ωmeas −bω + vω
+pk+1 = pk + ˙pk dt
+˙pk+1 = ˙pk + (Rka −g) dt
+Rk+1 = Rk
+
+I3 + [ω]× dt
+
+bak+1 = bak + vba dt
+bωk+1 = bωk + vbω dt
+where Rk = R (φk, θk, ψk) is the rotation matrix formed by using the ZYX convention for the Euler angles
+while va, vω, vba and vbω are the individual process noise terms.
+From the transformed set of sigma points, X x
+i (k+1 | k), we can calculate the predicted mean and covariance,
+¯xk+1 | k =
+2L
+X
+i=0
+wm
+i X x
+i (k + 1 | k)
+Pk+1 | k =
+2L
+X
+i=0
+wc
+i
+h
+X x
+i (k + 1 | k) −¯xk+1 | k
+i h
+X x
+i (k + 1 | k) −¯xk+1 | k
+iT
+where wm
+i
+and wc
+i are scalar weights (Wan and Merwe, 2000).
+Whenever a new sensor measurement, yk+1, arrives, we run the update step of the ﬁlter. First we generate a
+new set of sigma points in the same way as done during the prediction step, (10), with the augmented state
+and covariance given by,
+¯xa
+k+1|k =
+¯xk+1 | k
+¯nk
+
+,
+P a
+k+1|k =
+Pk+1|k
+0
+0
+Rk
+
+where ¯nk is the mean of the measurement noise and Rk is the covariance. The generated sigma points are
+then used to generate the predicted measurement using the measurement function h (x, n),
+Yi(k + 1 | k) = h
+ X x
+i (k + 1 | k), X n
+i (k + 1 | k)
+
+¯yk+1|k =
+2L
+X
+i=0
+wm
+i Yi(k + 1 | k)
+Pyy =
+2L
+X
+i=0
+wc
+i
+h
+Yi(k + 1 | k) −¯yk+1|k
+i h
+Yi(k + 1 | k) −¯yk+1|k
+iT
+And ﬁnally the state is updated as follows,
+Pxy =
+2L
+X
+i=0
+wc
+i
+h
+X x
+i (k + 1 | k) −¯xk+1 | k
+i h
+Yi(k + 1 | k) −¯yk+1|k
+iT
+K = PxyP −1
+yy
+¯xk+1 = ¯xk + K
+
+yk+1 −¯yk+1|k
+
+Pk+1 = Pk+1 | k −KPyyKT
+[p.15]
+Note that for each sensor input to the UKF except the IMU, which is used for the prediction step, there is
+a separate measurement function, h (x, n), and the full update step is performed, with the corresponding
+measurement function, when an input is received from any of those sensors.
+The attitude ﬁlter running on the Pixhawk is a simple complementary ﬁlter which can take an external
+reference orientation as an input. This allows us to provide the estimate from the UKF to the Pixhawk in
+order to improve the orientation estimate on the Pixhawk. This is important for good control performance
+since the orientation controller running on the Pixhawk uses the Pixhawk’s estimate of the orientation while
+our control commands are calculated using the UKF estimates. Without an external reference being sent to
+the Pixhawk, the orientation estimates on the Pixhawk can be diﬀerent from the UKF which would lead to
+an incorrect interpretation of the control commands.
+3.3
+Control
+The controller used for the robot has the cascade structure, as shown in Figure 5, which is has become
+standard for MAVs. In this structure, we have an inner loop controlling the orientation and angular velocities
+of the robot while an outer loop controls the position and linear velocities. In our case, the inner loop runs
+at a high rate (400 Hz) on the Pixhawk autopilot while the outer loop runs at a slightly slower rate (200 Hz)
+on the Intel NUC computer.
+At every time instance, the outer loop position controller receives a desired state, which consists of a desired
+position, velocity, acceleration and jerk, from the planner and using the estimated state from the UKF,
+computes a desired force, orientation and angular velocities which are sent to the orientation controller. The
+inner loop orientation controller receives these and computes the thrust and moments required to achieve
+the desired force and orientation. These are then converted into individual motor speeds that are sent to
+the respective motor controllers.
+The controller formulation we use is based on the controller developed in (Lee et al., 2010) with some
+simpliﬁcations. The thrust command of the position controller is calculated as,
+epos = ˆp −pdes ,
+evel = ˆ˙p −˙pdes
+f = m
+ −kposepos −kvelevel + ge3 + ¨pdes
+
+Thrust = f · ˆRe3
+(11)
+where e3 = [ 0 0 1 ]T and ˆR is the rotation matrix which converts vectors from body frame to world frame
+calculated using the estimated roll, pitch and yaw. The desired attitude is calculated as,
+b2,des =
+−sin ψdes,
+cos ψdes,
+0T
+b3 =
+f
+∥f∥,
+b1 =
+b2,des × b3
+
+
+b2,des × b3
+
+
+,
+b2 = b3 × b1
+Rdes =
+b1,
+b2,
+b3
+
+(12)
+˙b2,des =
+h
+−cos ψdes ˙ψdes,
+−sin ψdes ˙ψdes,
+0
+iT
+˙b3 = b3 ×
+˙f
+∥f∥× b3,
+˙b1 = b1 ×
+˙b2,des × b3 + b2,des × ˙b3
+
+
+b2,des × b3
+
+
+
+× b1,
+˙b2 = ˙b3 × b1 + b3 × ˙b1
+[Ωdes]× = RT
+des ˙Rdes
+(13)
+Note that here we have to deﬁne b2,des based on the yaw instead of deﬁning b1,des as done in (Mellinger and
+Kumar, 2011) due to the diﬀerent Euler angle convention, we use the ZYX convention while they used ZXY.
+The thrust and attitude commands, from (11), (12) and (13), are then sent to the Pixhawk autopilot
+[p.16]
+through mavros2. The attitude controller running on the Pixhawk takes these commands and converts them
+to commanded motor speeds.
+First, using the Rdes and the estimate of the current orientation, ˆR, we
+calculate the desired moments as follows,
+[eR]× = 1
+2
+
+RT
+des ˆR −ˆRTRdes
+
+,
+eΩ= Ω−ˆRTRdesΩdes
+M = −kReR −kΩeΩ
+Then, from the desired thrust and moments, we can calculate the thrust required from each propeller which
+allows us to compute the desired motor speed as shown in (Michael et al., 2010).
+4
+Mapping and Planning
+Our navigation system consists of ﬁve parts as shown in Fig. 11. In this section, we discuss the mapping,
+planner and trajectory generation threads.
+Mapping 
+(40 Hz) 
+Planner 
+(3 Hz) 
+Trajectory 
+Genera:on 
+(3 Hz) 
+Receding 
+Horizon 
+Control 
+(200 Hz)
+Request⌧
+g
+xdes
+State 
+Es:ma:on 
+(200 Hz)
+m
+P⌧, M⌧
+Φ⌧
+M⌧
+Figure 11: Our navigation framework.
+A desired goal g is sent to the planner at the beginning of the
+task. The planner generates a path, Pτ, using the map, Mτ, and sends it to the trajectory generator. The
+trajectory generator converts the path into a trajectory, Φτ, and sends it to the receding horizon controller.
+The controller then derives the desired state xdes at 200 Hz from this trajectory which is sent to the robot
+controller. The input m to the mapping block denotes the sensor measurements.
+4.1
+Mapping
+We have mounted a LIDAR on a servo such that we can generate a 3D voxel map by rotating the laser.
+Updating the map and planning using the 3D global map are both computationally expensive and in addition,
+with noise and estimation drift, the global map can be erroneous. Hence we utilize a local mapping technique
+that generates a point cloud around current robot location (Fig. 12). This local point cloud, M c, has ﬁxed
+size and ﬁne resolution and is used to build a 3D occupancy voxel map, M l, centered at current robot
+location. Since the local map only records the recent sensor measurements with respect to current robot
+location, the accumulated error in mapping is small. We also generate a coarse 2D map, M w, in global frame
+in order to solve the dead-end problem caused by local planning. We call this map the “global information
+map” since it contains two pieces of information: one is the known and unknown spaces so that we know
+which part has been explored, the other is the location of walls detected from M c that the robot cannot ﬂy
+over.
+4.2
+Planner
+We use A⋆to plan a path in a hybrid graph G(V, E) that links the voxels in both local 3D map M l and
+global information map M w (result is shown in Fig. 12(c)). We can eﬃciently derive the path P in local map
+2https://github.com/mavlink/mavros
+[p.17]
+(a) Local point cloud Mc (40 m×20 m×
+4 m).
+(b) Local map Ml (15 m×10 m×3 m)
+and global map Mw(80 m × 40 m).
+(c) Path planned using both Ml, Mw.
+Figure 12: We keep the range of the local point cloud equal to the sensor range (e.g 30 m for a laser
+rangeﬁnder). The size of local map M l is smaller than the point cloud M c because of the computational
+limitation. For planning, we dilate the occupied voxel in M l by the robot radius. The global information
+map is much larger but with much coarser resolution (1 m). For each map, we draw a bounding box to
+visualize the size.
+that is globally consistent. Fig. 13 shows an example of using this method to solve the dead-end corridor
+problem.
+4.3
+Trajectory Generation
+In this subsection, we are going to introduce the trajectory generation method given the map M and a prior
+path P. The trajectory generation process is shown in Fig. 14. Through regional inﬂation, a safe corridor
+is found in M that excludes all the obstacle points. As the intermediate waypoints in P can be close to the
+obstacles, we shift the intermediate waypoints towards the center of safe corridor. The new path P ⋆and the
+safe corridor are used to generate the trajectory.
+4.3.1
+Regional Inﬂation by Line Segments
+Inspired by IRIS in (Deits and Tedrake, 2015a), we developed the algorithm to dilate a path in free space
+using ellipsoids. For each line segment in the path P, we generate a convex polyhedron that includes the
+whole segment but excludes any occupied voxel in M through two steps:
+• Grow ellipsoid for each line segment (Fig. 15(a))
+• Inﬂate the ellipsoid to generate the polyhedron (Fig. 15(b))
+The ellipsoid is described as ξr(E, d) = {E˜x + d | ∥˜x∥≤r} which is the projection of a unit sphere with
+radius r into R3. A polyhedron C is the intersection of m half-planes: C = {x | AT
+j x ≤bj, j = 1 . . . m}. The
+half-plane is found at the intersection of ellipsoid with the closest obstacle point xr as shown in equation (14).
+Aj = dξr
+dx
+
+x=xr
+= 2E−1E−T (xr −d),
+bj = AT
+j xr
+(14)
+[p.18]
+(a) Local map Ml
+τ1
+(b) Global map Mw
+τ1
+(c) Local map Ml
+τ2
+(d) Global map Mw
+τ2
+Figure 13: At planning epoch τ1, the end of the corridor cannot be viewed by the sensor with limited range
+and the path leads the quadrotor to go forward (a)-(b). At planning epoch τ2, with similar local map M l
+τ2
+but diﬀerent global map M w
+τ2 which contains the dead-end geometry, planning to the same goal, results in a
+path which is totally diﬀerent.
+RILS 
+Path 
+Modiﬁca0on 
+Trajectory 
+Op0miza0on 
+P
+M
+P
+Cs
+P ?
+Cs
+Φ
+Figure 14: Trajectory generation process, which can be treated as a black box (dashed rectangle) as in
+Fig. 11. The inputs are a path P and a discrete map M, output is the dynamically feasible trajectory Φ.
+4.3.2
+Path Modiﬁcation
+The original path from the planner can be close to the obstacles. Although the trajectory generation does
+not require the ﬁnal trajectory to go through the intermediate points, the path aﬀects the route of the
+trajectory. The path modiﬁcation step aims to modify the original path away from the obstacle by keeping
+the intermediate waypoints in the middle of a safe corridor. We use a bisector plane that passes through the
+waypoint p, this plane intersects with both polyhedra that connected through p. The point p is moved to
+the centroid of the intersection polygon (Fig. 15(c)).
+4.3.3
+Trajectory Optimization
+We formulate the trajectory generation as an optimal control problem as shown in equation (15). Compared
+to the standard formulation of this optimal control problem, we add a second term in the cost function which
+is the square of the distance between the trajectory Φi and the line segment li : {aix + biy + ciz + di = 0}.
+This distance cost is weighted by a factor ϵ. Fig. 16 shows the aﬀect on the trajectory by changing this
+weighting factor. Thus, we can control the shape of a trajectory to keep it close to the modiﬁed path P ⋆
+and away from obstacles. This process increases the safety of the trajectory such that the robot will not get
+too close to obstacles.
+[p.19]
+(a) Grow ellipsoid for each line seg-
+ment.
+(b) Inﬂate the ellipsoid to generate the
+convex polyhedra.
+(c) Modiﬁed path P ⋆.
+Figure 15: We generate the safe corridor by inﬂating the free region around path using RILS. The ellipsoid
+is colored as purple in (a), the transparent orange region on (b) shows the polyhedra for safe corridor. The
+cyan path P ⋆is modiﬁed from the original path P by shifting the corner to the centroid of blue polygon in
+(c).
+arg min J =
+Z
+T
+0
+
+
+
+
+
+
+d4 Φ(t)
+dt4
+
+
+
+
+
+
+2
+dt + ϵ
+l · Φ(t)
+∥l∥
+2
+s.t.
+Φ(0) = p0,
+Φ(T) = pf,
+Φ(t) ∈C3
+˙Φ(t) ≤vmax,
+¨Φ(t) ≤amax,
+...
+Φ(t) ≤jmax
+(15)
+(a) ϵ = 0
+(b) ϵ = 20
+(c) ϵ = 100
+Figure 16: The generated trajectories (purple) for diﬀerent values of the weight ϵ. As we increase the weight,
+the trajectory gets closer to the given path (cyan).
+4.3.4
+Continuous Optimization
+To to be able to compute Equation 15 in real time, we have chosen to represent Φ as an nth order polynomial
+spline. Each spline segment Φj takes time ∆j such that P
+j ∆j = T. For our experiments, we have found
+that n = 7 provides good performance for trajectory optimization and that increasing n produces similar
+trajectories, but with longer computational time.
+For this section, we will assume that our trajectory has d dimensions, m segments and is represented by an
+nth order polynomial. Also we deﬁne the indices: i = 0, . . . , n, j = 1, . . . , m,and k = 1, . . . , d. Therefore we
+[p.20]
+can write the kth dimension of Φi with respect to coeﬃcients αijk and basis functions pi.
+Φjk(t) =
+X
+i
+αijkpi(t)
+(16)
+We have chosen pi to be shifted Legendre polynomials which are represented with a unit time scaling:
+s =
+t −
+qP
+j=0
+∆j
+∆q+1
+(17)
+For whichever q ∈1, . . . , m makes s ∈[0, 1]
+d4
+dsk pi+4(t) = (−1)i
+i
+X
+l=0
+l
+i
+l + i
+i
+
+(−s)l
+(18)
+This leaves 4 basis polynomials undeﬁned, which we just use:
+pi(t) = si for i = 0, . . . , 3
+(19)
+This deﬁnition results in a cost which is quadratic in α
+Z
+T
+0
+
+
+
+
+
+
+d4 Φ(t)
+dt4
+
+
+
+
+
+
+2
+dt =
+X
+ijk
+α2
+ijk
+∆−7
+j
+2k + 1
+(20)
+For the other constraints are concerned with constraining Φ at diﬀerent times. We note that the evaluation
+of any derivative of Φi is linear with respect to α
+dq
+dtq Φjk(t) = (∆j)q X
+i
+αijk · dq
+dsq pi(s)
+(21)
+To ensure continuity of our spline up to 3 derivatives, we need to add the following constraints for j =
+2..(m −1), q = 0..3, and k = 1..d:
+(∆j)q X
+i
+αijk · dq
+dsq pi(1) = (∆j+1)q X
+i
+αi(j+1)k · dq
+dsq pi(0)
+(22)
+The start and end constraints:
+(∆1)q P
+i
+αi1k · dq
+dsq pi(0) = dq
+dtq p0
+(∆m)q P
+i
+αimk · dq
+dsq pi(1) = dq
+dtq pf
+(23)
+For the inequality constraints and the centering part of the cost functional, we use the sub-sampling method
+proposed by (Mellinger and Kumar, 2011). Along the interval, we can select g points at which to sample
+the trajectory. In practice we found that g = 10 points worked well and they could be sample uniformly
+within sg ∈[0, 1] or by using Chebyshev sampling. The avk and bv come from the polyhedra found in 4.3.1
+for q = 0 and L1 bounds for q > 0 (Boyd and Vandenberghe, 2004).
+dq
+dtq
+X
+k
+Φjk(sg)avk ≤bv
+(24)
+[p.21]
+To compute the centering part of the cost, we could use a Gaussian quadrature, but found that rectangular
+integration worked ﬁne (Press, 1992).
+X
+jg
+ϵ
+l · Φ(sg)
+∥l∥
+2
+(25)
+This results in the following QP in α
+min
+α
+αT Qα
+Eqn. 20 + Eqn. 25
+s.t
+Aα = b
+Eqn. 22 and Eqn. 23
+Cα ≤d
+Eqn. 24
+(26)
+Choosing ∆j is critical to the feasibility of Equation (26) and the quality of the resultant trajectory. To
+choose the ∆j we use the times we get by ﬁtting a trapezoidal velocity proﬁle through the segments, so the
+time per segment is based on the length of each line segment lj in the path through the environment.
+5
+Experimental Results
+5.1
+Estimation benchmarking
+The main task for the robot is to ﬂy long distances to a goal point, so the estimation accuracy is very
+important. The drift in the estimator should be low so that the robot reaches the desired goal. In order to
+test the accuracy and drift in the estimator, we ﬂew the robot in the motion capture space in the lab. The
+robot was ﬂown manually along an aggressive trajectory reaching speeds of up to 4 m/s and accelerations of
+4 m/s2. The plots of the estimated and ground-truth position and velocity as shown in Figure 17. As can
+be seen from the ﬁgure, the ﬁnal drift after more than 60 m of ﬂight is less than 0.6 m, giving us a drift of
+around 1%. Note that there is almost no drift in the Z-axis due to the use of the downward pointing distance
+sensor, which gives us an accurate height estimate.
+(a) Position
+(b) Velocity
+Figure 17: Plots of position and velocity from our estimation system compared to ground truth from motion
+capture.
+The SVO framework was deployed on our MAV system for visual odometry using a forward-facing stereo
+[p.22]
+camera conﬁguration and onboard computation. As a demonstration of the accuracy of the motion estima-
+tion, some high-speed maneuvers were ﬂown manually in a warehouse environment. The MAV accelerated
+aggressively along a 50 m straight aisle in the warehouse, braked aggressively to a stop, and then returned
+to the starting location at a moderate speed. Figure 18 shows several onboard camera images marked up
+with the features that SVO is tracking, as well as the sparse map of 3D points in the environment that were
+mapped during this trajectory. During this trial, the MAV reached a maximum speed of over 15 m/s, as
+shown in Fig. 19 even with such an aggressive ﬂight, SVO only incurs around 2 m of position drift over the
+more than 100 m trajectory.
+(a) Onboard image with features during
+hover
+(b) Onboard image with features dur-
+ing aggressive ﬂight
+(c) Map of sparse 3D points
+Figure 18: Camera images from onboard the MAV show good feature tracking performance from SVO, even
+at high speed. The resulting sparse map of 3D points that have been triangulated is consistent and metrically
+accurate with the actual structure of the environment.
+0
+5
+10
+15
+20
+25
+30
+35
+40
+45
+Time [s]
+10
+0
+10
+20
+30
+40
+50
+Position [m]
+x
+y
+z
+(a) Estimated position of the MAV
+0
+5
+10
+15
+20
+25
+30
+35
+40
+45
+Time [s]
+20
+15
+10
+5
+0
+5
+10
+15
+20
+Velocity [m/s]
+x
+y
+z
+0
+5
+10
+15
+20
+25
+30
+35
+40
+45
+Time [s]
+0
+5
+10
+15
+20
+Velocity [m/s]
+Velocity Magnitude
+(b) Estimated velocity of the MAV
+Figure 19: Motion estimation of the MAV during a high-speed, straight line trajectory. SVO provides a
+smooth pose estimate of this aggressive ﬂight, which reached a speed of over 15 m/s over 50 m.
+5.2
+Real World Tests
+The quadrotor navigation system described in this paper has been tested extensively in the lab environment
+as well as in multiple real-world environments. The system has been used on our entry for the ﬁrst test
+of the DARPA Fast Lightweight Autonomy (FLA) program and was able to successfully navigate multiple
+obstacle courses that were set up. The rules of the FLA program do not allow any human interaction after
+the robot is airborne, so the runs described in this section were fully autonomous.
+[p.23]
+The test environment was constructed so as to simulate the inside of a warehouse. There were two aisles
+separated by scaﬀolding of around 5 m height with tarps on the back of the scaﬀolding and boxes placed
+on the shelves. The total length of the test course was around 65 m while the width of each of the aisles,
+in between the scaﬀoldings, was 3 m. Diﬀerent types of obstacles such as a scaﬀolding tower or scissor lifts
+were placed along the aisles in order to test the obstacle avoidance performance of the robot. The minimum
+clearance between the obstacle in the aisle and the scaﬀolding on the side was set to be 2.1 m. As a reference,
+the rotor tip-to-tip diameter of the platform is 0.76 m. An example of the obstacles along the aisle is shown
+in Figure 20.
+(a) An example obstacle course. The goal was to
+get to the other end of the aisle. The diﬀerent types
+of obstacles along the length of the aisle can be
+seen.
+(b) Snapshot of the local 3D map. The color repre-
+sents height, going from red on the ﬂoor to blue at
+4 m height and the axes in the middle of the ﬁgure
+represents the location of the robot.
+Figure 20: An example obstacle course that the robot had to get through and a snapshot of the local 3D
+map constructed using the nodding laser as the robot was traversing the course. The robot was right next
+to the tower obstacle when the snapshot of the local map was taken. The tower obstacle (on the left) and
+the scissor lift (further away on the right) can be clearly seen in the 3D map.
+Diﬀerent types of obstacle courses were set up using the aisles and the obstacles in order to challenge the
+robot. The simplest task was to just go straight down an empty aisle, while the most complicated ones
+involved changing aisles due to the ﬁrst aisle being blocked in the middle.
+The only prior information
+available for each task was the type of obstacles to expect along the course, but the actual layout of the test
+course was unknown. The goal position was speciﬁed as a bearing and a range from the starting position
+at the start of each run. A particular task was deemed complete only when we were able to complete three
+successful runs of the task with diﬀerent obstacle course layouts, thus ensuring that our system can work
+robustly. In the following, we describe some of the speciﬁc tasks and also show results of our runs through
+them.
+5.2.1
+Slalom
+In the slalom task, the obstacles in an aisle were arranged in a manner such that robot is forced to move in
+a zigzag manner along the aisle, going to the right of the ﬁrst obstacle, then left of the second, one and so
+on. Figure 21 shows the result of one of our runs. Since there was no ground truth position data available,
+the only way to judge the performance of the system is to compare the map created by the robot with a
+map of the real obstacle course. From the ﬁgure, we can see that the projected map (in grey) matches the
+actual obstacle course layout (in black) showing the accuracy of our estimation and control algorithms.
+[p.24]
+Figure 21: One of our runs for the slalom task. In black we show the actual obstacle course layout. The
+hollow obstacles in the aisle are similar to the tower shown in Figure 20 while the ﬁlled black ones are scissor
+lifts. The gray regions are the projection of map created by the robot onto the 2D plane. The robot starts
+near the opening on the left and has to reach the target represented by the black rectangle on the right.
+The path of the robot shows it moving in a zigzag fashion in order to avoid the obstacles. Each grid cell is
+5 m × 5 m.
+5.2.2
+Aisle change with 45◦transition
+In this task, the robot was required to change from the ﬁrst aisle to the second one since the ﬁrst aisle was
+blocked in the middle. The opening between the ﬁrst and second aisles was constructed such that the robot
+could move diagonally along a 45◦line from the ﬁrst aisle into the second aisle. Figure 22 shows one of our
+runs for this task. The robot successfully completes the transition and starts moving along the second aisle.
+Note that the goal was still in line with the ﬁrst aisle, so the robot is always looking to move towards the left
+in order to get closer to the goal. This causes it to remain in the left part of the second aisle as is observed
+in the ﬁgure. After crossing the second aisle, the robot moves back to the left to reach the goal. Again we
+can see that the projected map (in grey) matches the actual course layout (in black).
+Figure 22: One of our runs for the aisle change with 45◦transition task. In black we show the actual obstacle
+course layout. The small ﬁlled black objects along the aisles are short obstacles that the robot could ﬂy over.
+The gray regions are the projection of map created by the robot onto the 2D plane. The robot starts near
+the opening on the left and has to reach the target represented by the black rectangle on the right. Each
+grid cell is 5 m × 5 m.
+5.2.3
+Aisle change with 90◦transition
+This task was just a more challenging variation of the previous one. Here the aisle change required the robot
+to move sideways (see Figure 23). We were able to reach the goal, but our system did not perform very
+well for this task. As can be seen from the ﬁgure, the state estimate had small jumps and drifted during
+the transition between the aisles. There is some position drift but the main issue is the drift in yaw. Since
+the distance to the goal is large, even small drifts in yaw correspond to large position errors when the robot
+reaches the goal. The main reason for this drift was that when moving sideways in front of the obstacle
+[p.25]
+during the transition, the vision system lost all the tracked features in the image and as it entered the second
+aisle, got new features which were far from the camera since it was looking along the aisle. Since the new
+features were far from the camera, they could not be triangulated accurately and hence caused bad estimates
+from the vision system. During this phase, there were a number of jumps in the output of vision system
+and hence led to drifts in the state estimate. As the robot started moving forward after the transition, the
+vision system was able to triangulate more features along the corridor and get good estimates again. This
+issue does not occur for the 45◦transition case since the robot is able to see some part of the second aisle
+when moving diagonally and hence already has well triangulated features when it is completes the transition
+into the second aisle. One way to help with this issue would be to make the robot orient itself such that it
+is always facing the direction along which it is moving.
+Figure 23: One of our runs for the aisle change with 90◦transition task. In black we show the actual obstacle
+course layout. The small ﬁlled black objects along the aisles are short obstacles that the robot could ﬂy over.
+The gray regions are the projection of map created by the robot onto the 2D plane. The robot starts near
+the opening on the left and has to reach the target represented by the black rectangle on the right. Each
+grid cell is 5 m × 5 m.
+5.3
+High speed ﬂight
+In order to test the high speed capability of the system, we performed a test run in an aisle with no obstacles.
+The goal provided to the robot was to go straight for a distance of 65 m. We were able to ﬂy at speeds of up to
+7 m/s and reach the desired goal position. A plot of the desired and estimated position and velocity is shown
+in Figure 24, which shows that the performance of our controller is good enough to track such aggressive
+trajectories. The initial section of the plots, from 0–4 s, is the autonomous takeoﬀand the forward trajectory
+begins at t = 4 s. There was no source of ground truth during the test but based on the expected location
+of the goal, the net drift in the position estimates was less than 2 m.
+6
+Discussion and Conclusion
+In this work, we developed a system that allows a quadrotor to navigate autonomously in GPS-denied and
+cluttered environments. Our navigation system consists of a set of modules that work together in order to
+allow the robot to go from a starting position to a speciﬁed goal location while avoiding obstacles on the
+way. After developing our system, we found the following points especially important in order to successfully
+build such a system:
+• Modular architecture: During our development process, each of the modules were separately
+developed. This was made possible by deﬁning proper interfaces between the modules and using
+message passing to communicate among them. We used ROS as the framework for all the software
+[p.26]
+(a) Position
+(b) Velocity
+Figure 24: Plots showing the control performance when running the full navigation system in an empty aisle.
+During the ﬂight, the robot reaches speeds of up to 7 m/s.
+running on the robot since it was designed to solve this exact problem.
+This separation of the
+modules allowed most of the planner development to happen in a simulator while the estimation
+and control modules were being developed. This accelerated the development since diﬀerent modules
+could be implemented and tested in parallel.
+• Sensor selection: The choice of sensors used for estimation and mapping plays an important role
+in determining the robustness of the system. As shown in Table 2, there are various advantages
+and disadvantages of diﬀerent camera conﬁgurations for visual odometry.
+We selected a stereo
+conﬁguration for our system since it provides increased robustness over a monocular camera setup,
+which is gaining popularity among the research community due to its minimalistic nature and also
+allows us to have simpler algorithms compared to multi-camera systems. The use of a dedicated
+height sensor makes it possible to maintain altitude even when there is drift in our visual odometry,
+allowing the robot to safely ﬂy without hitting the ground or going too high. However, the downward
+pointing height sensor has jumps in the measurement when the robot goes over obstacles and this
+has to be properly taken care of in the sensor fusion module. For mapping, instead of using a ﬁxed
+lidar, we mounted it on a servo in order to sweep it up and down allowing us to create 3D maps
+and navigate in 3D environments with obstacles above and below the robot. With a ﬁxed lidar we
+would not have been able to safely avoid all the obstacles that we encountered during the tests.
+• Local map for planning: Using a local map for planning instead of a global map was an crucial
+decision in the design of our planner. The problem with creating a global map is that we need
+to explicitly maintain global consistency by making use of loop closures to eliminate drifts. By
+comparison, the local map approach helps the planner tolerate drifts in the state estimation since
+the drift is small in the short period of time that the local map is constructed in. This can be seen
+clearly in Figure 23 where there is large drift in the yaw but the robot is still able to reach the
+goal. This also helps in reducing the computational complexity and allows us to run the planner at
+a higher rate. Faster replanning reduces the latency between an obstacle being seen by the mapping
+system and the robot reacting to it, thus improving the robustness of the system.
+In addition to these positive points, we learned some lessons during the tests in the warehouse environment.
+• Drift in the visual odometry: The tests in the warehouse environment involved ﬂying long
+trajectories while constantly moving forward. Since the ﬂoor of the building was smooth and did
+[p.27]
+not have texture, very few image features could be detected on it. This led to most of our image
+features coming from the obstacles to the side and front of the robot. We even picked up edgelet
+features from structures on the ceiling of the building. Thus a large part of the image features were
+at a large distance from the robot. In order to get good depth estimates of these far-away features,
+either the stereo baseline needs to be large or there needs to be suﬃcient parallax between the feature
+observations due to the motion between frames. We were limited to a 0.2 m stereo baseline due to
+the size of the robot. When moving along the long aisles, the image features were mainly in front of
+the robot, which sometimes led to insuﬃcient parallax to get good depth estimates for the features.
+Due to the poor depth estimates for some of the features, the visual odometry was not able to detect
+the correct scale of the motion between frames, which led to drift in the estimates. This caused a
+failure to reach the goal in some cases. One solution to this, that we are already looking into, is to
+have a more tightly coupled visual odometry system where the accelerometer measurement is also
+used in order to provide another source of scale for the visual odometry system.
+• Local map size: One factor that prevents us from reaching high speeds is the size of the map used
+for planning. Since we want to generate dynamically feasible trajectories for the robot, we have to
+take into account the maximum acceleration that the robot can safely achieve. Also, in order to
+guarantee safety, we have to plan trajectories such that the robot comes to a halt at the end of the
+known map since there can be undiscovered obstacles just outside the map. Thus, the combination
+of a map size and maximum acceleration puts a limit on the maximum speed that the robot can
+reach. The main factor limiting our local map size is the time required to plan in that map. The
+majority of the time in each planning step is taken by the A∗algorithm, which is used to ﬁnd a path
+through the hybrid graph (as described in Section 4). In order to reduce this time, we are looking
+into using better heuristics for A∗and other techniques such as Jump Point Search (Harabor and
+Grastien, 2011) which can signiﬁcantly speed up the graph search.
+In conclusion, we have presented a solution that consists of all the modules that are required for a robot to
+autonomously navigate in an unknown environment. The system has been designed such that all the sensing
+and computation occur onboard the robot. Once the robot has been launched, there is no human interaction
+necessary for the robot to navigate to the goal.
+The system has been thoroughly tested in the lab as well as in the warehouse environment that was set up as
+part of the DARPA FLA program. Our robot was able to successfully navigate the various obstacle courses
+that were speciﬁcally designed to challenge the navigation system. The only input from the operator for
+each run was the goal position relative to the starting position. In fact, during some of the runs, we even
+lost the communication link between the base station (which was only used for monitoring purposes) and
+the robot, due to the long distance and the large scaﬀolding structures in between, but the robot kept on
+going and successfully completed the task.
+The ﬁnal goal is to be able to ﬂy at speeds of around 20 m/s through cluttered environments, and we believe
+that it would require more work in all the individual modules that make up the system. In estimation, we
+need to reduce the drift that the visual odometry system experiences when ﬂying fast while following long
+trajectories. In control, we need to incorporate aerodynamic eﬀects such as drag, which become increasingly
+important when ﬂying fast. In the mapping part, the nodding lidar solution needs to be replaced by one
+which provides a denser representation of the environment in order to detect small obstacles reliably. And
+ﬁnally, the planning subsystem needs to be sped up in order to allow us to use a larger map for planning and
+also to allow faster replanning in order to make the system more robust. As these developments are made,
+we would be able to incorporate them into our system due to the modular architecture, thus providing a
+strong foundation for future research.
+Acknowledgments
+We gratefully acknowledge support from DARPA grants HR001151626/HR0011516850.
+[p.28]
+References
+Achtelik, M., Bachrach, A., He, R., Prentice, S., and Roy, N. (2009). Stereo vision and laser odometry for
+autonomous helicopters in gps-denied indoor environments. volume 7332, pages 733219–733219–10.
+Augugliaro, F., Lupashin, S., Hamer, M., Male, C., Hehn, M., Mueller, M. W., Willmann, J., Gramazio,
+F., Kohler, M., and D’Andrea, R. (2014). The Flight Assembled Architecture installation: Cooperative
+construction with ﬂying machines. IEEE Control Systems Magazine, 34(4):46–64.
+Bachrach, A., He, R., and Roy, N. (2009). Autonomous ﬂight in unknown indoor environments. International
+Journal of Micro Air Vehicles, 1(4):217–228.
+Bachrach, A., Prentice, S., He, R., and Roy, N. (2011).
+RANGE – Robust Autonomous Navigation in
+GPS-Denied Environments. Journal of Field Robotics, 28(5):644–666.
+Bellingham, J., Richards, A., and How, J. P. (2002). Receding horizon control of autonomous aerial vehicles.
+In Proceedings of the 2002 American Control Conference (IEEE Cat. No.CH37301), volume 5, pages
+3741–3746 vol.5.
+Bloesch, M., Omari, S., Hutter, M., and Siegwart, R. (2015). Robust visual inertial odometry using a direct
+ekf-based approach. In 2015 IEEE/RSJ International Conference on Intelligent Robots and Systems
+(IROS), pages 298–304.
+Bl¨osch, M., Weiss, S., Scaramuzza, D., and Siegwart, R. (2010). Vision based mav navigation in unknown
+and unstructured environments. In 2010 IEEE International Conference on Robotics and Automation,
+pages 21–28.
+Bouabdallah, S., Murrieri, P., and Siegwart, R. (2004). Design and control of an indoor micro quadrotor.
+In Robotics and Automation, 2004. Proceedings. ICRA ’04. 2004 IEEE International Conference on,
+volume 5, pages 4393–4398 Vol.5.
+Bouabdallah, S. and Siegwart, R. (2005). Backstepping and sliding-mode techniques applied to an indoor mi-
+cro quadrotor. In Proceedings of the 2005 IEEE International Conference on Robotics and Automation,
+pages 2247–2252.
+Bouabdallah, S. and Siegwart, R. (2007). Full control of a quadrotor. In 2007 IEEE/RSJ International
+Conference on Intelligent Robots and Systems, pages 153–158.
+Boyd, S. and Vandenberghe, L. (2004). Convex Optimization. Cambridge University Press, New York, NY,
+USA.
+Civera, J., Davison, A., and Montiel, J. (2008). Inverse Depth Parametrization for Monocular SLAM. IEEE
+Trans. Robotics, 24(5).
+Deits, R. and Tedrake, R. (2015a). Computing large convex regions of obstacle-free space through semideﬁnite
+programming. In Algorithmic Foundations of Robotics XI, pages 109–124. Springer.
+Deits, R. and Tedrake, R. (2015b). Eﬃcient Mixed-Integer Planning for UAVs in Cluttered Environments.
+In 2015 IEEE International Conference on Robotics and Automation (ICRA), pages 42–49.
+Escareno, J., Salazar-Cruz, S., and Lozano, R. (2006). Embedded control of a four-rotor uav. In 2006
+American Control Conference, pages 6 pp.–.
+Forster, C., Pizzoli, M., and Scaramuzza, D. (2014). SVO: Fast semi-direct monocular visual odometry. In
+IEEE International Conference on Robotics and Automation (ICRA).
+Forster, C., Zhang, Z., Gassner, M., Werlberger, M., and Scaramuzza, D. (To appear, 2017). SVO: Semi-
+Direct Visual Odometry for Monocular and Multi-Camera Systems. IEEE Transactions on Robotics.
+[p.29]
+Grzonka, S., Grisetti, G., and Burgard, W. (2009). Towards a navigation system for autonomous indoor
+ﬂying. In 2009 IEEE International Conference on Robotics and Automation, pages 2878–2883.
+Guenard, N., Hamel, T., and Moreau, V. (2005). Dynamic modeling and intuitive control strategy for an
+“X4-ﬂyer”. In 2005 International Conference on Control and Automation, volume 1, pages 141–146.
+Harabor, D. and Grastien, A. (2011). Online graph pruning for pathﬁnding on grid maps. In Proceedings of
+the Twenty-Fifth AAAI Conference on Artiﬁcial Intelligence, AAAI’11, pages 1114–1119. AAAI Press.
+He, R., Prentice, S., and Roy, N. (2008). Planning in information space for a quadrotor helicopter in a
+gps-denied environment. In 2008 IEEE International Conference on Robotics and Automation, pages
+1814–1820.
+Hoﬀmann, G., Huang, H., Waslander, S., and Tomlin, C. (2007). Quadrotor helicopter ﬂight dynamics and
+control: Theory and experiment. In AIAA Guidance, Navigation and Control Conference and Exhibit,
+page 6461.
+Jones, E. S. and Soatto, S. (2011). Visual-inertial navigation, mapping and localization: A scalable real-time
+causal approach. The International Journal of Robotics Research, 30(4):407–430.
+Julier, S. J., Uhlmann, J. K., and Durrant-Whyte, H. F. (1995). A new approach for ﬁltering nonlinear
+systems. In American Control Conference, Proceedings of the 1995, volume 3, pages 1628–1632 vol.3.
+Karydis, K. and Kumar, V. (2016). Energetics in robotic ﬂight at small scales. Interface Focus, 7(1).
+Klein, G. and Murray, D. (2007). Parallel tracking and mapping for small AR workspaces. In Proc. Sixth
+IEEE and ACM International Symposium on Mixed and Augmented Reality (ISMAR’07), Nara, Japan.
+Lee, T., Leok, M., and McClamroch, N. H. (2010). Geometric Tracking Control of a Quadrotor UAV on
+SE(3). In 2010 49th IEEE Conference on Decision and Control (CDC), pages 5420–5425.
+Liu, S., Watterson, M., Tang, S., and Kumar, V. (2016). High speed navigation for quadrotors with limited
+onboard sensing. In 2016 IEEE International Conference on Robotics and Automation (ICRA), pages
+1484–1491.
+Meier, L., Honegger, D., and Pollefeys, M. (2015). PX4: A Node-Based Multithreaded Open Source Robotics
+Framework for Deeply Embedded Platforms. In 2015 IEEE International Conference on Robotics and
+Automation (ICRA), pages 6235–6240.
+Mellinger, D. and Kumar, V. (2011). Minimum Snap Trajectory Generation and Control for Quadrotors. In
+2011 IEEE International Conference on Robotics and Automation, pages 2520–2525.
+Mellinger, D., Kushleyev, A., and Kumar, V. (2012). Mixed-Integer Quadratic Program Trajectory Gen-
+eration for Heterogeneous Quadrotor Teams. In 2012 IEEE International Conference on Robotics and
+Automation, pages 477–483.
+Michael, N., Mellinger, D., Lindsey, Q., and Kumar, V. (2010). The GRASP Multiple Micro-UAV Testbed.
+IEEE Robotics & Automation Magazine, 17(3):56–65.
+Mohta, K., Turpin, M., Kushleyev, A., Mellinger, D., Michael, N., and Kumar, V. (2016). QuadCloud: A
+Rapid Response Force with Quadrotor Teams, pages 577–590. Springer International Publishing.
+Mourikis, A. I. and Roumeliotis, S. I. (2007). A Multi-State Constraint Kalman Filter for Vision-aided
+Inertial Navigation. In Proceedings 2007 IEEE International Conference on Robotics and Automation,
+pages 3565–3572.
+Mulgaonkar, Y., Whitzer, M., Morgan, B., Kroninger, C. M., Harrington, A. M., and Kumar, V. (2014).
+Power and weight considerations in small, agile quadrotors. In Proc. SPIE 9083, Micro- and Nanotech-
+nology Sensors, Systems, and Applications VI, volume 9083, pages 90831Q–90831Q–16.
+[p.30]
+Mur-Artal, R., Montiel, J. M. M., and Tard´os, J. D. (2015). ORB-SLAM: A Versatile and Accurate Monoc-
+ular SLAM System. IEEE Transactions on Robotics, 31(5):1147–1163.
+Pizzoli, M., Forster, C., and Scaramuzza, D. (2014). REMODE: Probabilistic, Monocular Dense Reconstruc-
+tion in Real Time. In IEEE Int. Conf. on Robotics and Automation (ICRA), pages 2609–2616.
+Press, W. H., editor (1992). Numerical recipes in C: the art of scientiﬁc computing. Cambridge University
+Press, Cambridge ; New York, 2nd ed edition.
+Richter, C., Bry, A., and Roy, N. (2016). Polynomial trajectory planning for aggressive quadrotor ﬂight in
+dense indoor environments. In Robotics Research, pages 649–666. Springer.
+Rosten, E., Porter, R., and Drummond, T. (2010). Faster and Better: A Machine Learning Approach to
+Corner Detection. IEEE Trans. Pattern Anal. Machine Intell., 32(1):105–119.
+Schmid, K., Lutz, P., Tomi´c, T., Mair, E., and Hirschm¨uller, H. (2014). Autonomous vision-based micro air
+vehicle for indoor and outdoor navigation. Journal of Field Robotics, 31(4):537–570.
+Shen, S., Michael, N., and Kumar, V. (2011). Autonomous Multi-Floor Indoor Navigation with a Computa-
+tionally Constrained MAV. In 2011 IEEE International Conference on Robotics and Automation, pages
+20–25.
+Shen, S., Mulgaonkar, Y., Michael, N., and Kumar, V. (2013). Vision-based state estimation and trajectory
+control towards high-speed ﬂight with a quadrotor. In Proceedings of Robotics: Science and Systems,
+Berlin, Germany.
+Theys, B., Dimitriadis, G., Hendrick, P., and Schutter, J. D. (2016). Inﬂuence of propeller conﬁguration on
+propulsion system eﬃciency of multi-rotor unmanned aerial vehicles. In 2016 International Conference
+on Unmanned Aircraft Systems (ICUAS), pages 195–201.
+Thomas, J., Loianno, G., Polin, J., Sreenath, K., and Kumar, V. (2014). Toward autonomous avian-inspired
+grasping for micro aerial vehicles. Bioinspiration & Biomimetics, 9(2):025010.
+Valenti, R. G., Dryanovski, I., Jaramillo, C., Str¨om, D. P., and Xiao, J. (2014). Autonomous quadrotor
+ﬂight using onboard rgb-d visual odometry. In 2014 IEEE International Conference on Robotics and
+Automation (ICRA), pages 5233–5238.
+Vogiatzis, G. and Hern´andez, C. (2011). Video-based, Real-Time Multi View Stereo. Image Vision Comput.,
+29(7):434–441.
+Wan, E. A. and Merwe, R. V. D. (2000).
+The Unscented Kalman Filter for Nonlinear Estimation.
+In
+Proceedings of the IEEE 2000 Adaptive Systems for Signal Processing, Communications, and Control
+Symposium (Cat. No.00EX373), pages 153–158.
+Watterson, M. and Kumar, V. (2015). Safe receding horizon control for aggressive MAV ﬂight with limited
+range sensing. In 2015 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS),
+pages 3235–3240.
+Wolﬀ, E. M., Topcu, U., and Murray, R. M. (2014). Optimization-based Trajectory Generation with Linear
+Temporal Logic Speciﬁcations. In 2014 IEEE International Conference on Robotics and Automation
+(ICRA), pages 5319–5325.
+¨Ozaslan, T., Mohta, K., Keller, J., Mulgaonkar, Y., Taylor, C. J., Kumar, V., Wozencraft, J. M., and
+Hood, T. (2016). Towards fully autonomous visual inspection of dark featureless dam penstocks using
+MAVs. In 2016 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), pages
+4998–5005.
+=== END ===

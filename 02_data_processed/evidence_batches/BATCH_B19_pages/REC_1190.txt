@@ -1,0 +1,4868 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1190.pdf
+sha256: AB01CF0B714AC00903110EDCE66AEE75331A6A57217FFDCA6CCEDD978C94B601
+library: pymupdf (fitz) v1.28.2
+pages: 30
+=== BEGIN ===
+[p.1]
+Aerospace Science and Technology 120 (2022) 107237
+Contents lists available at ScienceDirect
+Aerospace Science and Technology
+www.elsevier.com/locate/aescte
+Reduction of GNSS-Denied inertial navigation errors for ﬁxed wing 
+autonomous unmanned air vehicles
+Eduardo Gallo ∗,1, Antonio Barrientos
+Centro de Automática y Robótica, Universidad Politécnica de Madrid - Consejo Superior de Investigaciones Cientíﬁcas
+a r t i c l e 
+i n f o
+a b s t r a c t
+Article history:
+Received 11 August 2021
+Received in revised form 27 October 2021
+Accepted 23 November 2021
+Available online 26 November 2021
+Communicated by Euan Mcgookin
+Keywords:
+GNSS-Denied
+GPS-Denied
+Inertial navigation
+Autonomous navigation
+UAV
+VIO
+This article proposes an inertial navigation algorithm intended to lower the negative consequences of 
+the absence of GNSS (Global Navigation Satellite System) signals on the navigation of autonomous ﬁxed 
+wing low SWaP (Size, Weight, and Power) UAVs (Unmanned Air Vehicles). In addition to accelerometers 
+and gyroscopes, the ﬁlter takes advantage of sensors usually present onboard these platforms, such as 
+magnetometers, Pitot tube, and air vanes, and aims to reduce the attitude error and position drift (both 
+horizontal and vertical) with the dual objective of improving the aircraft GNSS-Denied inertial navigation 
+capabilities as well as facilitating the fusion of the inertial ﬁlter with visual odometry algorithms. 
+Stochastic high ﬁdelity Monte Carlo simulations of two representative scenarios involving the loss of
+GNSS signals are employed to evaluate the results, compare the proposed ﬁlter with more traditional 
+implementations, and analyze the sensitivity of the results to the quality of the onboard sensors. The 
+author releases the C++ implementation of both the navigation ﬁlter and the high ﬁdelity simulation as 
+open-source software [1].
+© 2021 The Authors. Published by Elsevier Masson SAS. This is an open access article under the CC BY 
+license (http://creativecommons.org/licenses/by/4.0/).
+Mathematical notation
+Any variable with a hat accent < ˆ· > refers to its estimated 
+value, with a tilde <· > to its measured value, and with a dot 
+< ˙· > to its time derivative. In the case of vectors, which are dis-
+played in bold (e.g., x), other employed symbols include the wide 
+hat <· >, which refers to the skew-symmetric form, and the dou-
+ble vertical bars < ∥· ∥>, which refer to the norm. In the case of 
+scalars, the vertical bars < | · | > refer to the absolute value. When 
+employing quaternions, which are also displayed in bold (e.g., q), 
+the asterisk superindex < ·∗> refers to the conjugate, the quater-
+nion multiplication is represented by ⊗, and ⊖refers to the minus 
+operator.
+Four different reference frames are used in this article: the in-
+ertial frame (FI), the ECEF frame (FE), the NED frame (FN), and the 
+* Corresponding author.
+E-mail addresses: edugallo@yahoo.com, e.gallo@alumnos.upm.es (E. Gallo), 
+antonio.barrientos@upm.es (A. Barrientos).
+1 Postal address: Centro de Automática y Robótica (CAR UPM-CSIC), c/ José Gutiér-
+rez Abascal 2, 28006, Madrid, Spain.
+body frame (FB). Superindexes are employed over vectors to spec-
+ify the reference frame in which they are viewed (e.g., vN refers 
+to ground velocity viewed in FN, while vB is the same vector but 
+viewed in FB). Subindexes may be employed to clarify the mean-
+ing of the variable or vector, such as in vTAS for air velocity instead 
+of the ground velocity v, in which case the subindex is either an 
+acronym or its meaning is clearly explained when ﬁrst introduced. 
+Subindexes may also refer to a given component of a vector, e.g. vN
+2
+refers to the second component of vN. In addition, where two ref-
+erence frames appear as subindexes to a vector, it means that the 
+vector goes from the ﬁrst frame to the second. For example, ωB
+NB
+refers to the angular velocity from the FN frame to the FB frame 
+viewed in FB. In addition, there exist two indexes that appear as 
+subindexes: j identiﬁes an speciﬁc run within each Monte Carlo 
+simulation, while n identiﬁes a discrete time instant tn.
+1. Introduction and outline
+The extreme dependency of an autonomous UAV (Unmanned 
+Air Vehicle) inertial navigation to the presence of GNSS (Global 
+Navigation Satellite System) signals, without which it incurs in a 
+slow but unavoidable position drift that may ultimately lead to the 
+loss of the platform, is discussed in section 2. This dependency 
+does not only constitute a signiﬁcant obstacle for the widespread 
+usage of these platforms in civil airspace, but also represents a 
+threat to military missions.
+https://doi.org/10.1016/j.ast.2021.107237
+1270-9638/© 2021 The Authors. Published by Elsevier Masson SAS. This is an open access article under the CC BY license (http://creativecommons.org/licenses/by/4.0/).
+[p.2]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Nomenclature
+α
+Angle of attack
+α
+Angular acceleration
+β
+Angle of sideslip
+βT
+ISA temperature gradient
+γTAS
+Aerodynamic path angle
+δCNTR
+Position of throttle and control surfaces
+δTARGET
+Control targets
+
+Estimation error, increment
+p
+Atmospheric pressure offset
+r
+Rotation perturbation or error
+t
+Estimation or sensing period
+T
+Atmospheric temperature offset
+θ
+Body pitch angle
+μ
+Mean or expected value
+ξ
+Body bank angle
+σ
+Standard deviation
+σu
+Sensor bias drift
+σv
+Sensor system noise
+ϒ
+Execution or run
+ϕ
+Latitude
+χ
+Bearing
+ψ
+Heading or body yaw angle
+ω
+Angular velocity
+ωE
+WGS84 ellipsoid angular velocity
+a
+Acceleration
+ac
+Centrifugal acceleration
+acor
+Coriolis acceleration
+atrs
+Transport acceleration
+B
+Magnetic ﬁeld
+B0
+Sensor bias offset
+E
+Full sensor error
+f
+Speciﬁc force
+F
+Force
+FAER
+Aerodynamic forces
+FPRO
+Propulsive forces
+g
+Gravitation acceleration
+g0
+Standard acceleration of free fall
+gc
+Gravity acceleration
+h
+Geometric altitude
+H
+Geopotential altitude
+HP
+Pressure altitude
+m
+Sensor cross coupling
+N
+Radius of curvature of prime vertical
+p
+Atmospheric pressure
+p
+Container vector
+p0
+Standard mean sea level pressure
+q
+Unit quaternion
+R
+Air speciﬁc constant
+R
+Rotation matrix
+RE
+Earth radius
+s
+Sensor scale factor
+t
+Time
+T
+Atmospheric temperature
+T0
+Standard mean sea level temperature
+v
+Speed
+v
+Velocity
+x
+Horizontal distance
+x
+Position
+xAIR
+Air data ﬁlter state vector
+xATT
+Attitude ﬁlter state vector
+xPOS
+Position ﬁlter state vector
+ˆx = xEST
+Estimated trajectory
+xGDT
+Geodetic coordinates
+xREF
+Reference objectives
+x = xSENSED
+Sensed trajectory
+x = xTRUTH
+Real trajectory
+yAIR
+Air data ﬁlter observation vector
+yATT
+Attitude ﬁlter observation vector
+yPOS
+Position ﬁlter observation vector
+Acronyms
+ACC
+ACCelerometers
+MX
+MiX
+AOA
+Angle Of Attack
+NDB
+Non Directional Beacon
+AOS
+Angle Of Sideslip
+NED
+North East Down
+BRIEF
+Binary Robust Independent Elementary
+NSE
+Navigation System Error
+Features
+OAT
+Outside Air Temperature
+DSO
+Direct Sparse Odometry
+ORB
+Oriented FAST and rotated BRIEF
+ECEF
+Earth Centered Earth Fixed
+OSP
+Outside Static Pressure
+EKF
+Extended Kalman Filter
+SAR
+Synthetic Aperture Radar
+FAST
+Features from Accelerated Segment Test
+SLAM
+Simultaneous Localization And Mapping
+FTE
+Flight Technical Error
+SoOP
+Signals of OPportunity
+GNSS
+Global Navigation Satellite System
+STOL
+Short Take Off and Landing
+GPS
+Global Positioning System
+SVO
+Semi direct Visual Odometry
+GYR
+GYRoscopes
+SWaP
+Size, Weight, and Power
+ICAO
+International Civil Aviation Organization
+TAS
+True Air Speed
+ILS
+Instrument Landing System
+TPS
+Theater Positioning System
+IMU
+Inertial Measurement Unit
+TSE
+Total System Error
+INS
+Inertial Navigation System
+UAV
+Unmanned Aerial Vehicle
+INSA
+ICAO Non Standard Atmosphere
+VHF
+Very High Frequency
+ISA
+ICAO Standard Atmosphere
+VIO
+Visual Inertial Odometry
+LIDAR
+LIght Detection And Ranging
+VO
+Visual Odometry
+LSD
+Large scale Semi Direct
+VOR
+VHF Omnidirectional Radio Range
+MAG
+MAGnetometers
+VTOL
+Vertical Take Off and Landing
+MEMS
+Micro Machined Electromechanical
+WGS84
+World Geodetic System 1984
+System
+This article focuses on autonomous ﬁxed wing low SWaP (Size, 
+Weight, and Power) aircraft, and proposes an inertial navigation ﬁl-
+ter speciﬁcally designed for GNSS-Denied conditions. The proposed 
+ﬁlter takes advantage of sensors usually present onboard ﬁxed 
+wing aircraft but only used for control purposes instead of navi-
+gation, the particularities of ﬁxed wing ﬂight, and the atmospheric 
+and wind estimations that can be obtained before the GNSS sig-
+nals are lost. The ﬁlter does not only diminish the GNSS-Denied 
+2
+[p.3]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+position drift so the vehicle has a higher probability of returning 
+to base, but it also improves the GNSS-Denied estimation of the 
+aircraft attitude, specially during maneuvers, with the aim of facil-
+itating the addition of cameras and visual odometry algorithms to 
+the navigation system, which constitutes one of the most promis-
+ing approaches to further reduce the position drift. The objectives 
+and novelty of the proposed ﬁlter are described in section 3 in the 
+context of the different existing approaches to GNSS-Denied navi-
+gation.
+Section 4 introduces the stochastic high ﬁdelity simulation em-
+ployed to evaluate the navigation results by means of Monte Carlo 
+executions of two scenarios representative of the challenges of
+GNSS-Denied navigation, which are described in detail in [2]. Its 
+reading is highly recommended in order to understand the rest of 
+this article, as is that of [3], which describes the different error 
+sources modeled for each of the onboard sensors.
+Section 5 describes the proposed inertial navigation system 
+(INS), characterized by its separation into three different extended 
+Kalman ﬁlters (EKFs), an implementation of the speciﬁc force ob-
+servation equation that reduces the negative effects of the lack of 
+position and ground velocity GNSS measurements, and the freez-
+ing of the wind ﬁeld and atmospheric pressure offset estimations 
+at the time the GNSS signals are lost.
+A detailed analysis of the ability of the proposed INS ﬁlter to 
+track the aircraft attitude, its ground velocity, as well as its ver-
+tical and horizontal positions, is presented in section 6. They are 
+compared in section 7 with the results obtained based on more 
+traditional approaches employed to estimate the aircraft pose (at-
+titude plus position), representative of systems designed to work 
+with GNSS signals but that can no longer rely on them.
+The analysis of the results concludes in section 8, which dis-
+cusses the inﬂuence of the quality or grade of the different sensors 
+on the aircraft GNSS-Denied inertial navigation capabilities. By en-
+suring that the results obtained when employing sensors of infe-
+rior quality are qualitatively the same and quantitatively slightly 
+inferior to those presented in section 6, the beneﬁts of the pro-
+posed INS are safeguarded from possible errors introduced when 
+modeling the performances of the various sensors. Last, the results 
+are summarized for convenience in section 9, while section 10 pro-
+vides a short conclusion.
+2. GNSS-Denied navigation
+An autonomous UAV relies on onboard computers to execute 
+the previously uploaded mission objectives. It can employ the 
+communications channel to provide information to the ground, 
+which may decide to update the mission and upload it to the 
+platform, but as its own name implies, it can also operate with-
+out any kind of communication with its operator. It just continues 
+executing its mission until the ﬂight concludes or the mission is 
+modiﬁed.
+The number, variety, and applications of UAVs have grown ex-
+ponentially in the last few years, and the trend is expected to 
+continue in the future [4]. This is particularly true in the case of 
+low SWaP vehicles because their reduced cost makes them suit-
+able for a wide range of applications, both civil and military. A 
+signiﬁcant percentage of these vehicles are capable of operating 
+autonomously. With small variations, these platforms rely on a 
+suite of sensors that continuously provides noisy data about the 
+airframe state, a navigation algorithm to estimate the aircraft pose, 
+and a control system that, based on the navigation outputs, ad-
+justs the aircraft control mechanisms to successfully execute the 
+preloaded mission.
+This article focuses on ﬁxed wing autonomous platforms, which 
+are generally equipped with a GNSS receiver, accelerometers, gy-
+roscopes, magnetometers, a Pitot tube, and air vanes. The com-
+bination of accelerometers and gyroscopes is known as the Iner-
+tial Measurement Unit (IMU). The errors introduced by all sensors 
+grow signiﬁcantly as their SWaP decreases, in particular in the 
+case of the IMU. The recent introduction of solid state accelerom-
+eters and gyroscopes has dramatically improved the performance 
+of low SWaP IMUs, with new models showing signiﬁcant improve-
+ments when compared to those manufactured only a few years 
+ago. The problem of noisy measurement readings is compounded 
+in the case of low SWaP vehicles by the low mass of the plat-
+forms, which results in less inertia and hence more high frequency 
+accelerations and rotations caused by the atmospheric turbulence. 
+[5] presents a comprehensive review of low SWaP UAV navigation 
+systems and the problems they face, including the degradation or 
+absence of GNSS signals.
+Aircraft navigation has traditionally relied on the measurements 
+provided by accelerometers, gyroscopes, and magnetometers, in-
+curring in an slow but unbounded position drift that could only 
+be stopped by triangulation with the use of external navigation 
+(radio) aids. More recently, the introduction of satellite navigation 
+(GNSS) has completely removed the position drift and enabled au-
+tonomous inertial navigation in low SWaP platforms [6–8]. On the 
+negative side, low SWaP inertial navigation exhibits an extreme 
+dependency on the availability of GNSS signals. If the signals are 
+not present or can not be employed, inertial systems rely on dead 
+reckoning, which results in velocity and position drift, with the air-
+craft slowly but steadily deviating from its intended route [9].
+The availability of GNSS signals cannot be guaranteed by any 
+means. In addition to the (unlikely) event of one or various GNSS
+satellites ceasing to broadcast (voluntarily or not), the GNSS sig-
+nals can be accidentally blocked by nearby objects (mountains, 
+buildings, trees), corrupted by their own reﬂections in those same 
+objects, or maliciously interfered with by broadcasting a different 
+signal in the same frequency (jamming or spooﬁng). A through-
+out analysis of GNSS threats and reasons for signal degradation 
+is presented in [10]. Any of the above results in what is known 
+as GNSS-Denied navigation. In that event, the vehicle is unable to 
+ﬂy its intended route or even return to a safe recovery location, 
+which leads to the uncontrolled loss of the airframe if the GNSS
+signals are not recovered before the aircraft runs out of fuel (or 
+battery in case of electric vehicles). Although there exist various
+GNSS threat monitoring and reporting systems [11], autonomous 
+aircraft need to continuously evaluate the quality of the available 
+signals autonomously to decide if they can rely on them or not. 
+[12] proposes a continuous evaluation of GNSS accuracy based on 
+its integration within the INS.
+Note that although the term GNSS-Denied is more generic and 
+implies the absence of valid signals from any navigation satellite 
+system, GPS-Denied is more commonly employed in the litera-
+ture, particularly in non scientiﬁc circles. Both terms are analogous 
+in the context of navigation, as GPS-Denied does not imply the 
+availability of navigation signals from non GPS satellite navigation 
+systems; the widespread use of the term GPS-Denied can be at-
+tributed to GPS being the ﬁrst widely available global navigation 
+satellite system and, at least until recently, the system on which 
+most GNSS receivers relied. This article however employs the term
+GNSS-Denied, which is considered more adequate and technically 
+correct, representing the absence of navigation signals from any
+GNSS, GPS included.
+The extreme dependency on GNSS availability is not only one 
+of the main impediments for the introduction of small UAVs in 
+civil airspace, where it is not acceptable to have uncontrolled ve-
+hicles causing personal or material damage, but it also presents 
+a signiﬁcant drawback for military applications, as a single hull 
+loss may compromise the onboard technology. At this time there 
+are no comprehensive solutions to the operation of low SWaP au-
+tonomous UAVs in GNSS-Denied scenarios, although the use of on-
+3
+[p.4]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+board cameras to provide an additional relative pose measurement 
+seems to be one of the most promising routes. Bigger and more 
+expensive UAVs, this is, with less stringent SWaP requirements, 
+can rely to some degree on more accurate IMUs (at the expense 
+of SWaP) and additional communications equipment to overcome 
+this problem, but for most autonomous UAVs, the permanent loss 
+of the GNSS signals is equivalent to losing the airframe in an un-
+controlled way.
+3. Objective, novelty, and application
+Objective
+The main objective of this article is to improve the GNSS-
+Denied navigation capabilities of autonomous ﬁxed wing low SWaP
+vehicles, so in case GNSS signals become unavailable, they can 
+continue their mission or safely ﬂy to a predetermined recovery 
+location. By reducing the attitude and vertical position inertial es-
+timation errors, as well as the horizontal position drift inherent to
+GNSS-Denied inertial navigation, the proposed inertial algorithms 
+can be more easily fused with visual odometry techniques to pro-
+vide a viable solution. Three remarks should be added to this ob-
+jective:
+• The focus on low SWaP autonomous UAVs rules out the use 
+of high quality sensors, which in general are bigger and have 
+more weight, heavier platforms with more inertia against at-
+mospheric turbulence, as well as the assistance of any kind 
+of communications between the platform and the ground. Al-
+though the proposed algorithms would work if installed on-
+board higher SWaP platforms, there may exist better solutions 
+for high SWaP GNSS-Denied navigation that take advantage of 
+the better quality of the onboard sensors as well as the higher 
+platform inertia against turbulence.
+• Platforms that generate their lift by means of rotating blades 
+(helicopters and multirotors) are excluded as the proposed
+INS takes advantage of the special characteristics of ﬁxed 
+wing ﬂight, as explained below. VTOL (Vertical Take Off and 
+Landing) as well as STOL (Short Take Off and Landing) plat-
+forms, which use their rotors to generate lift when the air-
+speed is low, but are capable of rotating them to ﬂy like con-
+ventional ﬁxed wing aircraft, can rely on the proposed INS
+only when behaving like ﬁxed wing platforms.
+• Although the modeled platform employs a piston engine to 
+power the propeller, there would be no signiﬁcant difference 
+in the results if it were replaced by an electric motor.
+Possible approaches to GNSS-Denied navigation
+Inertial navigation employs the periodic readings provided by 
+triads of accelerometers and gyroscopes (known as inertial sen-
+sors) to estimate the pose of a moving object by means of dead 
+reckoning or integration. On aircraft, inertial sensors are comple-
+mented by magnetometers and a barometer to add robustness to 
+the inertial solution. Fixed wing aircraft are also equipped with a 
+Pitot tube and air vanes required by their control system, although 
+their measurements are usually not employed for navigation. Abso-
+lute references such as those provided by navigation radio aids2 or
+GNSS receivers are required to remove the position drift inherent 
+to inertial navigation.
+Low SWaP autonomous aircraft are too small to incorporate 
+navigation aid receivers, which in any case are not available over 
+vast regions of the Earth, exhibiting an extreme dependency on the 
+2 The most widely used radio aids for aircraft navigation are VHF Omnidirectional 
+Radio Range (VOR), Non Directional Beacon (NDB), and Instrument Landing System 
+(ILS).
+availability of GNSS signals. A summary of the challenges of GNSS-
+Denied navigation and the research efforts intended to improve its 
+performance is provided by [13].
+One approach to mitigate this problem is the establishment of 
+alternative navigation signals, such as the ground-wave radio fre-
+quency location signals of the Theater Positioning System (TPS) for 
+military applications [14–16], or the use of pseudo satellites gen-
+erating GNSS-like signals from ﬁxed ground locations [17–20], also 
+known as pseudolites.
+An alternative approach is to triangulate the aircraft position 
+using existing signals originally intended for other purposes, such 
+as those of television and cellular networks [21–24]. Receivers 
+for these signals, known as Signals of Opportunity (SoOP), have a 
+suﬃciently low SWaP to be mounted on most autonomous air-
+craft, although the quality and quantity of the available signals 
+varies enormously depending on the location where the ﬂight 
+takes place.
+Georegistration
+matches landmarks or terrain features as
+scanned or imaged by vehicles to preloaded data [13], and can 
+work based on Synthetic Aperture Radar (SAR) [25–27], Light De-
+tection and Ranging (LIDAR) [28–30], or camera visual systems, 
+in what is known as image registration [31–34]. While SAR suffers 
+from being memory and computationally expensive and LIDAR is 
+restricted for aviation purposes by its limited range, image regis-
+tration is a potentially valid solution for completely removing the 
+position drift in GNSS-Denied scenarios. Its main challenge is ob-
+taining a high percentage of positive matches when supplied with 
+onboard generated images that display the terrain not only at dif-
+ferent altitudes and attitudes than those of the database images, 
+but which are also obtained in different seasons, illumination, and 
+weather conditions.
+The same technologies can also be employed in the absence of
+GNSS to improve the relative navigation of vehicles ﬂying close to 
+each other; [35] proposes a LIDAR based algorithm for this pur-
+pose, while [36] relies of communications antennas employed as 
+relative range sensors. Ground vehicles can also be employed to as-
+sist in the aircraft GNSS-Denied navigation, as in the case of [37], 
+which employs radio ranging between the ground and ﬂying vehi-
+cles.
+A different approach that is gaining interest in recent years in-
+volves taking advantage of the capability of neural networks to 
+map the input-output relationships of a system without a priori 
+knowledge of its behavior [38,39]; the network is hence trained 
+based on the INS behavior in the presence of GNSS signals with 
+the inputs of the different onboard sensors, with the objective of it 
+properly estimating the vehicle pose when the GNSS signals are 
+no longer available. Artiﬁcial immune systems can also be em-
+ployed for GNSS-Denied navigation, in which those variables that 
+can characterize the dynamic state of the platform and that can 
+be measured with the onboard sensors are assimilated to the anti-
+gens, while the antibodies consist of the adjustments applied to 
+the dead reckoning integration algorithm [40].
+Visual Odometry (VO) consists on employing the ground images 
+generated by one or more onboard cameras (either visual or in-
+frared) without the use of prerecorded image databases or any 
+other sensors, incrementally estimating the vehicle pose based on 
+the changes that its motion induces on the images [41–43]. It has 
+been employed for navigation of ground robots, road vehicles, and 
+multirotors ﬂying both indoors and outdoors. The incremental con-
+catenation of relative poses results in a slow but unbounded pose 
+drift, which can only be eliminated if aided by Simultaneous Lo-
+calization and Mapping (SLAM) [44,45], a particular case of VO in 
+which the map of the already viewed terrain is stored and em-
+ployed for loop closure in case it is revisited by the vehicle during 
+its motion. Modern stand-alone VO algorithms such as SVO (Semi 
+Direct Visual Odometry) [46,47] and DSO (Direct Sparse Odometry) 
+4
+[p.5]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+[48] are robust and exhibit a limited drift, while LSD-SLAM (Large 
+scale Semi Dense SLAM) [49] and ORB-SLAM (large scale feature 
+based SLAM)3 [50–52] may be more appropriate if the vehicle re-
+visits an already imaged area. Vision based techniques can also be 
+employed to assist in the short term relative navigation required 
+to land a UAV, either on the ground or on a vessel [53–55].
+The most comprehensive solution to GNSS-Denied navigation 
+appears to be the fusion between the inertial and visual odom-
+etry algorithms into an integrated navigation system, which can 
+also be combined with image registration. Two different trends ex-
+ist for this purpose. The ﬁrst is to employ VO optimizations with 
+the assistance of the inertial navigation estimations, reducing the 
+pose estimation drift inherent to VO. This is known as Visual In-
+ertial Odometry (VIO) [56–60]. Current VIO implementations are 
+also primarily intended for ground robots, multirotors, and road 
+vehicles, and hence rely exclusively on the readings of the vehi-
+cle inertial sensors and the images taken by the onboard camera.
+VIO currently represents the state of the art in GNSS-Denied nav-
+igation for low SWaP UAVs, and many commercial products now 
+utilize proprietary VIO algorithms [5]. Several VIO algorithms are 
+available as open source packages; their performance and required 
+resources are reviewed in [61].
+The second trend or ﬁltering consists on employing the vi-
+sual estimations as additional observations with which to feed the 
+inertial ﬁlter. In the case of attitude estimation exclusively (mo-
+mentarily neglecting the platform position), the GNSS signals are 
+helpful and enable the INS to obtain more accurate and less noisy 
+estimations, but they are not indispensable, as driftless attitude 
+estimations can be obtained based on the IMU without their use. 
+Proven techniques for attitude estimation in all kinds of platforms 
+that do not rely on GNSS signals include Gaussian ﬁlters [62], de-
+terministic ﬁlters [63], complimentary ﬁlters [64], and stochastic 
+ﬁlters [65,66]. In the case of the complete pose estimation (both 
+attitude and position), it is indispensable to employ the velocity 
+or incremental position observations obtained with VO methods in 
+the absence of the absolute references provided by GNSS receivers. 
+The literature includes cases based on Gaussian ﬁlters [67], and 
+more recently nonlinear deterministic ﬁlters [68], stochastic ﬁlters 
+[69], Riccati observers [70], and invariant EKFs [71].
+Novelty
+The VIO solutions listed above focus on how to incorporate the 
+inertial estimations (or even the measurements of the inertial sen-
+sors without previous ﬁltering) into the VO pipelines in such a way 
+that the VO non linear optimizations can take advantage of the ad-
+ditional inputs to reduce their inherent pose drift. To increase their 
+applicability, these solutions are quite generic with respect to the 
+platforms on which they are mounted, with most applications fo-
+cused on ground vehicles, indoor robots, and multirotors, as well as 
+the sensors employed, which are usually restricted to gyroscopes 
+and accelerometers.
+This article however focuses on a very speciﬁc case (long dis-
+tance GNSS-Denied turbulent ﬂight of ﬁxed wing low SWaP air-
+craft), and instead centers on the ﬁrst part of the VIO solution, 
+this is, the obtainment of the inertial estimates that are then fed 
+to the visual algorithms. Reducing the inertial estimation errors of 
+the aircraft attitude and position is expected to redound in more 
+accurate and robust VIO estimations, independently of the speciﬁc
+VIO implementation, in exchange for more restrictive conditions 
+for its applicability. The algorithms proposed below take advan-
+tage of the sensors already present onboard ﬁxed wing aircraft and 
+the special characteristics of the ﬂight of these platforms to obtain 
+3 ORB stands for Oriented FAST and rotated BRIEF, a type of blob feature.
+more accurate inertial estimations than what is possible with a 
+generic vehicle equipped exclusively with inertial sensors:
+• Onboard sensors. It is possible to employ the magnetic ﬁeld 
+readings provided by a triad of magnetometers (useful as an 
+absolute reference of body yaw to complement that of pitch 
+and roll obtained from gravity and the accelerometers), the 
+pressure altitude measurements obtained with the barometer 
+(employed to limit the error in vertical position), and the air 
+velocity recordings supplied by the Pitot tube and air vanes 
+(used to limit the error in ground velocity and hence re-
+duce the horizontal position drift). Standard ﬁxed wing sys-
+tems only employ the air velocity measurements for control 
+purposes, unlike the proposed one, which also uses them for 
+navigation.
+• Motion. In contrast with ground robots and road vehicles, the 
+ground velocity of an aircraft is the combination of its air ve-
+locity vTAS, a low frequency quasi stationary wind ﬁeld vWIND, 
+plus high frequency turbulence vTURB. While GNSS receivers 
+provide ground speed readings, only air velocity can be in-
+dependently measured by the Pitot tube and air vanes. The 
+proposed INS ﬁlter takes advantage of the air velocity mea-
+surements and the fact that the wind ﬁeld has a signiﬁcant 
+effect on the aircraft kinematics and resulting trajectory but 
+very little on the dynamics, in contrast with the turbulence, 
+which produces strong accelerations that have a major inﬂu-
+ence on the aircraft dynamics and its control system, but that 
+evens itself out over time showing little effect on the aircraft 
+trajectory.
+• GNSS-Denied environment. While the indoors motion of 
+ground robots and multirotors can never rely on GNSS sig-
+nals, GNSS-Denied scenarios for road vehicles and outdoors 
+multirotors are likely short lived and caused by building or ter-
+rain blockages. All these platforms can make use of additional 
+distance sensors to avoid collisions and smart algorithms to re-
+main in the road, and can ultimately stop or land if the GNSS
+signals are not recovered. In the case of ﬁxed wing aircraft, 
+it can be assumed that GNSS signals are present at the be-
+ginning of the ﬂight, and that if they disappear the reason is 
+likely to be technical error or intentional action (jamming or 
+spamming), so the vehicle needs to be capable of ﬂying for 
+long periods of time in GNSS-Denied conditions until reaching 
+a recovery location where it can be landed by remote control. 
+The consequences of failing to do so are much more severe 
+than for all other platforms mentioned above.
+Application
+The main application of this work is that it provides VIO nav-
+igation systems installed onboard ﬁxed wing low SWaP aircraft 
+with improved inertial estimations to employ in their visual odom-
+etry pipelines, resulting in enhanced GNSS-Denied capabilities. 
+In the case that GNSS signals become unavailable in mid ﬂight,
+GNSS-Denied navigation is required for the platform to complete 
+its mission or return to base without the position and ground 
+velocity observations provided by GNSS receivers. The proposed 
+algorithms should only be employed in GNSS-Denied conditions, 
+and as shown in the following sections, they signiﬁcantly increase 
+the possibilities of the aircraft safely reaching the vicinity of the 
+intended recovery location, where it can be landed by remote con-
+trol.
+4. High ﬁdelity stochastic simulation, sensors, and scenarios
+To evaluate the performance of the proposed inertial navigation 
+algorithms, this article relies on Monte Carlo simulations consisting 
+of one hundred runs of two different scenarios based on the high 
+5
+[p.6]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Fig. 1. Components of the high ﬁdelity simulation. (For interpretation of the colors in the ﬁgure(s), the reader is referred to the web version of this article.)
+ﬁdelity stochastic ﬂight simulation graphically depicted in Fig. 1. 
+The simulation models the ﬂight in varying weather and turbulent 
+conditions of a low SWaP ﬁxed wing piston engine autonomous
+UAV, and has been speciﬁcally developed to analyze the perfor-
+mances of different navigation systems in GNSS-Denied conditions. 
+Described in detail in [2], the simulation models the inﬂuence on 
+the resulting aircraft trajectory of many different factors, such as 
+the guidance objectives that make up the mission, the atmospheric 
+conditions, the wind ﬁeld, the air turbulence, the local perturba-
+tions to the Earth gravity and magnetic ﬁelds, the aircraft aerody-
+namic and propulsive performances, its onboard sensors and their 
+error sources, the control system that moves the throttle and the 
+aerodynamic controls so the trajectory conforms to the guidance 
+objectives, and the navigation system that processes the data ob-
+tained by the sensors and feeds the control system. The simulation 
+also considers the asymmetric ﬂight conditions caused by the sin-
+gle engine torque and cross winds [72,73], the inﬂuence of the 
+fuel consumption on the aircraft mass and inertial properties, as 
+well as the relative position and orientation of the gyroscopes, ac-
+celerometers, and camera with respect to the body frame and its 
+origin, the aircraft center of mass. The open source C++ implemen-
+tation of the high ﬁdelity simulation and the INS proposed below 
+is available in [1].
+The simulation consists on two distinct processes. The ﬁrst, rep-
+resented by the yellow blocks on the left of Fig. 1, focuses on the 
+physics of ﬂight and the interaction between the aircraft and its 
+surroundings that results in the real aircraft trajectory x = xTRUTH; 
+the second, represented by the green blocks on the right, contains 
+the aircraft systems in charge of ensuring that the resulting tra-
+jectory adheres as much as possible to the mission objectives. It 
+includes the different sensors whose output comprise the sensed 
+trajectory x = xSENSED, the navigation system in charge of ﬁltering 
+it to obtain the estimated trajectory ˆx = xEST, the guidance system 
+that converts the reference objectives xREF into the control targets 
+δTARGET, and the control system that adjusts the position of the 
+throttle and aerodynamic control surfaces δCNTR so the estimated 
+trajectory ˆx is as close as possible to the reference objectives xREF. 
+As shown in the ﬁgure, the two parts of the simulation are not 
+independent. The total system error (TSE) or difference between x
+and xREF is the combination of the navigation system error (NSE) or 
+difference between x and ˆx and the ﬂight technical error (FTE) or 
+difference between ˆx and xREF. In the simulation, the real trajectory 
+is integrated at 500 Hz, the sensors and navigation system operate 
+at 100 Hz, while the guidance and control systems work at 50 Hz
+[2]. As this article focuses on the sensors and navigation, the pe-
+riod t is always 0.01 s.
+All components of the simulation have been modeled with as 
+few simpliﬁcations as possible to increase the realism of the re-
+sults, as explained in [2]. With the exception of the aircraft perfor-
+mances and its control system, which are deterministic, all other 
+simulation components are treated as stochastic and hence vary 
+from one execution to the next, enhancing the signiﬁcance of the 
+Monte Carlo simulation results.
+Sensors
+The representation of the different errors introduced by the on-
+board sensors is of particular interest for inertial navigation. The 
+following tables provide the performance values employed to sim-
+ulate the different sensors, although the reader should refer to [3]
+for a detailed description of the expressions that provide the mea-
+surement errors introduced by the various sensors, as well as for 
+an explanation of the process employed to obtain the values shown 
+at the tables from the sensors data sheets.
+The modeling of the gyroscope and accelerometer triads in-
+cludes in-run error sources such as bias drift and system noise, 
+run-to-run contributions such as bias offsets, as well as ﬁxed scale 
+factor and cross coupling errors, together with uncertainties in the 
+exact position and attitude of the IMU with respect to the aircraft 
+structure. The baseline performance values shown in Table 1 corre-
+spond to the MEMS gyroscopes and accelerometers installed inside 
+the Analog Devices ADIS16488A IMU [74].
+The magnetometers triad is modeled similarly, but without bias 
+drift. The baseline magnetometer features employed in the simula-
+tion are shown in Table 2, where the system noise has been taken 
+from [7] and the rest of the parameters correspond to the mag-
+netometers present inside the Analog Devices ADIS16488A IMU
+[74].
+The air velocity sensors (TAS for true airspeed, AOA for angle 
+of attack, AOS for angle of sideslip) and air data sensors (OSP for 
+outside static pressure, OAT for outside air temperature) only con-
+sider system noise and bias offset in their measurements, and are 
+usually provided by a Pitot tube, air vanes, barometer, and ther-
+mometer. The baseline parameters shown in Table 3 correspond to 
+the Aeroprobe air data system [75], which is equipped with a multi 
+hole Pitot tube.
+Scenarios
+Two different scenarios are employed to analyze the conse-
+quences of losing the GNSS signals. Although a short summary is 
+included below, detailed descriptions of the mission, weather, and 
+wind ﬁeld employed in each scenario can be found in [2]. Most 
+parameters comprising the scenario are deﬁned stochastically, re-
+sulting in different values for every execution. Note that all results 
+shown in sections 6, 7, and 8 are based on Monte Carlo simula-
+tions comprising one hundred runs of each scenario, testing the 
+sensitivity of the proposed INS algorithms to a wide variety of 
+values in the parameters.
+• Scenario #1 has been deﬁned with the objective of adequately 
+representing the challenges faced by an autonomous ﬁxed 
+wing UAV that suddenly cannot rely on GNSS and hence 
+changes course to reach a predeﬁned recovery location sit-
+uated at approximately one hour of ﬂight time. In the pro-
+cess, in addition to executing an altitude and airspeed adjust-
+ment, the autonomous aircraft faces signiﬁcant weather and 
+wind ﬁeld changes that make its GNSS-Denied navigation even 
+more challenging.
+6
+[p.7]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Table 1
+Performance of “Baseline” gyroscopes and accelerometers.
+GYR-ACC Baseline
+Variable
+Value
+Unit
+Variable
+Value
+Unit
+Bias Drift
+σuGYR
+1.42 · 10−4
+◦/s1.5
+σuACC
+6.86 · 10−5
+m/s2.5
+System Noise
+σvGYR
+4.30 · 10−3
+◦/s0.5
+σvACC
+4.83 · 10−4
+m/s1.5
+Scale Factor
+sGYR
+1.50 · 10−5
+-
+sACC
+5.00 · 10−5
+-
+Cross Coupling
+mGYR
+4.35 · 10−5
+-
+mACC
+3.05 · 10−5
+-
+Bias Offset
+B0GYR
+2.00 · 10−1
+◦/s
+B0ACC
+1.57 · 10−1
+m/s2
+Table 2
+Performance of “Baseline” magnetometers.
+MAG Baseline
+Variable
+Value
+Unit
+System Noise
+σv,MAG
+5.00 · 100
+nT · s0.5
+Scale Factor & Soft Iron
+sMAG
+7.50 · 10−4
+-
+Cross Coupling & Soft Iron
+mMAG
+9.16 · 10−4
+-
+Hard Iron
+BHI,MAG
+1.75 · 102
+nT
+Bias Offset
+B0,MAG
+5.00 · 102
+nT
+With respect to the mission, the stochastic parameters in-
+clude the initial airspeed, pressure altitude, and bearing 
+(vTAS,INI, HP,INI,χINI), their ﬁnal values (vTAS,END, HP,END,χEND), and 
+the time at which each of the three maneuvers is initiated.4
+The scenario lasts for tEND = 3800 s, while the GNSS signals 
+are lost at tGNSS = 100 s, which does not involve any loss of 
+generality as the accuracy of the aircraft pose (attitude and 
+position) estimation does not degrade with time when GNSS
+signals are available.
+The wind ﬁeld is also deﬁned stochastically, as its two pa-
+rameters (speed and bearing) are constant both at the be-
+ginning (vWIND,INI,χWIND,INI) and conclusion (vWIND,END,χWIND,END) 
+of the scenario, with a linear transition in between. The spe-
+ciﬁc times at which the wind change starts and concludes also 
+vary stochastically among the different simulation runs. As de-
+scribed in [2], the turbulence remains strong throughout the 
+whole scenario, but its speciﬁc values also vary stochastically 
+from one execution to the next.
+A similar linear transition occurs with the temperature and 
+pressure offsets that deﬁne the atmospheric properties [76], 
+as they are constant both at the start (TINI,pINI) and end 
+(TEND,pEND) of the ﬂight. In contrast with the wind ﬁeld, the 
+speciﬁc times at which the two transitions start and conclude 
+are not only stochastic but also different from each other.
+Although quite generic, there are two reasons why scenario 
+#1 can not constitute the only means employed to evaluate 
+the behavior of different GNSS-Denied navigation algorithms. 
+On one side, its mission includes three maneuvers (a change 
+of bearing, a change of airspeed, and a change of pressure al-
+titude), but for the most part it consists of a long straight 
+level ﬂight in which the aircraft systems have lots of time 
+to recover from estimation errors induced by the maneuvers, 
+which are executed quite apart from each other. Additionally, 
+the GNSS-Denied position errors incurred by the proposed
+INS may exhibit a signiﬁcant dependency on the weather and 
+wind changes that occur since the aircraft can no longer em-
+ploy the GNSS signals for navigation. The prevalence of these 
+errors coupled with the signiﬁcant scenario #1 weather and 
+wind changes prevents the detection of smaller error sources 
+when analyzing the Monte Carlo simulation results in sec-
+tion 6. These two reasons indicate the need for a scenario #2.
+• Scenario #2 represents the challenges involved in continuing 
+with the original mission upon the loss of the GNSS sig-
+nals, executing a series of continuous turn maneuvers over 
+4 Turns are executed with a bank angle of ξTURN = ±10◦, altitude changes employ 
+an aerodynamic path angle of γTAS,CLIMB = ±2◦, and airspeed modiﬁcations are auto-
+matically executed by the control system as set-point changes.
+a relatively short period of time with no atmospheric or 
+wind variations. As in scenario #1, the GNSS signals are 
+lost at tGNSS = 100 s, but the scenario duration is shorter 
+(tEND = 500 s). The initial airspeed and pressure altitude (vTAS,INI, 
+HP,INI) are deﬁned stochastically and do not change throughout 
+the whole scenario; the bearing however changes a total of 
+eight times between its initial and ﬁnal values, with all inter-
+mediate bearing values as well as the time for each turn vary-
+ing stochastically from one execution to the next. Although the 
+same turbulence is employed as in scenario #1, the wind and 
+atmospheric parameters (vWIND,INI,χWIND,INI,TINI,pINI) remain 
+constant throughout scenario #2.
+5. Proposed navigation ﬁlter
+The INS takes the sensor outputs or sensed trajectory x =
+xSENSED and processes them to obtain the estimated trajectory 
+ˆx = xEST, which then passes to the guidance and control systems. 
+Note that in the simulation all sensors as well as the navigation 
+system operate at 100 Hz, with the exception of the GNSS re-
+ceiver (until the GNSS signals are lost), which works at 1 Hz. With 
+the objective of reducing the NSE (difference between x and ˆx) 
+in GNSS-Denied conditions, the proposed architecture divides the 
+navigation ﬁlter into three smaller EKFs named the air data, atti-
+tude, and position ﬁlters, respectively.
+Air data ﬁlter
+As the ground velocity is the sum of the air and the wind ve-
+locities, and only the former can be observed in GNSS-Denied con-
+ditions, the variables describing the aircraft motion with respect to 
+the air (airspeed, aerodynamic angles, atmospheric conditions) are 
+isolated from the estimation point of view from those that link the 
+aircraft to the ground (attitude, ground speed, position), and it is 
+hence more computationally eﬃcient to implement a smaller in-
+dependent ﬁlter for these variables.
+xAIR (t) = [vTAS, α, β, T, HP]T
+(1)
+yAIR,n =
+vTAS, α, β, T, p
+T
+(2)
+The air data ﬁlter state vector xAIR is composed by the airspeed vTAS, 
+angle of attack α, angle of sideslip β, atmospheric temperature T, 
+and pressure altitude HP, while the observation vector yAIR,n in-
+cludes the measurements provided by the Pitot tube vTAS, air vanes 
+(α and β), and atmospheric sensors (T and p). Although imple-
+mented as an EKF [77], the absence of relationships among the 
+state variables implies that for all practical purposes it behaves as 
+a low pass ﬁlter. The state and observation equations are the fol-
+lowing:
+˙xAIR = 0
+(3)
+vTAS = vTAS
+(4)
+α = α
+(5)
+β = β
+(6)
+T = T
+(7)
+7
+[p.8]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Table 3
+Performance of “Baseline” air velocity and air data sensors.
+Baseline
+Variable
+Value
+Unit
+Baseline
+Variable
+Value
+Unit
+TAS System Noise
+σvTAS
+3.33 · 10−1
+m/s
+TAS Bias Offset
+B0TAS
+3.33 · 10−1
+m/s
+AOA System Noise
+σvAOA
+3.33 · 10−1
+◦
+AOA Bias Offset
+B0AOA
+3.33 · 10−1
+◦
+AOS System Noise
+σvAOS
+3.33 · 10−1
+◦
+AOS Bias Offset
+B0AOS
+3.33 · 10−1
+◦
+OSP System Noise
+σvOSP
+1.00 · 10+2
+Pa
+OSP Bias Offset
+B0OSP
+1.00 · 10+2
+Pa
+OAT System Noise
+σvOAT
+5.00 · 10−2
+K
+OAT Bias Offset
+B0OAT
+5.00 · 10−2
+K
+p = p0
+
+1 + βT
+T0
+HP
+−g0
+βTR
+(8)
+Expression (8), together with the standard mean sea level tem-
+perature and pressure values (T0 and p0), the temperature gradient 
+βT, air speciﬁc constant R, and standard acceleration of free fall 
+g0, are all taken from the International Civil Aviation Organization 
+(ICAO) Standard Atmosphere model or ISA [78].
+The navigation ﬁlter tracks the weather by continuously esti-
+mating the temperature and pressure offsets (T and p), which 
+indicate the deviation of the atmosphere through which the air-
+craft ﬂies from the static model provided by ISA. The variation 
+with time and horizontal position of these two offsets is the ba-
+sis of the non standard ISA model or INSA [76], which estab-
+lishes accurate relationships between the atmospheric properties 
+(temperature, pressure, density) and altitude that simultaneously 
+comply with local observations while verifying all ISA hypotheses. 
+Note that the INSA model converges to ISA when both offsets are 
+zero.
+Estimating the pressure offset ˆp is the task of the position 
+ﬁlter, but the temperature offset ˆT is estimated as follows after 
+each execution of the air data ﬁlter. Refer to [76] for more details 
+on (9):
+ˆT = ˆT −T0 −βT ˆHP
+(9)
+Attitude ﬁlter
+The main objective of the attitude ﬁlter is the estimation of 
+the aircraft attitude ˆqNB or rotation between the North-East-Down 
+(NED) and body frames represented by its unit quaternion [79], 
+although it also estimates the angular velocity ˆω
+B
+NB (from NED to 
+body viewed in body), the full gyroscope error ˆEGYR,5 the full mag-
+netometer error ˆEMAG,6 and the difference ˆBN
+DEV between the Earth 
+magnetic ﬁeld provided by the onboard model BN
+MOD and the real 
+one BN
+REAL. The observations are provided by the gyroscopes, which 
+measure the angular velocity ωB
+IB from the inertial frame7 to the 
+body frame viewed in body, the magnetometers that measure the 
+magnetic ﬁeld BB in the body frame, and the accelerometers that 
+provide the speciﬁc force fB
+IB or non gravitational acceleration from 
+the inertial to the body frame viewed in body.
+xATT (t) =
+
+qNB, ωB
+NB, EGYR, EMAG, BN
+DEV
+T
+(10)
+yATT,n =
+ωB
+IB, BB, fB
+IB
+T
+(11)
+While the only non zero state equation is that of the unit 
+quaternion (12) (refer to [79] for the relationship between the time 
+derivative of the unit quaternion and the angular velocity), the 
+main novelty of this article lies in the selection of the observation 
+equations, which are intended to reduce the negative inﬂuence on 
+5 EGYR includes all gyroscopes error sources except system noise as explained in 
+[3].
+6 EMAG includes all magnetometers error sources except system noise as explained 
+in [3].
+7 In the simulation, the inertial frame is centered at the Earth center of mass and 
+its axes do not rotate with respect to any stars other than the Sun.
+the estimation of the aircraft attitude of the inaccurate estimations 
+of ground velocity and position in the position ﬁlter caused by the 
+lack of GNSS signals. This design should not be employed when
+GNSS signals are available as it results in inferior performance 
+when the GNSS observations are added to the position ﬁlter, but it 
+isolates and protects the attitude ﬁlter estimations in GNSS-Denied 
+conditions.
+˙qNB = 1
+2 qNB ⊗ωB
+NB
+(12)
+˙xATT,OTHER = 0
+(13)
+pn =
+
+gN
+c,MOD, BN
+MOD, vN, vN
+WIND, ωN
+IE, ωN
+EN, aN
+cor, EACC
+T
+(14)
+ωB
+IB = ωB
+NB + q∗
+NB ⊗
+ωN
+IE + ωN
+EN
+	
+⊗qNB + EGYR
+(15)
+BB = q∗
+NB ⊗
+
+BN
+MOD −BN
+DEV
+	
+⊗qNB + EMAG
+(16)
+fB
+IB = ωB
+NB
+
+q∗
+NB ⊗
+
+vN −vN
+WIND
+	
+⊗qNB
+
++q∗
+NB ⊗
+ωN
+EN vN + aN
+cor −gN
+c,MOD
+	
+⊗qNB + EACC
+(17)
+The negative inﬂuence of the inaccurate velocity and position 
+estimations is restricted to the pn vector, which contains the grav-
+ity gN
+c,MOD and magnetism BN
+MOD employed in the ﬁlter (which differ 
+slightly from the real ones experienced by the aircraft), the aircraft 
+ground and wind velocities (vN, vN
+WIND) viewed in NED, the Earth 
+and motion angular velocities ωN
+IE and ωN
+EN,8 the Coriolis accelera-
+tion aN
+cor, and the full accelerometer error EACC.9 The pn vector is 
+taken from the previous step execution of the position ﬁlter (ev-
+ery pn member can be obtained from the position ﬁlter outputs 
+including the geodetic coordinates xGDT, as shown in (18)), and the 
+measures taken to reduce its errors and how they spread by means 
+of the attitude ﬁlter observation equations are the key to improv-
+ing the estimation of the aircraft attitude ˆqNB.
+pn = f
+
+xGDT, vN, vN
+WIND, EACC
+	
+(18)
+Note that (15), which combines the gyroscope error with the three 
+angular velocities that together make up the inertial rotation speed 
+ωB
+IB, and (16), which adds the magnetometers errors to the true 
+magnetic ﬁeld, do not include any simpliﬁcations and are hence 
+quite precise, although they are subject to the errors introduced 
+by the use of pn when evaluating some of its members.
+Expression (17) is the observation equation with the highest 
+inﬂuence on the estimation results as well as the least precise. It 
+is based on the fact that the speciﬁc force measured by the ac-
+celerometers is equal to the non gravitational (aerodynamic and 
+propulsive) accelerations, but modiﬁed as described below to re-
+duce the negative inﬂuence of the errors present in the pn vector. 
+The obtainment of (17) starts with the true expressions of the spe-
+ciﬁc force viewed in both the body and NED frames (19), (20), 
+8 The Earth angular velocity ωN
+IE is that caused by the rotation of the Earth, repre-
+sented by the Earth Centered Earth Fixed (ECEF) frame, with respect to the inertial 
+frame, and is viewed in NED; the motion angular velocity ωN
+EN, also viewed in
+NED, represents the angular velocity caused by the motion of the aircraft above 
+the curved Earth surface.
+9 EACC includes all accelerometers error sources except system noise as explained 
+in [3].
+8
+[p.9]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+which are based on the (57), (58) expressions for the time deriva-
+tive of the ground velocity obtained in appendix A:
+fB
+IB = ωB
+EB vB + ˙vB + q∗
+NB ⊗
+
+aN
+cor −gN
+c
+	
+⊗qNB
+= ωB
+EB
+
+vB
+TAS + vB
+TURB + vB
+WIND
+	
++
+˙vB
+TAS + ˙vB
+TURB + ˙vB
+WIND
+	
++q∗
+NB ⊗
+
+aN
+cor −gN
+c
+	
+⊗qNB
+(19)
+fN
+IB = ωN
+EN vN + ˙vN + aN
+cor −gN
+c
+= ωN
+EN
+
+vN
+TAS + vN
+TURB + vN
+WIND
+	
++
+˙vN
+TAS + ˙vN
+TURB + ˙vN
+WIND
+	
++aN
+cor −gN
+c
+(20)
+The process leading to (17) from (19) is the following:
+• Discard the air velocity and turbulence time derivatives viewed 
+in body (˙vB
+TAS, ˙vB
+TURB) as they are unknown to the ﬁlter. The 
+omission of the turbulence acceleration is of particular im-
+portance, as it is usually signiﬁcantly bigger than the errors 
+introduced by the accelerometer EACC and hence one of the 
+reasons why ˆEACC can not be estimated in the attitude ﬁlter 
+without GNSS observations. This results in (21), which only 
+represents a middle step in the obtainment of (17) and is 
+shown for added clarity:
+fB
+IB ∼ωB
+EB
+
+vB
+TAS + vB
+TURB + vB
+WIND
+	
++ ˙vB
+WIND
++q∗
+NB ⊗
+
+aN
+cor −gN
+c
+	
+⊗qNB
+= ωB
+NB
+
+vB
+TAS + vB
+TURB + vB
+WIND
+	
++ ˙vB
+WIND
+(21)
++ q∗
+NB ⊗
+ωN
+EN
+
+vN
+TAS + vN
+TURB + vN
+WIND
+	
++ aN
+cor −gN
+c
+
+⊗qNB
+Discarding the instantaneous accelerations of the air velocity 
+and the turbulence viewed in body has negative consequences 
+for the ﬁlter accuracy. However, both ˙vB
+TAS and ˙vB
+TURB roughly 
+oscillate around zero (air velocity tends to be constant when 
+viewed in body while turbulence oscillates around zero also 
+in body) and hence are easily absorbed into the EKF mea-
+surement noise respecting its zero mean white noise character 
+[77]. This implies that although less accurate, the EKF contin-
+ues to provide an unbiased estimation of the state vector.
+• Discard the wind ﬁeld time derivatives viewed in NED (˙vN
+WIND) 
+as the wind is approximately quasi stationary and hence its 
+time derivatives are small. Although wind variations may have 
+a signiﬁcant inﬂuence in the resulting aircraft trajectory, they 
+are too slow and short lived to inﬂuence its dynamics. The 
+wind acceleration ˙vN
+WIND can hence be assumed to oscillate 
+around zero and be absorbed into the measurement noise, re-
+sulting in the ﬁlter being less accurate but behaving properly 
+and providing unbiased estimations of the state variables [77]. 
+Expression (21) thus gets transformed into:
+fB
+IB ∼ωB
+NB
+
+vB
+TAS + vB
+TURB
+	
++q∗
+NB ⊗
+ωN
+EN
+
+vN
+TAS + vN
+TURB + vN
+WIND
+	
++ aN
+cor −gN
+c
+
+⊗qNB
+(22)
+The obtainment of (17) from (22) is straightforward. Note that 
+the product of the motion angular velocity ωEN by the wind 
+speed vWIND has not been discarded, while that of the aircraft 
+angular velocity ωNB has. This may look counter-intuitive, but 
+is correct and better understood by looking at (20).
+If GNSS signals are available, it is not necessary to eliminate 
+the speed derivatives with time from the speciﬁc force ob-
+servation equation. However, in GNSS-Denied conditions, the 
+estimation of ˙vN or ˙vB in the position ﬁlter is not accurate 
+enough, and hence its usage in (17) would introduce artiﬁcial 
+biases resulting in a deterioration of the attitude estimation.
+The distinction between eliminating the air velocity and tur-
+bulence time derivatives in body and the wind ﬁeld time 
+derivative in NED is key for the reduction of the attitude ﬁlter 
+estimation errors; as shown in section 7, other options such 
+as discarding the whole ground speed time derivative ˙vB when 
+operating in GNSS-Denied scenarios result in the introduction 
+of artiﬁcial biases during maneuvers and the growth of the at-
+titude estimation error.
+• Include the difference between the real gravity ﬁeld gN
+c,REAL
+measured by the accelerometers and gN
+c,MOD, which is com-
+puted onboard based on the gravity model. These differences 
+are too small to be observed during ﬂight and have a minor 
+but not negligible inﬂuence on the ﬁlter behavior.
+• Although the terms vN, vN
+WIND, ωN
+EN, aN
+cor, and EACC are correct 
+as written, they are not state variables but taken or computed 
+from the results of the position ﬁlter, and hence may include 
+potentially signiﬁcant errors in GNSS-Denied conditions.
+Position ﬁlter
+Without the absolute position and velocity measurements pro-
+vided by the GNSS receiver, the position ﬁlter does not have 
+enough observability to avoid errors in its estimations, but nev-
+ertheless has two main objectives. On one hand, the estimation of 
+the ground position (horizontal and vertical) needs to result in er-
+rors that are as small as possible; on the other, it needs to supply 
+the attitude ﬁlter with contained pn estimations (14, 18) so they 
+do not destabilize the attitude ﬁlter.
+xPOS (t) =
+
+fB
+IB, EACC
+T
+(23)
+yPOS,n =fB
+IB
+(24)
+˙xPOS = 0
+(25)
+fB
+IB = fB
+IB + EACC
+(26)
+The EKF ﬁlter itself is extremely simple and in fact can not sep-
+arate between fB
+IB and EACC, which are hence employed together in 
+(17). The interesting part lies in those variables that are estimated 
+after each ﬁlter step. In the case of the pressure offset p [76]
+and the wind velocity vN
+WIND, there are not enough observations in
+GNSS-Denied conditions to make any proper estimations, so they 
+are kept constant from their last GNSS aided estimations. Note that 
+the presence of absolute position and velocity observations pro-
+vided by the GNSS enables the estimation of ˆpGNSS−BASED and 
+ˆvN
+WIND,GNSS−BASED by reversing the process described next for GNSS-
+Denied conditions.
+ˆp = ˆpGNSS−BASED,LAST
+(27)
+ˆvN
+WIND = ˆvN
+WIND,GNSS−BASED,LAST
+(28)
+With the wind estimation kept constant, the ground velocity 
+viewed in NED can be estimated by making use of the airspeed 
+and angles of attack and sideslip estimated by the air data ﬁlter:
+ˆvN
+TAS = ˆqNB ⊗vB
+TAS
+
+ˆvTAS, ˆα, ˆβ
+
+⊗ˆq∗
+NB
+(29)
+ˆvN = ˆvN
+WIND + ˆvN
+TAS
+(30)
+The vertical position h is estimated better from the pressure al-
+titude ˆHP than by integrating the ground velocity vN. It is a two 
+step process in which the geopotential altitude H is ﬁrst estimated 
+based on estimations of the pressure altitude HP, temperature off-
+set T, and pressure offset p [76], followed by its conversion 
+to geometric altitude according to the spherical Earth model [78], 
+where the Earth radius RE is taken from [80].
+9
+[p.10]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+ˆH = f
+
+ˆHP, ˆT, ˆp
+
+(31)
+ˆh = RE · ˆH
+RE −ˆH
+(32)
+Longitude and latitude are ﬁnally obtained by integrating the 
+ground velocity estimated above.
+6. Navigation system error in GNSS-Denied conditions
+This section presents the results obtained with the proposed
+INS ﬁlter when executing Monte Carlo simulations of the two
+GNSS-Denied scenarios,10 each consisting of one hundred execu-
+tions. [2] provides detailed descriptions of the different modules 
+of the high ﬁdelity simulation together with the deﬁnition of the 
+two scenarios, which are summarized in section 4. [3] explains 
+the expressions employed to model the measurement errors intro-
+duced by the different sensors, as well as their “baseline” values 
+employed in the simulation. A short summary can also be found 
+in section 4.
+The NSE incurred by the proposed INS when estimating the 
+value of the different variables in GNSS-Denied conditions is eval-
+uated in the tables below according to the aggregated metrics and 
+the aggregated ﬁnal state metrics, both deﬁned in [2]. The aggre-
+gated metrics include the mean, standard deviation, and maximum 
+value taking as inputs the NSE of every navigation ﬁlter step and 
+simulation run,11 while the aggregated ﬁnal state metrics do the 
+same but only for the last ﬁlter evaluation in each run.12 When 
+depicting the NSE, the ﬁgures below show the variation with time 
+of the time aggregated metrics (mean and standard deviation) of the 
+one hundred different executions of each scenario; these are also 
+deﬁned in [2].
+As an example on how to read the tables below, the three right 
+hand columns of Table 4 show the aggregated body attitude NSE
+for the two scenarios. In the case of scenario #1, the ﬁrst step in-
+volves computing the means, standard deviations, and maximum 
+values (trajectory metrics) of each of the one hundred executions 
+independently, each taking as input the 100 × 3800 + 1 evalua-
+tions of the NSE after each navigation ﬁlter step. The aggregated 
+metrics are then obtained by again computing the means, standard 
+deviations, and maximum values, but this time taking as input only 
+the one hundred values of the corresponding trajectory metric. The 
+standard deviation of the one hundred trajectory means results in 
+0.072◦, while the mean of the one hundred trajectory standard de-
+viations is 0.078◦.
+Air data estimation
+All variables estimated by the air data ﬁlter, this is, those con-
+tained in (1) plus T, share the same qualitative NSE results, 
+which are independent of the scenario. Measured by the Pitot tube, 
+air vanes, and atmospheric sensors, their measurements contain 
+system noise plus a run-to-run constant bias offset.13
+The individual trajectory metrics of their estimation errors are 
+biased (not zero mean) and the aggregated ones are zero mean or 
+unbiased, meaning that the bias origin is random and present in 
+the data itself, not in the navigation algorithms. No drift is present 
+in either the trajectory or the aggregated metrics. The repeatability 
+10 All trajectories are executed at the location indicated by the MX (“mix”) terrain 
+type, as described in [2].
+11 As the navigation system works at 100 Hz and there are 100 runs, this amounts 
+to 100 × (100 × 3800 + 1) points for scenario #1 and 100 × (100 × 500 + 1) points 
+for scenario #2.
+12 This amounts to 100 points for each scenario.
+13 The temperature offset T is not directly measured, but per (9) is a linear 
+combination of the temperature and pressure altitude, and hence combines their 
+measurement errors.
+of the results is elevated, as the standard deviation and maximum 
+absolute value vary little among different runs. The air data ﬁlter 
+hence behaves like a low pass ﬁlter, removing the system noise 
+but unable to separate the bias offsets introduced by the sensors, 
+which are incorporated in their totality into the estimated values.
+The main consequence of the biases lack of observability is that 
+the speciﬁc bias offset realizations with which the sensors operate 
+in a given run become thresholds that can not be overcome by 
+the navigation system. Note that the bias offsets are based on the 
+sensors exclusively, so the estimation errors can be considered as 
+bounded or limited by the quality of the Pitot tube, air vanes, and 
+atmospheric sensors.
+Body attitude estimation
+Reducing the aircraft body attitude estimation error ∥ˆrB∥=
+∥ˆqNB ⊖qNB∥, where ⊖represents the rotations minus operator [79], 
+is one of the primary objectives of the INS, and a necessary con-
+dition for maintaining ﬂight stability as well as for the fusion be-
+tween the inertial and visual navigation algorithms. Experiencing 
+no drift in attitude is indispensable for ﬂight viability, as if this 
+is not the case, in particular for pitch and roll, at some point the 
+aircraft will breach its ﬂight envelope and the control system will 
+lose its hold on the platform.
+The behavior of the attitude ﬁlter is intrinsically different to 
+that of the air data ﬁlter. In addition to the fact that there is no 
+sensor directly measuring the body attitude, the errors introduced 
+by the attitude ﬁlter sensors include contributions such as bias 
+drift, scale factors, and cross coupling errors, that make them sig-
+niﬁcantly more challenging to estimate. On the positive side, there 
+is some observability of the full gyroscope error EGYR that enables 
+its estimation, in contrast with the air data system biases that can 
+not be observed.
+On a run by run basis, the trajectory metrics indicate that the 
+attitude estimation is lightly biased (non zero mean), both for each 
+Euler angle (yaw ψ, pitch θ, roll ξ) as well as for the attitude er-
+ror ∥ˆrB∥, deﬁned as the norm of the rotation vector between the 
+estimated attitude and the real one [81]. Table 4 shows the aggre-
+gated metrics of the attitude estimation results for the hundred 
+runs of both scenarios. The estimation of each individual Euler 
+angle tends to be unbiased (zero mean) when aggregated14; the 
+aggregated mean of the attitude error is not zero as it is a norm. 
+The aggregated mean of standard deviations is clearly inferior to 
+the mean of means, indicating that the body attitude estimation 
+errors do not deviate far from their mean value as the trajectories 
+progress with time. On the other side, the small values of the ag-
+gregated standard deviations when compared with the aggregated 
+means shows that the results are very repeatable and highly inde-
+pendent from the stochastic characteristics of both scenarios that 
+differentiate one run from another. As such, they can be considered 
+bounded. It is also worth noting that the aggregated maximums, 
+although logically bigger, do not indicate any potential problem 
+when considering the wide variety of conditions tested through-
+out the hundred runs.
+These results show that the proposed attitude ﬁlter is capa-
+ble of closely tracking the aircraft attitude during turbulent ﬂight 
+both when the ﬂight is mostly straight (scenario #1) as when con-
+tinuously executing maneuvers (scenario #2). Maneuvers increase 
+observability and help the ﬁlter to identify and reduce attitude 
+errors, but they also increase the errors in the ﬁlter observation 
+equations, so balancing both requirements is one of the main chal-
+lenges when designing the ﬁlter and choosing the ﬁlter process 
+and measurement noise values.
+14 Unbiased means that the aggregated mean of means tends to zero as the num-
+ber of simulation runs increases.
+10
+[p.11]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Table 4
+Aggregated body attitude NSE (100 runs).
+Scenario
+ˆψ −ψ [◦]
+ˆθ −θ [◦]
+ˆξ −ξ [◦]
+∥ˆrB∥[◦]
+mean
+std
+mean
+std
+mean
+std
+mean
+std
+max | · |
+#1
+mean
++0.036
+0.104
+-0.022
+0.036
++0.000
+0.038
+0.152
+0.078
+0.521
+std
+0.131
+0.015
+0.036
+0.014
+0.027
+0.010
+0.072
+0.021
+0.151
+max
++0.371
+0.161
+-0.209
+0.083
+-0.123
+0.063
+0.448
+0.168
+1.321
+#2
+mean
++0.005
+0.107
+-0.002
+0.043
++0.004
+0.043
+0.118
+0.074
+0.376
+std
+0.058
+0.021
+0.021
+0.009
+0.020
+0.010
+0.023
+0.015
+0.069
+max
++0.170
+0.162
++0.065
+0.069
++0.074
+0.076
+0.206
+0.124
+0.632
+Fig. 2. Trajectory body attitude NSE (100 runs).
+Fig. 3. Estimated and true body pitch angles θ for run #28 of scenario #1.
+Fig. 4. Body attitude NSE for scenario #1 (100 runs).
+Fig. 2 shows the individual body attitude mean and standard 
+deviation for each of the hundred runs and two scenarios. Most 
+are located within a relatively narrow area of similar performance, 
+while in a few cases, which correspond to particularly negative 
+combinations of the random inputs that make up the scenarios, the 
+attitude ﬁlter has signiﬁcantly more diﬃculty tracking the body at-
+titude.
+Fig. 3 plots the body pitch θ and its estimation ˆθ for a single 
+run of scenario #1,15 showing both the signiﬁcant body pitch os-
+cillations required to maintain pressure altitude with the aircraft 
+15 The trajectory mean for this run is 0.185◦, which is worse than the aggregated 
+mean of 0.152◦shown in Table 4.
+subjected to an elevated turbulence level, as well as the accurate 
+estimation performed by the ﬁlter.
+Figs. 4 and 5 show the variation with time of the body atti-
+tude NSE for both scenarios, complemented with the two runs 
+that result in the best and worst estimations of body attitude. They 
+clearly show that the body attitude estimation has no drift with 
+time, ensuring that the aircraft can remain aloft in GNSS-Denied 
+conditions for as long as there is fuel available.
+Full gyroscope errors estimation
+Given that the aircraft attitude qNB is the result of integrating 
+the aircraft angular velocity ωB
+NB, which accounts for the majority 
+of the inertial angular velocity ωB
+IB, and that the gyroscope mea-
+surements ωB
+IB also include their full error EGYR, the attitude ﬁlter 
+11
+[p.12]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Fig. 5. Body attitude NSE for scenario #2 (100 runs).
+Fig. 6. Vertical position NSE for scenario #1 (100 runs).
+would not be able to estimate the body attitude if it were not si-
+multaneously estimating the full gyroscopes error ˆEGYR.
+EGYR encompasses all error sources except system noise [3], in-
+cluding the bias offset (constant in each run), the bias drift (which 
+behaves as a random walk), the scale factor error, and the cross 
+coupling error. The last two sources make tracking the error by 
+the attitude ﬁlter signiﬁcantly more challenging, specially during 
+maneuvers, when a swift change in the inertial angular velocity 
+about a given axis does not only result in measurement changes in 
+that same axis, but also in the other two.
+The gyroscope error estimation results are qualitatively the 
+same as those of the body attitude for both scenarios, this is, 
+lightly biased for each trajectory, and unbiased or zero mean for 
+each component when aggregated. Being a norm, the full error is 
+also biased when aggregated, but as in the case of the body at-
+titude, it can be considered bounded, and the results are highly 
+repeatable and vary little among different runs.
+Vertical position estimation
+Figs. 6 and 7 show the variation with time of the vertical posi-
+tion NSE for both scenarios, complemented with the two runs that 
+result in the lowest and highest altitude ﬁnal error, respectively. As 
+the scenario #1 estimation shows an obvious accuracy degradation 
+with time, the aggregated metrics are not useful [2] and are re-
+placed by the aggregated ﬁnal state metrics, which are shown in 
+Table 5.
+From the point of view of the geometric altitude estimation, 
+the only difference between the two scenarios is that #1 includes 
+varying atmospheric conditions, while the weather is constant 
+when executing scenario #2. Note that in both cases the aggre-
+gated ﬁnal mean is much smaller than the standard deviation and 
+maximum absolute value, tending to zero as the number of runs 
+grows, which means that the ﬁnal error is unbiased or zero mean. 
+There are not any intrinsic errors introduced by the estimation 
+process and the individual trajectory errors are caused by random 
+processes either in the observations or in the estimation process 
+itself.
+Table 5
+Aggregated ﬁnal vertical position NSE (100 runs).
+ˆhEND [m]
+Scenario #1
+Scenario #2
+mean
+-3.89
++0.76
+std
+26.03
+7.55
+max
+-70.49
+-19.86
+Careful examination of the above ﬁgures reveals several facts. 
+First of all, the geometric altitude estimation error does not in-
+crease when the GNSS signals are lost at tGNSS = 100 s, although 
+it becomes noisier. Second, the error at the beginning of the tra-
+jectories is not only constant, but it is also exactly the same for 
+both scenarios. However, while in the case of scenario #2 it re-
+mains constant for the whole trajectory, in #1 the error increases 
+between two clearly deﬁned time stamps and then remains con-
+stant again until the end of the trajectory.
+The deviation with time in Fig. 6 is constrained to in between 
+two time stamps, which is the case in all scenario #1 runs, as it is 
+not related to the mission altitude change, but to its linear pres-
+sure offset p weather change, as explained in [2] and section 4. If 
+the pressure offset variation were modeled differently, then the ge-
+ometric altitude deviation with time would also vary accordingly. 
+Fig. 7 does not show any deviation with time because p is con-
+stant in scenario #2.
+At the beginning of both scenarios, when GNSS signals are 
+present, the position ﬁlter employs additional position and ground 
+velocity observation equations, and hence the ionospheric effects 
+constitute the main source of error for the vertical position esti-
+mation. In addition, the navigation ﬁlter does not only estimate 
+the temperature offset T but also the pressure offset p, incur-
+ring in relatively small errors caused not only by the ionospheric 
+effects but also by the thermometer and barometer bias offsets.
+When the GNSS signals are lost, the ﬁlter does not have enough 
+observations to properly estimate p, so it keeps the estimation 
+constant per (27). This process thus incorporates the pressure off-
+set variation between the time at which the geometric altitude 
+is estimated and the time at which the GNSS signals are lost as 
+12
+[p.13]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Fig. 7. Vertical position NSE for scenario #2 (100 runs).
+Fig. 8. East ground speed NSE for scenario #1 (100 runs).
+the fourth primary error source. Finally, the estimation of the ge-
+ometric altitude in GNSS-Denied conditions by means of (31) and 
+(32) effectively reverses the process performed to obtain p when
+GNSS was available, eliminating the dependencies with the bias 
+offsets of the thermometer and barometer, which are constant for 
+a given run.
+The ﬁnal vertical position estimation error hence depends on 
+two factors, the GNSS ionospheric errors and the variation in at-
+mospheric pressure offset pEND −pINI, both bounded by atmo-
+spheric physics. However, while the ionospheric effects represent a 
+lower error threshold that can not be avoided even by using GNSS, 
+the pressure offset change is only a factor in the case of GNSS-
+Denied navigation and disappears when employing the GNSS sig-
+nals. The geometric altitude estimation hence does not experience 
+an unbounded drift but an error with known bounded sources.
+To verify this explanation, the one hundred runs of scenario #1
+have been repeated with the only difference being that the GNSS
+signals are always available (tGNSS > 3800 s), resulting in +0.99, 
+7.51, and +17.09 m for the aggregated ﬁnal mean, standard de-
+viation, and maximum absolute value, respectively. Note that these 
+values are very similar to those shown for scenario #2 in Table 5.
+The values of the ﬁnal state metrics shown in Table 5 are ad-
+equate for all navigation applications except landing. As explained 
+in section 7, estimating the geometric altitude this way is intrinsi-
+cally superior to integrating the vertical speed, in which the error 
+grows with time without bounds.
+Ground velocity estimation
+The explanation of the ground velocity NSE results is very sim-
+ilar to that of the vertical position in the previous section. Fig. 8
+shows the variation with time of the East ground velocity NSE for 
+scenario #1, while Fig. 9 represents that of the North velocity NSE
+for scenario #2. As an accuracy degradation with time is present 
+in scenario #1, Table 6 employs aggregated ﬁnal state metrics to 
+show the results [2]. From the point of view of the ground veloc-
+ity estimation, the only difference between both scenarios is that 
+#1 includes varying wind, which is constant in scenario #2.
+Table 6
+Aggregated ﬁnal ground speed NSE (100 runs).
+ˆvN
+END [m/s]
+Scenario #1
+Scenario #2
+ˆvN
+1 −vN
+1
+ˆvN
+2 −vN
+2
+ˆvN
+1 −vN
+1
+ˆvN
+2 −vN
+2
+mean
++0.32
++0.46
+-0.08
+-0.14
+std
+2.59
+2.20
+0.65
+0.63
+max
++9.32
++7.39
+-1.92
+-1.79
+As with the vertical position, the estimation process does not 
+introduce any errors, so the ﬁnal errors are unbiased or zero mean. 
+These ﬁgures reveal that the ground velocity estimation error is 
+extremely small when GNSS signals are available, but suddenly in-
+creases when the GNSS signals are lost at tGNSS = 100 s, after which 
+they are approximately stable. These errors are exactly the same 
+for both scenarios. However, while in the case of scenario #2 the 
+errors remain approximately constant for the whole trajectory, in 
+#1 they increase again between two clearly deﬁned time stamps, 
+after which they remain constant until the end of the trajectory.
+The deviation with time in Fig. 8 is constrained to in between 
+two time stamps, which is the case in all scenario #1 runs, as 
+it is not related to the mission airspeed change but to its linear 
+wind ﬁeld change, as explained in [2] and section 4. If the wind 
+ﬁeld variation were modeled differently, then the ground speed 
+deviation with time would also vary accordingly. Fig. 9 does not 
+show any deviation with time because vN
+WIND is constant in scenario 
+#2.
+The estimation of the air velocity ˆvN
+TAS per (29) is the same in-
+dependently of whether GNSS signals are available or not. It is a 
+combination of the estimated body attitude ˆqNB and the body air 
+velocity ˆvB
+TAS.16 Both are biased but drift-less on a trajectory basis, 
+with their errors bounded by the quality of the sensors, and hence 
+so is ˆvN
+TAS.
+If GNSS signals are available, the position ﬁlter accurately es-
+timates the ground velocity ˆvN mostly based on the unbiased ob-
+16 vB
+TAS is a function of the airspeed vTAS, the angle of attack α, and the angle of 
+sideslip β, all estimated by the air data ﬁlter.
+13
+[p.14]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Fig. 9. North ground speed NSE for scenario #2 (100 runs).
+servations provided by the GNSS receiver and then subtracts ˆvN
+TAS
+to estimate the wind ﬁeld ˆvN
+WIND, so the wind estimation errors are 
+mostly those of ˆvN
+TAS but with the opposite sign. The process is re-
+versed in GNSS-Denied conditions (30), as the wind estimation is 
+frozen from its value when the GNSS signals are lost (28), and the 
+ground velocity is estimated by adding ˆvN
+TAS and the frozen wind 
+estimation. As such, the GNSS-Denied ˆvN error also includes any 
+change in the wind velocity that occurs from the time the GNSS
+signals are lost to the time the ground speed is estimated.
+The ground velocity estimation error is caused by the three 
+factors mentioned above: the errors in the body air velocity es-
+timation ˆvB
+TAS, the errors in the body attitude estimation ˆqNB, and 
+the horizontal wind variation experienced by the aircraft from the 
+time the GNSS signals are lost to the time its ground speed is 
+estimated vN
+WIND,END −vN
+WIND,INI. The ﬁrst two are responsible for the 
+sudden increase in the error at tGNSS = 100 s that can be observed 
+in both scenarios, while the third is the culprit of the additional 
+error that only occurs in #1.
+In practical terms, the ﬁrst two error sources are bounded by 
+sensor quality and establish a threshold for the ground velocity 
+estimation accuracy, while the wind variation, although bounded 
+by atmospheric physics, has the most potential to induce errors in 
+the ground speed estimation, which hence does not present an un-
+bounded drift but a bounded error with known bounded sources. 
+As explained in section 7, estimating the ground velocity this way 
+is intrinsically superior to integrating the speciﬁc force, in which 
+the error grows with time without any limitations.
+Horizontal position estimation
+In GNSS-Denied conditions the horizontal position is estimated 
+by the position ﬁlter through the integration of the ground velocity 
+without any observations to reset the integration errors. Figs. 10
+and 11 show the variation with time of the horizontal position
+NSE for both scenarios, together with the two runs with the high-
+est and lowest ﬁnal error, respectively.
+The approximately linear position drift observed in both ﬁg-
+ures is caused by the integration of the approximately constant 
+horizontal velocity error, and can not be avoided unless additional 
+observations are included into the GNSS-Denied position ﬁlter. The 
+only way to eliminate the position drift with a standard suite of 
+sensors in GNSS-Denied conditions is to reduce the ground ve-
+locity error, whose origins are explained in detail in the previous 
+section.
+As in previous cases, aggregated ﬁnal state metrics are em-
+ployed since drift is present, and these are shown in Table 7 for 
+both scenarios. Note that this table includes the horizontal distance 
+error both in absolute terms as well as a relative percentage with 
+respect to the distance ﬂown since the GNSS signals are lost. In 
+addition to the horizontal error, which is a norm and hence al-
+ways positive, Table 7 also includes the cross track and long track 
+errors, which are positive when the estimated position lies to the 
+right or ahead of the real position, and negative otherwise. These 
+are unbiased or zero mean, indicating that the error source is in 
+the data (the ground velocity) and not in the algorithm itself (the 
+integration).
+The results for scenario #1, which contains a signiﬁcant wind 
+ﬁeld variation, show that in most cases the deviations from the 
+intended route are not severe, but a mean error of 7.18% and 
+standard deviation of 5.73% are not suﬃcient to ensure safe GNSS-
+Denied navigation under any circumstances. They translate into 
+absolute position errors that are in the order of several kilometers 
+after one hour of ﬂight, which is not acceptable as the risk of col-
+lision with the terrain, structures, or other aircraft is too high. The 
+results for scenario #2, which are optimistic since it assumes zero 
+wind variation, can be considered as a best case threshold show-
+ing the inﬂuence of the remaining sources of error: the air velocity 
+sensors quality inﬂuencing ˆvB
+TAS, the inertial sensors quality for ˆqNB, 
+and the ground velocity integration errors.
+Table 8 compares the scenario #1 results with those obtained 
+by means of a simple time integral of the wind variation with 
+respect to that existing when the GNSS signals are lost. The sim-
+ilarity with the aggregated ﬁnal state metrics shown in Table 7
+proves that the wind variation is by far the main responsible for 
+the horizontal position drift. The selected approach to estimating 
+the horizontal position, although resulting in a drift with time, is 
+intrinsically superior to a double integration of the acceleration, as 
+explained in section 7.
+7. Comparison with other navigation algorithms
+This section compares the results obtained with the proposed
+INS ﬁlter, referred below as the “baseline”, against those obtained 
+when employing different algorithms for the estimation of the hor-
+izontal position, vertical position, and body attitude. These algo-
+rithms are more representative of those employed by a traditional
+GNSS-Based inertial navigation ﬁlter that at a given time is forced 
+to operate without the observations provided by its GNSS receiver.
+Different horizontal position algorithms
+The position ﬁlter relies on freezing the wind speed estimation 
+(28) at the value it has when the GNSS signals are lost, which may 
+not appear as optimum as it allows the horizontal position estima-
+tion error to grow linearly with time with a slope proportional to 
+the wind change since the beginning of GNSS-Denied navigation.
+In this section the baseline approach is compared with two al-
+ternative implementations that provide better results for the ﬁrst 
+few minutes of GNSS-Denied navigation. However, as they have a 
+higher reliance on integration, their error growth with time is of 
+higher order than in the baseline, resulting in much higher esti-
+mation errors. As a matter of fact, the ground velocity errors are 
+so signiﬁcant as time grows that they destabilize the attitude ﬁl-
+ter by means of (14) and (18), and hence it is necessary to shorten 
+14
+[p.15]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Fig. 10. Horizontal position NSE for scenario #1 (100 runs).
+Fig. 11. Horizontal position NSE for scenario #2 (100 runs).
+Table 7
+Aggregated ﬁnal horizontal position NSE (100 runs).
+Scenario
+Distance
+ˆxCROSS,END
+ˆxLONG,END
+ˆxHOR,END
+[m]
+[m]
+[%]
+[m]
+[%]
+[m]
+[%]
+#1
+mean
+108623
++59
++0.13
++41
++0.08
+7428
+7.18
+std
+19935
++5615
++5.07
++6965
++7.66
+4988
+5.73
+max
+172842
+-18954
+-16.40
++20064
++32.22
+25288
+32.38
+#2
+mean
+14198
+-37
+-0.26
++22
++0.15
+216
+1.52
+std
+1176
++162
++1.15
++180
++1.28
+119
+0.86
+max
+18253
++562
++4.20
++537
++4.12
+586
+4.38
+Fig. 12. Inﬂuence of ﬁlter algorithms on horizontal position NSE for scenario #1 (100 runs).
+Table 8
+Final horizontal position NSE analysis for scenario #1.
+Distance
+ˆxHOR,END
+vWIND accum.
+[m]
+[m]
+[%]
+[m]
+[%]
+mean
+108623
+7428
+7.18
+7121
+6.96
+std
+19935
+4988
+5.73
+4988
+5.96
+max
+172842
+25288
+32.38
+23630
+32.95
+the scenario #1 simulations to tEND = 1000 s. This could have been 
+mitigated by further modiﬁcations to the attitude ﬁlter, which have 
+not been implemented as the results are in any case clearly infe-
+rior to those of the baseline.
+• The ﬁrst alternative, named “double integration”, behaves as a 
+standard GNSS-Based inertial ﬁlter [6,7] working without the 
+periodic ground speed and position observations provided by 
+the GNSS receiver. It relies on discarding (28), (29), and (30), 
+and instead estimates the ground speed ˆvN by integrating its 
+time derivative, which in turn is obtained based on (20) from 
+the estimations of the speciﬁc force ˆfB
+IB and the body attitude 
+ˆqNB:
+ˆ˙vN = ˆqNB ⊗ˆfB
+IB ⊗ˆq∗
+NB −ˆω
+N
+EN ˆvN
+n−1 + ˆgN
+c,MOD −ˆaN
+cor
+(33)
+ˆvN = ˆvN
+n−1 + t · ˆ˙vN
+(34)
+Note that the motion angular velocity ˆω
+N
+EN and the Coriolis 
+acceleration ˆaN
+cor depend on position and velocity, while the 
+model gravity acceleration ˆgN
+c,MOD is computed based exclu-
+sively on position. In (33) all three are evaluated based on the 
+previous step (n −1). As in the baseline, the position is then 
+15
+[p.16]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Fig. 13. Short term inﬂuence of ﬁlter algorithms on horizontal position NSE for scenario #1 (100 runs).
+estimated by integrating the ground velocity. The main weak-
+ness of this approach is the low accuracy of the speciﬁc force 
+estimation ˆfB
+IB in the GNSS-Denied position ﬁlter, which is in-
+tegrated twice to obtain the aircraft position.
+This approach is valid for GNSS-Based conditions, not only be-
+cause the velocity and position estimations on which ˆω
+N
+EN, ˆaN
+cor, 
+and ˆgN
+c,MOD rely are more accurate, but also because the GNSS
+observations impede the accumulation of integration errors. 
+Without these observations, nothing prevents the errors from 
+accumulating as the time without GNSS signals increases.
+• The second alternative, named “wind integration”, also esti-
+mates the ground speed time derivative per (33). This ap-
+proach however tries to reduce the integration errors required 
+to obtain ˆvN per (34) by only integrating the wind derivative 
+ˆ˙vN
+WIND instead of the complete ground speed derivative ˆ˙vN [82]. 
+As the proposed ﬁlter, it takes advantage of the air velocity 
+sensors present in ﬁxed wing aircraft that however are gen-
+erally employed for control purposes exclusively, and not for 
+navigation. To do so, it is ﬁrst necessary to directly estimate 
+the air velocity time derivative viewed in body ˆ˙vB
+TAS by using 
+the estimations of its components (ˆ˙vTAS, ˆ˙α, ˆ˙β) provided by the 
+air data ﬁlter. From there, the air velocity time derivative in
+NED (ˆ˙vN
+TAS) is obtained per (35). The estimated ground speed 
+ˆvN can then be obtained by combining the air velocity with 
+the integrated wind speed (38). As in the ﬁrst alternative, the 
+position is also obtained by integrating the resulting ground 
+velocity.
+ˆ˙vN
+TAS = ˆqNB ⊗
+
+ˆ˙vB
+TAS + ˆω
+B
+NB ˆvB
+TAS
+
+⊗ˆq∗
+NB
+(35)
+ˆ˙vN
+WIND = ˆ˙vN −ˆ˙vN
+TAS
+(36)
+ˆvN
+WIND = ˆvN
+WIND,n−1 + t · ˆ˙vN
+WIND
+(37)
+ˆvN = ˆvN
+WIND + ˆqNB ⊗vB
+TAS
+
+ˆvTAS, ˆα, ˆβ
+
+⊗ˆq∗
+NB
+(38)
+Figs. 12 and 1317 show the results obtained with these two 
+approaches for scenario #1 when compared with those of the 
+baseline ﬁlter. The ﬁgures for scenario #2 are not included as they 
+would show exactly the same trends. Fig. 12 shows the whole du-
+ration of scenario #1 (tEND = 3800 s), where the two alternative 
+executions are limited to tEND = 1000 s as explained above, while 
+Fig. 13 provides more detail into the ﬁrst few minutes of GNSS-
+Denied conditions. They clearly show that although the alternative 
+approaches may prove advantageous for a short period of time 
+after the GNSS signals are lost at tGNSS = 100 s, the higher order 
+integration errors soon take over and make these alternatives far 
+inferior to the proposed position ﬁlter.
+The reason for this behavior originates in the additional inte-
+grations required to estimate the horizontal position. This analysis 
+17 Note that the blue lines of Figs. 12 and 13 are the same as those of Fig. 10.
+validates the position ﬁlter approach of freezing the wind speed 
+to its estimated value at tGNSS (28). While any wind variation from 
+that time on accumulates as ground velocity and horizontal po-
+sition errors, these are bounded by atmospheric physics, which 
+is preferred to the quick and unrestrained position error growth 
+caused by alternative approaches that rely on double integrations.
+Different vertical position algorithms
+The position ﬁlter does not integrate the vertical speed to ob-
+tain the vertical position or geometric altitude, but instead esti-
+mates it through (31) and (32) from the pressure altitude ˆHP and 
+temperature offset ˆT estimated by the air data ﬁlter, together 
+with the pressure offset ˆp estimated at the time the GNSS sig-
+nals are lost (27). This approach leaves the vertical position estima-
+tion susceptible to atmospheric pressure changes, and results in an 
+estimation error that is bounded by atmospheric physics, but pro-
+portional to the amount of pressure offset p change from tGNSS
+to the time the vertical position is being estimated. The baseline 
+approach is compared in this section with two alternative imple-
+mentations that rely on integrating the estimated vertical speed.
+• The ﬁrst, named “integration”, obtains the geometric altitude 
+in the same way as the longitude and latitude, this is, by in-
+tegrating the ground speed ˆvN obtained per (30). This results 
+in:
+ˆh = ˆhn−1 + t · ˆ˙h = ˆhn−1 −t · ˆvN
+3
+(39)
+• The second alternative, named “airspeed integration”, imposes 
+zero vertical wind and only integrates the vertical component 
+of the air velocity. This approach takes into account the fact 
+that the vertical wind is always very close to zero in the long 
+term and only appears for short periods of time caused by 
+gusts or when ﬂying close to the terrain.
+ˆvN
+3 ≈ˆvN
+TAS,3 =
+
+ˆqNB ⊗vB
+TAS
+
+ˆvTAS, ˆα, ˆβ
+
+⊗ˆq∗
+NB
+
+
+3
+(40)
+ˆh = ˆhn−1 + t · ˆ˙h = ˆhn−1 −t · ˆvN
+3
+(41)
+Fig. 1418 shows that although the second alternative is better 
+than the ﬁrst one, their performances are in both cases clearly in-
+ferior to that of the baseline. As in the previous section, the reason 
+is that the unbounded integration of a noisy signal accumulates er-
+rors and needs to be avoided. In the case of the baseline, there is 
+no integration, and the vertical position error depends on the iono-
+spheric effects plus the variation in pressure offset since the GNSS
+signals are lost. Both are bounded by atmospheric physics and 
+hence so is the resulting error. Note that the geometric altitude 
+errors are so signiﬁcant that on some executions they destabilize 
+the ﬁlter, and hence it has been necessary to shorten the scenario 
+18 Note that the blue lines of Figs. 14 are the same as those of Fig. 6.
+16
+[p.17]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Fig. 14. Inﬂuence of ﬁlter algorithms on vertical position NSE for scenario #1 (100 runs).
+#1 simulations to tEND = 1000 s. The scenario #2 ﬁgure is not in-
+cluded as it would show exactly the same trends.
+This analysis validates the approach of obtaining the vertical 
+position or geometric altitude by means of the pressure altitude 
+estimation by the air data ﬁlter while avoiding any integrations. 
+Although atmospheric pressure changes then transform into verti-
+cal position errors, they are bounded by atmospheric physics and 
+do not drift with time.
+Different attitude algorithms
+The key characteristic of the proposed navigation ﬁlter is its 
+ability to obtain a bounded and drift-less body attitude estima-
+tion in GNSS-Denied conditions while in turbulent ﬂight, which is 
+achieved by reducing the negative inﬂuence of the ground veloc-
+ity and position estimation errors. In particular, the attitude ﬁlter 
+discards the air velocity and turbulence time derivatives viewed 
+in the body frame (˙vB
+TAS = 0, ˙vB
+TURB = 0) and the wind ﬁeld time 
+derivative viewed in NED (˙vN
+WIND = 0), resulting in (17). The dis-
+carded derivatives roughly oscillate around zero and hence their 
+absence can be absorbed into the ﬁlter measurement noise, result-
+ing in a ﬁlter that although noisier, maintains its unbiased nature 
+and hence follows to a higher degree the EKF design assumptions 
+[77].
+This section analyzes two different alternatives. Although sim-
+pler to establish, both incur in biased observations of the speciﬁc 
+force that result in higher body attitude estimation errors when 
+executing maneuvers, as shown below. The ﬁrst option, named 
+“Zero FB Time Derivatives”, discards the full ground speed time 
+derivative viewed in the body frame (˙vB
+TAS = 0, ˙vB
+TURB = 0, ˙vB
+WIND = 0), 
+resulting in:
+fB
+IB ∼ωB
+EB
+
+vB
+TAS + vB
+TURB + vB
+WIND
+	
++ q∗
+NB ⊗
+
+aN
+cor −gN
+c
+	
+⊗qNB
+(42)
+fB
+IB = ωB
+NB
+
+q∗
+NB ⊗vN ⊗qNB
+
++ q∗
+NB ⊗
+ωN
+EN vN + aN
+cor −gN
+c,MOD
+	
+⊗qNB + EACC
+(43)
+The second option, named “Zero FN Time Derivatives”, also dis-
+cards the full ground speed time derivative but this time viewed 
+in NED (˙vN
+TAS = 0, ˙vN
+TURB = 0, ˙vN
+WIND = 0), resulting in:
+fB
+IB ∼q∗
+NB ⊗
+ωN
+EN
+
+vN
+TAS + vN
+TURB + vN
+WIND
+	
+⊗qNB
++q∗
+NB ⊗
+
+aN
+cor −gN
+c
+	
+⊗qNB
+(44)
+fB
+IB = q∗
+NB ⊗
+ωN
+EN vN + aN
+cor −gN
+c,MOD
+	
+⊗qNB + EACC
+(45)
+The aggregated body attitude NSE for the baseline conﬁgura-
+tion as well as the two alternatives is shown in Table 9,19 while 
+their variations with time are depicted in Figs. 15, 16,20 and 17.21
+19 Note that the baseline columns of Table 9 coincide with the right hand side of 
+Table 4.
+20 Note that Fig. 16 represents an augmented view of the ﬁrst 500 s of Fig. 15.
+21 Note that blue lines of Figs. 15 and 16 coincide with those of Fig. 4, and the 
+blue lines of Fig. 17 coincide with those of Fig. 5.
+If the beginning of Fig. 15 is excluded, focusing exclusively on 
+that portion of scenario #1 in which the bearing is constant, the 
+two alternatives result in body attitude estimation errors that are 
+quite similar to those of the baseline conﬁguration. As a matter 
+of fact, the “Zero FN Time Derivatives” conﬁguration performs con-
+sistently better than the baseline, while the “Zero FB Time Deriva-
+tives” conﬁguration results are worse and also present a slight drift 
+with time that however is slow enough so as to not represent any 
+problem from a ﬂight stability point of view.
+However, the two alternative conﬁgurations incur in signiﬁcant 
+errors in the turn or change of bearing present in scenario #1
+(refer to [2] for details, or section 4 for a summary of the sce-
+nario), which starts at tTURN and lasts until the ﬁnal bearing χEND is 
+reached. To better visualize the aircraft turns, Fig. 16, in addition 
+to focusing on the ﬁrst 500 s of the scenario #1, adds an extra line 
+(green) that contains the number of runs at every time instant in 
+which the aircraft is executing the turning maneuver.22
+Note that the body attitude error for the two alternatives does 
+not only increase quickly when the aircraft is turning, but contin-
+ues doing so for at least a minute after the turn concludes, and 
+then takes several minutes for it to return to levels comparable to 
+what they were before initiating the turning maneuver. A close ex-
+amination of the data reveals that the maximum error is directly 
+related to the duration of the turn as the errors never stop increas-
+ing until after the aircraft has concluded its turn. Also, different 
+executions in which turns are performed at bank angles different 
+than ξTURN ± 10◦result in errors that are proportional not only to 
+the turn duration (or change of bearing) but also to the bank angle 
+employed.
+This behavior is emphasized in scenario #2, which is based on 
+a series of consecutive turns with very little time in between (re-
+fer to [2] for details, or section 4 for a summary of the scenario). 
+Fig. 17 clearly shows the beneﬁts of the baseline conﬁguration, as 
+the estimation error in the two alternatives accumulates because 
+it does not have time after a given turn to return to its pre-turn 
+levels before the next turning maneuver is initiated.
+The reason why the performance of the three conﬁgurations is 
+similar when not executing any maneuvers but markedly different 
+when turning lies in the nature of the air velocity, turbulence, and 
+wind ﬁeld derivatives with time. When in stationary straight ﬂight, 
+all three roughly oscillate around zero when viewed in any frame 
+and the effect of including or removing them from (17) is slight; 
+this is not the case when turning, in which case the air velocity 
+and turbulence are approximately constant only when viewed in 
+body, while the wind ﬁeld needs to be viewed in NED. Although it 
+is not possible to fully observe these derivatives in GNSS-Denied 
+conditions, the baseline conﬁguration manages to avoid introduc-
+ing signiﬁcant biases into the ﬁlter at the expense of increasing its 
+white noise, while the two alternatives add biases, resulting in the 
+22 For example, a value of 2.8 at time ts means that twenty-eight out of the 
+hundred runs are executing its turn at time ts, while seventy-two either have not 
+started it or have already concluded the turning maneuver.
+17
+[p.18]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Table 9
+Inﬂuence of ﬁlter algorithms on aggregated body attitude NSE (100 runs).
+Scenario
+Baseline
+Zero FB Diffs.
+Zero FN Diffs.
+∥ˆrB∥[◦]
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+#1
+mean
+0.152
+0.078
+0.521
+0.199
+0.137
+1.116
+0.223
+0.462
+4.501
+std
+0.072
+0.021
+0.151
+0.126
+0.104
+0.971
+0.084
+0.264
+2.374
+max
+0.448
+0.168
+1.321
+0.742
+0.588
+5.152
+0.487
+1.107
+9.819
+#2
+mean
+0.118
+0.074
+0.38
+0.565
+0.508
+1.77
+1.902
+1.934
+6.88
+std
+0.023
+0.015
+0.07
+0.405
+0.404
+1.28
+0.407
+0.317
+1.11
+max
+0.206
+0.124
+0.63
+1.860
+1.943
+5.45
+3.161
+2.860
+9.82
+Fig. 15. Inﬂuence of ﬁlter algorithms on body attitude NSE for scenario #1 (100 runs).
+Fig. 16. Detail of inﬂuence of ﬁlter algorithms on body attitude NSE for scenario #1 (100 runs).
+Fig. 17. Inﬂuence of ﬁlter algorithms on body attitude NSE for scenario #2 (100 runs).
+ﬁlter producing incorrect body attitude estimations to compensate 
+them.
+The proposed attitude ﬁlter observation algorithms result in a 
+better estimation performance when faced with the lack of ob-
+servability inherent to GNSS-Denied navigation. By neglecting the 
+different speeds (air velocity, wind, turbulence) derivatives with 
+time when viewed in certain reference frames, it is possible to 
+maintain the unbiased nature of the ﬁlter at the expense of in-
+creasing its noise.
+8. Inﬂuence of sensor quality on GNSS-Denied navigation
+This section analyzes the inﬂuence of the quality of the dif-
+ferent aircraft sensors on the performance of the INS in GNSS-
+Denied conditions. It discusses the inﬂuence of the bias drift oscil-
+lation band for the inertial sensors, as well as that of the perfor-
+mance parameters of gyroscopes, accelerometers, magnetometers, 
+air speed sensors, and atmospheric sensors.
+18
+[p.19]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Table 10
+Inﬂuence of inertial biases oscillation band on aggregated body attitude NSE (100 runs).
+Scenario
+Baseline
+±300 · σu · t1/2
+±1000 · σu · t1/2
+∥ˆrB∥[◦]
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+#1
+mean
+0.152
+0.078
+0.521
+0.164
+0.089
+0.567
+0.175
+0.096
+0.590
+std
+0.072
+0.021
+0.151
+0.070
+0.023
+0.151
+0.074
+0.024
+0.154
+max
+0.448
+0.168
+1.321
+0.451
+0.173
+1.339
+0.469
+0.178
+1.399
+#2
+mean
+0.118
+0.074
+0.376
+0.125
+0.077
+0.394
+0.128
+0.079
+0.399
+std
+0.023
+0.015
+0.069
+0.027
+0.016
+0.080
+0.030
+0.017
+0.081
+max
+0.206
+0.124
+0.632
+0.234
+0.122
+0.661
+0.239
+0.144
+0.672
+Fig. 18. Inﬂuence of inertial biases oscillation band on body attitude NSE for scenario #1 (100 runs).
+The analysis relies on repeating the Monte Carlo simulations for 
+both scenarios composed of one hundred runs each with the only 
+change of replacing the performance parameters shown in [3] and 
+section 4, referred to as the “baseline” conﬁguration, with others 
+representing higher or lower quality sensors, and then comparing 
+the NSE obtained by the navigation system.
+The main objective of this analysis is to determine the inﬂuence 
+that each of the sensors has on the aircraft GNSS-Denied naviga-
+tion capabilities. By ensuring that the result obtained when em-
+ploying sensors of inferior quality are qualitatively the same and 
+quantitatively slightly inferior to those obtained with the baseline 
+conﬁguration, the simulation results are safeguarded from possible 
+errors introduced in [3] when modeling the performances of the 
+different sensors.
+Inﬂuence of inertial sensors bias stability
+In the description of the different error sources present in the 
+output of the inertial sensors (accelerometers and gyroscopes) con-
+tained in [3], the bias drift is modeled as a random walk process 
+obtained by the integration of a white noise signal. However, as 
+the bias drift is mostly a warm-up process that stabilizes with 
+the sensor temperature, the random walk is not allowed to vary 
+freely (which would not be realistic) but is constrained to a band 
+of ±100 · σu · t1/2, this is, it is only allowed to accumulate a hun-
+dred times in the same direction.
+Although limiting the random walk oscillation is the proper 
+way to model its inﬂuence, the ±100 value is arbitrary and if opti-
+mistic may facilitate the tracking of the gyroscope and accelerom-
+eter errors (EGYR and EACC) by the navigation ﬁlter, limiting the 
+negative consequences of failing to appropriately estimate these 
+errors. For that reason, this analysis relaxes this limitation in two 
+different conﬁgurations, to ±300 and ±1000 (simultaneously for 
+the gyroscopes and accelerometers), and evaluates the sensitivity 
+of the results to this change.
+Relaxing the width of the band in which the inertial sensors 
+bias drift can oscillate results in a quantitatively inferior estimation 
+of the body attitude, as shown in Table 10, together with Figs. 18
+and 19,23 although qualitatively the estimation remains bounded 
+and drift-less.
+The capability of the attitude ﬁlter to estimate the body atti-
+tude is based on its ability to track the full gyroscope error EGYR. 
+Fig. 20 shows how the ﬁlter tracks EGYR with a slight delay that is a 
+compromise between allocating the changes observed in the mea-
+sured inertial angular velocity ωB
+IB to the aircraft angular velocity 
+ˆω
+B
+NB or the full gyroscope error ˆEGYR. This balance is determined 
+by the selection of the attitude ﬁlter covariances, and is optimized 
+for the baseline conﬁguration. It is possible to adjust the covari-
+ances so the ﬁlter tracks the gyroscope errors more closely (with 
+less delay), but this also implies signiﬁcantly higher errors when 
+maneuvering in which a higher percentage of the real ωB
+NB would 
+be allocated to the gyroscope errors ˆEGYR, as on the short term the 
+ﬁlter can not distinguish between real angular velocities and gyro-
+scope errors.
+If the sensors bias drift oscillates within a wider band, the 
+tracking delay at times may translate into bigger ˆEGYR errors, 
+in particular when the real error EGYR accumulates a signiﬁcant 
+change over a relatively small period of time. This can be better 
+understood by looking at a speciﬁc case, such as in Fig. 20, which 
+shows the 2nd component of the gyroscope error EGYR,2 and its es-
+timation ˆEGYR,2 resulting from run #10 of scenario #1, for the three 
+conﬁgurations. Note that between approximately 400 and 800 s, 
+the random walk quickly accumulates creating ever higher bias 
+drift values, and this is precisely where the tracking delay causes 
+higher ˆEGYR errors, and hence bigger ∥ˆrB∥errors.
+As shown in Tables 11 and 12,24 as long as the body attitude 
+estimation remains bounded and drift-less, the inﬂuence of the 
+attitude estimation accuracy on the horizontal velocity and posi-
+tion estimations is rather small. Note that the ground velocity and 
+horizontal position results in the three conﬁgurations are identi-
+cal for all practical purposes both for scenario #1, which is mostly 
+stationary but contains varying wind, as for #2, which contains 
+23 Note that the baseline columns of Table 10 coincide with the right hand 
+columns of Table 4, and the blue lines of Figs. 18 and 19 coincide with those of 
+Figs. 4 and 5, respectively.
+24 Note that the baseline columns of Tables 11 and 12 coincide with those of Ta-
+bles 6 and 7.
+19
+[p.20]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Fig. 19. Inﬂuence of inertial biases oscillation band on body attitude NSE for scenario #2 (100 runs).
+Fig. 20. Inﬂuence of inertial biases oscillation band on full gyroscope error for run #10 of scenario #1.
+Table 11
+Inﬂuence of inertial biases oscillation band on aggregated ﬁnal ground speed NSE (100 runs).
+Scenario
+Baseline
+±300 · σu · t1/2
+±1000 · σu · t1/2
+ˆvN
+END [m/s]
+ˆvN
+1 −vN
+1
+ˆvN
+2 −vN
+2
+ˆvN
+1 −vN
+1
+ˆvN
+2 −vN
+2
+ˆvN
+1 −vN
+1
+ˆvN
+2 −vN
+2
+#1
+mean
++0.325
++0.465
++0.325
++0.465
++0.325
++0.460
+std
+2.588
+2.204
+2.592
+2.203
+2.593
+2.204
+max
++9.321
++7.392
++9.336
++7.368
++9.293
++7.436
+#2
+mean
+-0.083
+-0.139
+-0.084
+-0.140
+-0.085
+-0.143
+std
+0.652
+0.629
+0.656
+0.634
+0.655
+0.634
+max
+-1.916
+-1.792
+-1.906
+-1.791
+-1.897
+-1.792
+Table 12
+Inﬂuence of inertial biases oscillation band on aggregated ﬁnal horizontal position NSE (100 runs).
+Scenario
+Baseline
+±300 · σu · t1/2
+±1000 · σu · t1/2
+Distance [m]
+ˆxHOR,END [m, %]
+ˆxHOR,END [m, %]
+ˆxHOR,END [m, %]
+#1
+mean
+108622.6
+7427.7
+7.18
+7423.5
+7.18
+7422.6
+7.17
+std
+19935.3
+4987.8
+5.73
+4997.0
+5.73
+5004.4
+5.74
+max
+172842.3
+25287.9
+32.38
+25291.9
+32.32
+25393.6
+32.24
+#2
+mean
+14198.4
+215.6
+1.52
+217.0
+1.53
+217.1
+1.53
+std
+1176.1
+119.4
+0.86
+120.2
+0.87
+120.2
+0.87
+max
+18253.0
+586.3
+4.38
+586.2
+4.38
+586.2
+4.38
+continuous maneuvers with a constant wind ﬁeld. Although no 
+data is shown, the inﬂuence on the vertical position estimation 
+accuracy is also negligible.
+The summary of this section is that the dependency of the re-
+sults on the width of the band in which the inertial sensors bias 
+drift oscillates is very small. The body attitude estimation results 
+vary slightly but these changes are not signiﬁcant enough to im-
+ply any changes in the horizontal velocity or position estimation 
+accuracy.
+Inﬂuence of gyroscope quality
+This section analyzes the sensitivity on the GNSS-Denied navi-
+gation results of employing gyroscopes of different quality or per-
+formance grade than those of the baseline described in [3] and Ta-
+ble 1. Table 13 shows the performances of the conﬁguration named 
+“GYR Better” in the same format as that employed in section 4, 
+which correspond to the high performance MEMS gyroscopes in-
+side the Sensonor STIM300 IMU [83], and are better than those 
+of the baseline. It also shows the performance parameters of two 
+ﬁctitious gyroscopes that perform worse than the baseline. These 
+conﬁgurations are named “GYR Worse” and “GYR Worst”, and their 
+objective is to provide a wide range of gyroscope performances 
+with which to evaluate the sensitivity of the navigation algorithms 
+to the gyroscopes grade. Additionally, they represent a safety mea-
+sure in case of errors in the modeling of the baseline gyroscopes 
+performances.
+Table 14, together with Figs. 21 and 22,25 show the aggregated 
+body attitude NSE after one hundred runs of both scenarios with 
+each of the three conﬁgurations described above, in addition to the 
+25 Note that the baseline columns of Table 14 coincide with the right hand side of 
+Table 4, and the blue lines of Figs. 21 and 22 coincide with those of Figs. 4 and 5, 
+respectively.
+20
+[p.21]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Table 13
+Performances of “GYR Better”, “GYR Worse”, and “GYR Worst” gyroscopes.
+GYR Better
+GYR Worse
+GYR Worst
+Error Source
+Variable
+Value
+Unit
+Value
+Unit
+Value
+Unit
+Bias Drift
+σuGYR
+1.38 · 10−5
+◦/s1.5
+5.00 · 10−4
+◦/s1.5
+1.50 · 10−3
+◦/s1.5
+System Noise
+σvGYR
+2.50 · 10−3
+◦/s0.5
+8.00 · 10−3
+◦/s0.5
+2.50 · 10−2
+◦/s0.5
+Scale Factor
+sGYR
+5.00 · 10−6
+-
+5.00 · 10−5
+-
+1.00 · 10−4
+-
+Cross Coupling
+mGYR
+1.50 · 10−5
+-
+1.50 · 10−4
+-
+4.50 · 10−4
+-
+Bias Offset
+B0GYR
+3.00 · 10−2
+◦/s
+7.50 · 10−1
+◦/s
+1.50 · 100
+◦/s
+Table 14
+Inﬂuence of gyroscopes quality on aggregated body attitude NSE (100 runs).
+Scenario
+Baseline
+GYR Better
+GYR Worse
+GYR Worst
+∥ˆrB∥[◦]
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+#1
+mean
+0.152
+0.078
+0.52
+0.147
+0.075
+0.50
+0.184
+0.105
+0.63
+0.346
+0.224
+1.17
+std
+0.072
+0.021
+0.15
+0.072
+0.022
+0.16
+0.066
+0.022
+0.13
+0.059
+0.037
+0.17
+max
+0.448
+0.168
+1.32
+0.450
+0.169
+1.35
+0.452
+0.189
+1.23
+0.532
+0.319
+1.70
+#2
+mean
+0.118
+0.074
+0.38
+0.105
+0.069
+0.35
+0.152
+0.094
+0.47
+0.291
+0.177
+0.80
+std
+0.023
+0.015
+0.07
+0.020
+0.016
+0.07
+0.035
+0.021
+0.10
+0.081
+0.055
+0.19
+max
+0.206
+0.124
+0.63
+0.147
+0.129
+0.63
+0.283
+0.158
+0.78
+0.574
+0.383
+1.53
+Fig. 21. Inﬂuence of gyroscopes quality on body attitude NSE for scenario #1 (100 runs).
+Fig. 22. Inﬂuence of gyroscopes quality on body attitude NSE for scenario #2 (100 runs).
+baseline. There exists a clear correlation between the body attitude
+NSE and the quality or grade of the gyroscopes, but the proposed 
+attitude ﬁlter algorithms manage in all four cases to obtain esti-
+mations that are bounded and contain no drift.
+Even taking into consideration that the algorithms are opti-
+mized for the baseline conﬁguration (in particular, an adjustment 
+of the attitude ﬁlter covariances would likely result in slight im-
+provements for the non baseline conﬁgurations), it can be observed 
+that there is little potential for improvement, while on the other 
+side employing gyroscopes of lesser grade does result in a worse 
+estimation of the body attitude. The small improvements obtained 
+when employing gyroscopes that are signiﬁcantly better than those 
+of the baseline is attributed to the limitations of GNSS-Denied nav-
+igation in turbulent conditions, and in particular to the multiple 
+inaccuracies present in the ﬁlter speciﬁc force observation equa-
+tion (17) that prevent the tracking of the full accelerometer error 
+EACC in GNSS-Denied conditions.
+As the body attitude estimation is bounded and drift-less, the 
+gyroscopes grade does not have any inﬂuence on the estimation 
+accuracy of the ground velocity or the horizontal position. Al-
+though not shown, and similarly to the case of the bias drift os-
+cillation band analyzed in the previous section, the results for all 
+four conﬁgurations are virtually the same in both scenarios. Note 
+that this is the case even with the signiﬁcant differences of gy-
+roscope quality considered (two orders of magnitude in bias drift 
+from “GYR Better” to “GYR Worst”, and smaller but also signiﬁcant 
+differences in all other parameters), and considering the differ-
+ences in mission, weather, and wind between the two scenarios. 
+The inﬂuence of the gyroscope grade on the vertical position esti-
+mation accuracy is also negligible.
+Inﬂuence of accelerometer quality
+This section analyzes the sensitivity on the GNSS-Denied nav-
+igation results of employing accelerometers of different quality or 
+21
+[p.22]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Table 15
+Performances of “ACC Better”, “ACC Worse”, and “ACC Worst” accelerometers.
+ACC Better
+ACC Worse
+ACC Worst
+Error Source
+Variable
+Value
+Unit
+Value
+Unit
+Value
+Unit
+Bias Drift
+σuACC
+4.90 · 10−5
+m/s2.5
+8.50 · 10−5
+m/s2.5
+1.20 · 10−4
+m/s2.5
+System Noise
+σvACC
+3.30 · 10−4
+m/s1.5
+5.00 · 10−4
+m/s1.5
+6.50 · 10−4
+m/s1.5
+Scale Factor
+sACC
+1.50 · 10−5
+-
+8.50 · 10−5
+-
+1.40 · 10−4
+-
+Cross Coupling
+mACC
+1.50 · 10−5
+-
+5.00 · 10−5
+-
+9.50 · 10−5
+-
+Bias Offset
+B0ACC
+1.96 · 10−2
+m/s2
+4.50 · 10−1
+m/s2
+8.50 · 10−1
+m/s2
+Table 16
+Inﬂuence of accelerometers quality on aggregated body attitude NSE (100 runs).
+Scenario
+Baseline
+ACC Better
+ACC Worse
+ACC Worst
+∥ˆrB∥[◦]
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+#1
+mean
+0.152
+0.078
+0.52
+0.150
+0.078
+0.52
+0.157
+0.080
+0.53
+0.162
+0.081
+0.53
+std
+0.072
+0.021
+0.15
+0.069
+0.020
+0.15
+0.073
+0.021
+0.15
+0.074
+0.021
+0.15
+max
+0.448
+0.168
+1.32
+0.447
+0.168
+1.32
+0.452
+0.170
+1.31
+0.462
+0.172
+1.31
+#2
+mean
+0.118
+0.074
+0.38
+0.116
+0.073
+0.37
+0.121
+0.076
+0.38
+0.126
+0.078
+0.39
+std
+0.023
+0.015
+0.07
+0.021
+0.015
+0.07
+0.026
+0.016
+0.07
+0.031
+0.017
+0.08
+max
+0.206
+0.124
+0.63
+0.179
+0.131
+0.65
+0.254
+0.125
+0.63
+0.307
+0.138
+0.72
+Fig. 23. Inﬂuence of accelerometers quality on body attitude NSE for scenario #1 (100 runs).
+performance grade than those of the baseline described in [3]
+and Table 1. Table 15 shows the performances of the conﬁgura-
+tion named “ACC Better”, which correspond to the high perfor-
+mance MEMS accelerometers inside the Sensonor STIM300 IMU
+[83]. It also shows the performance parameters of two ﬁctitious 
+accelerometers that perform worse than the baseline. These con-
+ﬁgurations are named “ACC Worse” and “ACC Worst”, and their 
+objective is to provide a wide range of accelerometer performances 
+with which to evaluate the sensitivity of the navigation algorithms 
+to the accelerometer grade. Additionally, they represent a safety 
+measure in case of errors in the modeling of the baseline ac-
+celerometers performances.
+Table 16, together with Figs. 23 and 24,26 show the aggregated 
+body attitude NSE after one hundred runs of both scenarios with 
+each of the three conﬁgurations described above, in addition to the 
+baseline. Although technically present, the dependency of the body 
+attitude estimation accuracy with the grade of the accelerometers 
+is so small than it can be considered nonexistent for all practical 
+purposes.
+The reason for this behavior lies on the low accuracy of the 
+(17) attitude ﬁlter observations in GNSS-Denied conditions, which 
+do not allow the navigation ﬁlter to track the full accelerometer er-
+ror EACC. Discarding the air velocity and turbulence time derivatives 
+viewed in the body frame (˙vB
+TAS, ˙vB
+TURB) as well as the wind time 
+derivative viewed in NED (˙vN
+WIND) is what provides the attitude ﬁl-
+ter with relatively unbiased, albeit noisier, observations that enable 
+it to track the body attitude without drift for long periods of time. 
+Although not considered in the observation equation, these time 
+26 Note that the baseline columns of Table 16 coincide with the right hand side of 
+Table 4, and the blue lines of Figs. 23 and 24 coincide with those of Figs. 4 and 5, 
+respectively.
+derivatives exist and are included in the measurements. In particu-
+lar, the wind turbulence accelerations considered in both scenarios 
+are much higher than the effect of the accelerometers bias drift 
+and system noise in all four accelerometer conﬁgurations. The ac-
+celerometer grade hence would only play a meaningful role in the 
+body attitude estimation results if ﬂying in very calm conditions 
+with barely any turbulence or if their noise and drift levels were 
+so high that they became comparable to the turbulence levels.
+In this sense the neglected time derivatives within the navi-
+gation ﬁlter speciﬁc force observation equation (17), of which the 
+wind turbulence acceleration is by far the most signiﬁcant, can be 
+considered as additional sources of error within the accelerometers 
+with which to measure the speciﬁc force. If their oscillations are 
+bigger than the accelerometers intrinsic errors, as is the case, then 
+the effect of the later on the measurements is barely noticeable.
+As explained in previous sections, the estimation of the ground 
+velocity and horizontal position does not depend on the body at-
+titude as long as the later is bounded and drift-less, which is the 
+case in this analysis. No results are shown for the estimation of the 
+ground velocity or horizontal position in either scenario because 
+they are virtually identical for each of the four conﬁgurations. Note 
+that this is the case even with the signiﬁcant differences of qual-
+ity among the accelerometers considered (approximately an order 
+of magnitude in most performance parameters between “ACC Bet-
+ter” and “ACC Worst”), and taking into account the differences in 
+mission, weather, and wind between the two scenarios. The inﬂu-
+ence of the accelerometer grade on the vertical position estimation 
+accuracy is also negligible.
+Inﬂuence of magnetometer quality
+This section analyzes the sensitivity on the GNSS-Denied navi-
+gation results of employing magnetometers of different quality or 
+22
+[p.23]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Fig. 24. Inﬂuence of accelerometers quality on body attitude NSE for scenario #2 (100 runs).
+Table 17
+Performances of “MAG Better” and “MAG Worse” magnetometers.
+MAG Better
+MAG Worse
+Error Source
+Variable
+Value
+Unit
+Value
+Unit
+System Noise
+σv,MAG
+3.00 · 100
+nT · s0.5
+1.00 · 101
+nT · s0.5
+Scale Factor & Soft Iron
+sMAG
+5.00 · 10−4
+-
+1.25 · 10−3
+-
+Cross Coupling & Soft Iron
+mMAG
+7.00 · 10−4
+-
+1.50 · 10−3
+-
+Hard Iron
+BHI,MAG
+1.25 · 102
+nT
+3.50 · 102
+nT
+Bias Offset
+B0,MAG
+3.00 · 102
+nT
+7.50 · 102
+nT
+Table 18
+Inﬂuence of magnetometers quality on aggregated body attitude NSE (100 runs).
+Scenario
+Baseline
+MAG Better
+MAG Worse
+∥ˆrB∥[◦]
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+#1
+mean
+0.152
+0.078
+0.521
+0.134
+0.075
+0.499
+0.203
+0.087
+0.579
+std
+0.072
+0.021
+0.151
+0.060
+0.019
+0.141
+0.120
+0.030
+0.191
+max
+0.448
+0.168
+1.321
+0.452
+0.170
+1.274
+0.855
+0.263
+1.453
+#2
+mean
+0.118
+0.074
+0.376
+0.112
+0.072
+0.367
+0.138
+0.082
+0.411
+std
+0.023
+0.015
+0.069
+0.022
+0.014
+0.069
+0.029
+0.020
+0.078
+max
+0.206
+0.124
+0.632
+0.198
+0.122
+0.617
+0.227
+0.138
+0.676
+performance grade than those of the baseline described in [3] and 
+Table 2. Table 17 shows the performances of two ﬁctitious mag-
+netometers with performances better (“MAG Better”) and worse 
+(“MAG Worse”) than those of the baseline. As in previous sections, 
+the objective is to obtain a suﬃciently wide range of magnetome-
+ter performance grades with which to evaluate the sensitivity of 
+the navigation results when executing both scenarios.
+Table 18, together with Figs. 25 and 26,27 show the body at-
+titude NSE for both scenarios in the same format as in previous 
+sections for each of the two conﬁgurations described above, in 
+addition to the baseline. There exists a clear correlation between 
+the magnitude of the attitude estimation errors and the quality or 
+grade of the magnetometers, but the proposed attitude ﬁlter al-
+gorithms manage in all three cases to obtain estimations that are 
+bounded and contain no drift.
+Comparing these results with those obtained above when vary-
+ing the grade of the gyroscopes, they are quite similar, in the sense 
+that there is relatively little potential for improvement but signif-
+icant downside to using magnetometers of inferior grade. This is 
+attributed to the limitations of GNSS-Denied navigation in tur-
+bulent conditions, and in particular to the multiple inaccuracies 
+present in the ﬁlter speciﬁc force observation equation (17) that 
+prevent the tracking of the full accelerometer error EACC in GNSS-
+Denied conditions.
+As in the gyroscopes case, the differences in body attitude esti-
+mation accuracy are too small to have any inﬂuence on the accu-
+racy of the ground velocity and horizontal positions. Although the 
+27 Note that the baseline columns of Table 18 coincide with the right hand side of 
+Table 4, and the blue lines of Figs. 25 and 26 coincide with those of Figs. 4 and 5, 
+respectively.
+results are not shown, they are virtually the same for all three con-
+ﬁgurations in both scenarios. The inﬂuence of the magnetometer 
+grade on the vertical position estimation accuracy is also negligi-
+ble.
+Inﬂuence of air velocity sensors quality
+This section analyzes the inﬂuence on the navigation results 
+of employing a Pitot tube and air vanes of different quality to 
+those used in the baseline and described in [3] and Table 3. To do 
+so, this analysis employs two different ﬁctitious settings, named 
+“TAS-AOA-AOS Better” and “TAS-AOA-AOS Worse”, whose system 
+noise and bias offsets are listed in Table 19. The former conﬁgura-
+tion represents the performances of higher SWaP or better quality 
+sensors, while the later may be more realistic for smaller platforms 
+in which a lower SWaP system is required.
+As previously explained, the air data ﬁlter is capable of mostly 
+eliminating the system noise when estimating the components of 
+the air velocity vector, but can not remove the bias offsets, which 
+are incorporated into the estimations. These are biased on a tra-
+jectory basis, zero mean when aggregated, and always bounded by 
+the sensor quality. Table 20 validates these conclusions and shows 
+progressively better results as the quality of the TAS, AOA, and
+AOS sensors improves. Only the scenario #1 results are shown, as 
+the behavior of the air data ﬁlter is similar on both scenarios.
+The inﬂuence of the air velocity sensors quality on the body at-
+titude for both scenarios is summarized in Table 21, together with 
+Figs. 27 and 28.28 There is a clear correlation between the sensors 
+28 Note that the baseline columns of Table 21 coincide with the right hand side of 
+Table 4, and the blue lines of Figs. 27 and 28 coincide with those of Figs. 4 and 5, 
+respectively.
+23
+[p.24]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Fig. 25. Inﬂuence of magnetometers quality on body attitude NSE for scenario #1 (100 runs).
+Fig. 26. Inﬂuence of magnetometers quality on body attitude NSE for scenario #2 (100 runs).
+Table 19
+Performances of “TAS-AOA-AOS Better” and “TAS-AOA-AOS Worse” air data systems.
+TAS-AOA-AOS Better
+TAS-AOA-AOS Worse
+Error Source
+Variable
+Value
+Unit
+Value
+Unit
+Airspeed System Noise
+σvTAS
+1.50 · 10−1
+m/s
+6.66 · 10−1
+m/s
+Airspeed Bias Offset
+B0TAS
+1.50 · 10−1
+m/s
+6.66 · 10−1
+m/s
+Angle of Attack System Noise
+σvAOA
+1.00 · 10−1
+◦
+6.66 · 10−1
+◦
+Angle of Attack Bias Offset
+B0AOA
+1.00 · 10−1
+◦
+6.66 · 10−1
+◦
+Angle of Sideslip System Noise
+σvAOS
+1.00 · 10−1
+◦
+6.66 · 10−1
+◦
+Angle of Sideslip Bias Offset
+B0AOS
+1.00 · 10−1
+◦
+6.66 · 10−1
+◦
+Table 20
+Inﬂuence of air velocity sensor quality on aggregated air velocity vector NSE for scenario #1 (100 runs).
+Scenario #1
+Baseline
+TAS-AOA-AOS Better
+TAS-AOA-AOS Worse
+ˆvTAS −vTAS
+
+10−1 · m/s
+
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+mean
+-0.30
+0.78
+5.78
+-0.14
+0.53
+3.41
+-0.45
+0.96
+7.79
+std
+3.01
+0.01
+1.78
+1.36
+0.00
+0.80
+4.52
+0.01
+2.68
+max
+-7.74
+0.80
+-11.07
+-3.49
+0.55
+-5.87
+-11.63
+1.00
+-16.18
+ˆα −α
+
+10−1·◦
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+mean
++0.32
+0.94
+6.83
++0.14
+0.66
+4.18
++0.48
+1.17
+9.13
+std
+3.25
+0.04
+2.02
+1.46
+0.04
+0.90
+4.88
+0.03
+2.99
+max
+-8.39
+1.04
++12.44
+-3.78
+0.76
++7.17
+-12.59
+1.26
++17.74
+ˆβ −β
+
+10−1·◦
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+mean
+-0.25
+1.75
+10.47
+-0.11
+1.08
+6.02
+-0.38
+2.23
+13.95
+std
+3.35
+0.24
+2.07
+1.51
+0.07
+0.91
+5.03
+0.67
+4.27
+max
++8.66
+3.02
++15.92
++3.90
+1.37
++8.50
++13.00
+6.85
++39.49
+24
+[p.25]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Table 21
+Inﬂuence of air speed sensor quality on aggregated body attitude NSE (100 runs).
+Scenario
+Baseline
+TAS-AOA-AOS Better
+TAS-AOA-AOS Worse
+∥ˆrB∥[◦]
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+#1
+mean
+0.152
+0.078
+0.521
+0.144
+0.076
+0.505
+0.158
+0.080
+0.532
+std
+0.072
+0.021
+0.151
+0.056
+0.017
+0.135
+0.084
+0.026
+0.165
+max
+0.448
+0.168
+1.321
+0.364
+0.138
+1.319
+0.504
+0.205
+1.296
+#2
+mean
+0.118
+0.074
+0.376
+0.113
+0.070
+0.365
+0.124
+0.079
+0.396
+std
+0.023
+0.015
+0.069
+0.021
+0.014
+0.066
+0.027
+0.018
+0.080
+max
+0.206
+0.124
+0.632
+0.188
+0.110
+0.562
+0.224
+0.135
+0.681
+Fig. 27. Inﬂuence of air speed sensor quality on body attitude NSE for scenario #1 (100 runs).
+Fig. 28. Inﬂuence of air speed sensor quality on body attitude NSE for scenario #2 (100 runs).
+quality and the aggregated body attitude NSE, which is caused by 
+the accuracy of the attitude ﬁlter observations, in particular those 
+of pn (14).
+The inﬂuence of the Pitot tube and air vanes quality on the 
+ground velocity estimation is shown in Table 22.29 It is small for 
+scenario #1, in which the effects of the air velocity vector are 
+masked by the much bigger inﬂuence of the wind change from 
+the time the GNSS signals are lost, but signiﬁcant for scenario #2, 
+in which the wind remains constant throughout the trajectory. In 
+any case, this behavior is different to that obtained when vary-
+ing the quality of gyroscopes, accelerometers, and magnetometers 
+in previous sections, and the reason lies in the use of ˆvN
+TAS for the 
+estimation of the ground velocity ˆvN in the position ﬁlter. The in-
+ﬂuence of both ˆvB
+TAS and ˆqNB, which together make up ˆvN
+TAS, is rather 
+small because of the back and forth compensation performed by 
+the position ﬁlter when it loses the GNSS signals, but small errors 
+in ˆvB
+TAS have a bigger inﬂuence in ˆvN
+TAS than those of ˆqNB, specially 
+in the case of pitch and roll where the angles are very small. For 
+this reason, improvements on the body attitude estimation ˆqNB by 
+themselves do not imply any noticeable change in the estimation 
+of the ground velocity, as shown in previous sections, while when 
+combined with improvements in the air velocity vector estimation 
+ˆvB
+TAS, improvements in the aggregated ground velocity NSE become 
+noticeable.
+29 Note that the baseline columns of Table 22 coincide with those of Table 6.
+Table 23, together with Figs. 29 and 3030 show the inﬂuence 
+of the quality of the air velocity sensors on the ﬁnal aggregated 
+horizontal position NSE. The slight changes in ground velocity es-
+timation accuracy are integrated and translate into small changes 
+in the accuracy of the horizontal position estimation, although 
+they are small when compared to the inﬂuence of the wind speed 
+changes since the time the GNSS signals are lost. Although no data 
+is shown, the inﬂuence of the air velocity sensors on the vertical 
+position estimation accuracy is negligible.
+Inﬂuence of atmospheric sensors quality
+This section analyzes the inﬂuence on the navigation results 
+of employing atmospheric sensors (barometer and thermometer) 
+of different quality to those used in the baseline conﬁguration 
+and described in [3] and Table 3. As neither the body attitude 
+nor the horizontal position estimation errors depend on the qual-
+ity of these sensors, this analysis employs two different ﬁctitious 
+settings, named “OSP-OAT Worse” and “OSP-OAT Worst”, whose 
+system noise and bias offsets are listed in Table 24, with the ob-
+jective of determining if the lack of inﬂuence is also the case with 
+sensors signiﬁcantly worse than those employed in the baseline 
+conﬁguration.
+30 Note that the baseline columns of Table 23 can also be found in Table 7, while 
+the blue lines of Figs. 29 and 30 are the same as those of Figs. 10 and 11, respec-
+tively.
+25
+[p.26]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Table 22
+Inﬂuence of air speed sensor quality on ﬁnal aggregated ground speed NSE (100 runs).
+Scenario
+Baseline
+TAS-AOA-AOS Better
+TAS-AOA-AOS Worse
+ˆvN
+END [m/s]
+ˆvN
+1 −vN
+1
+ˆvN
+2 −vN
+2
+ˆvN
+1 −vN
+1
+ˆvN
+2 −vN
+2
+ˆvN
+1 −vN
+1
+ˆvN
+2 −vN
+2
+#1
+mean
++0.325
++0.465
++0.335
++0.477
++0.311
++0.450
+std
+2.588
+2.204
+2.582
+2.163
+2.601
+2.253
+max
++9.321
++7.392
++9.132
++7.568
++9.448
++7.267
+#2
+mean
+-0.083
+-0.139
+-0.047
+-0.102
+-0.114
+-0.165
+std
+0.652
+0.629
+0.570
+0.575
+0.771
+0.721
+max
+-1.916
+-1.792
+-1.497
++1.404
++2.357
+-2.163
+Table 23
+Inﬂuence of air speed sensor quality on ﬁnal aggregated horizontal position NSE (100 runs).
+Scenario
+Baseline
+TAS-AOA-AOS Better
+TAS-AOA-AOS Worse
+Distance [m]
+ˆxHOR,END [m, %]
+ˆxHOR,END [m, %]
+ˆxHOR,END [m, %]
+#1
+mean
+108622.6
+7427.7
+7.18
+7291.2
+7.05
+7667.0
+7.41
+std
+19935.3
+4987.8
+5.73
+4913.1
+5.65
+5030.5
+5.70
+max
+172842.3
+25287.9
+32.38
+25291.8
+31.30
+25320.0
+33.39
+#2
+mean
+14198.4
+215.6
+1.52
+198.0
+1.40
+245.6
+1.74
+std
+1176.1
+119.4
+0.86
+105.8
+0.75
+137.0
+1.00
+max
+18253.0
+586.3
+4.38
+513.2
+3.65
+672.4
+5.33
+Fig. 29. Inﬂuence of air speed sensor quality on horizontal position NSE for scenario #1 (100 runs).
+Fig. 30. Inﬂuence of air speed sensor quality on horizontal position NSE for scenario #2 (100 runs).
+Table 24
+Performances of “OSP-OAT Worse” and “OSP-OAT Worst” atmospheric sensors.
+OSP-OAT Worse
+OSP-OAT Worst
+Error Source
+Variable
+Value
+Unit
+Value
+Unit
+Pressure System Noise
+σvOSP
+1.50 · 10+2
+Pa
+3.00 · 10+2
+Pa
+Pressure Bias Offset
+B0OSP
+1.50 · 10+2
+Pa
+3.00 · 10+2
+Pa
+Temperature System Noise
+σvOAT
+1.50 · 10−1
+K
+5.00 · 10−1
+K
+Temperature Bias Offset
+B0OAT
+1.50 · 10−1
+K
+5.00 · 10−1
+K
+26
+[p.27]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+Table 25
+Inﬂuence of atmospheric sensors quality on aggregated T, HP, and T NSE for scenario #1 (100 runs).
+Aggregated Errors
+Baseline
+OSP-OAT Worse
+OSP-OAT Worst
+ˆT −T
+
+10−1 · K
+
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+mean
+-0.06
+0.16
+1.14
+-0.17
+0.27
+2.48
+-0.58
+0.50
+6.30
+std
+0.51
+0.00
+0.30
+1.52
+0.00
+0.90
+5.07
+0.00
+3.00
+max
+-1.52
+0.16
+-2.21
+-4.56
+0.28
+-5.70
+-15.20
+0.51
+-17.26
+ˆHP −HP [m]
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+mean
++0.97
+0.93
+12.92
++1.45
+1.29
+18.91
++2.88
+2.26
+36.33
+std
+11.26
+0.05
+6.73
+16.89
+0.07
+10.13
+33.77
+0.16
+20.27
+max
++29.60
+1.11
++33.59
++44.37
+1.57
++50.00
++88.54
+2.86
++98.82
+ˆT −T
+
+10−1 · K
+
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+mean
++0.01
+0.17
+1.52
+-0.08
+0.29
+2.85
+-0.39
+0.52
+6.82
+std
+0.92
+0.00
+0.56
+1.94
+0.00
+1.16
+5.66
+0.01
+3.38
+max
+-2.59
+0.17
+-3.34
+-6.16
+0.29
+-7.35
+-18.40
+0.54
+-20.61
+Table 26
+Inﬂuence of atmospheric sensors quality on aggregated body attitude NSE for scenario #1 (100 runs).
+Scenario
+Baseline
+OSP-OAT Worse
+OSP-OAT Worst
+∥ˆrB∥[◦]
+mean
+std
+max
+mean
+std
+max
+mean
+std
+max
+#1
+mean
+0.152
+0.078
+0.521
+0.153
+0.079
+0.523
+0.156
+0.080
+0.530
+std
+0.072
+0.021
+0.151
+0.072
+0.021
+0.151
+0.072
+0.021
+0.150
+max
+0.448
+0.168
+1.321
+0.448
+0.169
+1.313
+0.450
+0.170
+1.295
+Table 27
+Inﬂuence of atmospheric sensors quality on aggregated vertical position
+NSE for scenario #1 (100 runs).
+ˆhEND [m]
+Baseline
+OSP-OAT Worse
+OSP-OAT Worst
+#1
+mean
+-3.89
+-3.87
+-4.01
+std
+26.03
+26.01
+26.07
+max
+-70.49
+-69.75
+-68.00
+As explained above, the air data ﬁlter is capable of mostly elim-
+inating the system noise when estimating the pressure altitude 
+and the atmospheric temperature, but can not remove the bias 
+offsets, which are incorporated into the estimations. These are bi-
+ased on a trajectory basis, zero mean when aggregated, and always 
+bounded by the sensor quality. Table 25 validates these conclusions 
+for scenario #1 and shows progressively worse results as the qual-
+ity of the OSP and OAT sensors diminishes. A similar conclusion 
+can be applied to the temperature offset estimation ˆT, which is 
+just a combination of the previous two (9) and hence shows the 
+same dependencies. Only the scenario #1 results are shown, as the 
+behavior of the air data ﬁlter is similar on both scenarios.
+The body attitude estimation is for all practical purposes in-
+dependent of the atmospheric sensors quality, as shown in Ta-
+ble 26.31 Although no data is shown, the inﬂuence on the ground 
+velocity and horizontal position estimation accuracy is negligible.
+The previous analysis indicates that the vertical position esti-
+mation error depends on two factors: the ionospheric errors and 
+the change in pressure offset p from the time the GNSS signals 
+are lost. The results obtained with different atmospheric sensors, 
+shown in Table 27, validate these conclusions as they do not show 
+any inﬂuence on the accuracy of the vertical position estimations.
+9. Summary of results
+This article proposes an INS that takes advantage of sen-
+sors such as magnetometers, Pitot tube, and air vanes, already 
+present in autonomous ﬁxed wing low SWaP aircraft, to improve 
+their GNSS-Denied navigation capabilities, facilitating the fusion 
+between the inertial ﬁlter and visual odometry algorithms. The 
+results obtained when applying the proposed algorithms to high 
+31 Note that the baseline columns of Table 26 coincide with the right hand side of 
+Table 4.
+ﬁdelity Monte Carlo simulations of two scenarios representative of 
+the challenges of GNSS-Denied navigation indicate the following:
+• The body attitude estimation shows no drift with time. It is 
+lightly biased for each trajectory (for each Euler angle as well 
+as for the total attitude error); when aggregated for multiple 
+executions, the estimation is unbiased (zero mean) for each 
+Euler angle and biased for the total error. The aggregated er-
+rors are highly repeatable and can be considered bounded. 
+There is no need for maneuvers, and the existing ones do not 
+introduce error spikes. The aircraft can hence remain aloft in
+GNSS-Denied conditions for as long as it has fuel.
+• The vertical position estimation shows an error that depends 
+on two factors: the ionospheric effects (which also apply when
+GNSS signals are available) and the change in atmospheric 
+pressure offset p from its value at the time the GNSS signals 
+are lost. Both factors are random and hence the ﬁnal error is 
+unbiased (zero mean) when aggregated; both factors are also 
+bounded by atmospheric physics, and hence so is the estima-
+tion error. The estimation shows no drift with time and the 
+magnitude of the bounded error indicates it is valid for all 
+navigation purposes except landing.
+• The ground velocity estimation shows an error that mostly de-
+pends on the wind change from its value at the time the GNSS
+signals are lost. Air velocity and body attitude estimation ac-
+curacy also play a minor role. The three factors are random 
+and hence the ﬁnal error is unbiased (zero mean) when ag-
+gregated. The wind change is bounded by atmospheric physics, 
+while the air velocity and body attitude errors are bounded by 
+sensor quality; the estimation error hence is also bounded. The 
+estimation shows no drift with time.
+• The horizontal position estimation exhibits a drift with time 
+that depends exclusively on the ground velocity estimation er-
+ror; when this error is constant, the drift is linear with time. 
+The drift results in an unbounded error that is not valid for 
+navigation purposes due to excessive collision risk.
+When comparing the GNSS-Denied navigation results obtained 
+with the proposed ﬁlter against those resulting from more tradi-
+tional approaches to inertial navigation designed to rely on velocity 
+and position observations provided by the GNSS receiver that sud-
+denly are not present, there are signiﬁcant improvements in the 
+estimation of body attitude (specially during maneuvers), vertical 
+27
+[p.28]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+position (where drift with time is replaced by a bounded error), 
+and horizontal position (where the pace of drift or error growth 
+with time is drastically reduced). The following observations can 
+be made:
+• The proposed approach of freezing the wind speed estimation
+ˆvN
+WIND at its value when the GNSS signals are lost is the pre-
+ferred choice for reducing horizontal position errors as it relies 
+on a single integration. Alternative approaches using a double 
+integration may be superior for the ﬁrst few minutes of GNSS-
+Denied conditions, but overall result in a much faster growth 
+of the horizontal position error with time.
+• The proposed approach of employing the pressure altitude es-
+timation and freezing the atmospheric pressure offset estima-
+tion ˆp at its value when the GNSS signals are lost is the 
+preferred choice for reducing vertical position errors as it does 
+not rely on any integrations. Alternative approaches require at 
+least one integration and result in unbounded estimation er-
+rors that grow with time.
+• The proposed approach of discarding the air velocity and tur-
+bulence time derivatives viewed in the body frame (˙vB
+TAS = 0, 
+˙vB
+TURB = 0) as well as the wind ﬁeld time derivative viewed in
+NED (˙vN
+WIND = 0) is the preferred choice for reducing body atti-
+tude estimation errors, specially during maneuvers. Alternative 
+approaches are more sensitive to the lack of absolute velocity 
+observations in GNSS-Denied conditions and result in signiﬁ-
+cant attitude estimation errors when maneuvering.
+A sensitivity analysis of the inﬂuence of the GNSS-Denied nav-
+igation results with respect to the quality or grade of the onboard 
+sensors proves that the above results are generic and not speciﬁc 
+to certain sensor performance parameters. The main conclusions 
+are the following:
+• The vertical position estimation error is independent of the 
+quality of all sensors and depends exclusively on ionospheric 
+effects and the pressure offset change since the time the GNSS
+signals are lost.
+• The horizontal position estimation error shows a slight de-
+pendency on the quality of the Pitot tube and air vanes, but 
+not that of any other sensor. It depends mostly on the wind 
+change since the time the GNSS signals are lost.
+• The body attitude estimation error depends on the quality 
+of gyroscopes, magnetometers, Pitot tube, and air vanes, but 
+not that of accelerometers and air data sensors. Taking the 
+baseline as reference, there is little potential for improvement, 
+but a clear correlation between lower sensor grade and higher 
+errors. Its bounded nature however is independent of sensor 
+grade. Note that body attitude estimation accuracy is key for 
+the fusion between inertial and visual odometry algorithms.
+10. Conclusions
+The proposed inertial navigation ﬁlter, speciﬁcally designed for 
+the challenges faced by autonomous ﬁxed wing aircraft that en-
+counter GNSS-Denied conditions, possesses signiﬁcant advantages 
+that increase the possibilities of the platform successfully reaching 
+the vicinity of a recovery location from where it can be landed by 
+remote control. Additionally, it facilitates the fusion between iner-
+tial and visual navigation techniques to further improve the aircraft
+GNSS-Denied navigation capabilities. The ﬁlter obtains bounded 
+estimations for attitude, vertical position, and horizontal velocity, 
+whose integration results in a horizontal position estimation drift. 
+High ﬁdelity Monte Carlo simulations highlight the beneﬁts of the 
+proposed ﬁlter when compared with inertial solutions that sud-
+denly can not employ the GNSS signals on which they rely. The 
+quantitative performance of the proposed ﬁlter shows a slight de-
+pendence on the quality or grade of the onboard sensors, but it is 
+qualitatively valid for a wide range of sensor grades.
+Declaration of competing interest
+The authors declare that they have no known competing ﬁnan-
+cial interests or personal relationships that could have appeared to 
+inﬂuence the work reported in this paper.
+Appendix A. Time derivative of the aircraft velocity
+This appendix derives expressions for the time derivative of the 
+aircraft ground velocity (57), (58) that form the basis for the es-
+tablishment of the attitude ﬁlter equations in section 5. Although 
+the resulting equations can be found in various aircraft navigation 
+text books [7,84,85] and articles [86], specifying the origin of the 
+different terms facilitates the understanding of the simpliﬁcations 
+performed in section 5 as well as the different choices discussed 
+in section 7.
+Considering an inertial frame FI centered at the Earth center of 
+mass with axes that do not rotate with respect to any star other 
+than the Sun, the Earth Centered Earth Fixed (ECEF) frame FE, and 
+the body frame FB centered at the aircraft center of mass, the rela-
+tive displacements among its origins can be directly established32:
+xI
+IB = xI
+IE + xI
+EB = xI
+EB = RIE xE
+EB
+(46)
+The linear velocity can be obtained by time derivating and em-
+ploying the relationship between the rotation matrix and its time 
+derivative [79,81]:
+˙xI
+IB = ˙RIE xE
+EB + RIE ˙xE
+EB = RIE ωE
+IE xE
+EB + RIE ˙xE
+EB
+−→vI
+IB = RIE ωE
+IE xE
+EB + RIE vE
+EB
+(47)
+The process is repeated to obtain the linear acceleration33:
+˙vI
+IB = ˙RIE ωE
+IE xE
+EB + RIE ˙ω
+E
+IE xE
+EB + RIE ωE
+IE ˙xE
+EB + ˙RIE vE
+EB + RIE ˙vE
+EB
+(48)
+aI
+IB = RIE ωE
+IE ωE
+IE xE
+EB + RIE ωE
+IE vE
+EB + RIE ωE
+IE vE
+EB + RIE aE
+EB
+= aI
+EB + ωI
+IE ωI
+IE xI
+EB + 2ωI
+IE vI
+EB
+(49)
+The ﬁrst term at the right hand side of (49) is the linear ac-
+celeration aI
+EB, which is the time derivative of the aircraft absolute 
+velocity vEB viewed in the inertial frame. Making use of relation-
+ship between the rotation matrix and its time derivative [79,81], 
+it can be converted into a function of the aircraft and motion an-
+gular velocities (ωEB = ωNB + ωEN) and the aircraft absolute velocity 
+v = vEB:
+aI
+EB = RIE aE
+EB = RIE ˙vE
+EB = RIE
+d
+
+REB vB
+EB
+	
+dt
+= RIE
+˙REB vB
+EB + REB ˙vB
+EB
+	
+= RIB
+ωB
+EB vB
+EB + ˙vB
+EB
+	
+−→aB
+EB = ωB
+EB vB
+EB + ˙vB
+EB = ωB
+EB vB + ˙vB
+(50)
+Noting that vEB = vEN = v, the same process can be repeated re-
+placing the FB body frame by the NED frame (FN):
+aI
+EB = RIE aE
+EB = RIE ˙vE
+EB = RIE ˙vE
+EN
+= RIE
+d
+
+REN vN
+EN
+	
+dt
+= RIE
+˙REN vN
+EN + REN ˙vN
+EN
+	
+= RIN
+ωN
+EN vN
+EN + ˙vN
+EN
+	
+−→aN
+EB = ωN
+EN vN
+EN + ˙vN
+EN = ωN
+EN vN + ˙vN
+(51)
+32 xI
+IE = 0 as the origins of FI and FE coincide.
+33 αIE = ˙ωIE = 0 as the Earth rotation velocity is constant.
+28
+[p.29]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+The second term of (49), called the transport acceleration atrs, 
+is in fact the centripetal acceleration caused by the Earth rotation 
+around its symmetry axis, this is, it is the opposite of the centrifu-
+gal acceleration ac. Its NED form aN
+trs can be directly obtained from 
+the Earth angular velocity and the aircraft coordinates, where ϕ is 
+the latitude, h the altitude over the WGS84 ellipsoid, and N is the 
+radius of curvature of the prime vertical:
+aN
+trs = −aN
+c = ωN
+IE ωN
+IE xN
+EB
+=
+
+ω2
+E (N + h) sinϕ cosϕ, 0, ω2
+E (N + h) cos2 ϕ
+
+T
+(52)
+The third term of (49) is called the Coriolis acceleration acor. Its
+NED form aN
+cor can also be obtained from the Earth angular velocity 
+ωIE and the aircraft absolute velocity vEB = v:
+aN
+cor = 2ωN
+IE vN
+EB
+=
+
+2ωE vN
+2 sinϕ, 2ωE
+
+−vN
+1 sinϕ −vN
+3 cosϕ
+	
+, 2ωE vN
+2 cosϕ
+T
+(53)
+The application of Newton’s 2nd law to the motion of the air-
+craft represented by its body frame results in
+
+FI = d(m vIB)I
+dt
+= m ˙vI
+IB = m aI
+IB
+(54)
+where the mass variation with time is considered slow enough as 
+to be quasi stationary. The introduction of the previous terms into 
+(54) while converting to FB or FN results in (55) and (56), where 
+FAER and FPRO are the aircraft aerodynamic and propulsive forces, 
+while g represents the gravitational acceleration:
+
+FB = RBI
+
+FI = FB
+AER + FB
+PRO + m q∗
+NB ⊗gN ⊗qNB
+= m
+ωB
+EB vB + ˙vB + q∗
+NB ⊗aN
+trs ⊗qNB + q∗
+NB ⊗aN
+cor ⊗qNB
+	
+(55)
+
+FN = RNI
+
+FI = qNB ⊗
+
+FB
+AER + FB
+PRO
+	
+⊗q∗
+NB + m gN
+= m
+ωN
+EN vN + ˙vN + aN
+trs + aN
+cor
+	
+(56)
+As the gravity acceleration combines the gravitational and cen-
+trifugal accelerations (gc = g + ac = g −atrs) and vEB = vEN = v, the 
+ﬁnal expressions for the time derivative of the aircraft linear ve-
+locity are the following:
+˙vB = FB
+AER + FB
+PRO
+m
+−ωB
+EB vB + q∗
+NB ⊗
+
+gN
+c −aN
+cor
+	
+⊗qNB
+(57)
+˙vN = qNB ⊗FB
+AER + FB
+PRO
+m
+⊗q∗
+NB −ωN
+EN vN + gN
+c −aN
+cor
+(58)
+References
+[1] E. Gallo, High ﬁdelity ﬂight simulation for an autonomous low SWaP 
+ﬁxed wing UAV in GNSS-denied conditions, https://github .com /edugallogithub /
+gnssdenied _ﬂight _simulation, 2020, C++ open source code.
+[2] E. Gallo, Stochastic high ﬁdelity simulation and scenarios for testing of ﬁxed 
+wing autonomous GNSS-Denied navigation algorithms, arXiv:2102 .00883, 2021.
+[3] E. Gallo, Customizable stochastic high ﬁdelity model of the sensors and camera 
+onboard a low SWaP ﬁxed wing autonomous aircraft, arXiv:2102 .06492, 2021.
+[4] M. Hassanalian, A. Abdelkeﬁ, Classiﬁcations, applications, and design challenges 
+of drones: a review, Prog. Aerosp. Sci. (2017).
+[5] S. Bijjahalli, R. Sabatini, A. Gardi, Advances in intelligent and autonomous nav-
+igation systems for small UAS, Prog. Aerosp. Sci. (2020).
+[6] J.A. Farrell, Aided Navigation, GPS with High Rate Sensors, Electronic Engineer-
+ing Series, McGraw-Hill, 2008.
+[7] P.D. Groves, Principles of GNSS, Inertial, and Multisensor Integrated Navigation 
+Systems, GNSS Technology and Application Series, Artech House, 2008.
+[8] A.B. Chatﬁeld, Fundamentals of High Accuracy Inertial Navigation, Progress in 
+Astronautics and Aeronautics, vol. 174, American Institute of Aeronautics and 
+Astronautics, 1997.
+[9] M. Elbanhawi, A. Mohamed, R. Clothier, J. Palmer, M. Simic, S. Watkins, En-
+abling technologies for autonomous MAV operations, Prog. Aerosp. Sci. (2017).
+[10] R. Sabatini, T. Moore, S. Ramasamy, Global navigation satellite systems per-
+formance analysis and augmentation strategies in aviation, Prog. Aerosp. Sci. 
+(2017).
+[11] S. Thombre, M.Z.H. Bhuiyan, P. Eliardsson, B. Gabrielsson, M. Pattison, M. 
+Dumville, D. Fryganiotis, S. Hill, V. Manikundalam, M. Poloskey, S. Lee, L. Ruot-
+salainen, S. Soderholm, H. Kuusniemi, GNSS threat monitoring and reporting: 
+past, present, and a proposed future, J. Navig. (2018).
+[12] G. Zhang, L.-T. Hsu, Intelligent GNSS/INS integrated navigation system for a 
+commercial UAV ﬂight control system, Aerosp. Sci. Technol. (2018).
+[13] C. Tippitt, A. Schultz, W. Procino, Vehicle Navigation: Autonomy Through GPS-
+Enabled and GPS-Denied Environments, state of the art report DSIAC-2020-
+1328, Defense Systems Information Analysis Center, December 2020.
+[14] X. Ma, S.M. Djouadi, P. Crilly, S. Smith, Navigation strategy with the aid of the 
+theater positioning system, Intell. Syst. Control Autom. (2013).
+[15] X. Ma, S.M. Djouadi, S. Sahyoun, P. Crilly, Navigation in GPS-Denied environ-
+ments, in: 14thInternational Conference on Information Fusion, 2011.
+[16] S.F. Smith, M. Bobrek, C. Jin, M.R. Moore, Design of an agile radionavigation 
+system using SDR techniques, in: Proceedings of IEEE Milcom, Atlantic City, 
+2005.
+[17] C. Kim, H. So, T. Lee, C. Kee, A pseudolite based positioning system for legacy 
+GNSS receivers, Sensors (2014).
+[18] H. Kuusniemi, M.Z.H. Bhuiyan, M. Strom, S. Soderholm, T. Jokitalo, L. Chen, R. 
+Chen, Utilizing Pulsed Pseudolites and High Sensitivity GNSS for Ubiquitous 
+Outdoor/Indoor Satellite Navigation, 2012.
+[19] C. O’Driscoll, D. Borio, J. Fortuny, Scoping Study of Pseudolites, tech. rep., JRC 
+European Commission, 2013.
+[20] J. Wang, Pseudolite applications in positioning and navigation: progress and 
+problems, J. Glob. Position. Syst. (2002).
+[21] R. Kapoor, S. Ramasamy, A. Gardi, R. Sabatini, UAV navigation using signals of 
+opportunity in urban environments: a review, Energy Proc. (2017).
+[22] A. Coluccia, F. Ricciato, G. Ricci, Positioning based on signals of opportunity, 
+IEEE Commun. Lett. (2014).
+[23] S.T. Goh, O. Abdelkhalik, S.A. Zekavat, A weighted measurement fusion Kalman 
+ﬁlter implementation for UAV navigation, Aerosp. Sci. Technol. (2013).
+[24] L. Zheng, R. Xue, Signals of opportunity navigation methods for complex lower 
+airspace ﬂight, in: IEEE 5thInternational Conference on Cybernetics and Intelli-
+gent Systems, CIS, 2011.
+[25] T. White, J. Wheeler, C. Lindstrom, R. Christensen, K.R. Moon, GPS-Denied nav-
+igation using SAR images and neural networks, arXiv:2010 .12108v1, 2020.
+[26] Z. Sjanic, F. Gustafsson, Simultaneous navigation and synthetic aperture radar 
+focusing, IEEE Trans. Aerosp. Electron. Syst. (2015).
+[27] D.O. Nitti, F. Bovenga, M.T. Chiaradia, M. Greco, G. Pinelli, Feasibility of using 
+synthetic aperture radar to aid UAV navigation, Sensors (2015).
+[28] G. Csaba, L. Somlyai, Z. Vamossy, Mobil robot navigation using 2D LIDAR, in: 
+IEEE 16thWorld Symposium on Applied Machine Intelligence and Informatics, 
+SAMI, 2018.
+[29] G. Hemann, S. Singh, M. Kaess, Long range GPS-denied aerial inertial navigation 
+with LIDAR localization, in: IEEE/RSJ International Conference on Intelligent 
+Robots and Systems, iROS, 2016.
+[30] M.M. Miller, A. Soloviev, M.U. de Haag, M. Veth, J. Raquet, T.J. Klausutis, J.E. 
+Touma, Navigation in GPS Denied Environments: Feature-Aided Inertial Sys-
+tems, Tech. Rep. RTO-EN-SET-116, NATO, 2010.
+[31] H. Goforth, S. Lucey, GPS-Denied UAV localization using pre existing satellite 
+imagery, in: IEEE International Conference on Robotics and Automation, IEEE, 
+2019.
+[32] N. Ziaei, Geolocation of an aircraft using image registration coupling modes for 
+autonomous navigation, arXiv:1909 .02875, 2019.
+[33] T. Wang, Augmented UAS navigation in GPS denied terrain environments us-
+ing synthetic vision, Iowa State University Graduate Theses and Dissertations 
+15835 (2018).
+[34] M.D. Pritt, K.J. LaTourette, Aircraft navigation by means of image registration, 
+in: IEEE Applied Imagery Pattern Recognition Workshop, AIPR, 2013.
+[35] H. Shen, Q. Zong, H. Lu, X. Zhang, B. Tian, L. He, A distributed approach for LI-
+DAR based relative state estimation of multi UAV in GPS Denied environments, 
+Chin. J. Aeronaut. (2021).
+[36] B. Gong, S. Wang, M. Hao, X. Guan, S. Li, Range based collaborative relative 
+navigation for multiple unmanned aerial vehicles using consensus extended 
+Kalman ﬁlter, Aerosp. Sci. Technol. (2021).
+[37] V.O. Sivaneri, J.N. Gross, UGV to UAV cooperative ranging for robust navigation 
+in GNSS challenged environments, Aerosp. Sci. Technol. (2017).
+[38] H.-F. Dai, H.-W. Bian, R.-Y. Wang, H. Ma, An INS/GNSS integrated navigation 
+in GNSS Denied environment using recurrent neural network, Def. Technol. 
+(2019).
+[39] A. Assad, W. Khalaf, I. Chouaib, Radial basis function Kalman ﬁlter for attitude 
+estimation in GPS-Denied environment, IET Radar Sonar Navig. (2019).
+[40] M. Alnuaimi, M.G. Perhinschi, Alternative approaches for UAV dead reckoning 
+based on the immunity paradigm, Aerosp. Sci. Technol. (2019).
+[41] D. Scaramuzza, F. Fraundorfer, Visual odometry Part 1: The ﬁrst 30 years and 
+fundamentals, IEEE Robot. Autom. Mag. (2011).
+29
+[p.30]
+E. Gallo and A. Barrientos
+Aerospace Science and Technology 120 (2022) 107237
+[42] F. Fraundorfer, D. Scaramuzza, Visual odometry Part 2: Matching, robustness, 
+optimization, and applications, IEEE Robot. Autom. Mag. (2012).
+[43] D. Scaramuzza, Tutorial on Visual Odometry, Robotics & Perception Group, Uni-
+versity of Zurich, 2012.
+[44] D. Scaramuzza, Visual Odometry and SLAM: Past, Present, and the Robust Per-
+ception Age, Robotics & Perception Group, University of Zurich, 2017.
+[45] C. Cadena, L. Carlone, H. Carrillo, Y. Latif, D. Scaramuzza, J. Neira, I. Reid, J.J. 
+Leonard, Past, present, and future of simultaneous localization and mapping: 
+towards the robust perception age, IEEE Trans. Robot. (2016).
+[46] C. Forster, M. Pizzoli, D. Scaramuzza, SVO: fast semi-direct monocular visual 
+odometry, in: IEEE International Conference on Robotics and Automation, IEEE, 
+2014.
+[47] C. Forster, Z. Zhang, M. Gassner, M. Werlberger, D. Scaramuzza, SVO: semidirect 
+visual odometry for monocular and multicamera systems, IEEE Trans. Robot. 
+(2016).
+[48] J. Engel, V. Koltun, D. Cremers, Direct sparse odometry, IEEE Trans. Pattern Anal. 
+Mach. Intell. (2018).
+[49] J. Engel, T. Schops, D. Cremers, LSD-SLAM: large scale direct monocular SLAM, 
+in: European Conference on Computer Vision, 2014.
+[50] R. Mur-Artal, J.M.M. Montiel, J.D. Tardos, ORB-SLAM: a versatile and accurate 
+monocular SLAM system, IEEE Trans. Robot. (2015).
+[51] R. Mur-Artal, J.D. Tardos, ORB-SLAM2: an open-source SLAM system for monoc-
+ular, stereo, and RGB-d cameras, IEEE Trans. Robot. (2017).
+[52] R. Mur-Artal, Real-Time Accurate Visual SLAM with Place Recognition, PhD the-
+sis, University of Zaragoza, 2017.
+[53] S. Abujoub, J. McPhee, R.A. Irani, Methodologies for landing autonomous aerial 
+vehicles on maritime vessels, Aerosp. Sci. Technol. (2020).
+[54] Y. Meng, W. Wang, H. Han, J. Ban, A visual inertial integrated landing guidance 
+method for UAV landing on the ship, Aerosp. Sci. Technol. (2019).
+[55] C. Chen, S. Chen, G. Hu, B. Chen, P. Chen, K. Su, An auto landing strategy based 
+on pan tilt based visual servoing for unmanned aerial vehicle in GNSS denied 
+environments, Aerosp. Sci. Technol. (2021).
+[56] D. Scaramuzza, Z. Zhang, Visual inertial odometry of aerial robots, arXiv:1906 .
+03289, 2019.
+[57] L. von Stumberg, V. Usenko, D. Cremers, A review and quantitative evaluation 
+of direct visual inertial odometry, in: M.Y. Yang, B. Rosenhahn, V. Murino (Eds.), 
+Multimodal Scene Understanding, Academic Press, 2019, Chapter 7.
+[58] C. Forster, Visual Inertial Odometry and Dense Reconstruction for Mobile 
+Robots, PhD thesis, University of Zurich, 2016.
+[59] C. Forster, L. Carlone, F. Dellaert, D. Scaramuzza, On manifold pre integration 
+for real time visual inertial odometry, IEEE Trans. Robot. (2016).
+[60] H. Deng, U. Arif, K. Yang, Z. Xi, Q. Quan, K.-Y. Cai, Global optical ﬂow based 
+estimation of velocity for multicopters using monocular vision in GPS denied 
+environments, Optik (2020).
+[61] J. Delmerico, D. Scaramuzza, A benchmark comparison of monocular visual-
+inertial odometry algorithms for ﬂying robots, in: IEEE International Conference 
+on Robotics and Automation, IEEE, 2018.
+[62] J.L. Crassidis, F.L. Markley, Unscented ﬁltering for spacecraft attitude estimation, 
+J. Guid. Control Dyn. (2003).
+[63] H.F. Grip, T.I. Fossen, T.A. Johansen, A. Saberi, Attitude estimation using biased 
+gyro and vector measurements with time varying reference vectors, IEEE Trans. 
+Autom. Control (2012).
+[64] R. Kottah, P. Narkhede, V. Kumar, V. Karar, S. Poddar, Multiple model adaptive 
+complementary ﬁlter for attitude estimation, Aerosp. Sci. Technol. (2017).
+[65] H.A. Hashim, Systematic convergence of nonlinear stochastic estimators on the 
+special orthogonal group SO(3), Int. J. Robust Nonlinear Control (2020).
+[66] H.A. Hashim, L.J. Brown, K. McIsaac, Nonlinear stochastic attitude ﬁlters on the 
+special orthogonal group SO(3): Ito and Stratonovich, IEEE Trans. Syst. Man Cy-
+bern. (2019).
+[67] P. Batista, C. Silvestre, P. Oliveira, On the observability of linear motion quanti-
+ties in navigation systems, Syst. Control Lett. (2011).
+[68] H.A. Hashim, L.J. Brown, K. McIsaac, Nonlinear pose ﬁlters on the special Eu-
+clidean group SE(3) with guaranteed transient and steady state performance, 
+IEEE Trans. Syst. Man Cybern. (2019).
+[69] H.A. Hashim, GPS denied navigation: attitude, position, linear velocity, and 
+gravity estimation with nonlinear stochastic observer, in: Proceedings of the 
+2021 American Control Conference, 2021.
+[70] M.-D. Hua, G. Allibert, Riccati observer design for pose, linear velocity, and 
+gravity direction estimation using landmark position and IMU measurements, 
+in: IEEE Conference on Control Technology and Applications, 2018.
+[71] A. Barrau, S. Bonnabel, The invariant extended Kalman ﬁlter as a stable ob-
+server, IEEE Trans. Autom. Control (2017).
+[72] P. Stojakovic, B. Rasuo, Single propeller airplane minimal ﬂight speed based 
+upon the lateral maneuver condition, Aerosp. Sci. Technol. 49 (February 2016) 
+239–249, https://doi .org /10 .1016 /j .ast .2015 .12 .012.
+[73] P. Stojakovic, K. Velimirovic, B. Rasuo, Power optimization of a single propeller 
+airplane take-off run on the basis of lateral maneuver limitations, Aerosp. Sci. 
+Technol. 72 (January 2018) 553–563, https://doi .org /10 .1016 /j .ast .2017.10 .015.
+[74] Analog devices ADIS16488A ten degrees of freedom inertial sensor data 
+sheet, http://www.analog .com /media /en /technical -documentation /data -sheets /
+ADIS16488A.pdf, 2015.
+[75] Aeroprobe corporation air data systems data sheet, www.aeroprobe .com.
+[76] E. Gallo, Quasi static atmospheric model for aircraft trajectory prediction and 
+ﬂight simulation, arXiv:2101.10744v1, 2021.
+[77] D. Simon, Optimal State Estimation, John Wiley & Sons, 2006.
+[78] Manual of the ICAO International Standard Atmosphere, tech. rep., 3rd edition, 
+International Civil Aviation Organization, 2000, ICAO DOC-7488/3.
+[79] J. Sola, Quaternion Kinematics for the Error-State Kalman Filter, tech. rep., 2017.
+[80] Smithsonian Meteorological Tables, tech. rep., R.J. List, 1963.
+[81] M.D. Shuster, A survey of attitude representations, J. Astronaut. Sci. (1993).
+[82] Navigation Aids for Unmanned Aerial Systems in a GPS Denied Environment, 
+Patent EP3267152A1, EP3267152B1, US20180010914A1.
+[83] Sensonor STIM300 ultra high performance inertial measurement unit 
+product brief, https://www.sensonor.com /products /inertial -measurement -units /
+stim300/, 2013.
+[84] A.V. Nebylov, J. Watson, Aerospace Navigation Systems, John Wiley & Sons, 
+2016.
+[85] P.T. Kabamba, A.R. Girard, Fundamentals of Aerospace Navigation and Guidance, 
+Cambridge University Press, 2014.
+[86] M. Bajovic, M. Zivanovic, B. Rasuo, P. Stojakovic, New general approach to air-
+plane rotation analysis, Trans. Jpn. Soc. Aeronaut. Space Sci. 53 (August 2010) 
+130–137, https://doi .org /10 .2322 /tjsass .53 .130.
+30
+=== END ===

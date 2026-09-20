@@ -1,0 +1,2583 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1453.pdf
+sha256: 0DE79CA5E49E50833F616DEEDBA493771455C2DBEF687C8ADD9A5971521CF10D
+library: pymupdf (fitz) v1.28.2
+pages: 38
+=== BEGIN ===
+[p.1]
+Author information
+A Graph-Optimization-Based Tightly Coupled Multi-Source Positioning 
+Method for UAVs in GNSS-Denied Environments
+Jia Lu, Zuyin Zhang, Yishen Qi, Ping Song*
+Beijing Institute of Technology, Beijing 100081, China
+Corresponding authors: Prof. Ping Song*(sping2002@bit.edu.cn)
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.2]
+A Graph-Optimization-Based Tightly Coupled Multi-Source Positioning 
+Method for UAVs in GNSS-Denied Environments
+Abstract
+To address UAV positioning in GNSS-denied environments, this study proposes a tightly coupled 
+multi-source positioning method that integrates IMU, vision, and UWB. First, a structured visual 
+feature optimization method is introduced to enhance feature uniformity and robustness through 
+adaptive thresholding, density balancing, and the fusion of grayscale-gradient information. Second, 
+a graph-optimization-based tightly coupled framework is constructed, incorporating UWB-IMU 
+joint initialization and UWB differential residual–enhanced global constraints. By combining an 
+adaptive sliding window with an IMU pre-integration compensation mechanism, the framework 
+balances accuracy and real-time performance while mitigating temporal asynchrony issues. 
+Experimental validation shows that the optimized visual features achieve an 11.8% increase in ORB 
+matched points and a 5% improvement in accuracy compared with ORB, while demonstrating 
+significantly better distribution uniformity than both SIFT and ORB. Finally, tests on the EuRoC 
+dataset reveal that the proposed positioning method achieves an RMSE below 0.047 m across five 
+sequences, with MAE reduced by 80.9% and 21.9% compared with VINS-Fusion and ORB-SLAM3, 
+respectively. In real flight experiments, the method achieves an RMSE of 0.480 m under high-
+dynamic conditions and 0.286 m under steady-state conditions, validating its sub-meter accuracy 
+and applicability in real-world environments.
+Keywords: Denied Environment; Unmanned Aerial Vehicle; Positioning; Multi-Sensor Fusion
+1 Introduction
+In recent years, unmanned aerial vehicles (UAVs) have seen widespread application in military 
+reconnaissance, disaster relief, and other fields. The success of their autonomous flight and mission 
+execution is contingent upon the utilization of precise and reliable positioning systems. Presently, 
+Global Navigation Satellite Systems (GNSS) function as the predominant positioning methodology 
+for Unmanned Aerial Vehicles (UAVs). However, in complex electromagnetic environments or 
+adversarial scenarios, GNSS signals are highly susceptible to blockage, interference, or spoofing 
+attacks. This hinders UAVs from acquiring precise positional data, jeopardizing flight safety and 
+exerting a substantial negative influence on mission success rates. Consequently, achieving high-
+precision positioning for UAVs in GNSS-denied environments has become a critical technology 
+and research focus for ensuring safe flight operations and mission success.
+Visual localization has been demonstrated to be an effective positioning method for UAVs in 
+GNSS-denied environments. For instance, SLAM facilitates high-precision positioning in small-
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.3]
+scale, uncharted environments [1-3], while image matching-based localization is predominantly 
+employed for long-range, wide-view scenarios. This approach utilizes a global estimation method 
+that involves the comparison of real-time imagery with terrain databases [4-5]. The accuracy of 
+visual positioning is contingent upon the precision of feature matching and relative pose estimation 
+between successive frames in the front-end processing. This is imperative for the suppression of 
+positioning drift. Common front-end methods include feature point-based approaches, optical flow-
+based approaches, direct methods, and deep learning-based methods [6-8]. Optical flow methods 
+are predicated on the assumption of constant brightness, thereby enabling the tracking of pixel 
+motion. For instance, SVO2.0 [9-10] integrates sparse direct methods with local optimization to 
+enhance stability in large-scale scenes. However, both the optical flow and direct methods are 
+sensitive to luminance variations and are prone to failure due to noise, blurring, and abrupt lighting 
+changes. Deep learning-based approaches, exemplified by DeepVO[11] and TartanVO[12], employ 
+convolutional neural networks (CNNs) to learn motion from image sequences. However, these 
+approaches are heavily reliant on substantial datasets and substantial computational resources, 
+which compromises their effectiveness in real-time operations on unmanned aerial vehicles (UAVs). 
+Consequently, feature-based methods remain the predominant front-end approach for UAV visual 
+localization.
+Feature point methods are a class of algorithms that estimate the motion state of a carrier by 
+extracting feature points from consecutive frames and matching them. This methodology has been 
+demonstrated to extract feature points that are resistant to rotation and translation, thereby ensuring 
+a high degree of robustness. Among the various visual localization algorithms grounded in feature 
+point methods, ORB-SLAM [13] is a noteworthy exemplar. This system establishes a 
+comprehensive monocular real-time localization framework by integrating loop detection and graph 
+optimization techniques based on ORB features. Its successor, ORB-SLAM2 [14], extends support 
+to stereo and RGB-D inputs, further broadening the system's applicability. However, the mission 
+areas of drone operations frequently encompass low-texture scenes, such as sandy terrains, fields, 
+and water surfaces. This phenomenon results in the presence of sparse feature points, which, in turn, 
+leads to challenges in matching. Consequently, the continuity and robustness of trajectory 
+estimation are severely compromised. Concurrently, the coexistence of bright skies and shadowed 
+surfaces in images engenders local grayscale distortion, thereby significantly degrading the 
+matching accuracy of descriptors based on grayscale difference encoding. Therefore, enhancing 
+feature perception capabilities in low-texture environments and improving descriptor robustness 
+under dynamic lighting conditions are critical for achieving high-precision visual positioning in 
+UAVs.
+Given the visual-only positioning's inability to meet high-precision requirements under highly 
+dynamic conditions, multi-source fusion positioning is currently the preferred approach. Inertial 
+measurement units (IMUs) are capable of providing high-frequency, continuous attitude 
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.4]
+information. Consequently, extensive research has focused on integrating IMU data with visual 
+information to enhance positioning system accuracy. For instance, the VINS-Mono system [15] 
+employs a tightly coupled optimization strategy to jointly model visual feature observations with 
+IMU pre-integration measurements, achieving high-precision pose estimation. ORB-SLAM3[16] 
+incorporates IMU observations by extending the original visual SLAM framework to support 
+simultaneous visual-inertial mapping and localization. In addition to the integration of visual-IMU 
+combinations, significant advancements have been made in recent years in the field of UWB ranging 
+information integration. The VIU-Net system^([17]) employs deep learning methods to fuse visual, 
+IMU, and UWB data, thereby enhancing the accuracy of UAV positioning. The RFG-TVIU system 
+[18] employs factor graph optimization to dynamically adjust observation weights without requiring 
+prior calibration of UWB base station positions, effectively addressing positioning challenges in 
+complex environments. Consequently, the integration of information from visual, IMU, and UWB 
+data is of paramount importance for enhancing the positioning accuracy of UAVs in complex, 
+dynamic environments.
+The present paper endeavors to address the challenge of high-precision positioning for UAVs 
+in GNSS-denied environments. To this end, a multi-source positioning method has been designed 
+that integrates IMU, visual, and UWB information. For the visual component, the proposal calls for 
+an optimized structured visual feature approach that effectively mitigates the susceptibility of visual 
+observations to low-texture repetitive structures and dynamic lighting variations. In light of the 
+substantial observational discrepancies among IMU, visual, and UWB sensors, this paper puts forth 
+a graph-optimization-based positioning method that integrates IMU/visual/UWB data. This method 
+unifies the integration of visual reprojection residuals, IMU pre-integration, and UWB ranging 
+information. Within the framework of a factor graph optimization model, a joint optimization model 
+incorporating multi-source residual terms is constructed to achieve tightly coupled state estimation 
+of visual, inertial, and ranging information.
+2 Structured Visual Feature Optimization Method
+2.1 Structured Adaptive FAST Feature Extractor
+This paper proposes a structured, adaptive FAST feature extractor based on the ORB feature 
+extraction module. It enhances the quality of feature point extraction and the spatial distribution 
+balance in complex images by introducing local adaptive thresholds, feature point density 
+equalization, and edge suppression in distorted regions. Fig. 1 illustrates the extraction process.
+Fig.1 Structured Adaptive FAST Feature Extraction Flowchart
+(1) An adaptive thresholding mechanism for local texture perception.
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.5]
+Divide the image into fixed-size grid regions, typically using a uniform division of 16×16 or 
+32 ×32. Then, calculate the standard deviation of gradient intensity within each grid to measure 
+texture complexity. Let the set of pixels in grid 
+ be 
+. Then, the gradient standard 
+deviation for this region is defined as follows:
+(1)
+Here, 
+ represents the magnitude of the pixel gradient, and 
+denotes the 
+average gradient magnitude for the grid. To enable each grid to respond to its local texture variation, 
+a region-adaptive FAST threshold is constructed.
+(2)
+ represents the global initial threshold,
+ represents the maximum texture standard deviation 
+across all grids, and 
+ represents the threshold value. Lower complexity results in a smaller 
+corner detection threshold, while higher complexity yields a larger threshold.
+If the texture standard deviations of adjacent grids
+ and
+ are
+and 
+ 
+respectively, the texture complexity difference metric between them is:
+(3)
+If 
+ < 
+, the texture structures are considered similar and can be merged into a shared 
+region 
+. This paper adopts an empirical value 
+= 0.1. The FAST detection threshold 
+for the merged region is calculated as follows:
+(4)
+(2) Feature point density-driven spatial equalization
+This method builds upon the quad-tree strategy [21][22] by introducing a feature-point density-
+driven spatial partitioning mechanism. It identifies potential cluster areas and prioritizes spatial 
+partitioning in these regions by analyzing the average density of corner points and the geometric 
+,i j
+G
+,i j
+
+,
+2
+,
+,
+( , )
+,
+1
+(
+( , )
+)
+i j
+i j
+i j
+x y
+i j
+I x y
+I
+
+
+
+
+
+
+
+( , )
+I x y
+
+,i
+j
+I
+
+max
+,
+,
+0
+max
+(1
+)
+i j
+FAST
+i j
+T
+T
+
+
+
+
+
+
+
+0T
+max
+
+,i j
+
+,i j
+G
+1,
+i
+j
+G
+,i j
+
+1,
+i
+j
+
+,
+1,
+,
+1,
+max(
+,
+)
+i j
+i
+j
+i j
+i
+j
+
+
+
+
+
+
+
+
+
+
+
+
+merge
+
+1,
+i i
+j
+G 
+merge
+
+,
+1,
+1,
+2
+FAST
+FAST
+i j
+i
+j
+FAST
+i i
+j
+T
+T
+T
+
+
+
+
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.6]
+dispersion within local regions.
+Let the image be partitioned into region 
+, which contains 
+vertices. The average distance 
+between vertices is
+, and the variance of the distances is:
+(5)
+When the value of 
+ exceeds the set threshold of 
+, it is determined that the feature points 
+within the region exhibit a non-uniform distribution or dense clustering. This necessitates a quadtree 
+split. The splitting process is as follows:
+① Divide it into four subregions if the number of corner points in the current region exceeds the 
+preset threshold
+, or if 
+>
+.
+② Terminate the split if the current tree node depth has reached maximum depth 
+or if the 
+density difference between the corner points of the subintervals is less than 15%.
+③ To ensure both quantity control and quality priority, each subregion retains only the top K corner 
+points with the highest response values.
+(3) Edge response suppression method
+This paper proposes an edge response suppression mechanism to address image edge distortion 
+caused by wide-angle lenses on drones. This mechanism eliminates interference from false corner 
+points during matching. Denote the image center as
+and a corner point location as 
+. The edge suppression weight function is defined as follows:
+(6)
+In this context, 
+controls the rate of edge attenuation, which ranges from:
+(7)
+𝑊 represents the width of the image. The "reliable response value" for the final corner is calculated 
+as follows:
+(8)
+2.2 Gradient-Gray Dual-Modality G²-ORB Descriptor
+This paper proposes the G²-ORB (Gradient-Gray ORB) descriptor, which integrates gradient 
+direction and gray-scale intensity, as shown in Fig. 2, building upon traditional BRIEF[23]-[25].
+R
+n
+p
+2
+2
+1
+1
+n
+d
+ip
+p
+n
+
+
+
+
+2
+d
+th
+
+split
+N
+2
+d
+th
+
+max
+d
+( ,
+)
+c
+c
+c
+x y
+
+( ,
+)
+p
+x y
+
+2
+( )
+exp(
+)
+w p
+p
+c
+
+
+
+
+
+
+2
+1
+(0.4
+)
+W
+
+
+( )
+( )
+( )
+final
+Harris
+R
+p
+R
+p w p
+
+
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.7]
+Fig. 2 G²-ORB Descriptor Generation Flowchart
+(1) Light-normalized processing
+First, perform Contrast-Limited Adaptive Histogram Equalization (CLAHE) processing on 
+the 
+ image block in this window to obtain the normalized 
+ image.
+(2) BRIEF foundation layer construction
+The BRIEF method is employed on the normalized image to generate a 256-bit binary 
+descriptor. Two hundred fifty-six pairs of pixels are sampled around the feature point, and a basic 
+descriptor vector is generated through grayscale comparison.
+(9)
+(3) Directional layer enhancement design
+G ² -ORB incorporates gradient direction histogram coding to enhance structural direction 
+representation capabilities, while reusing existing gradient components 
+ and 
+ to 
+avoid redundant computations.
+Using the obtained gradient information, calculate the gradient direction of the pixel.
+(10)
+The azimuth angle range is [0°, 180°) and is divided into eight equal bins. The frequency with which 
+gradient directions fall into each bin is counted to construct a directional histogram.
+(11)
+Among these, 
+ represents the pixel gradient magnitude and 
+ denotes the logical 
+indicator function. The directional histogram is normalized and quantized to compress the dynamic 
+range, enhance contrast, and improve numerical stability. This process ultimately generates a 
+direction-enhanced vector.
+(12)
+(4) Sparse coding and descriptor concatenation
+Direction histograms are floating-point/integer vectors, and direct matching requires 
+calculating L1/L2 distances, making it difficult to meet real-time embedded requirements. Therefore, 
+a multi-dominant-direction hard-coding strategy is adopted to achieve sparse compression encoding. 
+From the normalized histogram, the bin indices 
+ corresponding to the Top-K 
+( , )
+I
+x y
+
+( , )
+I
+x y
+
+256
+1
+2
+256
+d
+[ , ,...,
+] {0,1}
+BRIEF
+
+
+
+
+( , )
+xI x y
+( , )
+yI x y
+( , )
+( , )
+arctan(
+)
+( , )
+y
+x
+I
+x y
+x y
+I
+x y
+
+
+( , )
+( )
+( , )
+( ( , )
+,
+1,2,...,
+)
+j
+j
+x y
+N p
+g
+w x y
+x y
+bin
+j
+N
+
+
+
+
+
+
+
+( , )
+w x y
+( )
+
+8
+1
+2
+8
+[ ,
+,...
+]
+g
+g g
+g
+
+
+1
+2,
+{ , ..., }
+k
+i i
+i
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.8]
+maximum response values are selected to construct one-hot encoded values:
+(13)
+This encoding requires only one byte for representation. It exhibits excellent sparsity and 
+interpretability. It can also be directly appended to the end of the BRIEF descriptor to form the final 
+output.
+(14)
+During the matching process, the BRIEF component uses fast Hamming distance comparisons, 
+while the directional encoding component uses lookup tables to determine directional consistency, 
+balancing efficiency and discriminative power.
+3 A Graph Optimization-Based Positioning Method Integrating IMU, Vision, and 
+UWB
+The factor graph-optimized multi-source fusion positioning method proposed in this paper 
+integrates IMU, visual, and UWB observation information. By uniformly constructing visual 
+reprojection residuals [26][27], IMU pre-integration residuals [28][29], and UWB ranging 
+residuals [30][31], this method establishes a tightly coupled joint optimization model within 
+the factor graph framework. This enables highly consistent state estimation of visual, inertial, 
+and ranging information. The overall method architecture is illustrated in Fig. 3.
+Fig. 3 Architecture Diagram of the Fusion Positioning Method.
+3.1 Integrating Positioning Theory and Modeling
+The spatial relationships among various observation data from multi-source fusion 
+positioning of UAVs in different scenarios are illustrated in Fig. 4.
+1
+2 k
+K
+i
+k
+code
+
+
+2
+256
+,
+d
+[d
+] {0,1}
+N
+BRIEF
+G
+ORB
+code
+
+
+
+
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.9]
+Fig. 4 Schematic Diagram of Spatial Relationships Among Observation Sources in Fusion 
+Positioning.
+This paper uses the global reference frame 
+ as the world coordinate system. The 
+motion state of the UAV is represented in the carrier coordinate system 
+, while visual 
+observations are based on the camera coordinate system 
+. The rigid transformation 
+between the camera and UAV coordinate systems is obtained through external parameter 
+calibration. The IMU provides continuous state predictions; the UWB acquires distance 
+observations between the UAV and base stations (e.g.,
+,
+); and the visual module 
+constructs reprojection residuals by matching keypoints between frames. These three types of 
+observations provide complementary spatiotemporal information and form the foundation of 
+data and constraints for graph optimization.
+As shown in Fig. 5, the system unifies the conversion of sensor data to the ENU coordinate 
+system through multiple coordinate systems. The final output is converted to geographic 
+coordinates for visualization and track reconstruction. This provides a unified reference 
+framework for subsequent multi-source modeling.
+{ }
+W
+{ }
+B
+{ }
+C
+,1
+id
+,2
+id
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.10]
+Fig. 5 Coordinate System Transformation for a Multi-source Fusion Positioning System
+3.2 Optimized Factor Diagram Modeling Method Under Multi-Source Observation 
+Constraints
+Factor graphs, which serve as graphical representations of optimization, express 
+dependencies among state variables and residual constraints from sensor observations. They 
+offer excellent scalability and interpretability. Fig. 6 shows the factor graph structure used in 
+this paper, in which system states are represented by variable nodes. Adjacent states are 
+connected via IMU pre-integration factors, forming continuous temporal constraints. The UWB 
+ranging factor and visual reprojection factor serve as external observation constraints, providing 
+global positioning and reprojection information, respectively. The UWB factor calculates 
+residuals based on the Euclidean distance between the current frame and multiple base stations. 
+This achieves fusion by integrating ranging observations with weights. However, due to 
+temporal offsets between ranging data and visual keyframes, ranging data is usually associated 
+with the nearest keyframe.
+Fig. 6 Schematic Diagram of The Factor Diagram Structure.
+3.2.1 Initial State Estimation Strategy for UWB-IMU Integrated Systems
+During the initial phase of drone operations, systems are susceptible to significant motion 
+or observation gaps. Relying solely on inertial measurement units (IMUs) can lead to 
+cumulative errors due to zero bias. This paper uses an extended Kalman filter (EKF) to combine 
+UWB and IMU data. Pre-optimizing the fusion of multi-base station ranging measurements 
+with IMU data provides reliable initial values for subsequent sliding window optimization.
+(15)
+The system's state model is shown in Eq. (16), and the state transition model is shown in Eq. 
+(17).
+(16)
+0
+0
+0
+0
+( )
+[
+( ),
+( ),
+( ),
+( ),
+( )]
+a
+g
+x t
+p t v t q t b t b t
+
+( ) [ ( ), ( ), ( ),
+( ),
+( )]
+a
+g
+x t
+p t v t q t b t b t
+
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.11]
+(17)
+Among these, 
+ represents position, 
+ represents velocity, 
+ 
+represents attitude, and 
+ represents zero bias. 
+ represents the 4×4 matrix 
+generated by left-multiplying quaternions, and 
+ represents random walk noise. 
+During the prediction phase, the system relies solely on IMU measurements for state 
+propagation using the following prediction model:
+(18)
+Among these, 
+ represents the acceleration and angular velocity observed by the IMU, 
+and 
+ denotes the process noise covariance matrix. Linearizing the state transition function 
+at the current state point yields the state transition Jacobian matrix, 
+.
+(19)
+During the update phase, UWB ranging observations are introduced to correct the cumulative 
+error generated by IMU integration. The observation model is shown in Eq. (20).
+(20)
+The UWB observation model can be simplified into a nonlinear Euclidean distance constraint 
+related to the position variable. The Jacobian of this constraint with respect to the position state 
+is:
+(21)
+This allows for the development of an extended Kalman filter update process that includes 
+Kalman gain calculation, state correction, and covariance reduction.
+( )
+( )
+( )
+( ) (
+( )
+( )
+( ))
+1
+( )
+(
+( )
+( )
+( ))
+( )
+2
+( )
+( ),
+( )
+( )
+m
+a
+a
+m
+g
+g
+a
+ba
+g
+bg
+p t
+v t
+v t
+R t
+a
+t
+b t
+n t
+g
+q t
+w
+t
+b t
+n t
+q t
+b t
+n
+t
+b t
+n
+t
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3
+( )
+p t 
+3
+( )
+v t 
+( )
+q t
+H
+
+( ),
+( )
+a
+g
+b t b t
+( )
+
+( ),
+( )
+ba
+bg
+n t n t
+1
+1
+ˆ
+ˆ
+(
+,
+,
+)
+i
+i
+i
+i
+i
+i
+i
+i
+i
+x
+f x a w
+P
+F PF
+Q
+
+
+
+
+
+
+
+
+
+
+T
+ˆ ˆ
+,
+i
+i
+a w
+iQ
+iF
+ˆ
+0
+0
+0
+ˆ
+0
+0
+ˆ
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+i
+i
+i
+i
+i
+i
+g
+i x
+I
+I t
+I
+R a
+t
+R t
+f
+F
+I
+w
+b
+t
+I t
+x
+I
+I
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ij
+i
+j
+ij
+d
+p
+p
+n
+
+
+
+ij
+i
+j
+ij
+i
+i
+j
+d
+p
+p
+H
+p
+p
+p
+
+
+
+
+
+
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.12]
+(22)
+(23)
+(24)
+This paper uses a sliding window strategy to estimate and fuse initial conditions. During the 
+initialization phase, static initialization is first performed based on multi-frame uwbranging. 
+Then, velocity and attitude estimation is performed via IMU integration. Finally, keyframe 
+states are progressively constructed. Convergence of the initial state estimation requires 
+satisfying two sets of conditions. First, state convergence requires accumulating at least ten 
+valid observations within the sliding window to achieve attitude estimation convergence (with 
+the quaternion model length approaching one and an error below 0.05), maintaining stable 
+ranging residuals within 0.2 m for five consecutive frames, and stabilizing the IMU bias. 
+Second, visual activation requires the successful detection of at least one pair of co-viewed 
+keyframes with stable feature matching counts that exceed the threshold. Once these conditions 
+are met, the system transitions to backend graph optimization. The graph structure is 
+constructed from the initial state, and inertial, odometry, and visual factors are progressively 
+incorporated to achieve tri-modal joint estimation.
+3.2.2 Multi-factor Combined Optimization Model Construction
+This paper proposes a tightly coupled sliding window optimization model that integrates 
+IMU, visual, and UWB information. The model is based on a factor graph and represents states 
+and observations as nodes and factors, respectively. It achieves intra-window state estimation 
+through nonlinear optimization.
+The set of optimization variables is constituted by all states within the sliding window.
+(25)
+Here, 
+ denotes the set of all state variables within the sliding window, and 
+ represents 
+the state variables of the 
+ node. At frame 
+, observations are acquired from the IMU, visual, 
+and UWB sensors, respectively. Corresponding factor constraints are then established, as 
+shown in Eq. (26), (27), and (28).
+(26)
+(27)
+1
+(
+)
+ij
+i
+ij
+ij
+i
+ij
+j
+K
+P H
+H P H
+R
+
+
+
+
+
+T
+T
+_
+ˆ
+(
+)
+i
+i
+ij
+ij
+ij
+x
+x
+K
+d
+d
+
+
+
+(
+)
+i
+ij
+ij
+i
+P
+I
+K H P
+
+
+
+
+0
+1
+{ , ,...,
+}
+n
+x x
+x
+
+
+ix
+i
+i
+2
+{
+,
+}
+,
+min
+(
+)
+i
+j
+ij
+i
+j
+T
+P
+i j
+z
+T P
+
+
+
+
+1
+,
+,
+( , )
+min
+IMU ij
+IMU ij
+X
+i j
+ij
+r
+r
+
+
+
+T
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.13]
+(28)
+This paper proposes a composite ranging factor that integrates absolute and differential ranging 
+residuals. This enhancement improves the global observation capability of UWB and 
+suppresses errors. The result is an observation model with both absolute and relative constraints. 
+The absolute ranging residual is modeled as follows:
+(29)
+where 
+ represents the UWB ranging observation between the system at time 
+ and the 𝑗th 
+base station, 
+ denotes the system position to be optimized, and 
+ indicates the known 
+base station positions. Furthermore, differential ranging residual modeling is introduced, 
+expressed as:
+(30)
+Ultimately, the constructed UWB composite factor can be expressed as:
+(31)
+During image optimization, each frame state node establishes a residual chain with 
+multiple UWB base stations, forming a stable global and local constraint structure. The UWB 
+factor, along with the IMU pre-integration residual and visual reprojection residual, constitutes 
+the system's overall optimization objective function. This function is expressed as follows:
+(32)
+𝜌(⋅) denotes a robust kernel function. This paper adopts the Huber kernel, defined as follows:
+(33)
+To achieve robust residual-weighted modeling during global optimization, different 
+turning thresholds are set for visual, UWB, and velocity residuals. During each iteration of the 
+sliding window update, the system builds a complete factor graph structure and performs 
+multiple rounds of nonlinear optimization. Ultimately, it outputs the optimal state estimate 
+within the current window.
+2
+,
+1
+min
+(
+)
+N
+UWB ij
+X
+i
+j
+r
+
+
+
+,
+abs ij
+ij
+i
+j
+r
+d
+p
+p
+
+
+
+ij
+d
+i
+ip
+jp
+,
+1,
+,
+1
+(
+)
+(
+)
+diff ij
+i
+j
+i j
+i
+j
+i
+j
+r
+d
+d
+p
+p
+p
+p
+
+
+
+
+
+
+
+
+,
+( )
+,
+abs ij
+i
+UWB
+diff ij
+r
+r
+r
+
+
+
+
+
+
+2
+2
+2
+*
+,
+,
+,
+argmin{
+(
+)
+(
+)
+(
+}
+N
+vision k
+IMU l
+IMU ml
+X
+k
+l
+m
+j
+X
+r
+r
+r
+
+
+
+
+
+
+
+
+
+2
+2
+2
+,
+( )
+2
+,
+s
+s
+s
+s
+s
+
+
+
+
+
+
+
+
+
+
+
+
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.14]
+3.2.3 Dynamic sliding window policy and marginalization mechanism
+The fundamental strategy of sliding window optimization is to maintain a set of states 
+based on the key frame states from the most recent N frames.
+(34)
+Among these, 
+ represents the current frame state and 
+ represents the earliest frame 
+in the window. A fixed window length cannot accommodate the varying requirements of 
+unmanned aerial vehicles across different mission phases. To address this issue, this paper 
+proposes an adaptive window adjustment strategy based on motion intensity. By analyzing 
+velocity change intensity, the window frame count N is dynamically adjusted. The following 
+motion intensity indicators are defined:
+(35)
+If 
+, increase the frame rate to enhance observational redundancy; otherwise, reduce 
+the frame rate to lower computational load. To prevent frequent window fluctuations, upper 
+and lower limits are set for the frame rate during dynamic adjustment.
+(36)
+Achieve a balanced trade-off between real-time performance, accuracy, and stability by setting 
+=7 and 
+=12.
+When the sliding window updates, the earliest frame's state is removed. This information is 
+converted into a prior residual through marginalization and continues to participate in subsequent 
+optimization, thereby preserving the influence of historical observations.
+Suppose the residual function in the current graph can be decomposed into two categories:
+(37)
+Among these, 
+ represents the old state to be marginalized, while 
+ denotes the retained 
+state within the sliding window; 
+ represents observational residuals associated with 
+, while 
+ denotes other residuals solely related to 
+. The removed state variable 
+ is not discarded 
+outright; instead, its influence is transformed into prior information through marginalization and 
+1
+{
+,..., }
+win
+t N
+t
+X
+x
+x
+
+
+tx
+1
+t N
+x 
+1
+1
+1
+1
+1
+t
+i
+i
+i t N
+S
+v
+v
+N
+
+
+
+
+
+
+
+
+high
+S
+
+
+min
+max
+N
+N
+N
+
+
+min
+N
+max
+N
+(
+,
+)
+(
+)
+(
+)
+m
+m
+r
+o
+r
+r
+x
+x
+r X
+r x
+
+
+
+
+
+
+m
+x
+rx
+mr
+m
+x
+or
+m
+x
+m
+x
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.15]
+reintroduced as residuals into the graph to constrain the remaining state variable 
+. First-order 
+linearization of the residual function at the current state point yields the following incremental 
+equation system:
+(38)
+Among these, 
+ and 
+ represent the Heisenberg matrices for the marginalized and 
+retained states, respectively.
+ and 
+ denote the cross-second-order information, while 
+ 
+and 
+ correspond to the linearized gradient vector terms. Eliminating 
+ using Schur 
+complements compresses the above equations into equivalent prior information terms for the 
+retained variables.
+(39)
+(40)
+(41)
+Perform a Cholesky decomposition on 
+ to construct the following equivalent prior residual:
+(42)
+Among these, 
+ represents the Cholesky decomposition of the marginalized information matrix
+. 
+ denotes the compressed residual term and 
+ is reintroduced into the optimization 
+graph as a new marginalization factor. In summary, the objective function for the overall system 
+optimization is:
+(43)
+3.2.4 Dynamic Sliding Window Policy and Marginalization Mechanism
+This paper proposes an inter-frame state compensation strategy that uses IMU pre-integration. 
+It achieves spatiotemporal alignment for UWB ranging without introducing additional nodes by 
+leveraging high-frequency IMU observations. The strategy estimates state increments through pre-
+integration and incorporates them as compensation terms into the UWB residual function. This 
+approach uniformly models asynchronous observations at key frames. This approach preserves the 
+m
+x
+mm
+mr
+m
+m
+rm
+rr
+r
+r
+H
+H
+x
+b
+H
+H
+x
+b
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+mm
+H
+rr
+H
+mr
+H
+rm
+H
+m
+b
+rb
+mx
+
+arg
+arg
+m
+r
+m
+H
+x
+b
+
+
+1
+arg
+m
+rr
+rm
+mm
+mr
+H
+H
+H H
+H
+
+
+
+1
+arg
+m
+r
+rm
+mm m
+b
+b
+H H
+b
+
+
+
+arg
+m
+H
+prior
+p
+r
+p
+r
+H
+x
+r
+
+
+
+p
+H
+arg
+m
+H
+pr
+prior
+r
+2
+2
+2
+*
+,
+,
+,
+arg min{
+(
+)
+(
+)
+(
+}
+N
+vision k
+IMU l
+IMU ml
+prior
+X
+k
+l
+m
+j
+X
+r
+r
+r
+r
+
+
+
+
+
+
+
+
+
+
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.16]
+information constraint capability of UWB fully while maintaining the sparsity of the factor graph 
+and avoiding graph expansion. Fig, 7 illustrates the resulting graph structure evolution.
+Fig.7 Factor Diagram Structure for Inter-Frame State Compensation
+Set two adjacent keyframes, 
+ and 
+, which correspond to times, 
+ and 
+, 
+respectively. The UWB ranging observation occurs at time 
+. Time alignment is 
+completed by computing state propagation from the UWB sampling time to the keyframes via IMU 
+pre-accumulation segment interpolation.
+For the ranging observation 
+, using the nearest visual keyframe 
+ as the alignment 
+node, the relative position increment 
+ is estimated based on IMU information within 
+. Subsequently, the compensated position is projected onto the keyframe node, with the 
+residual function expressed as:
+(44)
+Among these, 
+ denotes the key frame position, 
+ represents the base station position, and 
+ indicates the displacement estimation from 
+ to 
+. The position increment is 
+calculated using “interpolative integration” approximated via the IMU pre-integration model.
+(45)
+Among these, 
+ represents the instantaneous velocity obtained through IMU integration.
+This alignment mechanism uses IMU pre-integration to bind all asynchronous UWB 
+observations to key frames, enabling joint optimization under a unified state. The interpolation 
+process only occurs during residual construction and introduces no new variables or additional 
+optimization dimensions. Compared to methods that add nodes for each observation, this approach 
+significantly reduces graph complexity while maintaining observation utilization. This enhances 
+optimization efficiency and convergence stability.
+ix
+1
+ix 
+it
+1
+it 
+1
+( ,
+)
+UWB
+k
+i
+i
+t
+t t 
+
+UWB
+kd
+1
+ix 
+1
+k
+i
+p 
+
+1
+[
+,
+]
+UWB
+k
+i
+t
+t 
+,
+1
+1
+1
+UWB
+UWB i
+k
+i
+k
+i
+j
+r
+d
+p
+p
+p
+
+
+
+
+
+
+
+
+1
+ip 
+jp
+1
+k
+i
+p 
+
+UWB
+kt
+1
+it 
+( )
+i
+uwb
+k
+t
+k
+i
+t
+p
+v t dt
+
+
+( )
+v t
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.17]
+4 Experient
+This paper presents a multi-source fusion positioning method for unmanned aerial vehicles 
+(UAVs) that integrates an inertial measurement unit (IMU), visual sensors and an ultra-wideband 
+(UWB) ranging module. Its overall architecture is shown in Fig. 8. The system uses a Xilinx Zynq 
+UltraScale+ MPSoC XCZU5EV as its main computing platform. The IMU uses the ADIS16505-
+2BMLZ model; the visual module uses the MER2-502-79U3M industrial camera; and the UWB 
+component uses a customised ranging module and base station system. Key parameters are detailed 
+in Table 1.
+Fig. 8 Architecture of a Multi-Source Fusion Positioning System for UAVs in GNSS-Denied 
+Environments
+Table 1 UWB module performance specifications
+Indicator
+Parameters
+Operating frequency band
+3~4GHz
+Bandwidth
+≥500MHz
+Power gain
+20~30dB
+Working distance
+>10km
+Volume
+120×60×30mm
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.18]
+To evaluate the performance of the improved feature extraction and description method 
+comprehensively, two types of experiment were designed. One uses typical flight image sequences 
+captured by actual UAVs. These sequences cover common scenarios in low-altitude missions, such 
+as lighting variations, motion blur and sparse textures. This approach accurately reflects the 
+distribution of real-world perceptual features, demonstrating its practicality and representativeness. 
+The other experiment uses the publicly available HPatches dataset [37-39] for validation.
+Experiments were conducted using the EuRoC public dataset [40] to validate the effectiveness 
+of the proposed IMU/vision/UWB fusion graph optimization localization method and to compare it 
+with the VINS-Fusion [41] and ORB-SLAM3 [42] systems. The EuRoC dataset contains diverse 
+flight sequences under various dynamic conditions and lighting scenarios. It provides high-
+frequency IMU and image data, which is ideal for evaluating the accuracy of vision-inertial systems. 
+Since the dataset lacks real UWB data, this study generated simulated UWB observations based on 
+real trajectories. Three virtual base stations were uniformly placed in the scene, and ranging was 
+simulated by calculating the Euclidean distance between the ground truth and the base stations. 
+Gaussian noise 𝒩(0, 0.052) was introduced to match actual UWB measurement errors.
+This study evaluated the positioning accuracy of the proposed multi-source fusion positioning 
+method in actual flight scenarios. To do so, the system shown in Figure 8 was mounted onto a drone 
+platform, flight trajectories were generated, and a comparative analysis was conducted with the 
+actual trajectories. To acquire real trajectories, the drone platform was equipped with an additional 
+ZED-F9P high-precision GNSS positioning module.
+5 Results and Discussion
+5.1 Verification of Mission Image Sequences
+To validate the practical adaptability and robustness of the method, a sequence of typical flight 
+images captured by a drone platform was selected as test data. This data set included challenges 
+such as motion blur, low texture, and lighting variations. Feature extraction and bidirectional KNN 
+matching were performed every 20 frames. The exact registration matrix from image registration 
+served as the ground truth. We evaluated matching accuracy by measuring the interior point rate, 
+reprojection error, and repeatability rate. All algorithms were implemented using BFMatcher at a 
+uniform scale. The results are presented in Table 2.
+Table 2 Comparison of Experimental Results for UAV Mission Image Sequences
+Method
+Number of 
+Feature 
+Points
+Number of 
+Matching 
+Points
+In-point 
+rate (%)
+Unifor-
+mity
+Descriptor 
+Bias
+Descriptor 
+Information 
+Entropy
+Duplication 
+Rate (%)
+Total 
+Duration 
+(ms)
+SIFT
+500.10
+340.66
+98
+0.45
+-
+0.6
+83
+103.29
+SURF
+396.01
+290.76
+96
+0.41
+-
+0.71
+79
+31.15
+ORB
+499.54
+332.41
+88
+0.35
+0.51
+0.98
+79
+16.77
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.19]
+Ours
+500.5
+371.65
+93
+0.54
+0.49
+0.98
+85
+20.56
+In terms of matching accuracy, the proposed method achieves an interior point rate of 93%. 
+This rate outperforms those of ORB (88%) and SURF (96%), approaching the rate of SIFT (98%). 
+With comparable feature point counts, the average number of matched points increases by 11.8% 
+compared to ORB. In terms of efficiency, the runtime is 20.56 ms, which is slightly higher than 
+ORB (16.77 ms), yet significantly lower than SURF (31.15 ms) and SIFT (103.29 ms). This 
+achieves an excellent trade-off between accuracy and efficiency. Regarding feature distribution, the 
+uniformity index is 0.54, which is significantly higher than the index for ORB (0.35) and other 
+algorithms. This demonstrates how the structured extraction strategy enhances coverage and 
+robustness. In terms of descriptor expression quality, both ORB and the proposed method achieve 
+an information entropy metric of 0.98, indicating a balanced distribution of descriptor bits between 
+0 and 1, which demonstrates strong discriminative power. However, although SIFT and SURF 
+descriptors have higher dimensionality and floating-point precision, their dimensional distribution 
+on standard images is uneven. This results in normalized information entropies that are generally 
+below 0.7. Furthermore, the descriptor bias of the proposed method is 0.49, which is comparable to 
+the 0.51 bias of ORB. An ideal descriptor bias value approaches 0.5, which indicates a nearly 
+uniform probability of each bit being 1 across a large sample. This metric shows that the constructed 
+descriptor has good bit balance with large samples, which contributes to enhanced matching 
+robustness. Regarding the matching repeat rate, the proposed method achieves a value of 0.85, 
+which outperforms the values of 0.79 achieved by ORB and SURF and slightly exceeds the value 
+of 0.83 achieved by SIFT. These results demonstrate superior stability and re-localization capability 
+under scale and viewpoint variations. The proposed method has a runtime of 20.56 ms, which is 
+slightly higher than ORB's 16.77 ms but significantly faster than SIFT's 103.29 ms and SURF's 
+31.15 ms. This performance satisfies the 30 Hz real-time processing requirement, demonstrating 
+excellent engineering adaptability.
+ Further analysis of the stability and adaptability of each method in dynamic image sequence 
+processing is shown in Fig. 9.
+(a)
+(b)
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.20]
+(c)
+(d)
+Fig. 9 Time-dependent Curves of Core Metrics: (a) Trend in the Number of Feature Points; (b) Trend in the 
+Number of Valid Matches; (c) Trend in the In-point Rate; (d) Trend in Processing Time.
+Fig. 9(a) shows the trend in the number of feature points across consecutive frames. SIFT 
+maintains a count of around 500 points, while ORB and the proposed method exhibit minimal 
+fluctuations, demonstrating effective control of the target quantity. In contrast, SURF drops below 
+300 points between frames 2,000 and 5,000, indicating that its corner detector struggles to adapt in 
+low-texture regions. This leads to reduced matching stability. Fig. 9(b) shows that our method 
+maintains the highest and most stable number of effective matches throughout most of the sequence. 
+SIFT and ORB are slightly lower but steady. SURF, however, experiences multiple significant drops, 
+reflecting its limited adaptability in complex, dynamic sequences. Fig. 9(c) displays the temporal 
+trend of the in-point rate. SIFT maintains a high level of approximately 0.98, leveraging its 
+geometric consistency advantage as a floating-point feature. SURF also sustains a relatively high 
+level. Our method ranges from 0.92 to 0.95. This is slightly lower than floating-point features, but 
+it significantly outperforms ORB while exhibiting superior temporal stability. Fig. 9(d) illustrates 
+the computational time trends for the four methods. SIFT has high average processing times that 
+frequently exceed 120 ms, making it unsuitable for real-time applications. SURF's processing time 
+fluctuates significantly with the number of features but stabilizes near 60 ms in later iterations. ORB 
+and the proposed method remain stable at approximately 20 ms, indicating that the proposed method 
+is computationally efficient and enhances performance.
+To analyze the stability and distribution characteristics of feature descriptions across methods, 
+this paper performs a distribution analysis of descriptor construction results from two perspectives: 
+descriptor bias and information entropy (Fig. 10). Fig. 10(a) shows the descriptor bias distribution 
+with an ideal value of 0.5. The proposed method maintains a value of approximately 0.49 throughout 
+the sequence, demonstrating minimal fluctuation, excellent structural symmetry, and statistical 
+equilibrium. ORB, on the other hand, exhibits significant fluctuation, which could compromise 
+matching robustness. Fig. 10(b) illustrates information entropy variation. The proposed method 
+approaches the theoretical optimum of 1.0, which is comparable to ORB and indicates rich and 
+balanced information. In contrast, SIFT and SURF demonstrate lower entropy values with 
+substantial fluctuation, suggesting potential issues with feature redundancy or directional bias.
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.21]
+(a)
+(b)
+Fig. 10 Statistical Distribution of Feature Descriptors: (a) Distribution of Descriptor Bias; (b) 
+Distribution of Descriptor Entropy Values
+(a)
+(b)
+(c)
+Fig. 11 Distribution of Matching Consistency and Repetition Rate Metrics: (a) Distribution of 
+In-Point Rate; (b) Distribution of Reprojection Error; (c) Distribution of Repetition Rate
+To analyze the matching consistency and repositioning capability of each method under spatial 
+geometric constraints, box plots of the sequence distributions for the in-point rate, reprojection error, 
+and approximate repeat rate are presented, as shown in Figure 11. Fig. 11(a) displays the distribution 
+of in-point rates after RANSAC geometric validation for different methods. SIFT and SURF 
+maintain high in-point rates (mean>0.97) and low variance, indicating that floating-point descriptors 
+achieve high accuracy in geometric model fitting. However, their computational overhead is 
+substantial, making them difficult to apply on embedded platforms. In contrast, the proposed method 
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.22]
+achieves a median in-point rate of approximately 0.93, outperforming ORB (0.88), with a tighter 
+interquartile range, indicating more stable matching consistency across diverse scenes. This 
+advantage stems from the direction-encoding enhancement and CLAHE normalization strategy, 
+which effectively boost the structural matching robustness of the binary descriptor. Fig. 11(b) shows 
+that the reprojection errors for single-objective matrix estimation across all methods are 
+concentrated within the 5-15 pixel range. Our method exhibits a more compact interquartile range 
+and fewer outliers, comparable to SIFT performance, indicating high stability and good accuracy in 
+image-space structural fitting. In contrast, while ORB achieves similar average error, its outlier 
+distribution is broader with greater geometric consistency fluctuations, reflecting error variability 
+caused by directional mismatches. As shown in Fig. 11(c), our method outperforms ORB, SIFT, 
+and SURF in both the median approximate repetition rate (approximately 0.94) and distribution 
+compactness, indicating superior adaptability to scale and viewpoint variations. This performance 
+enhancement stems from the optimized image-space equilibrium achieved by structured FAST 
+feature extraction, coupled with the directional and local brightness normalization enhancements in 
+the G²-ORB descriptor. These improvements enable stable and repeatable feature representation 
+even in challenging scenarios such as blurring, texture degradation, or occlusion.
+Fig. 12 shows that in a real-world scene containing roads, farmland, and low-texture grassland, 
+the feature points extracted by our method are more evenly distributed. High density is notably 
+maintained in the grassland, field ridges, and road intersection areas, which significantly enhances 
+the response capability in weakly textured regions. This improvement stems from the locally 
+adaptive threshold mechanism and the feature-density-driven quad-tree spatial balancing strategy. 
+These strategies effectively mitigate the performance degradation of traditional methods in areas 
+with varying textures. Other approaches extract abundant features in high-texture regions but suffer 
+from severe deficiencies in low-texture areas, resulting in uneven distribution and strong structural 
+dependency.
+(a)
+(b)
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.23]
+(c)
+(d)
+Fig. 12 Visualization of Spatial Distributions of Keypoints Extracted by Different Methods: (a) Distribution of 
+Feature points Extracted by the Proposed Method; (b) Distribution of Feature Points Extracted by the ORB 
+Method; (c) Distribution of Feature Points Extracted by the SIFT Method; (d) Distribution of Feature Points 
+Extracted by the SURF Method.
+(a)
+(b)
+Fig. 13 Dynamic Mesh Partitioning and Keypoint Distribution Maps: (a) Mesh Partitioning for 
+Uneven Texture Distribution Frames; (b) Mesh Partitioning for Sparse Texture Distribution Frames.
+Fig. 13 shows the boundary map of the regions after the dynamic grid was partitioned and 
+merged during feature extraction. The distribution of the extracted keypoints is overlaid on the map. 
+Red boxes indicate grid cells that were merged based on an assessment of texture complexity, and 
+green dots represent the final extracted keypoints. The grid maintains high resolution along distinct 
+boundaries of fields and buildings to ensure perception accuracy and feature detail. In grassy areas 
+with weak texture, multiple grids merge into larger detection units, reducing redundant operations 
+and improving processing efficiency. The feature points maintain an appropriate density, which 
+indicates that the adaptive threshold mechanism effectively activates corner points in regions with 
+weak texture. This improves coverage while preventing an extreme distribution.
+5.2 HPatches Dataset Validation
+To evaluate the performance of the proposed method further, experiments were conducted 
+using the publicly available HPatches dataset. The results are presented in Table 3. The results 
+demonstrate that the proposed method is highly robust and capable of accurately representing 
+features while balancing computational efficiency and geometric consistency. In terms of total 
+processing time, the proposed method averages 29.28 ms with a similar number of feature points. 
+This is comparable to ORB (31.82 ms) and significantly faster than SURF (79.38 ms) and SIFT 
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.24]
+(178.62 ms). Regarding the in-point rate and reprojection error, the proposed method achieves an 
+average in-point rate of 94.3%. This rate outperforms those of ORB and SURF, approaching the 
+rate of SIFT (95.7%). The reprojection error is 1.38 pixels, essentially matching SIFT's 1.33 pixels, 
+demonstrating excellent geometric consistency and precision control. In terms of repeatability, our 
+method (0.84) slightly trails SIFT (0.88) but matches ORB (0.83). Considering that our approach 
+employs a binary descriptor and operates at a faster speed, these results demonstrate a significant 
+advantage in balancing performance and efficiency.
+Table 3 Average Performance Comparison of Methods on the HPatches Dataset
+Method
+Total duration 
+(ms)
+Number of 
+feature points
+Interior point 
+matching rate (%)
+Reprojection 
+error (px)
+Duplication 
+rate (%)
+SIFT
+178.62
+800.18
+95.7
+1.33
+88
+SURF
+79.38
+1194.48
+93.6
+1.61
+87
+ORB
+31.82
+799.98
+90.2
+1.40
+83
+Ours
+29.28
+862.36
+94.3
+1.38
+84
+(a)
+(b)
+(c)
+(d)
+Fig. 14 Comparison of Group Metrics: (a) Runtime Comparison; (b) In-point Rate Comparison; (c) 
+Reprojection Error comparison; (d) Repeatability Comparison
+To analyze the adaptability and stability of the proposed algorithm under different types of 
+visual disturbances, this paper divides the image groups into two subsets based on the HPatches 
+dataset structure: lighting variation (i_ prefix) and viewpoint variation (v_ prefix). Fig. 14 shows 
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.25]
+the bar charts plotting key metrics and performing group comparisons of ten image pairs.
+Overall, SIFT was the slowest approach and lacked real-time capability across all subsets. In 
+contrast, ORB and the proposed method maintained stable processing times below 30 ms, 
+demonstrating superior lightweight performance. In terms of in-point rate, the proposed method 
+demonstrates the most robust performance in the lighting transformation category. It outperforms 
+ORB and SURF and approaches, and even partially surpasses, SIFT. This advantage stems from the 
+CLAHE lighting normalization processing introduced in the method and the directional 
+enhancement mechanism, which effectively mitigate the interference of local brightness variations 
+on feature matching accuracy. In the viewpoint variation group, SIFT maintains its lead due to its 
+high-dimensional floating-point features. However, the proposed method follows closely behind, 
+achieving a significantly higher in-point rate than ORB. This validates the adaptability of our 
+directional encoding strategy to local structural variations. The proposed method demonstrates a 
+low overall reprojection error level. Although SIFT has superior geometric fitting capabilities, it has 
+a higher computational cost. ORB and SURF show relatively high errors in certain groups and 
+significant fluctuations in geometric consistency, indicating limitations. In terms of repetition rates, 
+our method outperformed ORB in the illumination variation category, suggesting that the ORB 
+approach is more sensitive to brightness changes. In the viewpoint variation category, our method's 
+repetition rate was slightly lower than SIFT's but higher than ORB's. This demonstrates the 
+structure-direction enhancement mechanism's significant effectiveness in maintaining feature 
+consistency across viewpoints.
+(a)
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.26]
+(b)
+Fig. 15 Visualization of Illumination-adaptive Matching Results :(a) Visualization of The Proposed Method; (b) 
+Visualization of the ORB Method;
+(a)
+(b)
+Fig. 16 Visualization of Perspective-based Matching Results: (a) Visualization of the Proposed Method; (b) 
+Visualization of the ORB Method;
+A visual comparison analysis was conducted using two typical interference scenarios: lighting 
+and viewpoint changes. Fig. 15 and 16 show the matching visualization results of the proposed 
+method and the ORB method for two sets of images with lighting and viewpoint variations. Fig. 15 
+shows that, in the illumination variation group, our method produces more uniform matching lines 
+with superior geometric consistency. Notably, our method maintains robust corner detection 
+capability and matching consistency, even in the dark left region. This demonstrates greater 
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.27]
+robustness than the ORB method. In contrast, ORB loses feature points in this area, resulting in 
+sparse matching lines and poor geometric consistency. Fig. 16 shows that, in the bird's-eye city view 
+image from the viewpoint variation group, both the proposed method and ORB stably extract 
+keypoints along building edges and road contours, despite the rich image texture and dense building 
+structures. The number of matched points, distribution range, and geometric structure of the 
+connecting lines are similar, yielding stable matching results with a well-preserved geometric 
+structure. These results indicate that, in high-texture scenes, our method maintains feature stability 
+and geometric adaptability comparable to traditional methods, balancing computational efficiency 
+and demonstrating good universality and versatility.
+5.3 EuRoC Dataset Validation
+This paper uses the Evo trajectory error analysis tool to evaluate the pose trajectories generated 
+by different methods in a quantitative way. All methods use the same initial pose and undergo SE(3) 
+registration. The deviation between the trajectories and the ground truth is primarily measured by 
+the absolute pose error (APE), with the following metrics being statistically calculated: maximum, 
+minimum, mean, median, standard deviation and root mean square error (RMSE). Evaluations were 
+conducted on five sequences (MH01-05) categorised as easy, medium or difficult based on flight 
+speed and texture richness. These correspond to low-dynamic, moderately challenging and high-
+challenge scenarios, respectively. The results for each metric are presented in Table 4.
+Table 4 Comparison of Error Metrics for Different Methods
+Dataset
+Method
+Maximum/m
+Mean
+/m
+Median/m
+Minimum/m
+SD/m
+RMSE/m
+VINS
+0.471
+0.149
+0.128
+0.023
+0.088
+0.173
+ORB3
+0.088
+0.031
+0.025
+0.002
+0.021
+0.037
+MH_01_easy
+Ours
+0.118
+0.023
+0.021
+0.002
+0.011
+0.025
+VINS
+0.206
+0.071
+0.060
+0.024
+0.040
+0.082
+ORB3
+0.093
+0.031
+0.027
+0.002
+0.016
+0.035
+MH_02_easy
+Ours
+0.058
+0.021
+0.017
+0.001
+0.011
+0.024
+VINS
+0.268
+0.143
+0.146
+0.031
+0.045
+0.150
+ORB3
+0.113
+0.034
+0.030
+0.002
+0.018
+0.038
+MH_03
+_medium
+Ours
+0.125
+0.028
+0.028
+0.002
+0.015
+0.031
+VINS
+0.285
+0.183
+0.174
+0.082
+0.041
+0.187
+ORB3
+0.337
+0.051
+0.042
+0.005
+0.032
+0.061
+MH_04
+_difficult
+Ours
+0.171
+0.041
+0.034
+0.004
+0.023
+0.047
+VINS
+0.498
+0.291
+0.272
+0.129
+0.086
+0.303
+ORB3
+0.198
+0.043
+0.038
+0.004
+0.021
+0.048
+MH_05
+_difficult
+Ours
+0.127
+0.040
+0.035
+0.002
+0.020
+0.044
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.28]
+(a)
+(b)
+(c)
+(d)
+(e)
+Fig. 17 Bar Chart Comparison of Error Metrics: (a) Error Metrics for MH01 Sequence; (b) Error 
+Metrics for MH02 Sequence; (c) Error Metrics for MH03 Sequence; (d) Error Metrics for MH04 
+Sequence; (e) Error Metrics for MH05 Sequence.
+To provide a more intuitive comparison of statistical metrics across different algorithms, this 
+paper further plots error bar charts corresponding to Table 4, illustrating the variation in metric 
+values across the five sequences, as shown in Fig. 17. The experimental results show that VINS-
+Fusion has a significantly higher maximum error and root mean square error (RMSE) than other 
+methods across multiple sequences. In highly dynamic scenarios such as MH_05_difficult, for 
+example, its RMSE reaches 0.303 m, indicating pronounced error accumulation under strong 
+disturbance conditions. The ORB-SLAM3 method exhibited relatively stable performance in low-
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.29]
+to-medium dynamic scenarios, with respective RMSEs of 0.037 m and 0.035 m. However, error 
+fluctuations increased significantly in more complex environments. For example, the maximum 
+error reached 0.337 m in the MH_04_difficult sequence, suggesting that it is not well-suited to 
+highly disturbed scenarios. By contrast, the proposed method demonstrates superior overall 
+localisation accuracy and stability of error across all sequences.Across the five sequences ranging 
+from MH_01_easy to MH_05_difficult, the RMSE of the proposed method remained consistently 
+below 0.047 m, with an average overall RMSE of 0.0342 m. This represents a reduction in error of 
+approximately 80.9% compared to VINS-Fusion (average 0.179 m) and 21.9% compared to ORB-
+SLAM3 (average 0.0438 m). It demonstrated robust stability and adaptability, particularly in 
+medium-to-high dynamic sequences such as MH_03_medium and MH_04_difficult. Furthermore, 
+in terms of standard deviation, the proposed method exhibited the lowest error variability across all 
+scenarios, with standard deviations (STDs) consistently below 0.020 m. This significantly 
+outperforms the averages of 0.0216 m and 0.021 m for ORB3 and VINS, respectively.Our method 
+exhibited the lowest error variability across all scenarios, with STDs consistently below 0.020 m. 
+This significantly outperforms the averages of 0.0216m and 0.060m for ORB3 and VINS 
+respectively, demonstrating superior overall accuracy and trajectory estimation stability. This 
+validates the effective compensation provided by UWB ranging constraints for state estimation 
+under conditions of weak texture and high dynamic interference.
+(a)
+(b)
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.30]
+(c)
+(d)
+(e)
+Fig. 18 Absolute Trajectory Error Plots: (a) MH01 Sequence Trajectory; (b) MH02 Sequence 
+Trajectory; (c) MH03 Sequence Trajectory; (d) MH04 Sequence Trajectory; (e) MH05 
+Sequence Trajectory
+(a)
+(b)
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.31]
+(c)
+(d)
+(e)
+Fig. 19 Absolute Pose Error Curves: (a) Absolute Pose Error of MH01 Sequence; (b) Absolute 
+Pose Error of MH02 Sequence; (c) Absolute Pose Error of MH03 Sequence; (d) Absolute Pose 
+Error of MH04 Sequence; (e) Absolute pose error of MH05 sequence.
+Fig.18 illustrates the visual distribution of errors between the estimated trajectory and the true 
+trajectory, with color gradients representing the magnitude of positioning errors at different 
+locations. In the MH_03_medium sequence, the system maintains good accuracy consistency in 
+most trajectory bends as flight speed increases and texture complexity grows. Errors are primarily 
+concentrated at a few turning points, with colour distribution predominantly in the green range and 
+maximum error controlled to within 0.12 m. In the high-dynamic, low-texture MH_04_difficult and 
+MH_05_difficult sequences, the system experiences rapid acceleration and deceleration, as well as 
+sharp turns across multiple trajectory segments. Conventional visual-inertial methods are unstable 
+in such scenarios. Visualisation shows that, despite minor error spikes in isolated segments, the 
+overall error remains below 0.17 m. Trajectories closely match the ground truth and there is a sparse 
+distribution of high-error red zones. This confirms that introducing UWB fusion constraints 
+effectively mitigates errors under strong disturbances.The overall error remains below 0.17 m. The 
+trajectory closely aligns with the ground truth, with a sparse distribution of high-error red zones. 
+This validates the effectiveness of the UWB fusion constraint introduced in this paper in maintaining 
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.32]
+representative UAV flight trajectories were collected for system validation. The UAV's high 
+thrust-to-weight ratio and rapid attitude response simulate typical dynamic states. The first trajectory 
+involved a high-speed takeoff and attack penetration featuring steep acceleration, climbs, and dives 
+to examine the system's stability and transient error control under intense motion. The second 
+trajectory consisted of low-altitude, stable cruising with gradual attitude changes to verify accuracy 
+consistency and cumulative error control. Table 5 summarizes the error statistics for these two tasks 
+and demonstrates the system's robust accuracy and stability under diverse dynamic conditions.
+Table 5 Positioning Error Metric Results
+Trajectory
+Max/m
+Mean/m
+Median /m
+Min/m
+SD/m
+RMSE/m
+Trajectory 
+1
+0.902
+0.459
+0.443
+0.167
+0.140
+0.480
+Trajectory 
+2
+0.552
+0.261
+0.263
+0.050
+0.116
+0.286
+The results show that for trajectory 1 corresponding to the high-speed takeoff-attack 
+penetration mission, the maximum error reached 0.902m, the average error was 0.459m, the RMSE 
+reached 0.480m, and the standard deviation was 0.140m. This outcome indicates that despite short-
+term accuracy fluctuations under conditions of abrupt attitude changes and high acceleration, the 
+system exhibits no significant cumulative error. Its positioning performance remains within 
+acceptable limits, demonstrating a degree of dynamic robustness. For Trajectory 2, corresponding 
+to low-altitude cruise missions, the system's positioning accuracy was more stable, with 
+significantly improved error metrics compared to Trajectory 1: the mean error and RMSE were 
+0.261 m and 0.286 m, respectively, the standard deviation was controlled within 0.116 m, and the 
+maximum error was only 0.552 m. These results fully demonstrate that the proposed method 
+exhibits stronger error suppression capabilities and higher accuracy consistency under steady-state 
+operating conditions.
+(a)
+(b)
+Fig. 20 Experimental Trajectory Diagrams: (a) Error Mapping Diagram for Trajectory 1; (b) 
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.33]
+Error Mapping Diagram for Trajectory 2
+Fig. 20 shows the distribution of errors between the estimated and true trajectories during the 
+experiment. The system achieved sub-meter positioning accuracy overall under typical flight 
+mission scenarios, demonstrating controllable error ceilings and rapid convergence capabilities 
+under high dynamic disturbances. Fig. 20(a) shows that the overall trajectory trend is highly 
+consistent with the ground truth. However, localized error peaks occur during climb and dive turns, 
+with a maximum error of 0.902 m. During relatively stable attitude segments, errors rapidly 
+converged, maintaining stable tracking overall. In the low-altitude cruise mission depicted in Fig. 
+20(b), the positioning accuracy became more uniformly concentrated, with enhanced spatial 
+consistency and errors primarily clustered between 0.05 m and 0.3 m.
+(a)
+(b)
+Fig. 21 Absolute Pose Error Diagram: (a) Absolute Pose Error for Trajectory 1; (b) Absolute 
+Pose Error for Trajectory 2
+(a)
+(b)
+Fig. 22 APE Analysis Plots: (a) Trajectory APE Box Plot; (b) Trajectory APE Violin Plot
+Fig. 21 shows the absolute position error (APE) curves of two trajectories over time. Fig 21(a) 
+exhibits a significant error spike during the initial flight phase, where the positioning error 
+temporarily surged to approximately 0.9m. However, it rapidly converged to the 0.4–0.6m range 
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.34]
+within a very short time and maintained a relatively stable error level throughout the subsequent 
+flight. This phase corresponds to the high-dynamic operating conditions triggered by strong 
+excitation during the drone's takeoff process. This error response characteristic demonstrates that 
+the proposed UWB-IMU initial state estimation strategy exhibits excellent robustness and rapid 
+convergence capability. The system achieved initial convergence within seconds after takeoff and 
+maintained stable tracking, demonstrating the strategy's ability to effectively compensate for 
+information gaps caused by unobservable features or blurred images in the visual system during this 
+phase. In contrast, methods based on visual/visual-inertial initialization, such as VINS-Fusion and 
+ORB-SLAM3, frequently encountered failures in visual feature extraction and interruptions in 
+tracking initialization under this scenario. This led to incomplete trajectory estimation and rapid 
+error divergence. This further demonstrates the enhanced usability of the proposed fusion strategy 
+during complex dynamic takeoff phases. Fig. 21(b) shows a smoother error curve for Trajectory 2, 
+with subsequent errors fluctuating within 0.1-0.4m without significant divergence. Although minor 
+local oscillations occurred in the middle-to-late stages, overall convergence and consistency 
+remained robust. This indicates that the system exhibits minimal error fluctuations during steady-
+state cruise tasks, yielding more reliable estimation results.
+Fig. 22(a) shows the APE box plots for two flight trajectories. Trajectory 1 has a median error 
+of approximately 0.44 m and a wide interquartile range of errors. The maximum error approaches 
+0.8 m, and there are numerous outliers. These results suggest significant error fluctuations, frequent 
+sporadic deviations, and relatively unstable robustness performance under high-dynamic conditions. 
+In contrast, Trajectory 2's box plot is more compact, with a median error of about 0.26 m, few 
+outliers, and a maximum error of 0.55 m or less. This reflects the system's higher precision, 
+consistency, and error control capability under stable, low-dynamic flight conditions. Fig. 22(b) 
+further illustrates the distribution pattern of trajectory estimation errors using a violin plot. 
+Trajectory 1 has a broad contour with a bimodal structure, featuring a primary peak in the 0.4–0.5 
+m range and a long tail extending into the 0.6–0.8 m high-error interval. This pattern indicates 
+significant error fluctuations under high-dynamic conditions and a notable proportion of high-bias 
+regions in the estimation results. This morphology aligns with the outlier phenomenon observed in 
+the preceding box plot. In contrast, Trajectory 2 exhibits a more concentrated and symmetrical error 
+density distribution. Its primary error peak occurs within the 0.2–0.3 m range, with rapidly 
+decaying tails and no discernible trend toward high-bias expansion. This suggests more reliable 
+estimation accuracy during stable cruising phases, which are characterized by well-centered and 
+consistent errors.
+In summary, the two representative trajectories demonstrate the multi-source fusion 
+positioning system's accuracy and stability under different flight conditions. In contrast, VINS-
+Fusion and ORB-SLAM3 tend to diverge during high-dynamic takeoff phases due to initialization 
+failures. This underscores the practicality of the UWB-IMU combined initialization strategy 
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.35]
+presented in this paper, which furnishes robust initial values regardless of visual constraints. This 
+strategy ensures the convergence and accuracy of map optimization, demonstrating the system's 
+advantages for deployment in high-dynamic environments.
+6 Conlusion
+(1) A multi-source fusion positioning method integrating IMU, visual modules, and UWB 
+ranging modules is proposed. This approach fully leverages the complementary advantages of the 
+three sensor types across temporal-frequency, error characteristics, and spatial constraint 
+dimensions: IMUs offer high frequency and excellent short-term stability; visual modules possess 
+strong environmental perception capabilities and are well-suited for relative motion observation; 
+UWB signals feature low energy density, broad spectrum coverage, strong anti-interference 
+capabilities, and can provide global high-precision positioning constraints.
+(2) A structured visual feature optimization method is proposed. By employing a locally 
+texture-aware adaptive FAST detection mechanism and a density-driven spatial balancing strategy, 
+while integrating gradient and grayscale information in descriptor construction, CLAHE 
+enhancement and Top-K direction sparse coding are introduced. This enhances the spatial 
+distribution balance and directional robustness of feature points, thereby improving the accuracy 
+and stability of visual observations during UAV positioning.
+(3) A graph optimization positioning method integrating IMU/vision/UWB is proposed. An 
+UWB-IMU initial state estimation strategy based on extended Kalman filtering is adopted, 
+enhancing the system's convergence speed and accuracy during high-dynamic initial phases. Within 
+the graph optimization framework, a UWB differential ranging residual factor and an inter-frame 
+state compensation mechanism based on IMU pre-integration were designed to enhance the system's 
+global constraint capability and observation time synchronization. Adaptive sliding window 
+scheduling further improves real-time performance and optimization efficiency. Unified modeling 
+and tightly coupled joint estimation of multi-source information were achieved, effectively boosting 
+the positioning performance of UAVs in anti-access environments.
+CRediT authorship contribution statement 
+Jia Lu: Writing–original draft, Formal analysis. Zuyin Zhang: Validation. Yishen Qi: 
+Investigation, Software. Ping Song: Funding acquisition.
+Declaration of competing interest 
+The authors declare that they have no known competing financial interests or personal 
+relationships that could have appeared to influence the work reported in this paper.
+Acknowledgements 
+This work was supported by National Defense Basic Scientific Research Program of China 
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.36]
+(JCKY2023602B019).
+Data availability 
+The authors do not have permission to share data.
+7 Reference
+[1] H. Taheri, Z. C. Xia, 2021. SLAM; definition and evolution. Eng. Appl. Artif. Intell. 97, 104032. 
+https://doi.org/10.1016/j.engappai.2020.104032
+[2] I. A. Kazerouni, L. Fitzgerald, G. Dooly, D. Toal, 2022. A survey of state-of-the-art on visual SLAM. Expert 
+Syst. Appl. 205, 117734. https://doi.org/10.1016/j.eswa.2022.117734
+[3] W.F. Chen, G.T. Shang, A.H. Ji, C.J. Zhou, X.Y. Wang, C.H. Xu, Z.X. Li, K. Hu, 2022. An Overview on Visual 
+SLAM: From Tradition to Semantic. Remote Sens. 14, 3010. https://doi.org/10.3390/rs14133010
+[4] Z.Y. Yan, T. Zhou, Q.j. Guo, C. Xu, T.H. Wang, D.D. Peng, X.Y. Yu, 2022. Terrain matching positioning method 
+for 
+underwater 
+vehicles 
+based 
+on 
+curvature 
+discrimination. 
+Ocean 
+Eng. 
+260, 
+111965. 
+https://doi.org/10.1016/j.oceaneng.2022.111965
+[5] G. Fan, X.J. Liu, Y. Li, J. Li, Y. Han, L. He, A Terrain-Aided Navigation Method Incorporating Terrain Matching 
+and 
+Terrain 
+Suitability 
+Analysis, 
+IEEE 
+Access. 
+13(2025) 
+71066-71080. 
+https://doi.org/10.1109/ACCESS.2025.3562768
+[6] J.H. Cheng, Z. Wang, H.Y. Zhou, L. Li, J. Yao, 2020. DM-SLAM: A Feature-Based SLAM System for Rigid 
+Dynamic Scenes. ISPRS Int. J. Geo-Inf. 9, 202. https://doi.org/10.3390/ijgi9040202
+[7] C. Theodorou, V. Velisavljevic, V. Dyo, 2022. Visual SLAM for Dynamic Environments Based on Object 
+Detection 
+and 
+Optical 
+Flow 
+for 
+Dynamic 
+Object 
+Removal. 
+Sensors. 
+22, 
+7553. 
+https://doi.org/10.3390/s22197553
+[8] G.Q. Li, L. Yu, S.M. Fei, 2021. A deep-learning real-time visual SLAM system based on multi-task feature 
+extraction 
+network 
+and 
+self-supervised 
+feature 
+points. 
+Measurement. 
+168, 
+108403. 
+https://doi.org/10.1016/j.measurement.2020.108403
+[9] P. Huang, G.H. Cao, H.J. Zhang, J.J. Zhang, Mission Capability and Denial Distance Analysis of Small 
+Reconnaissance UAVs, Modern Defense Technology. 50(2022)1-6. https://doi.org/10.3969/j.issn.1009-
+086x.2022.01.001
+[10] C. Forster, Z.C. Zhang, M. Gassner, M. Werlberger, D. Scaramuzza, SVO: Semidirect Visual Odometry for 
+Monocular 
+and 
+Multicamera 
+Systems, 
+IEEE 
+Trans. 
+Rob. 
+33(2016)249-265. 
+https://doi.org/10.1109/TRO.2016.2623335
+[11] S. Wang, R. Clark, H.K. Wen, N. Trigoni, DeepVO: Towards End-to-End Visual Odometry with Deep 
+Recurrent 
+Convolutional 
+Neural 
+Networks, 
+ICRA. 
+(2017) 
+2043-2050. 
+https://doi.org/10.48550/arXiv.1709.08429
+[12] W. Wang, Y. Hu, S. Scherer, A generalizable learning-based vo, PMLR. (2021)1761-1772. 
+https://doi.org/10.48550/arXiv.2011.00359
+[13] R. Mur-Artal, J. M. M. Montiel, J. D. Tardós, ORB-SLAM: A Versatile and Accurate Monocular SLAM System, 
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.37]
+IEEE Trans. Rob. 31(2015)1147-1163. https://doi.org/10.1109/TRO.2015.2463671
+[14] R. Mur-Artal, J. D. Tardós, ORB-SLAM2: An Open-Source SLAM System for Monocular, Stereo, and RGB-
+D Cameras, IEEE Trans. Rob.33(2017)1255-1262. https://doi.org/10.1109/TRO.2017.2705103
+[15] T. Qin, P.L. Li, S.J. Shen, VINS-Mono: A Robust and Versatile Monocular Visual-Inertial State Estimator, 
+IEEE Trans. Rob. 34(2018)1004-1020. https://doi.org/10.48550/arXiv.1708.03852
+[16] C. Campos, R. Elvira, J. Rodríguez, J. M. M. Montiel, J. D. Tardós, ORB-SLAM3: An Accurate Open-Source 
+Library 
+for 
+Visual, 
+Visual-Inertial 
+and 
+Multi-Map 
+SLAM, 
+IEEE 
+Trans. 
+Rob. 
+33(2017)1255-
+1262.https://doi.org/10.48550/arXiv.2007.11898
+[17] P. Y. Kao, H. J. Chang, K. W. Tseng, T. Chen, H. L. Luo, Y. P. Hung, VIUNet: Deep Visual–Inertial–UWB 
+Fusion 
+for 
+Indoor 
+UAV 
+Localization, 
+IEEE 
+Access. 
+11(2023) 
+61525-61534. 
+https://doi.org/10.1109/ACCESS.2023.3279292
+[18] G.J. Fan, Q. Wang, G.C. Yang, L.P. Liu, 2024. RFG-TVIU: robust factor graph for tightly coupled 
+vision/IMU/UWB integration. Front. Neurorob. 18, 1343644. https://doi.org/10.3389/fnbot.2024.1343644
+[19] M. Bansal, M. Kumar, M. Kumar, 2D object recognition: a comparative analysis of SIFT, SURF and ORB 
+feature descriptors, MULTIMED TOOLS APPL. 80(2021) 18839-18857. https://doi.org/10.1007/s11042-
+021-10646-0
+[20] B. Bescos, J. M. Fácil, J. Civera, J. Neira, DynaSLAM: Tracking, Mapping, and Inpainting in Dynamic Scenes, 
+IEEE Rob. Autom. Lett. 3(2018)4076-4083. https://doi.org/10.1109/LRA.2018.2860039
+[21] S.Popinet, A quadtree-adaptive multigrid solver for the Serre-Green-Naghdi equations, J. Comput. 
+Phys.302(205) 336-358. https://doi.org/10.1016/j.jcp.2015.09.009
+[22] H. Yang, L. Shen, X. Dong, Q. Ding, P. An, G. Jiang, Low-Complexity CTU Partition Structure Decision and 
+Fast Intra Mode Decision for Versatile Video Coding, IEEE Trans. Circuits Syst. Video Technol. 30(2020) 1668-
+1682. https://doi.org/10.1109/TCSVT.2019.2904198
+[23] G. Ri, C. Ri, S.R. Ji, A Fingerprint Indexing Method Based on Minutia Descriptor and Clustering, International 
+Journal of Biometrics. 11(2019)101-112. https://doi.org/10.48550/arXiv.1811.08645
+[24] Y.T. Zhang, J.M. Song, Y. Ding, Y.T Yuan, H.L. Wei, 2021. FSD-BRIEF: A Distorted BRIEF Descriptor for 
+Fisheye Image Based on Spherical Perspective Model. Sensors. 21, 1839. https://doi.org/10.3390/s21051839
+[25] W. Huang, L.a. Wu, H.C. Song, Y.M. Wei, RBRIEF: a robust descriptor based on random binary comparisons, 
+IET Comput. Vision. 7(2013)29-35. https://doi.org/10.1049/iet-cvi.2012.0087
+[26] T. Bayer, M. Kočandrlová, Reconstruction of Map Projection, its Inverse and Re-Projection, Appl. Math. 
+63(2018)455-481. https://doi.org/10.21136/AM.2018.0096-18
+[27] M.K. Hor, C.Y. Tang, Y.L. Wu, K.H. Chan, J.J. Tsai, Robust refinement methods for camera calibration and 
+3D 
+reconstruction 
+from 
+multiple 
+images, 
+Pattern 
+Recognit. 
+Lett. 
+32(2011) 
+1210-1221. 
+https://doi.org/10.1016/j.patrec.2011.03.007
+[28] J.H. Chen, H.W. Wang, S. Yang, 2023. Tightly Coupled LiDAR-Inertial Odometry and Mapping for 
+Underground Environments. Sensors. https://doi.org/15,6834. 0.3390/s23156834
+[29] L. Chang, X.J. Niu, T.Y. Liu, 2020. GNSS/IMU/ODO/LiDAR-SLAM Integrated Navigation System Using 
+IMU/ODO Pre-Integration. Sensors. https://doi.org/10.3390/s20174702
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+[p.38]
+[30] D.H. Kim, A. Farhad, J.Y. Pyun, UWB Positioning System Based on LSTM Classification With Mitigated 
+NLOS Effects, IEEE Internet Things J. 10(2023) 1822-1835. https://doi.org/10.1109/JIOT.2022.3209735
+[31] F.Q. Zhou, F. Qin, Z. Yi, W.T. Yao, Z.M. Liu, X.W. Wu, P.H. Wu, Ultra-wideband and wide-angle perfect 
+solar energy absorber based on Ti nanorings surface plasmon resonance, PCCP. 31(2023) 17041-17048 
+https://doi.org/23(2021)17041-17048. 10.1039/d1cp03036a
+[32] S.Z. Zhou, Some Results on Path-Factor Critical Avoidable Graphs, DISCUSS MATH GRAPH T. 
+43(2023)233-244. https://doi.org/10.7151/dmgt.2364
+[33] H.X. Liu, Sharp conditions on fractional ID-(g, f)-factor-critical covered graphs, RAIRO-OPER RES. 56(2022) 
+3257-3265. https://doi.org/3257-3265. 10.1051/ro/2022144
+[34] S.Z. Zhou, Q.X. Bian, The existence of path-factor uniform graphs with large connectivity, RAIRO-OPER 
+RES.
+56(2022)2919-2927. https://doi.org/10.1051/ro/2022143
+[35] Z.W. Xue, Y. Zhang, C. Cheng, G.J. Ma, Remaining useful life prediction of lithium-ion batteries with adaptive 
+unscented kalman filter and optimized support vector regression, Neurocomputing. 376(2020)95-102. 
+https://doi.org/10.1016/j.neucom.2019.09.074
+[36] Y.L. Huang, Y.G. Zhang, Y.X. Zhao, J.A. Chambers, A Novel Robust Gaussian-Student's t Mixture Distribution 
+Based Kalman Filter, IEEE Trans. Signal Process. 67(2019) 3606-3620. https://doi.org/10.1109/TSP.2019.2916755
+[37] X.D. Wang, X.X. Zeng, Y. Lyu, K. Chen, Y. Zhang, D. Li, A Deep Quadruplet Network for Local Descriptor 
+Learning, IEEE Access. 8(2020)16807-16815. https://doi.org/10.1109/ACCESS.2019.2962624
+[38] H. Yang, W.Y. Tao, C.M. Own, DFR-net: Learning Dense Features at the Resolution Level, IEEE Access. 
+7(2019) 97013-97020. https://doi.org/10.1109/ACCESS.2019.2930003
+[39] J. Wan, A. Yilmaz, L. Yan. PPD: Pyramid Patch Descriptor via Convolutional Neural Network. Photogramm. 
+Eng. Remote Sens. 9(2019) 673-686. https://doi.org/10.14358/PERS.85.9.673
+[40] M. Burri, J. Nikolic, P. Gohl, T. Schneider, J. Rehder, S. Omari, M.W. Achtelik, R. Siegwart, The EuRoC micro 
+aerial vehicle datasets, Int. J. Rob. Res. 35(2016)1157-1163. https://doi.org/10.1177/0278364915620033
+[41] H. Choi, An Open-Source Benchmark for Scale-Aware Visual Odometry Algorithms, INT J FUZZY LOG 
+INTE, 19(2019)119-128. https://doi.org/10.5391/IJFIS.2019.19.2.119
+[42] Y.B. Liu, M. Jun, RDS-SLAM: Real-Time Dynamic SLAM Using Semantic Segmentation Methods, IEEE 
+Access. 9(2021)23772-23785. https://doi.org/10.1109/ACCESS.2021.3050617
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=5598844
+Preprint not peer reviewed
+=== END ===

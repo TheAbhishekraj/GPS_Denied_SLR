@@ -1,0 +1,958 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1541.pdf
+sha256: AC26C87BC28F8FB7D4B16B053F24BD3C1AE7CCBD152184D467B5DDCD47842E8F
+library: pymupdf (fitz) v1.28.2
+pages: 9
+=== BEGIN ===
+[p.1]
+Visual–Thermal Landmarks and Inertial Fusion for
+Navigation in Degraded Visual Environments
+Shehryar Khattak
+Autonomous Robots Lab
+University of Nevada, Reno
+Reno, NV 89557
+shehryar@nevada.unr.edu
+Christos Papachristos
+Autonomous Robots Lab
+University of Nevada, Reno
+Reno, NV 89557
+cpapachristos@unr.edu
+Kostas Alexis
+Autonomous Robots Lab
+University of Nevada, Reno
+Reno, NV 89557
+kalexis@unr.edu
+Abstract—During the past decade, aerial robots have seen an
+unprecedented expansion in their utility as they take on more
+tasks which had typically been reserved for humans. With an
+ever widening domain of aerial robotic applications, including
+many mission critical tasks such as disaster response operations,
+search and rescue missions and infrastructure inspections tak-
+ing place in GPS–denied environments, the need for reliable
+autonomous operation of aerial robots has become crucial. To
+accomplish their tasks, aerial robots operating in GPS–denied
+areas rely on a multitude of sensors to localize and navigate.
+Visible spectrum camera systems correspond to the most com-
+monly used sensing modality due to their low cost and weight
+rendering them suitable for small aerial robots in indoor or
+broadly GPS–denied settings. However, in environments that
+are visually–degraded such as in conditions of poor illumination,
+low texture, or presence of obscurants including fog, smoke and
+dust, the reliability of visible light cameras deteriorates sig-
+niﬁcantly. Nevertheless, maintaining reliable robot navigation
+in such conditions is essential if the robot is to perform many
+of the critical applications listed above. In contrast to visible
+light cameras, thermal cameras offer visibility in the infrared
+spectrum and can be used in a complementary manner with
+visible spectrum cameras for robot localization and navigation
+tasks, without paying the signiﬁcant weight and power penalty
+typically associated with carrying other sensors such as 3D
+LiDARs or a RADAR. Exploiting this fact, in this work we
+present a multi–sensor fusion algorithm for reliable odometry
+estimation in GPS–denied and degraded visual environments.
+The proposed method utilizes information from both the visi-
+ble and thermal spectra for landmark selection and prioritizes
+feature extraction from informative image regions based on
+a metric over spatial entropy.
+Furthermore, inertial sensing
+cues are integrated to improve the robustness of the odometry
+estimation process. The proposed method works in real-time,
+fully on-board an aerial robot. To verify our solution, a set of
+challenging experiments were conducted inside a) an obscurant-
+ﬁled machine shop–like industrial environment, as well as b) a
+dark subterranean mine in the presence of heavy airborne dust.
+TABLE OF CONTENTS
+1. INTRODUCTION. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .1
+2. RELATED WORK . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .2
+3. PROPOSED METHOD . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .3
+4. EXPERIMENTAL EVALUATION . . . . . . . . . . . . . . . . . . . . . .4
+5. CONCLUSIONS . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .6
+ACKNOWLEDGMENTS . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .6
+REFERENCES . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .7
+BIOGRAPHY . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .8
+978-1-5386-6854-2/19/$31.00 c⃝2019 IEEE
+1. INTRODUCTION
+Over the past decade aerial robots have seen an unprece-
+dented expansion in the areas of their application as they
+provide an agile and ﬂexible platform to perform human-
+reserved tasks autonomously, while minimizing the risk to
+human life and lowering operational costs.
+As a natural
+progression in this expansive role of aerial robots, they are
+now utilized in applications such as infrastructure inspec-
+tion [1–10] and search and rescue missions [11–15]. These
+applications require robots to navigate through a variety
+of environments, while often encountering GPS–denied and
+visually degraded conditions making reliable pose estimation
+for the robot a major challenge. In the absence of external
+pose estimation such as GPS, which is common for indoor
+search and rescue operations, as well as inspection tasks of
+tunnel and mine environments, aerial robots rely on their
+on-board sensors to estimate odometry as they navigate an
+environment and perform their assigned tasks.
+For small
+unmanned aerial robots, visual spectrum camera sensors re-
+main a popular choice as they provide a light-weight, power-
+efﬁcient and low-cost sensor to enable odometry estimation
+as compared to 3D LiDAR and RADAR sensors. However, in
+environments with poor–illumination and low texture, image
+data from visual cameras become degraded and cannot be
+reliably used for pose estimation. Furthermore, the visual
+image quality suffers in the presence of visual obscurants
+such as smoke, fog and dust. In contrast to the limitations
+of visible spectrum cameras, thermal cameras operating in
+the Long Wave Infrared (LWIR) spectrum are not affected
+by conditions of poor-illumination and the presence of most
+visual obscurants, while maintaining the desired attributes of
+being light-weight and power-efﬁcient. However, in general
+thermal images offer lower contrast in comparison to visual
+images especially when imaging areas containing objects
+of similar temperature and emissivity values and therefore
+require techniques such as histogram equalization to improve
+contrast [16].
+Based on the discussion above, for aerial robots to reliably
+estimate their pose in a variety of challenging environments a
+multi–spectral odometry estimation approach, utilizing visual
+and thermal information in a complementary manner, can of-
+fer robustness when one sensing modality becomes degraded.
+In addition, such an approach is well suited for applications
+where aerial robots have to move between areas with different
+cases of sensor degradation, e.g. during search and rescue
+missions aerial robots might need to move from well–lit but
+thermally ﬂat areas to smoke–ﬁlled areas and vice versa.
+Similarly, some obscurants might be temporarily introduced
+due to the operation of the aerial robot itself over different
+terrains, e.g. during underground mine inspection tasks, an
+aerial robot creates airborne dust due to the introduced air
+turbulence in often dry and dusty environments.
+1
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:10:27 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+Figure 1. Instance of an experiment during which an aerial
+robot navigates through a subterranean mine. Inset a) shows
+the aerial robot carrying the sensors and using on-board
+illumination, b) shows the visual image from the on-board
+visible camera, with low-illumination and the presence of
+airborne dust degrading the quality of the frame, while c)
+shows an image from the on-board thermal camera
+indicating that it remains unaffected by darkness and
+obscurants.
+Motivated by the aforementioned challenges, in this paper we
+present an approach to use entropy information in order to
+selectively utilize visual and thermal image information for
+the selection of landmarks for the pose estimation of aerial
+robots. These landmarks are then further fused with inertial
+measurements provided from an Inertial Measurement Unit
+(IMU) using an Extended Kalman Filter (EKF) framework.
+To demonstrate the real-time and on-board performance of
+our approach in degraded visual environments a set of exper-
+iments are conducted using an aerial robot, ﬁrst in a fog-ﬁlled
+indoor environment. We demonstrate that the aerial robot
+can maintain a reliable estimate of its pose in the presence
+of fog, as well as while transitioning from well-lit to poorly-
+illuminated parts of the environment.
+Furthermore, we
+demonstrate the real world performance of our algorithm by
+estimating the pose of the aerial robot inside a subterranean
+mine environment in the absence of external illumination
+and in the presence of heavy airborne dust. A video of the
+conducted experiments can be found at https://www.
+autonomousrobotslab.com/maskvio.html.
+Fig-
+ure 1 presents an instance of an underground mine explo-
+ration mission.
+The remainder of the paper is structured as follows: Section 2
+provides an overview of the related work, while Section 3
+details our proposed method. The experimental evaluation
+studies are presented in Section 4. Finally, conclusions are
+drawn in Section 5.
+2. RELATED WORK
+Estimation of vehicle pose in Degraded Visual Environments
+(DVE) has been a widely studied topic in the context of
+navigation and landing of helicopters especially in conditions
+of darkness and in the presence of heavy airborne dust.
+Solutions proposed for larger aerial vehicles are usually based
+on LiDAR [17] or RADAR [18] systems given the higher
+payload capacity of such vehicles and how cost factors are
+considered.
+However, given the smaller payload capacity
+of Micro Aerial Vehicles (MAVs), LiDAR and especially
+RADAR system integration comes with high power and op-
+erational time penalties. Considering the case of lightweight
+sensing solutions carried on-board aerial robots, most so-
+lutions emphasize on visual–inertial localization and only
+more recently the community has considered the potential
+of thermal vision.
+The work in [19] showed a hand–held
+setup consisting of an RGBD and a thermal camera for
+thermographic mapping of objects. However, the underlying
+odometry estimation relies purely on RGBD data. Similarly,
+in [20] a hand–held system consisting of visible and thermal
+cameras along with an IMU was presented. Authors demon-
+strated the feasibility of thermal and IMU only odometry
+estimation, however they also showed the limitations of such
+a system in areas with very low thermal gradients, while
+also showing visual odometry to work in the same environ-
+ment and concluded by suggesting the usage of a multi–
+spectral approach for odometry estimation. In [21] authors
+demonstrate odometry estimation of a car using a monocular
+thermal camera by extending visual odometry approaches but
+discuss the necessity of knowing the height of camera from
+the ground at all times to estimate the scale correctly. The
+authors also discuss the lack of contrast in thermal images and
+suggest improving the contrast in thermal images, as well as
+emphasizing the need for the fusion of thermal imagery with
+other sensing modalities to make odometry estimation more
+robust. A stereo thermal camera system is proposed in [22]
+for the estimation of odometry with correct scale. The authors
+demonstrate the pose estimation of an aerial robot with this
+system in outdoor settings but discuss the need of integration
+of proprioceptive sensors such as an IMU to make the overall
+odometry solution robust.
+Following the direction of a multi–spectral odometry estima-
+tion solution that utilizes both visible and thermal informa-
+tion, the authors in [23] propose detecting features in both
+visual and thermal images for odometry estimation. They
+demonstrate the feasibility of their approach by estimating
+odometry under different lighting conditions in outdoor set-
+tings. Their method proposes separate detection of features in
+visual and thermal images but extraction of feature descrip-
+tors in both domains for each feature point for robust feature
+matching. However, as discussed in [24] the direct applica-
+tion of feature detection and descriptor matching methods
+designed for visual images on thermal camera data results
+in poor feature matching performance and reduced accuracy
+of the estimated odometry. Echoing the same argument, the
+authors in [25] propose an edge–histogram based descriptor
+for multi–spectral feature matching on a visual and thermal
+camera stereo system. They demonstrate the application of
+their method by estimating the odometry of a car navigating
+through an urban environment. However, as discussed in the
+experimental section of the paper, the proposed descriptor
+shows inferior feature matching performance when applied
+to visual images and is replaced with typical visual methods
+during experiments. Similarly, their odometry estimation ap-
+proach integrates pose priors provided by GPS making their
+solution unsuitable for GPS–denied environments. In [26],
+authors estimate the pose of an unmanned ground vehicle
+2
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:10:27 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+using visual and thermal cameras in the presence of a variety
+of obscurants in outdoors settings. Features are selectively
+chosen from areas of visual and thermal images which are
+not degraded by the presence of obscurants and are used to
+estimate the robot pose. Scale is calculated independently
+by using velocity information provided by the IMU. The
+authors also discuss poor feature matching performance on
+thermal images, as well as in the presence of obscurants, and
+suggest the application of methods such as RANSAC, and its
+variations, to prune incorrect feature matches for improving
+the reliability of odometry estimation.
+Motivated by progress in the literature and the need to address
+the identiﬁed limitations of the current state-of-the-art, in this
+paper we propose a multi–modal, multi–spectral approach
+on visual/thermal camera and IMU fusion.
+The proposed
+solution utilizes spatial entropy to prioritize certain visual
+and thermal image regions for feature selection and fuses
+IMU cues in an EKF fashion. We demonstrate the strengths
+of our solution in GPS-denied, dark and obscurants-ﬁlled
+environments.
+3. PROPOSED METHOD
+To enable reliable odometry estimation for aerial robots in
+degraded visual environments (DVEs) using visible and ther-
+mal cameras, the selection of interest points (or features)
+must be made carefully.
+As discussed in Section 2, the
+application of visual feature detection and matching methods
+on images in the presence of obscurants can lead to poor
+estimation of odometry because of feature mismatching. This
+is due to the fact that feature detection and matching methods
+operate over different neighborhood sizes in an image with
+the detection of features being performed ﬁrst by evaluating
+the gradient information over a small neighborhood at each
+pixel location in the image.
+Once a set of features has
+been selected, a feature descriptor in feature–based methods,
+or an intensity patch in direct intensity methods, is then
+extracted to encode information over a larger neighborhood
+around each feature location for matching and tracking in
+subsequent frames. As the neighborhood sizes for evaluation
+are different in the detection and matching operations, a
+feature may be selected which is associated with a non-
+informative larger neighborhood for matching operations.
+Such an incorrect selection of features can easily be made
+in the presence of obscurants such as fog and smoke, which
+unevenly decrease the quality of gradient information in an
+image [26]. Furthermore, obscurants such as airborne dust
+can also temporarily introduce strong local gradients which
+can lead to the selection of non-repeatable features. This may
+lead to tracking failure or incorrect estimation of conﬁdence
+metrics for an odometry solution. An example of temporary
+strong local gradients introduced by dust particles is shown in
+Figure 2, where dust speckles introduce strong local gradients
+against a dark background and can be incorrectly selected as
+features.
+In our approach we associate the local feature selection
+process to larger image neighborhoods to make sure that the
+selected features have corresponding informative neighbor-
+hoods in order to ensure better feature tracking performance.
+For this purpose we ﬁrst measure the amount of information
+contained in an image which has traditionally been done by
+using the Shannon Entropy criterion, given as:
+eimage = −
+N
+X
+i⃗
+pi · log(⃗pi)
+(1)
+Figure 2. Effect of obscurants on sensor degradation for
+robot localization: [a] and [b] show the visible image and its
+calculated gradient image respectively. Dust particles seen in
+[a], create corresponding strong gradient values in [b] as
+highlighted by the red circles. These strong gradients are
+temporal in nature and lead to selection of features that
+cannot be tracked in successive frames.
+where eimage is the entropy measure of the image and⃗p
+is the probability distribution vector of image intensity val-
+ues over all image pixels N in the image.
+However, we
+are interested in measuring the amount of spatial structure
+present in an image as features typically lie at edge or corner
+points of objects in the frame. Hence, instead of using direct
+image intensity values for entropy calculation we make use
+of the edge-ﬁltered gradient image as it better encodes the
+underlying spatial structure present in an image as shown
+in [27].
+Moreover, instead of calculating a global metric
+for an image we divide the image into R × R regions and
+calculate the spatial entropy of each region. This division
+allows us to better preserve local edges in the gradient image
+which otherwise might have been lost when subjected to a
+global threshold. Furthermore, although spatial entropy can
+provide a measure of the structural information available in
+an image region, it still remains context–free, as a region
+with an equal amount of very small and very large gradients
+produces the same spatial entropy measure as a region with
+a uniform distribution of gradient values as detailed in [28].
+Since we are interested in selecting features from regions of
+the image with a more uniform distribution of gradients, we
+further introduce a weight vector to weigh our entropy vector
+using a Gaussian distribution. Our entropy equation for an
+image region can now be written as:
+eregion = −
+NR
+X
+i
+(⃗ω ⊙⃗pi) · log(⃗pi)
+(2)
+where eregion is the entropy measure of the region,⃗ω is the
+Gaussian weight vector, ⊙represents the Hadamard product
+between two vectors and⃗pi represents the probability distri-
+bution vector of gradient magnitude values over all pixels NR
+in a certain image region R. Once the region–wise spatial
+entropy of the image has been calculated we compute the
+mean spatial entropy among all the regions and mark regions
+having an entropy measure above the mean as candidate
+regions from which features can be selected. Furthermore,
+in order to account for the dynamic nature of obscurants,
+we track the spatial entropy of a region over a temporal
+window and allow the selection of features from a region
+only if the region remains informative over a select number
+of frames. Figure 3 shows the application of the combined
+spatial and temporal quality metric on visible and thermal
+images, where green boxes indicate candidate regions for
+feature selection, red boxes show rejected regions which were
+labeled as candidate regions in the current frame but rejected
+due temporally inconsistent quality.
+Once features have been selected from the informative re-
+3
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:10:27 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+Figure 3. Figure shows the proposed feature selection
+strategy applied to visible and thermal images collected in
+indoor and subterranean mine environments. Inset [a] and
+[b] show the visible and thermal images respectively,
+collected in an indoor environment in the presence of dense
+fog. Green boxes show the informative regions of the image
+from where features should be selected. Similarly, [c] and
+[d] show the visible and thermal images respectively,
+collected in a subterranean mine environment in the presence
+of heavy airborne dust. Red boxes show rejected regions
+containing dust due to their temporally inconsistent quality.
+gions of visible and thermal images, they are fused with in-
+ertial measurements using an Extended Kalman Filter (EKF)
+for the odometry estimation of the aerial robot. A schematic
+diagram of our approach is shown in Figure 4.
+Figure 4. Overview of the proposed approach.
+We use an EKF formulation similar to the one proposed
+in [29] and track features as part of our ﬁlter state by modeling
+them as 3D landmarks using a 2D bearing vector µ, param-
+eterized with azimuth and elevation angles, and an inverse
+depth parameter ρ. The ﬁlter state propagation is performed
+using proper acceleration ˆf and rotational rate measurements
+ˆω provided by the IMU. Propagating the ﬁlter state with IMU
+readings allows the method to predict the feature locations
+between successive frames, reducing the search space for
+feature matching in the ﬁlter update step and negates the
+need for a separate feature mismatch pruning step. Feature
+matching is performed by minimizing the photometric error
+of a neighborhood patch at each feature’s predicted location.
+In our formulation, four coordinate frames namely, the IMU
+ﬁxed coordinate frame (B), the visible camera ﬁxed frame
+V, the thermal camera ﬁxed frame T , and the world inertial
+frame W, are used.
+It should be noted that we do not
+separately reserve features in the state vector for either visible
+or thermal images and choose the best available feature across
+spectra when selection of a new feature is needed. Permitting
+interchangeable features to be tracked as part of the ﬁlter state
+allows the method to keep the ﬁlter state vector small and
+therefore remain computationally efﬁcient.
+The employed
+state vector of our EKF formulation takes the form:
+x = [r q υ bf bω
+|
+{z
+}
+robot states
+| µ0, · · · µJ ρ0 · · · ρJ
+|
+{z
+}
+landmark states
+]⊤
+(3)
+where r and υ are the position and velocity of the IMU
+respectively, expressed in the B coordinate frame, q is the
+IMU attitude from the B to the W coordinate frames, bf and
+bω represent the additive accelerometer and gyroscope biases
+respectively expressed in the B coordinate frame, while µj is
+the bearing vector to the feature j expressed in the V or the T
+coordinate frame and ρj is the inverse depth parameter of the
+jth feature such that the feature distance dj is d(ρj) = 1/ρj.
+4. EXPERIMENTAL EVALUATION
+To evaluate the performance of our proposed algorithm, a
+set of experimental studies were conducted using an aerial
+robot in a) an indoor machine shop environment subject to the
+presence of dense fog and partial darkness, as well as b) a sub-
+terranean mine environment in the presence of heavy airborne
+dust. The robotic system used and the experiments conducted
+are detailed below. A video of the relevant experiments can
+be found at https://www.autonomousrobotslab.
+com/maskvio.html
+Figure 5. The high-level processor, Intel NUC–i7, receives
+visual, thermal and inertial data from the Chameleon 3
+camera, the Tau 2 thermal camera and the VN–100 IMU
+respectively in order to reliably estimate the robot pose.
+Furthermore, the high-level processor also receives inertial
+measurements from the autopilot of the robot and estimates
+smooth and robust robot odometry in real–time to enable
+state feedback position control.
+System Overview
+For the purposes of experimental evaluation, a DJI Matrice
+100 quadrotor equipped with the sensing suite proposed in
+this paper and an on-board computer was used.
+A FLIR
+Tau 2 thermal camera was mounted on the robot to provide
+thermal images of 640 × 512 resolution at 30 frames per
+second.
+Two Pointgrey Chameleon 3 visible light CCD
+cameras, with shutter–synchronized LEDs, provided visual
+images of 644×482 resolution at 20 frames per second. Only
+4
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:10:27 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+Figure 6. A visualization of the robot trajectory during the indoor experiment. Inset a) shows the robot trajectory in green, b)
+shows an image of the robot during an instance of the experiment navigating from lit to dark parts of the environment, while c)
+and d) show images from the on-board visible and thermal cameras respectively at this instance during the robot trajectory.
+one of the visual cameras alongside the thermal camera was
+used during the experimental evaluations of this work.
+A
+VectorNav VN–100 IMU was employed to provide inertial
+measurements at an update rate of 200Hz.
+The intrinsic
+calibration parameters of the visual and thermal cameras, as
+well the extrinsic calibration parameters for the IMU and
+the cameras were estimated using the work in [30] and our
+custom designed thermal checkerboard pattern [31].
+An
+Intel NUC–i7 computer (NUC7i7BNH) was carried on-board
+the robot to perform all high-level processing tasks.
+The
+estimated odometry from our proposed method is fused with
+inertial measurements received from the low–level attitude
+controlling autopilot of the robot using the the work of [32],
+in order to enable smooth and reliable position control using
+a Linear Model Predictive Control strategy based on the
+previous work in [33].
+All algorithms were implemented
+as Robot Operating System (ROS) nodes and run in real-
+time fully on-board the robot with the odometry estimation
+operation performing at an update rate of 20Hz. Figure 5
+provides the system overview of the robotic system used.
+Indoor Experiments
+To evaluate the real–time on-board performance of the pro-
+posed approach on an aerial robot, ﬂight tests were conducted
+in an obscurant-ﬁlled environment. A fog generator was used
+to ﬁll a machine shop resembling industrial environment with
+fog to serve as an obscurant during the experiment. Further-
+more, lights were turned off in a section of the environment to
+simulate partial darkness and to demonstrate the robustness
+of our approach under varying light conditions and in the
+presence of obscurants during the same experiment. It should
+be noted that no on-board illumination was used in these
+experiments.
+The estimated robot trajectory during ﬂight,
+from take–off to landing, is shown in Figure 6.
+To understand the effect of our feature selection approach
+on the track–ability of selected features inserted into the
+ﬁlter sate, we conducted 10 trials with and without using
+our feature selection region mask on the collected data-sets
+during the indoor experiments. The results of these trials are
+shown in Figure 7. The plot demonstrates the beneﬁt of our
+feature selection approach as the median number of features
+inserted in the ﬁlter state is smaller, indicating that the fea-
+tures selected using our proposed approach are tracked for
+a greater number of frames. Furthermore, to verify that our
+feature selection strategy provides a statistically signiﬁcant
+difference in the selection of features we performed one–
+way Analysis of Variance (ANOVA) test on the population
+of features selected with and without the application of our
+approach. The test resulted in p-value < 0.007185, indi-
+cating that the two populations are statistically different from
+each other and veriﬁes the effect and impact of our proposed
+feature selection strategy.
+Likewise, to understand the effect of our proposed feature
+selection strategy on the quality of the robot pose estimates,
+we analyze the evolution of the associated covariance of the
+robot pose estimates over time. As recommended in [34], we
+employ the D-Optimality criterion as a metric for measuring
+uncertainty of our robot pose estimates, with a lower D-
+Optimality value indicating a lower uncertainty in the robot
+pose estimate. This takes the form:
+DOptimality = exp(log(det(Σ)1/l))
+(4)
+where Σ is the robot pose covariance matrix with dimensions
+l × l. The evolution of the D-Optimality criterion for the
+robot pose estimates over the length of the mission is shown
+in Figure 8. It can be noted that the application of our feature
+selection mask attenuates the accumulation of uncertainty
+in robot pose estimates, as features that can be tracked for
+more successive frames lead to better convergence of ﬁlter
+uncertainty estimates.
+5
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:10:27 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+Without Mask
+With Mask
+740
+760
+780
+800
+820
+840
+860
+Number of Features
+Number of Features Inserted into Filter State
+Figure 7. Plot showing the total number of features inserted
+into the ﬁlter state, with and without the application of our
+proposed feature selection strategy, during the indoor
+experiments. Red line indicates the median value in each
+population, the blue box represents the interquartile range
+between the ﬁrst and third quartile, while red + symbols
+represent the outliers.
+0
+10
+20
+30
+40
+50
+60
+70
+80
+90
+Time (sec)
+0
+0.5
+1
+1.5
+2
+2.5
+3
+3.5
+4
+4.5
+5
+D-Optimality
+10 -7
+Evolution of D-Optimality Over Trajectory
+Without Mask
+With Mask
+Figure 8. Plot showing the evolution of the robot pose
+uncertainty, using the D-Optimality criterion, with and
+without the application of our proposed feature selection
+strategy during an indoor experiment.
+Subterranean Mine Experiment
+To demonstrate the real world performance and application
+of our approach, an experiment was conducted in a subter-
+ranean mine environment in conditions of darkness and heavy
+airborne dust. On-board illumination was utilized for visible
+light cameras to function in the otherwise completely dark
+underground mine environment. To provide a measure for
+ground–truth, pole markers were placed along the direction
+of the mine shaft with the ﬁnal marker position being 50.0m
+away from the robot take-off position. The estimated robot
+trajectory during the experiment is shown in Figure 11. A
+ﬁnal position error of 0.4857m was estimated for the robot
+navigation along the direction of the mine shaft.
+Similar to the analysis of indoor experiments, we conducted
+10 trials on the collected data during the experiment to verify
+the effect of our approach.
+The respective plot is shown
+in Figure 9.
+As shown, the median number of features
+inserted into the ﬁlter state during the mission length using
+the proposed feature selection mask is lower as compared to
+not using it. Similarly, an ANOVA test was again performed
+on the two populations resulting in a p-value < 0.00001,
+validating that our approach makes a statistically signiﬁcant
+difference on the selection of features to be used for estima-
+tion of odometry for the aerial robot.
+Without Mask
+With Mask
+1750
+1800
+1850
+1900
+1950
+Number of Features
+Number of Features Inserted into Filter State
+Figure 9. Plot showing the total number of features inserted
+into the ﬁlter state, with and without the application of our
+proposed feature selection strategy, during the subterranean
+mine experiments. Red line indicates the median value in
+each population, the blue box represents the interquartile
+range between the ﬁrst and third quartile and red + symbols
+represent the outliers.
+Similarly, Figure 10 shows the evolution of the pose uncer-
+tainty, using the D-Optimality criterion, over the trajectory
+of the aerial robot navigating through the subterranean mine
+environment.
+It is highlighted that the application of our
+feature selection mask results in a slowdown of the growth
+of pose uncertainty.
+5. CONCLUSIONS
+In this paper, a solution to enable autonomous navigation of
+aerial robots in environments that are not only GPS–denied
+but also visually–degraded is presented.
+A multi–modal
+sensor fusion approach is proposed and relies on the fusion
+of visible light and thermal vision sensors, alongside inertial
+measurement cues. The algorithm utilizes information from
+both the visible and thermal spectra for landmark detection
+and prioritizes feature extraction from informative image
+regions based on a metric over spatial entropy.
+Through
+extensive experimental evaluation we demonstrate that the
+described solution enables reliable and accurate robot local-
+ization in challenging GPS–denied, possibly subterranean,
+dark, textureless and obscurants–ﬁlled environments includ-
+ing underground mines.
+ACKNOWLEDGMENTS
+This material is based upon work related to the Mine Inspec-
+tion Robotics project sponsored by the Nevada Knowledge
+6
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:10:27 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+0
+50
+100
+150
+200
+Time (sec)
+0
+1
+2
+3
+4
+5
+6
+7
+D-Optimality
+10 4
+Evolution of D-Optimality Over Trajectory
+Without Mask
+With Mask
+Figure 10. Plot showing the evolution of the robot pose
+uncertainty, using the D-Optimality criterion, with and
+without the application of our proposed feature selection
+strategy during a subterranean mine experiment.
+Fund administered by the Governor’s Ofﬁce of Economic
+Development.
+REFERENCES
+[1]
+D. Lattanzi and G. Miller, “Review of robotic infras-
+tructure inspection systems,” Journal of Infrastructure
+Systems, vol. 23, no. 3, p. 04017004, 2017.
+[2]
+C. Papachristos, M. Kamel, M. Popovi´c, S. Khattak,
+A. Bircher, H. Oleynikova, T. Dang, F. Mascarich,
+K. Alexis, and R. Siegwart, “Autonomous exploration
+and inspection path planning for aerial robots using the
+robot operating system,” in Robot Operating System
+(ROS).
+Springer, 2019, pp. 67–111.
+[3]
+A. Bircher, M. Kamel, K. Alexis, H. Oleynikova, and
+R. Siegwart, “Receding horizon path planning for 3d ex-
+ploration and surface inspection,” Autonomous Robots,
+vol. 42, no. 2, pp. 291–306, 2018.
+[4]
+C. Papachristos, S. Khattak and K. Alexis, “Au-
+tonomous exploration of visually-degraded environ-
+ments using aerial robots,” in 2017 International Con-
+ference on Unmanned Aircraft Systems.
+IEEE, 2017.
+[5]
+C.
+Papachristos,
+S.
+Khattak,
+and
+K.
+Alexis,
+“Uncertainty–aware
+receding
+horizon
+exploration
+and
+mapping
+using
+aerial
+robots,”
+in
+IEEE
+International Conference on Robotics and Automation
+(ICRA),
+May
+2017.
+[Online].
+Available:
+https:
+//github.com/unr-arl/rhem planner
+[6]
+T. Dang, C. Papachristos, and K. Alexis, “Visual
+saliency-aware receding horizon autonomous explo-
+ration with application to aerial robotics,” in IEEE
+International Conference on Robotics and Automation
+(ICRA), May 2018.
+[7]
+A. J. Moore et al., “Uav inspection of electrical trans-
+mission infrastructure with path conformance autonomy
+and lidar-based geofences nasa report on utm reference
+mission ﬂights at southern company ﬂights,” 2017.
+[8]
+S. Khattak, C. Papachristos, and K. Alexis, “Change de-
+tection and object recognition using aerial robots,” in In-
+ternational Symposium on Visual Computing. Springer,
+2016, pp. 582–592.
+[9]
+T. Dang, S. Khattak, C. Papachristos, and K. Alexis,
+“Visual-inertial odometry-enhanced geometrically sta-
+ble icp for mapping applications using aerial robots,”
+arXiv preprint arXiv:1801.08228, 2018.
+[10] F.
+Mascarich,
+S.
+Khattak,
+C.
+Papachristos,
+and
+K. Alexis, “A multi-modal mapping unit for au-
+tonomous exploration and mapping of underground tun-
+nels,” in 2018 IEEE Aerospace Conference.
+IEEE,
+2018, pp. 1–7.
+[11] H. Balta, J. Bedkowski, S. Govindaraj, K. Majek,
+P. Musialik, D. Serrano, K. Alexis, R. Siegwart, and
+G. Cubber, “Integrated data management for a ﬂeet of
+search-and-rescue robots,” Journal of Field Robotics,
+2016.
+[12] T. Tomic et al., “Toward a fully autonomous uav: Re-
+search platform for indoor and outdoor urban search and
+rescue,” IEEE robotics & automation magazine, vol. 19,
+no. 3, pp. 46–56, 2012.
+[13] S. Khattak, C. Papachristos, and K. Alexis, “Marker
+based thermal-inertial localization for aerial robots in
+obscurant ﬁlled environments,” in International Sympo-
+sium on Visual Computing.
+Springer, 2018, pp. 565–
+575.
+[14] P. Doherty and P. Rudol, “A uav search and rescue
+scenario with human body detection and geolocaliza-
+tion,” in Australasian Joint Conference on Artiﬁcial
+Intelligence.
+Springer, 2007, pp. 1–13.
+[15] S. Khattak, C. Papachristos, and K. Alexis, “Vision-
+depth landmarks and inertial fusion for navigation in
+degraded visual environments,” in International Sympo-
+sium on Visual Computing.
+Springer, 2018, pp. 529–
+540.
+[16] “Flir camera adjustments lwir video camera - applica-
+tion note,” 2014.
+[17] G. Roy, S. Roy, and X. Cao, “Helicopter ﬂight test of
+the obscurant penetrating autosynchronous lidar (opal)
+in degraded visual environments: Part ii–see-through
+capability assessment,” 2015.
+[18] R. C. Lau and T. Woodward, “See-through obscurants
+via compressive sensing in degraded visual environ-
+ment,” in Compressive Sensing IV, vol. 9484.
+In-
+ternational Society for Optics and Photonics, 2015, p.
+94840F.
+[19] S. Vidas, P. Moghadam, and M. Bosse, “3d thermal
+mapping of building interiors using an rgb-d and ther-
+mal camera,” in Robotics and Automation (ICRA), 2013
+IEEE International Conference on.
+IEEE, 2013, pp.
+2311–2318.
+[20] E. Emilsson and J. Rydell, “Chameleon on ﬁrethermal
+infrared indoor positioning,” in Position, Location and
+Navigation Symposium-PLANS 2014, 2014 IEEE/ION.
+IEEE, 2014, pp. 637–644.
+[21] P. V. K. Borges and S. Vidas, “Practical infrared vi-
+sual odometry,” IEEE Transactions on Intelligent Trans-
+portation Systems, vol. 17, no. 8, pp. 2205–2213, 2016.
+[22] T. Mouats, N. Aouf, L. Chermak, and M. A. Richardson,
+“Thermal stereo odometry for uavs,” IEEE Sensors
+Journal, vol. 15, no. 11, pp. 6335–6347, 2015.
+[23] L. Chen, L. Sun, T. Yang, L. Fan, K. Huang, and
+Z. Xuanyuan, “Rgb-t slam: A ﬂexible slam framework
+7
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:10:27 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+Figure 11. A top–down view of the robot trajectory as well as the position of pole markers placed to provide a measure of
+ground–truth during the subterranean mine experiment are shown in a), an image of the robot and the two observed pole
+markers during an instance of this experiment are shown in b), while c) and d) show the images captured from the on–board
+visual and thermal cameras respectively during an instance of the subterranean mine experiment.
+by combining appearance and thermal information,” in
+Robotics and Automation (ICRA), 2017 IEEE Interna-
+tional Conference on.
+IEEE, 2017, pp. 5682–5687.
+[24] T. Mouats, N. Aouf, D. Nam, and S. Vidas, “Perfor-
+mance evaluation of feature detectors and descriptors
+beyond the visible,” Journal of Intelligent & Robotic
+Systems, pp. 1–31, 2018.
+[25] T. Mouats, N. Aouf, A. D. Sappa, C. Aguilera,
+and R. Toledo, “Multispectral stereo odometry,” IEEE
+Transactions on Intelligent Transportation Systems,
+vol. 16, no. 3, pp. 1210–1224, 2015.
+[26] C. Brunner, T. Peynot, T. Vidal-Calleja, and J. Un-
+derwood, “Selective combination of visual and ther-
+mal imaging for resilient localization in adverse condi-
+tions: Day and night, smoke and ﬁre,” Journal of Field
+Robotics, vol. 30, no. 4, pp. 641–666, 2013.
+[27] C. Brunner and T. Peynot, “Perception quality evalu-
+ation with visual and infrared cameras in challenging
+environmental conditions,” in Experimental Robotics.
+Springer, 2014, pp. 711–725.
+[28] K. G. Larkin, “Reﬂections on shannon information: In
+search of a natural information-entropy for images,”
+arXiv preprint arXiv:1609.01117, 2016.
+[29] M. Bloesch, M. Burri, S. Omari, M. Hutter, and R. Sieg-
+wart, “Iterated extended kalman ﬁlter based visual-
+inertial odometry using direct photometric feedback,”
+The International Journal of Robotics Research, vol. 36,
+no. 10, pp. 1053–1072, 2017.
+[30] P. Furgale, J. Maye, J. Rehder, T. Schneider, and L. Oth,
+“Kalibr,” https://github.com/ethz-asl/kalibr, 2014.
+[31] C. Papachristos, F. Mascarich, and K. Alexis, “Thermal-
+inertial localization for autonomous navigation of aerial
+robots through obscurants,”
+in 2018 International
+Conference on Unmanned Aircraft Systems (ICUAS).
+IEEE, 2018, pp. 394–399.
+[32] S. Lynen et al., “A robust and modular multi-sensor
+fusion approach applied to mav navigation,” in IEEE
+Conference on Intelligent Robots and Systems, 2013.
+[33] M. Kamel, T. Stastny, K. Alexis, and R. Siegwart,
+“Model predictive control for trajectory tracking of
+unmanned aerial vehicles using ros,” Springer Book on
+Robot Operating System (ROS).
+[34] H. Carrillo, I. Reid, and J. A. Castellanos, “On the
+comparison of uncertainty criteria for active slam,” in
+Robotics and Automation (ICRA), 2012 IEEE Interna-
+tional Conference on.
+IEEE, 2012, pp. 2080–2087.
+BIOGRAPHY[
+Shehryar Khattak earned his B.S. in
+Mechanical Engineering from Ghulam
+Ishaq Khan Institute of Engineering Sci-
+ences and Technology, Pakistan in 2009
+and M.S. in Aerospace Engineering from
+Korea Advanced Institute of Science and
+Technology, Daejeon in 2012. From Au-
+gust 2012 to December 2015, he worked
+as a Research Engineer at Samsung
+Electronics in Suwon, South Korea. Cur-
+rently, Shehryar is pursuing his Ph.D. in Computer Science
+and Engineering from the University of Nevada, Reno. His
+current research is related to robot perception and path plan-
+ning with focus on development of localization and mapping
+algorithms exploiting multi-sensor information.
+8
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:10:27 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+Christos
+Papachristos
+is
+a
+Post-
+Doctoral Researcher at the Autonomous
+Robots Lab of the University of Nevada
+Reno. He works in the ﬁelds of aerial
+robotics design, control, perception and
+planning, focusing on the systems and
+the methods that promote autonomy,
+long-term reliability, and robustness of
+operation in unknown environments. His
+current research activities include en-
+abling GPS-denied localization for Micro Aerial Vehicles
+operating in complex degraded visual environments, and
+achieving their autonomous exploration, mapping, and char-
+acterization. Christos Papachristos received his PhD from
+the University of Patras, Greece in 2015, and has since
+worked in large-scale research projects that aim to advance
+robotic autonomy, on both sides of the Atlantic.
+Kostas Alexis obtained his Ph.D. in
+the ﬁeld of aerial robotics control and
+collaboration from the University of Pa-
+tras, Greece in 2011.
+His Ph.D. re-
+search was supported by the Greek
+National-European Commission Excel-
+lence scholarship.
+Being awarded a
+Swiss Government fellowship he moved
+to ETH Zurich.
+From 2011 to June
+2015 he held the position of Senior Re-
+searcher at the Autonomous Systems Lab, ETH Zurich. Cur-
+rently, Dr. Alexis is an Assistant Professor at the University
+of Nevada, Reno and director of the Autonomous Robots
+Lab. His research interests lie in the ﬁelds of robotics and
+autonomy with a particular emphasis in the topics of control
+and planning and extensive experience in aerial robotics
+including the co-development of the AtlantikSolar UAV
+a
+solar powered small aerial robot that demonstrated 81.5h
+of continuous ﬂight.
+He is the author of more than 70
+publications and has received multiple best paper awards.
+9
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:10:27 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

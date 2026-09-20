@@ -1,0 +1,928 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0294.pdf
+sha256: 6601DEA03A4CA2561C0C6C07559D78CB039611D385DFEC8018CCC6182ADE147F
+library: pymupdf (fitz) v1.28.2
+pages: 8
+=== BEGIN ===
+[p.1]
+A Novel Approach to Computationally Lighter 
+GNSS-Denied UAV Navigation Using Monocular 
+Camera 
+Joyraj Bhowmick* 
+Delhi Technological University 
+New Delhi, India 
+joyrajbhowmick_2k17ee100@dtu
+.ac.in
+Anurag Singh* 
+Delhi Technological University 
+New Delhi, India 
+anuragsingh_2k17ec32@dtu.ac.in 
+Harshit Gupta*  
+Delhi Technological University 
+New Delhi, India 
+harshitgupta_2k19co151@dtu.ac.i
+n 
+Raghava Nallanthighal**  
+Delhi Technological University 
+New Delhi, India 
+nsraghava@dtu.ac.in
+Abstract—A good receptivity of GNSS signals during 
+autonomous navigation is of prime importance. Due to this, 
+navigation becomes close to impossible with places having low 
+receptivity or GNSS-denied zones. In this paper, a navigational 
+system is presented for a multi-rotor UAV in a GNSS-denied 
+environment. The global positioning problem is solved by taking 
+a local reference frame and estimating the UAV’s position and 
+velocity w.r.t it, using an onboard monocular camera and 
+barometer. The navigational problem is solved by designing a 
+required velocity function and tuning the system’s response to 
+this input by a PID controller. The results of both simulations 
+and actual flight tests show the effectiveness and reliability of the 
+presented work, which enables a UAV to perform full automated 
+missions from takeoff, waypoint navigation and landing, in 
+complete absence of any GNSS signals. 
+Keywords—GNSS-denied 
+outdoor 
+navigation, 
+Unmanned 
+Aerial Vehicles, Visual Odometry 
+NOMENCLATURE 
+UAV 
+Unmanned Aerial Vehicle 
+fps 
+Frames Per Second 
+GNSS 
+Global Navigation Satellite System 
+NED 
+North East Down 
+𝑓𝑤, 𝑓ℎ
+Image frame width (in pixels) and height (in 
+pixels) 
+𝑓𝑜𝑣𝑤, 𝑓𝑜𝑣ℎ
+Horizontal and vertical field of view of camera 
+(in degrees) 
+(𝑟𝑖, 𝑐𝑖)
+Row and column of the of the 𝑖𝑡ℎ detected
+feature in the image frame 
+𝑛 
+Frame number 
+𝑑𝑛
+Displacement vector of the UAV in pixels 
+𝐷𝑛
+Displacement vector of the UAV in meter w.r.t 
+the inertial frame 
+𝑣′
+Unfiltered velocity estimates  
+𝑣 
+Filtered velocity estimates 
+𝑘 
+Low-pass filter constant 
+𝑣𝑟
+Required velocity to towards destination 
+𝐾𝑝, 𝐾𝑖, 𝐾𝑑
+Proportional, integral and derivative constants of 
+PID 
+𝑒𝑣
+Difference between required velocity and current 
+velocity 
+𝑎𝑐𝑐 
+Acceleration vector required to reduce the 
+velocity difference 
+I.
+INTRODUCTION
+UAVs are actively being developed and used for a wide 
+range of civilian and military applications ranging from aerial 
+photography, precision farming, land surveying, surveillance, 
+reconnaissance, search and rescue operations, etc. [1]. Due to 
+active research in UAVs and availability of reliable platforms, 
+they are often used in HADR (Humanitarian Assistance and 
+Disaster Relief) scenarios. They are required to navigate to a 
+location, assess the situation, search for survivors, send back 
+required data and finally return back to base. To achieve this, 
+almost all UAVs rely on a combination of multiple GNSS 
+systems for accurate positioning and hence navigation. 
+The loss of GNSS signals during a mission can occur due 
+to multiple reasons: navigation in hilly terrain, presence of 
+jammers, low signal patches, faulty sensors, etc. This can be 
+devastating for the UAV and the mission and often leads to 
+abortion of a critical mission. Various solutions have been 
+proposed to counter this, but they majorly focus on indoor 
+localization and navigation. In [2], a comparative study of 
+different indoor navigation techniques is done. The author 
+used reflective markers and installed multiple cameras in the 
+lab to accurately locate the UAV. Another approach for 
+indoor localization of UAVs is taken up by installing fiducial 
+markers at various locations all over the building [3]. Since, 
+both these methods require preparing the surrounding 
+environment prior to flying, these cannot be used for outdoor 
+navigation. 
+Various studies for outdoor navigation are also available 
+as well, using a wide variety of approaches and sensors such 
+as, lidars, optical flow sensors, IMUs, monocular vision 
+cameras, stereo vision cameras, UWB radio modules, etc. In 
+[4], the authors propose a method of geolocation by 
+registering the aerial images taken during flight to the Google 
+Satellite images of that location. This method is not readily 
+deployable as the Google Satellite images are a prerequisite to 
+flying at any new place. Moreover, this leads to errors if the 
+Google Satellite images are not updated. 
+*These authors contributed equally.
+**Corresponding author (phone: +91 97117 24842). 
+114
+2021 International Conference on Automation, Robotics and Applications
+978-0-7381-4290-6/21/$31.00 ©2021 IEEE
+2021 7th International Conference on Automation, Robotics and Applications (ICARA) | 978-1-6654-0469-3/21/$31.00 ©2021 IEEE | DOI: 10.1109/ICARA51699.2021.9376502
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:56 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+An approach using a stereo vision camera, an on-board 
+computer running a ROS architecture is proposed for a rover 
+[5]. However, the weight and power constraints for a UAV is 
+much more stringent, hence the same approach cannot be used 
+for a UAV. The solution proposed in [6] uses the PX4Flow 
+optical flow sensor (directly compatible with ArduCopter) 
+along with IMUs and barometer. Although the optical flow 
+sensor used provides a low-cost solution to motion tracking 
+and perception, they are not suitable for low feature rich areas 
+and high-flying altitudes (>50m). 
+The authors in [7] used a monocular camera and IMUs to 
+present a method of UAV localization through a landmark and 
+developed a navigation solution that works till the landmark is 
+in the FOV of the camera. This was further improved in [8] 
+where a better navigational solution was presented where the 
+UAV does not need any landmark but stores multiple features 
+present on the ground during navigation. A different approach 
+was presented for the same UAV and sensors in [9] where the 
+flight performance was further improved. However, the 
+approaches were computationally intensive, the authors in [8] 
+used two flight computers and the authors in [9] used a flight 
+computer with Intel i7 processor. Moreover, the flying altitude 
+was <50m. 
+A solution for GNSS denied navigation with transition 
+from outdoor to indoor environments was presented in [10]. 
+The authors used a stereo vision camera and a 2D 360 lidar 
+and achieved navigational speeds up to 18m/s. A similar 
+approach was presented in [11], using a 2D 360 lidar capable 
+of navigation in clustered outdoor environments. However, 
+these 
+solutions 
+are 
+feasible 
+if 
+the 
+vehicle 
+detects 
+features/objects in its lateral plane (such as trees, walls, doors, 
+etc.) while navigating, hence won’t be applicable to UAV 
+flying at higher altitudes (>50m). 
+It is evident that outdoor GNSS denied navigation 
+solutions have been developed but they are not applicable at 
+altitudes >50m. Also, most of these use an additional payload 
+such as a particular optical flow sensor, lidar, stereo vision 
+camera, etc. The aim of this paper to present a novel, 
+computationally lighter approach to outdoor GNSS denied 
+navigation applicable at altitudes >50m using only the most 
+common and standard payload: barometer, flight computer 
+and a monocular camera. The proposed navigational system 
+comprises two major components: 
+ Position and Velocity Estimator: The image processing 
+algorithm detects and tracks features on ground and 
+processes them to calculate relative position and 
+velocity of the UAV w.r.t ground. 
+ Navigational Controller: The navigational controller 
+generates the trajectory and optimal control inputs for 
+roll, pitch and thrust to follow the generated trajectory. 
+The solution outlined in this paper can be used as a backup 
+navigational controller which remains active till the time the 
+UAV flies through a GNSS dead zone, or can be used as a 
+complete navigational controller for a UAV from takeoff to 
+landing in a GNSS denied environment. 
+The rest of the paper is organized as follows: Section II 
+provides some key concepts and notations used throughout the 
+paper. Section III derives the position and velocity estimates. 
+Section IV presents the navigational controller with required 
+control inputs. Section V lists the results of tests conducted in 
+simulations as well as actual flight tests, giving an optimum 
+operating point. Section VI provides a brief conclusion and 
+scope of future work.  
+II. PRELIMINARIES 
+A. Reference Frames 
+Two reference frames are used in this paper: 
+ Inertial Frame: The origin and axes in this frame are 
+fixed at a point in the ground (earth) and do not change 
+w.r.t time. The conventional NED frame is used as 
+inertial frame. The orientation of axes in this frame are: 
+𝑥-axis—positive towards north. 
+𝑦-axis—positive towards east. 
+𝑧-axis—positive downwards (towards gravity). 
+The takeoff point of the UAV is taken as the origin for 
+the inertial frame. 
+ Body Frame: The origin and axes in this frame are 
+fixed at a point on the UAV and thus change w.r.t time. 
+In the body frame the orientation of the axes are: 
+𝑥-axis—positive towards the heading of UAV (in 
+UAV plane). 
+𝑦-axis—positive towards 90 degree clockwise from the 
+heading (in UAV plane) 
+𝑧
+-axis—positive 
+towards 
+the 
+𝑥⃗×𝑦⃗⃗
+|𝑥⃗×𝑦⃗⃗|
+ direction, 
+perpendicular to UAV plane. 
+where, UAV plane is parallel to the plane of the 
+Autopilot. 
+B. UAV Dynamics 
+The state of the UAV at any point of time is defined by 6 
+state variables: 
+                                    [𝑥
+𝑦
+𝑧
+ϕ
+θ
+ψ]𝑇                           (1) 
+where (𝑥, 𝑦, 𝑧) represents the position of the UAV w.r.t the 
+inertial frame and (ϕ, θ, ψ) represents the attitude of the UAV. 
+ϕ: Roll angle (about 𝑥-axis in body frame) 
+θ: Pitch angle (about 𝑦-axis in body frame) 
+ψ: Yaw angle (about 𝑧-axis in body frame) 
+The rotation matrix 𝑅𝑀 is used to convert vectors from 
+body frame to inertial frame [12]. 
+      𝑅𝑀= [
+𝐶ψ𝐶θ
+𝐶ψ𝑆θ𝑆ϕ— 𝑆ψ𝐶ϕ
+𝐶ψ𝑆θ𝐶ϕ + 𝑆ψ𝑆ϕ
+𝑆ψ𝐶θ
+𝑆ψ𝑆θ𝑆ϕ + 𝐶ψ𝐶ϕ
+𝑆ψ𝑆θ𝐶ϕ— 𝐶ψ𝑆ϕ
+— 𝑆θ
+𝐶θ𝑆ϕ
+𝐶θ𝐶ϕ
+]     (2) 
+here 𝑆ϕ is sin ϕ, 𝐶ϕ is cos ϕ, and so on. 
+For our system, the use of 3-axis gimbal helps the camera 
+plane always lie parallel to the inertial 𝑥-𝑦 plane. We have 
+also maintained ψ = 0, i.e., heading always pointing towards 
+north during the entire flight. This provides a number of 
+advantages: 
+115
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:56 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+ Any trajectory can still be followed by a multirotor 
+without changing its yaw angle. 
+ The constant yaw angle during flight excludes a lot of 
+computational complexities. 
+ The rotation matrix formed is highly simplified and the 
+camera being parallel to the inertial 𝑥-𝑦 plane allows 
+the displacements calculated through the camera to be 
+directly used as displacements in inertial frame.  
+Thus, for ψ = 0, the rotation matrix is reduced to: 
+                             𝑅𝑀= [
+𝐶θ
+𝑆θ𝑆ϕ
+𝑆θ𝐶ϕ
+0
+𝐶ϕ
+— 𝑆ϕ
+— 𝑆θ
+𝐶θ𝑆ϕ
+𝐶θ𝐶ϕ
+]                        (3) 
+The only force acting in the UAV’s frame (body frame) 
+neglecting the drag due to the translational motion, is the 
+upward force due to propulsion. Therefore, the force acting in 
+the body frame is 𝐹𝐵. To convert this force and the roll pitch 
+angles to the inertial frame of reference [13], the following 
+equation is used: 
+                           [
+𝑥̈
+𝑦̈
+𝑧̈
+] = 1
+𝑚([
+0
+0
+𝑚𝑔
+] + 𝑅𝑀[
+0
+0
+— 𝐹𝐵
+])                     (4) 
+By simplifying the above equations, the relationship between 
+linear accelerations of the UAV in the inertial frame and the 
+roll angle, pitch angle and thrust is obtained: 
+                           [
+𝑥̈
+𝑦̈
+𝑧̈
+] = 1
+𝑚([
+— 𝐹𝐵𝑆θ𝐶ϕ
+𝐹𝐵𝑆ϕ
+— 𝐹𝐵𝐶θ𝐶ϕ + 𝑚𝑔
+])                     (5) 
+III. ESTIMATION 
+A. Feature Detection and Tracking 
+The monocular camera used has been first calibrated to 
+undistort the captured images. The camera is mounted on a 3-
+axis gimbal which counters the UAVs attitude and keeps the 
+camera pointing downwards at all times during the flight. The 
+gimbal is attached to the UAV through vibration isolation 
+balls, reducing high-frequency vibrations in images. Images 
+of the ground is continuously captured at a specified frame 
+rate. Features are regions at an image with a large variation in 
+intensity in all directions. Shi-Tomasi [14] and SURF [15] are 
+found to be better feature detection algorithms [16]. To find 
+the most suitable one for our case, these two algorithms were 
+tested on a video of resolution 640 × 480 having 4857 frames 
+captured by a UAV moving in a straight line at a speed of 
+5m/s and altitude 100m. The displacement of these features 
+was tracked using the Lucas-Kanade optical flow algorithm as 
+it can be easily applied to a subset of points in the input image 
+combined with features improving efficiency (discussed 
+further in [17]). It directly recovers motion at some required 
+pixels from spatio-temporal image brightness variations in the 
+image. It works under certain implicit assumptions: 
+ The displacement of the features in two consecutive 
+images must not be significantly large. 
+ The images must depict texture objects, exhibiting 
+varying brightness levels, changing smoothly.  
+The graphs of the estimated trajectory generated is plotted 
+against actual trajectory in Fig. 1. The processing time for 
+both the algorithms is shown in Table I. 
+The Shi-Tomasi corner detection algorithm was selected 
+due to lower processing time and better accuracy which will 
+suite high speed operations. 
+The UAV’s motion is estimated by calculating the 
+displacement vector of the distinct features between every two 
+consecutive frames captured by the camera. Approximately 
+50-60 features are tracked on each frame. The features near 
+the edges of the frame tend to accumulate at the same position 
+for successive frames due to aperture problem, giving 
+erroneous results. Thus, features within a pixel width of 𝑏 
+from the edges of the image frame are discarded in the 
+displacement calculation. The pixel width 𝑏 is taken to be 20 
+pixels in our case. This significantly reduces errors without 
+compromising on number of features. If a particular feature 
+goes out of the image frame, it is neglected and estimation is 
+continued with the rest of the features. If the number of 
+features falls below 30, features are recomputed using the 
+feature detection algorithm. 
+B. Position and Velocity Estimates 
+The position vector 𝑃, is the position of the UAV with 
+respect to the inertial frame. 
+                                        𝑃= [𝑥
+𝑦
+𝑧]𝑇                                    (6) 
+The point of takeoff (𝑃0) is taken as the home location of 
+the UAV, with 
+                                        𝑃0 = [0
+0
+0]𝑇                                   (7) 
+Feature tracking is used to calculate the displacement 
+along the 𝑥 and 𝑦 axes. The displacement along the 𝑧-axis or 
+altitude is obtained from the readings of the barometer of the 
+autopilot. 
+TABLE I. PROCESSING TIME COMPARISON 
+Algorithm 
+Time (in seconds) 
+Shi-Tomasi 
+40.11 
+SURF 
+45.47 
+ 
+Fig. 1. Plot of actual trajectory (red) and estimated trajectory for Shi-Tomasi 
+(green) and SURF (blue) 
+ 
+116
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:56 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+𝑓𝑛 is the matrix consisting of positions of features (in 
+pixels) detected in the 𝑛𝑡ℎ frame and 𝑚 is the total number of 
+features detected in that frame, (𝑟𝑖, 𝑐𝑖) is the position of the 
+𝑖𝑡ℎ feature in that frame. 𝐹𝑛 is the average of the positions of 
+features in that frame. 
+                                          𝑓𝑛= [
+𝑟1
+𝑐1
+𝑟2
+⋮
+𝑐2
+⋮
+𝑟𝑚
+𝑐𝑚
+]                                     (8) 
+                                𝐹𝑛= [∑
+𝑟𝑖
+𝑚
+𝑖=1
+𝑚
+∑
+𝑐𝑖
+𝑚
+𝑖=1
+𝑚
+]                               (9) 
+The average position of features in the 𝑛𝑡ℎ frame is 
+compared with their average position in the (𝑛— 1)𝑡ℎ frame, 
+to estimate the displacement along the 𝑥 and 𝑦 axes. The 
+average position of features is also affected by change in 
+altitude of the UAV, as with increase in altitude features tend 
+to aggregate and with decrease in altitude features tend to 
+disperse. Hence, the projection of the average position of 
+features in the previous frame is taken on the current altitude 
+using the formula: 
+                𝐹𝑛—1
+′
+= 𝑧𝑛—1
+𝑧𝑛
+𝐹𝑛—1 + (𝑧𝑛—1
+𝑧𝑛
+— 1) [𝑓ℎ
+2
+𝑓𝑤
+2 ]       (10) 
+The difference between the average of current features and 
+projection of the average of previous features is then 
+calculated: 
+                                        𝑑𝑛= 𝐹𝑛— 𝐹𝑛−1
+′
+                                   (11) 
+The 𝑑𝑛 vector gives displacement along the 𝑥 and 𝑦 axes 
+in pixels. To convert it into displacement w.r.t the ground, the 
+following equations are used: 
+                       𝐷= 2𝑧𝑛𝑑𝑛
+[
+ 
+ 
+ 
+ 
+ tan 𝑓𝑜𝑣ℎ
+2
+𝑓ℎ
+0
+0
+tan 𝑓𝑜𝑣𝑤
+2
+𝑓𝑤
+]
+ 
+ 
+ 
+ 
+ 
+                 (12) 
+                                           𝐷= [𝐷𝑥
+𝐷𝑦]                                  (13) 
+The velocity vector is obtained by dividing the calculated 
+displacement vector 𝐷 with the time interval Δ𝑡. 
+                                 𝑣′ = [𝐷𝑥
+Δ𝑡
+𝐷𝑦
+Δ𝑡
+𝑧𝑛— 𝑧𝑛—1
+Δ𝑡
+]
+𝑇
+                 (14) 
+The displacement vectors are added over time to calculate 
+the total displacement of the UAV, providing its current 
+position 𝑃𝑐 w.r.t the takeoff point 𝑃0: 
+                    𝑃𝑐= [∑𝐷𝑥
+∑𝐷𝑦
+∑[𝑧𝑛— 𝑧𝑛—1]]
+𝑇
+        (15) 
+The velocity estimates given by the image processing 
+algorithm is highly oscillatory in nature. It is fed to a low-pass 
+filter which smoothens the velocity output. The constant 𝑘 of 
+the low-pass filter is tuned manually by examining the 
+smoothness of the output curve and time delay. 
+                                          𝛼=
+∆𝑡
+𝑘+ ∆𝑡                                        (16) 
+                                      𝑣= 𝛼𝑣′ + (1— 𝛼)𝑣𝑛—1                      (17) 
+Fig. 2 and Fig. 3 plots the raw unfiltered velocity estimate 
+and the low-pass filtered velocity in 𝑥 and 𝑦 axes respectively. 
+IV. NAVIGATIONAL CONTROLLER 
+The destination position is given as a setpoint vector (𝑃𝑠) 
+from the origin of the inertial frame: 
+                                      𝑃𝑠= [𝑥𝑠
+𝑦𝑠
+𝑧𝑠]𝑇                              (18) 
+To obtain the desired velocity for the UAV to reach the 
+destination, a positional error term is calculated using: 
+                                              𝑒= 𝑃𝑠— 𝑃𝑐                                     (19) 
+The desired velocity is given by: 
+                                             𝑣𝑟⃗⃗⃗⃗=
+𝑣𝑚𝑟2
+𝑎2+𝑟2 𝑢⃗⃗                                    (20)  
+                                                  𝑟= |𝑒|                                         (21) 
+                                                   𝑢⃗⃗= 𝑒
+𝑟                                          (22) 
+where, 
+𝑣𝑚—upper bound to the UAV’s velocity 
+𝑎—constant determining the smoothness of the velocity curve 
+(in meters) 
+𝑟— Magnitude of positional error 
+𝑢⃗⃗—unit vector pointing in the direction of destination 
+The magnitude of 𝑣𝑟𝑥⃗⃗⃗⃗⃗⃗ vs positional error in 𝑥-axis is 
+plotted in Fig. 4 with 𝑣𝑚= 5𝑚/𝑠 and 𝑎= 5𝑚. To follow the 
+desired velocity, a velocity error term is calculated and fed 
+ 
+Fig. 2. Plot of raw (blue) and filtered (red) current velocity along x-axis 
+ 
+Fig. 3. Plot of raw (blue) and filtered (red) current velocity along y-axis 
+117
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:56 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+ 
+Fig. 4. Plot of magnitude of required velocity along x-axis (𝑣𝑟𝑥) vs positional error (𝑒) along x-axis
+into a PID controller. The velocity error term is given by: 
+                                            𝑒𝑣= 𝑣𝑟— 𝑣                                       (23) 
+The PID controller outputs the optimum control input in 
+the form of linear accelerations w.r.t the inertial frame, in 𝑥, 𝑦 
+and 𝑧 directions: 
+                     𝑎𝑐𝑐= 𝐾𝑝𝑒𝑣+ 𝐾𝑑
+1
+∆𝑡𝑒𝑣+ 𝐾𝑖∑𝑒𝑣                   (24) 
+                                   𝑎𝑐𝑐= [𝑎𝑥
+𝑎𝑦
+𝑎𝑧]                              (25) 
+The obtained linear acceleration values are converted to 
+roll angle, pitch angle and thrust using the following equations: 
+                                         θ = tan−1
+𝑎𝑥
+𝑎𝑧— 𝑔                               (26) 
+                                    ϕ = tan−1 (𝑎𝑦
+𝑎𝑥
+sin θ)                             (27) 
+                                         𝐹𝐵= 𝑚(𝑔— 𝑎𝑧)
+𝐶θ𝐶ϕ
+                                (28) 
+The roll, pitch and thrust values are fed as to the autopilot 
+which follows the given attitude commands. 
+During takeoff and return to home, the desired position is 
+set as [0
+0
+𝑧]𝑇 where 𝑧 is the hovering altitude after takeoff 
+or before landing. For landing, the altitude is decreased at this 
+position until the altitude readings from the barometer stops 
+changing. 
+The time required by our algorithm to detect GNSS signal 
+loss is 1 second. To efficiently switch between GNSS and 
+Non-GNSS navigation, the GNSS location and velocity 
+estimates of the last 5 seconds of GNSS aided flight are stored 
+and the displacement from the takeoff point is continuously 
+tracked. This data is used to switch to Non-GNSS navigation 
+when GNSS signals are weak or lost. A switch is made if the 
+number of satellites <6 or if a GNSS glitch occurs. 
+V. SIMULATION AND FLIGHT RESULTS  
+A. System Overview 
+The hardware setup is mentioned in Table II. The gimbal is 
+controlled by the autopilot and is commanded to always point 
+the camera downward facing. The image processing and 
+navigational control algorithms are running on the onboard 
+computer. The onboard computer is interfaced to the camera 
+using a USB cable and to the autopilot using the serial 
+interface. The system architecture is depicted in Fig. 5.  
+Several experiments were conducted at varying camera 
+resolutions and terrain types. The complete software (position 
+and velocity estimation and navigational controller) runs at 
+~20fps and ~16fps at resolutions of  640 × 480 and 1280 ×
+720 respectively. The navigational controller gave promising 
+results with update rates of the estimates as low as ~6fps. The 
+proposed system has been tested for navigational speeds up to 
+5m/s and for altitudes up to 70m above the ground level. 
+B. Optical Flow Algorithm 
+Raw videos at a resolution of 640 × 480 were captured by 
+our system at varying altitudes and varying speeds up to 5m/s. 
+The positional estimation algorithm was first tested on these 
+videos. The estimated co-ordinates of the followed trajectory 
+were compared with the actual GPS co-ordinates. The obtained 
+results were analysed and the error was found to be acceptable 
+at altitudes from 5m to 70m with a frame rate of ~15fps. 
+Higher resolution resulted in lower error on altitudes above 
+TABLE II. 
+Airframe 
+Tarot 650mm quadcopter 
+Autopilot Board 
+Pixhawk 2.1 Cube 
+Autopilot Firmware 
+ArduPilot’s ArduCopter 
+Camera 
+GitUp Git2P (RGB, monocular, diagonal 
+FOV: 90°) 
+Gimbal 
+Tarot T4-3D (3-axis) 
+Onboard Computer 
+Nvidia Jetson Nano 
+ 
+Fig. 5. System architecture 
+118
+ SYSTEM HARDWARE COMPONENTS 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:56 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+Algorithm I: GNSS-Denied Navigation 
+1: 
+Get list of waypoints and current location 
+2: 
+Initialize: 𝑛= 0, 
+3: 
+Initialize: current location at origin (𝑃𝑐= [0
+0
+0]𝑇) 
+4: 
+while number_of_waypoints > 0 do 
+5: 
+if 𝑛= 0 then 
+6: 
+Capture the first frame and features 
+7: 
+else 
+8: 
+Calculate displacement vector (𝐷𝑛) 
+9: 
+Update current location ( 𝑃𝑐) 
+10: 
+if number_of_features < 31 then 
+11: 
+Calculate 30 more features 
+12: 
+Calculate current velocity (𝑣′) 
+13: 
+Calculate filtered current velocity (𝑣) 
+14: 
+Calculate positional error from first waypoint (𝑒) 
+15: 
+Calculate velocity error (𝑒𝑣) 
+16: 
+Calculate linear accelerations (𝑎𝑐𝑐) 
+17: 
+Calculate roll angle (𝜙), pitch angle (𝜃) and thrust 
+(𝐹𝐵) 
+18: 
+Send the attitude commands to the flight controller 
+19: 
+if [— 2
+— 2
+— 1]
+𝑇< 𝑒< [2
+2
+1]𝑇 then 
+20: 
+Delete the first waypoint 
+21: 
+𝑛≔𝑛+ 1  
+22: 
+end if 
+23: 
+end while 
+70m, however it resulted in a lower frame rate. Lowering the 
+speed also reduced the error. Therefore, a maximum speed of 
+5m/s and a maximum flying altitude of 70m was chosen for 
+our subsequent testing. Values above these tend to have high 
+errors. 
+C. Motion Estimation  
+Due to high frequency vibrations in the raw position and 
+velocity estimates, a low-pass filter was used. The constant 𝑘 
+of the low pass filter was then tuned by observing the 
+smoothness and time delay of the velocity plots before and 
+after applying the filter. Increasing the value of 𝑘 increased the 
+smoothness of the curve but also increased the time delay. The 
+amplitude of vibrations tends to increase on higher altitudes. 
+Thus, instead of having a constant value for 𝑘, it was set as a 
+linear function of altitude. 
+                                      𝑘= 0.1 + 0.0036 ∗𝑧                            (29) 
+where 𝑧 is the altitude of the UAV. 
+D. Navigational Controller  
+The navigational controller was first tested in the ArduPilot 
+SITL (Software In The Loop) simulator. A setpoint 𝑃𝑠=
+(20, 20, 20) was given to the UAV and the motion of the 
+UAV was analysed by varying wind direction and wind speed 
+from 0 to 7m/s. The displacement vector 𝐷𝑛 was simulated by 
+calculating displacements along two perpendicular directions, 
+the UAV’s heading and 90° clockwise to it using GPS 
+locations. 
+As the navigational controller always directs the UAV to 
+the destination, deviation due to wind causes a deviation from 
+its trajectory but not a deviation from its destination. This was 
+also seen in the simulations where, the UAV was able to reach 
+the destination with very less deviations (3-4m) even when it 
+was subjected to wind gusts. The displacement plots were 
+analysed to tune the PID controller’s parameters: 𝐾𝑝, 𝐾𝑑, 𝐾𝑖 in 
+consecutive iterations of the code. Fig. 6 shows the desired 
+trajectory and the actual trajectory followed in SITL. The RMS 
+error was 1.16m, max error was 2.25m for a total distance of 
+28.28m. The percentage RMS error per distance travelled was 
+4.1%. 
+After tuning the parameters of the PID controller in SITL, 
+they were tweaked manually during test flights for required 
+velocity vector (𝑣𝑟⃗⃗⃗⃗) set as 0, till the desired response was 
+obtained. Further, the required velocity vector’s (𝑣𝑟⃗⃗⃗⃗) curve 
+with varying slopes by changing 𝑎 was tested in actual flights. 
+Higher values of 𝑎 resulted in very gradual slope which 
+reduced the speed of the UAV near the destination point. 
+Lower values of 𝑎 resulted in a steep slope which caused 
+overshooting and oscillations. Therefore, an optimal value was 
+chosen after analysing the response on multiple outdoor flight 
+tests. 
+Finally, the state estimator and navigational controller were 
+coupled together and actual flights were performed with 
+various trajectories at various altitudes. The obtained 
+parameters were finalised through multiple flight tests. Fig. 7 
+and Fig. 8 show the response of actual filtered current velocity 
+to the input required velocity along 𝑥 and 𝑦 axes respectively. 
+The tuned values of all the parameters of the controller are 
+listed in Table III. Complete outdoor flight missions from take-
+off, waypoint navigation, landing and return to launch were 
+performed on the UAV. 
+Such a mission’s planned trajectory and actual followed 
+trajectory is plotted in Fig. 9. The RMS error was 15.45m, max 
+error was 50.25m for a total distance of 2093.56m. The flight 
+was done on a desert terrain with patches of plants. The UAV 
+flew in wind gusts of 2-3m/s at an altitude of 70m above 
+ground. The results of some other flight tests are tabulated in 
+Table IV. Shifting from autonomous GNSS aided navigation 
+to the developed GNSS-denied navigation solution was tested 
+multiple times. Switching between these modes and the 
+trajectory followed is plotted in Fig. 10. 
+As mentioned previously in Section I, the aim was to come 
+up with a solution applicable at high altitudes (>50m) using the 
+most trivial payloads on the UAV. A monocular camera is 
+required in any surveillance, reconnaissance or HADR 
+missions. The same can be simultaneously used by our 
+presented solution. Hence, our solution does not need any 
+additional sensor payloads like [6] & [10]. The Nvidia Jetson 
+Nano is chosen due to its high performance and low power, 
+space and weight constraints. It has a Quad-Core ARM 
+Cortex-A57 processor which has been proved to be sufficient 
+for our algorithm. Thus, our solution is computationally lighter 
+as neither it requires multiple flight computers as in [7] & [8] 
+nor it needs a significantly powerful CPU as in [9]. 
+119
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:56 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+ 
+Fig. 6. Plot of desired trajectory (blue) and followed trajectory (orange) in 
+SITL 
+ 
+Fig. 7. Plot of required velocity (blue) and current filtered velocity (red) along 
+x-axis 
+ 
+Fig. 8. Plot of required velocity (blue) and current filtered velocity (red) along 
+y-axis 
+TABLE III.  VALUES OF ALL PARAMETERS 
+Parameter 
+Value after simulations 
+Final value after flight tests 
+𝑘 
+0.1 
+0.1 – 0.28 
+𝐾𝑝 
+0.9 
+0.9 
+𝐾𝑑 
+0.03 
+0.02 
+𝐾𝑖 
+0.02 
+0.015 
+𝑎 
+4 
+5 
+ 
+ 
+Fig. 9. Plot of planned trajectory (orange) and actual trajectory (blue) in 
+outdoor flight 
+ 
+Fig. 10. Switching between GNSS enabled and GNSS disabled flight modes 
+TABLE IV. FLIGHT TEST RESULTS 
+Distance 
+Travelled (in m) 
+Maximum 
+distance from 
+home (in m) 
+Maximum 
+error (in m) 
+% error 
+(in %) 
+100 
+100 
+2 
+2 
+340 
+100 
+4 
+1.17 
+400 
+280 
+5 
+1.25 
+600 
+200 
+10 
+1.67 
+2000 
+1000 
+50 
+2.5 
+ 
+Moreover, the GPU of the flight computer is left unutilized 
+to run GPU extensive applications such as ML algorithms 
+parallelly. For example, in an HADR mission, our solution 
+navigates the UAV in GNSS denied/loss patches using the 
+monocular camera and the CPU of the flight computer, while 
+its GPU is utilized to run an object classifier (like YOLO) to 
+detect humans using feed from the same monocular camera. 
+The overall system is highly modular as it has no constraints 
+on hardware used, using high resolution cameras with more 
+powerful computers will result in higher accuracy at even 
+higher flight altitudes. 
+VI. CONCLUSION 
+With this paper, the problem of GNSS signal loss during 
+outdoor navigation has been addressed by presenting a novel 
+computationally lighter solution of GNSS-denied navigation. 
+120
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:56 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+The hardware used is low-cost and has low space and power 
+requirements, making our solution implementable on lighter 
+and smaller UAVs. Moreover, due to its computationally 
+lighter nature, it can run in parallel with other applications 
+such as video-downlink, target detection, etc. on the same 
+onboard computer. This makes this solution suitable for 
+practical HADR missions. 
+Some extensions to this work are planned for future, aimed 
+at increasing the reliability of GNSS-denied navigation: 
+ Introduction of an EKF based switching between 
+GNSS aided and GNSS denied navigation. 
+ Using pre fetched satellite images of terrain with GPS 
+locations and matching them with terrain images taken 
+during flight as a corrective measure to significantly 
+reduce error during long distance flights. 
+ Integrating the present algorithm with IMUs along 
+with rangefinder/altimeter to increase accuracy and 
+relaxing zero-yaw constraint to increase practicality. 
+REFERENCES 
+[1] K. P. Valavanis, and G. J. Vachtsevanos, “UAV applications: 
+introduction.” Dordrecht: Springer Netherlands, 2015, pp. 2639–2641 
+[2] Y. Li, M. Scanavino, E. Capello, F. Dabbene, G. Guglieri, and A. 
+Vilardi, “A novel distributed architecture for UAV indoor navigation”, 
+Transportation Research Procedia Volume 35, Dec. 2018, pp. 13-22 
+[3] M. Nahangi, A. Heins, B. McCabe, and A. Schoellig, “Automated 
+localization of UAVs in GPS-denied indoor construction environments 
+using fiducial markers”, 35th International Symposium on Automation 
+and Robotics in Construction, July 2018. 
+[4] M. Shan, F. Wang, F. Lin, Z. Gao, Y. Z. Tang, and B. M. Chen, 
+“Google Map aided visual navigation for UAVs in GPS-denied 
+environment”, IEEE Conference on Robotics and Biomimetics, 2015 
+[5] M. Sharifi, X. Chen, and C. G. Pretty, “Experimental study on using 
+visual odometry for navigation in outdoor GPS-denied environments”, 
+12th IEEE/ASME International Conference on Mechatronic and 
+Embedded Systems and Applications (MESA), 2016 
+[6] S. Ashraf, P. Aggarwal, P. Damacharla, H. Wang, A. Y. Javaid and V. 
+Devabhaktuni, “A low-cost solution for unmanned aerial vehicle 
+navigation in a global positioning system–denied environment”, 
+International Journal of Distributed Sensor Networks, Vol. 14, 2018. 
+[7] A. D. Wu, E. N. Johnson, M. Kaess, F. Dellaert, and G. Chowdhary, 
+“Autonomous flight in GPS-denied environments using monocular 
+vision and inertial sensors”, AIAA J. of Aerospace Information Systems, 
+Vol. 10, No. 4, pp. 172-186, 2013. 
+[8] G. Chowdhary, E. N. Johnson, D. Magree, and A. Wu, “GPS-denied 
+indoor and outdoor monocular vision aided navigation and control of 
+unmanned aircraft”, Journal of Field Robotics, 2013 
+[9] D. Magree, and E. N. Johnson, “A monocular vision-aided inertial 
+navigation system with improved numerical stability” AIAA Guidance, 
+Navigation, and Control Conference, 2015 
+[10] K. Mohta, K. Sun, S. Liu, M. Watterson, B. Pfrommer, J. Svacha, Y. 
+Mulgaonkar, C. J. Taylor, and V. Kumar, “Experiments in fast, 
+autonomous, GPS-denied quadrotor flight”, IEEE International 
+Conference on Robotics and Automation (ICRA), 2018 
+[11] Antonio C. B. Chiella,1 Henrique N. Machado,1 Bruno O. S. Teixeira,1 
+and Guilherme A. S. Pereira2  GNSS/LiDAR-Based Navigation of an 
+Aerial  Robot in Sparse Forests 
+[12] K. Thu, and A. I. Gavrilova, “Designing and modeling of quadcopter 
+control system using L1 adaptive control”, 12th International 
+Symposium Intelligent Systems INTELS’16, Oct. 2016 
+[13] E. G. Hernandez-Martinez, G. Fernandez-Anaya, E. D. Ferreira, J. J. 
+Flores-Godoy, and A. Lopez-Gonzalez, “Trajectory tracking of a 
+quadcopter UAV with optimal translational control”, 11th IFAC 
+Symposium on Robot Control (SYROCO), 2015, pp. 226-231 
+[14] J. Shi, and C. Tomasi, “Good features to track”, 9th IEEE Conference 
+on Computer Vision and Pattern Recognition, 1994, Springer pp. 593–
+600.  
+[15] H. Bay, A. Ess, T. Tuytelaars, and L. V. Gool, “Speeded up robust 
+features”, Computer Vision and Image Understanding, Vol. 10, 200 
+[16] Y. Zhang, T. Wang, Z. Cai, Y. Wang, and Z. You, "The use of optical 
+flow for UAV motion estimation in indoor environment", IEEE Chinese 
+Guidance, Navigation and Control Conference (CGNCC), Nanjing, 
+2016, pp. 785-790, doi: 10.1109/CGNCC.2016.7828885. 
+[17] J. Bouguet, “Pyramidal implementation of the affine Lucas Kanade 
+feature tracker description of the algorithm”, Intel Corporation, 2001.
+ 
+121
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:56 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

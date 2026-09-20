@@ -1,0 +1,612 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0332.pdf
+sha256: 57E8F0871E2F0A4E9D33B30A6273F6EAD247B1132C1B81D4ED45845987FF2A32
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+Thermal–Inertial Localization for Autonomous Navigation of Aerial
+Robots through Obscurants
+Christos Papachristos, Frank Mascarich, and Kostas Alexis
+Abstract— In this paper the problem of autonomous nav-
+igation of aerial robots through obscurants is considered. As
+visible spectrum cameras and most LiDAR technologies provide
+degraded data in such conditions, the problem of localization
+is approached through the fusion of thermal camera data with
+inertial sensor cues. In particular, a long–wave infrared camera
+is employed and combined with an inertial measurement unit.
+The sensor intrinsic and extrinsic parameters are appropriately
+calibrated, and an Extended Kalman Filter framework that uses
+direct photometric feedback is employed in order to achieve
+robust odometry estimation. This framework is capable of
+accomplishing real–time localization while navigating though
+obscurants in GPS–denied conditions. Subsequently, an exper-
+imental study of autonomous aerial robotic navigation within
+a smoke–ﬁlled machine-shop environment was conducted. The
+presented results demonstrate the ability of the proposed
+solution to ensure reliable navigation in such extreme visually–
+degraded conditions.
+I. INTRODUCTION
+Aerial robots have been widely used in a variety of
+applications, including those of infrastructure inspection [1–
+6], precision agriculture [7–9], search and rescue [10–13]
+and more. Relying on the recent advancements in research
+and technology, autonomous aerial systems are now capa-
+ble of operating in GPS–denied environments and provide
+useful information, as well as real–time map reconstruction.
+However, despite this rapid progress, GPS–denied Degraded
+Visual Environments (DVEs) represent a hard limit for
+autonomous systems as the sensor information inside them
+can be severely degraded. Although in some types of DVEs,
+e.g., darkness, the problem can be resolved using onboard
+illumination or [14] active sensors such as LiDARs, more
+complex cases including fog– and smoke–ﬁlled environments
+remain particularly hard. In such environments, traditional
+cameras or LiDARs used for Simultaneous Localization
+And Mapping (SLAM) provide ill–conditioned information
+therefore not allowing to reliably estimate the pose of the
+robot and build the map of its surroundings.
+Towards enabling aerial robotic autonomy in a broader set
+of DVEs, including fog/smoke–ﬁlled environments, this work
+examines the problem of utilizing Infrared (IR) vision that
+can penetrate, to a certain extent, such degraded conditions
+and facilitate the means for GPS–denied localization based
+on the fusion of thermal camera data and cues from an Iner-
+This material is based upon work related to the Mine Inspection Robotics
+project sponsored by the Nevada Knowledge Fund administered by the
+Governor’s Ofﬁce of Economic Development.
+The
+authors
+are
+with
+the
+Autonomous
+Robots
+Lab,
+University
+of
+Nevada,
+Reno,
+1664
+N.
+Virginia,
+89557,
+Reno,
+NV,
+USA
+cpapachristos@unr.edu
+tial Measurement Unit (IMU). More speciﬁcally, a thermal–
+inertial sensor fusion approach is proposed that relies on the
+data extracted from a FLIR Tau 2 Long–Wave IR (LWIR)
+which are then software time–synchronized with the data
+from an IMU. The camera intrinsics, as well as the camera–
+to–IMU extrinsics are calibrated and an Extended Kalman
+Filter based camera–inertial odometry using direct photomet-
+ric feedback is deployed. This solution successfully enabled
+autonomous navigation through obscurants, an ability critical
+for many important applications such as search and rescue
+in underground mines that can quickly become ﬁlled with
+smoke in emergency conditions.
+Fig. 1.
+Instance of a mission of aerial robotic navigation through
+obscurants. Thermal–inertial navigation was tested in a machine–shop
+environment ﬁlled with smoke.
+To verify the performance of the proposed system and
+methods, an experimental study was conducted that in-
+volved the autonomous navigation in a narrow and cluttered
+machine–shop environment ﬁlled with heavy smoke, gener-
+ated by a fog machine that vaporizes glycerin–based ﬂuid.
+In such an environment we ﬁrst veriﬁed that LiDAR data
+coming from a state–of–the–art system (Velodyne PUCK
+Lite) become increasingly unreliable (sparsiﬁed and noisy
+point clouds), which is also the case for a visible spectrum
+camera (white–out of the captured frames). On the contrary,
+the aerial robot equipped with the aforementioned thermal–
+inertial system was able to reliably estimate its pose, which
+was then exploited for automatic control and navigation in
+such a visually–degraded environment. Furthermore, sim-
+ulating a search–and–rescue scenario, human detection in
+thermal data was implemented to showcase the advanced
+application potential of such a solution.
+The remainder of this paper is structured as follows:
+Section II provides an overview of related work. Section III
+details the proposed approach for autonomous localization
+2018 International Conference on Unmanned Aircraft Systems (ICUAS)
+Dallas, TX, USA, June 12-15, 2018
+978-1-5386-1353-5/18/$31.00 ©2018 IEEE
+394
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:11:10 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+and navigation in GPS–denied and smoke–ﬁlled environ-
+ments, followed by Section IV which describes the developed
+system and the experimental results of this study. Finally,
+conclusions are drawn in Section V.
+II. RELATED WORK
+The problem of navigation through obscurants such as
+smoke and fog has been widely discussed in the ﬁeld of
+manned aerospace. Solutions to assist helicopter pilots have
+focused among others on the fusion of LiDAR, RADAR and
+camera. However, in the ﬁeld of small robotic systems, where
+integration of RADAR is also particularly difﬁcult, little
+work has been conducted with regard to the methods that
+can enable navigation autonomy in GPS–denied DVEs and
+especially through obscurants. The works in [15, 16] describe
+results for hand–held monocular SLAM and visual odometry
+using a thermal camera. The contribution in [17] discusses
+the issue of selective combination of visual and thermal
+imaging for localization in conditions that include those of
+smoke, but on one hand it focuses on ground vehicles and on
+the other hand inertial data are not fused in a tight manner
+within the localization process, but rather a posteriori in order
+to recover the scale. Similarly, the work in [18] overviews a
+multispectral approach that includes thermal vision to assist
+the localization task of a team of ground robots. The authors
+in [19] present a method for combining appearance and
+thermal information (RGB, Infrared) for SLAM. On a non–
+robotic application, the paper in [20] discusses the use of
+stereo thermal vision to recover the trajectory for smoke
+diver applications. Furthermore, work has been presented
+in regards to the problem of mutual thermal camera cali-
+bration [21]. As indicated, despite these signiﬁcant efforts,
+the robust approach of camera–inertial localization has not
+been widely studied or developed, especially for the case of
+autonomous aerial robots.
+III. PROPOSED APPROACH
+The proposed approach emphasizes on the ability of
+aerial robots to autonomously navigate GPS–denied degraded
+visual environments with strong presence of obscurants such
+as smoke and fog. To enable this capability it proposes the
+fusion of LWIR thermal camera data with time–synchronized
+IMU cues. This selection was based on validation of the fact
+that solutions such as LiDAR– or visible spectrum camera–
+based solutions can provide ill–conditioned information in
+such environments. Normal camera images present a white–
+out effect due to the scattering of light through obscurants,
+while LiDAR data become unreliable and the derived point
+clouds particularly sparsiﬁed and noisy. On the contrary, in
+this work we demonstrate how an appropriately calibrated
+and fused thermal–inertial localization architecture performs
+robustly even in environments with very dense levels of
+obscurants (fog/smoke).
+A. Perception through Obscurants
+A 3D model view of the developed robotic solution is
+depicted in Figure 2. The aerial robot corresponds to a widely
+adopted quadrotor platform (DJI Matrice 100) which has
+been extended with a multi–modal perception solution and
+extensive onboard computational processing capabilities.
+Fig. 2.
+Visualization of the developed robot indicating the integration of a)
+Long–Wave IR (LWIR) thermal camera, b) visible spectrum (ROYGBIV)
+cameras, as well as c) an Inertial Measurement Unit (IMU). A high–level
+processor, namely an Intel NUC7i7BNH is utilized for the purposes of
+GPS–denied localization through obscurants based on the fusion of thermal
+camera data and IMU, alongside the handling of position control tasks.
+More speciﬁcally, the multi–modal perception solution
+consists of a FLIR Tau2 LWIR camera, a stereo visible light
+camera pair based on Point Grey Chameleon3 cameras, and
+a VectorNav VN–100 IMU. The cameras of the visible–
+light stereo rig are hardware synchronized with the use
+of custom–made electronics, however the data from these
+cameras are not employed for the purposes of localization
+in the experiments presented in this work, but are only
+used for sparse stereo depth estimation, as it was shown
+that their data are inadequate to perform reliable pose
+estimation. The data streams from the FLIR Tau2 LWIR
+thermal camera and the VN–100 IMU are synchronized via
+the SYNC policy functionalities of the Robot Operating
+System (ROS). This perception solution is interfaced by a
+powerful Intel NUC7i7BNH, which is responsible to run
+the proposed thermal–inertial odometry pipeline alongside
+position control. For the purposes of position control, a
+Linear Model Predictive Control strategy has been deployed
+following on the path of previous work of the authors [22].
+This control law derives reference roll, pitch, yaw and thrust
+values which are then fed through the ROS middleware to
+the low–level controller of the DJI Matrice 100 quadrotor
+platform. The overall system weighs approximately 2.9kg.
+B. IR Camera and Camera-to-IMU Calibration
+Reliable operation of the proposed thermal–inertial local-
+ization system relies on appropriate calibration of camera
+intrinsics, as well as an accurate estimate of the extrin-
+sic transformation between camera and IMU. Commonly,
+camera calibration is performed with the use of a checker-
+board [23] pattern and relevant optimization methods. A
+variety of approaches has been proposed for the problem of
+thermal camera intrinsic model calibration [21, 24]. In this
+work we developed a specialized checkerboard that a) is built
+on white-colored aluminum plate due to the high emissivity
+of this material, b) at the place of black–colored rectangles
+we have added a thin layer of black foam which also provides
+thermal insulation from the aluminum surface, and c) at
+the place of the white rectangles we leave the aluminum
+395
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:11:10 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+plate surface exposed, while the corresponding regions are
+simultaneously heated through the positioning of Peltier
+heating components at the plate’s back. Figure 3 illustrates
+the design. This simple solution was found to provide high
+quality calibration results (consistently low subpixel–range
+values for reprojection errors), while it also allowed to
+calibrate the thermal camera against any of the onboard
+visible spectrum cameras (identifying the respective extrinsic
+transformation). Additionally, one of the visible cameras
+was calibrated in regards to its extrinsics with the onboard
+IMU based on the method in [25]. Combining the visible
+spectrum normal camera–to–IMU transformation with the
+normal camera–to–thermal camera one allows the derivation
+of the extrinsics transformation between the thermal camera
+and the IMU TT I.
+Fig. 3.
+Illustration of the manufactured thermal checkerboard and instance
+of the calibration process with the peltier heaters being visible at the borders.
+C. Thermal–Inertial Localization
+Given the calibrated thermal camera and camera-to-IMU
+extrinscis, the proposed thermal–inertial localization scheme
+is deployed. More speciﬁcally, the open–source Robust Vi-
+sual Inertial Odometry (ROVIO) is utilized [26], a brief
+summary of which is provided below. ROVIO closely cou-
+ples the tracking of multilevel image patches with the
+Extended Kalman Filter (EKF) through the direct use of
+image intensity errors to derive the ﬁlter innovation term
+and uses a QR–decomposition to reduce the dimensionality
+of the error terms, therefore keeping the Kalman ﬁlter update
+state computationally tractable. As ROVIO, and other similar
+methods, depends on landmarks tracked on te basis of
+the image intensity information within them, IR camera–
+based operation is facilitated in environments with thermal
+gradient (not perfect thermal equilibrium). The ROVIO ﬁlter
+formulation is robocentric, which implies that the landmarks
+are estimated with respect to the camera pose. Then the
+landmarks estimated and tracked among consecutive frames
+are decomposed into a bearing vector alongside a depth
+parametrization. The IMU ﬁxed coordinate frame (B), the
+camera ﬁxed frame (V) and the inertial frame W are
+considered, and the employed state vector with dimension
+l and associated covariance matrix Σl is:
+x = [
+pose, lp
+z}|{
+r q υ bf bω c z
+|
+{z
+}
+robot states, ls
+µ0, · · · µJ ρ0 · · · ρJ
+|
+{z
+}
+features states, lf
+]T
+(1)
+where lp, ls, lf are dimensions, r is the robocentric position
+of the IMU expressed in B, υ represents the robocentric
+velocity of the IMU expressed in B, q is the IMU atti-
+tude represented as a map from B →W, bf represents
+the additive accelerometer bias expressed in B, bω stands
+for the additive gyroscope bias expressed in B, c is the
+translational part of the IMU–cameras extrinsics expressed
+in B, z represents the rotational part of the IMU–cameras
+extrinsics and is a map from B →V, while µj is the
+bearing vector to feature j expressed in V and ρj is the
+depth parameter of the jth feature such that the feature
+distance dj is d(ρj) = 1/ρj. The relevant state propagation
+and update steps are brieﬂy summarized in Table I, and are
+detailed in [26]. Given the estimation of the robot pose, this
+is then expressed on W the world frame and the relevant
+pose transformations are available. This then enables state
+feedback control and allows autonomy in difﬁcult DVE cases
+with the presence of obscurants such as fog and smoke. It
+is highlighted that based on the experiments conducted it
+was evident that the fusion of inertial data is even more
+important for the case of using a thermal camera (compared
+to a visible spectrum one in clear atmospheric conditions
+and generally lack of obscurants). This is attributed to the
+fact that the utilized feature descriptors were not initially
+designed for the thermal domain. This framework employs
+FAST corner detection [27] to derive a large number of
+candidate feature locations. After eliminating candidates that
+are close to currently tracked features, a patch gradient–
+based score is computed for selecting new features, which
+subsequently added to the state [28]. This methodology
+has demonstrated high–performance results at high–speed
+motions using a normal camera, however the performance is
+relatively weaker in the thermal camera primarily due to the
+fact that signiﬁcant parts of the environment are in thermal
+equilibrium and therefore cannot provide such strong feature
+information.
+IV. EXPERIMENTAL EVALUATION
+In order to evaluate and verify the ability of the proposed
+thermal–inertial navigation solution to enable autonomous
+ﬂight in degraded visual environments with signiﬁcant pres-
+ence of obscurants, a test in a smoke–ﬁlled machine shop
+was conducted. The experimental area was ﬁlled with very
+dense smoke using a Hurricane 1800 Flex glycerin-based
+fog–machine. The smoke density level was such that it
+could be veriﬁed from the intense white–out effect in the
+normal camera images that light scattering was very strong.
+In such a challenging environment, the robot was tasked
+to perform an automated trajectory, demonstrate its ability
+for GPS–denied autonomous ﬂight through obscurants such
+as fog and smoke, and collect data that can be relevant
+396
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:11:10 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+TABLE I
+ROVIO STATE PROPAGATION & FILTER UPDATE STEPS.
+State Propagation Step - Equations (3)
+˙r = −ˆω×r + υ + wr
+˙υ = −ˆω×υ + ˆf + q−1(g)
+˙q = −q(ˆω)
+˙bf = wbf
+˙bω = wbw
+˙c = wc
+˙z = wz
+˙µj = NT (µj)ˆωV −
+
+0
+1
+−1
+0
+
+NT (µj) ˆυV
+d(ρj) + wµ,j
+˙ρj = −µT
+j ˆυV/d′(ρj) + wρ,j
+ˆf = ˜f −bf −wf
+ˆω = ˜ω −bω −wω
+ˆυV = z(υ + ˆω×c)
+ˆωV = z(ˆω)
+Filter Update Step - Equations (4)
+yj = bj(π(ˆµj)) + nj
+Hj = Aj(π(ˆµj)) dπ
+dµ (ˆµj)
+By stacking the above terms for all visible features, standard EKF
+update step is directly performed to derive the new estimate of the
+robot belief for its state and the tracked features.
+Notation
+× →skew symmetric matrix of a vector, ˜f →proper acceleration
+measurement, ˜ω →rotational rate measurement, ˆf →biased
+corrected acceleration, ˆω →bias corrected rotational rate, NT (µ) →
+projection of a 3D vector onto the 2D tangent space around the
+bearing vector, g →gravity vector, w⋆→white Gaussian noise
+processes, π(µ) →pixel coordinates of a feature, bi(π(ˆµj)) →a
+2D linear constraint for the jth feature which is predicted to be
+visible in the current frame with bearing vector ˆµj
+to search and rescue, surveillance and other intelligence–
+related operations. Figure 4 presents a set of photos from
+our experimental studies to demonstrate the challenges of
+this environment for autonomous aerial robotic navigation.
+Furthermore, human detection on the thermal camera data is
+demonstrated. It is noted that as the FLIR Tau2 raw camera
+data are 14 bit, rescaling to an 8–bit intensity image was
+conducted based on a sliding window algorithm which adapts
+to the maxima of the derived thermal reading values of the
+local environment.
+Presentation of localization and aerial robot navigation
+results are depicted in Figure 5. As shown, the amount of
+smoke forbids reliable estimation of the vehicle trajectory
+based on the visible spectrum cameras and inertial fusion.
+On the other hand, IR camera data remain consistently in-
+formative in these conditions. The proposed thermal–inertial
+localization strategy successfully enabled reliable navigation
+(using a manually–prescribed trajectory). Such results are
+encouraging for the utilization of autonomous aerial robots in
+heavily visually–degraded environments such as underground
+mines after an accident, or buildings in disaster scenarios.
+In addition to enabling localization for navigation through
+obscurants, the data provided by the thermal camera were
+also employed for the purposes of human detection. More
+Fig. 4.
+Instances from aerial robotic navigation through a smoke–ﬁlled
+environment indicating the complexity of the scene and therefore the
+challenges for the proposed solution.
+speciﬁcally, the method of Histogram of Oriented Gradients
+(HOG) was considered. The method extracts HOG features
+from the image, utilizes a trained Support Vector Machine
+(SVM) and has been shown to be able to successfully detect
+upright humans on thermal data. Figure 6 presents indicative
+results during the robot deployment inside the smoke–ﬁlled
+machine shop. At the end of the machine-shop environment,
+the thermal camera onboard the robot acquired frames that
+included a human in the scene and successfully performed
+the detection task.
+Furthermore, Figure 7 presents a set of results on optical
+ﬂow estimation on thermal views, alongside the detection of
+salient objects in this domain. Optical ﬂow is calculated using
+the Lucas-Kanade method and is presented to motivate stud-
+ies for reconstruction–free approaches on thermal vision–
+driven navigation of aerial robots. Visual saliency detection
+aims to identify the areas of the image that should attract the
+attention of a human (protoobjects). Saliency calculations
+are based on intensity difference feature maps and other
+techniques which in this work are extended to the thermal
+domain. Speciﬁcally, thermal saliency is based on the method
+of spectral residuals [29], a selection motivated by the fact
+that it is independent of other assumptions and only relies
+on the analysis of the log–spectrum of the input image.
+This method proposes “proto–objects” in the image based
+397
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:11:10 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+Fig. 5.
+Results of aerial robotic navigation through obscurants and speciﬁcally in a smoke–ﬁlled machine–shop environment. As shown from the handheld
+camera view outside the machine–shop and the robot visible spectrum camera frames during its operation, the smoke density does not allow the reliable
+localization with such data. On the contrary, the IR camera views are not inﬂuenced and thermal–inertia localization facilitated autonomous navigation
+in such a heavily visually–degraded environment. The ﬁgure further shows the successful robot trajectory estimation based on the thermal–inertial sensor
+fusion and the failed (drifted) estimates provided by stereo visual–inertial localization using the same estimation framework.
+Fig. 6.
+Indicative results on human detection based on thermal camera
+data in a smoke–ﬁlled environment.
+on identifying the image spatial frequency analysis–based
+spectral residuals.
+Overall, the presented experimental study demonstrates
+the potential of thermal–inertial localization for the pur-
+poses of autonomous navigation of aerial robots through
+light-scattering obscurants. Such a capacity is critical for
+many important applications including search and rescue
+in smoke–ﬁlled underground mines or collapsed build-
+ings, surveillance over ﬁre zones, and more. Finally,
+it is noted that the raw data of this work are re-
+leased online as an open dataset to support further com-
+munity efforts http://www.autonomousrobotslab.
+com/thermal-inertial-dataset.html.
+V. CONCLUSIONS
+The problem of thermal–inertial localization and au-
+tonomous navigation of aerial robots through obscurants
+was considered in this paper. A technological and algo-
+rithmic solution was developed which only relied on a
+lightweight system consisting of a single thermal camera and
+an IMU. The sensor intrinsics and extrinsics were calibrated
+398
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:11:10 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+Fig. 7.
+Results on evaluation of optical ﬂow (blue vectors) on thermal data
+(upper two images) and saliency/proto object–detection.
+and reliable localization through obscurants in GPS–denied
+conditions was achieved. A challenging experimental study
+was conducted to verify the approach and involved the
+autonomous navigation of a micro aerial vehicle in a smoke–
+ﬁlled room. Further results on real–time human detection on
+thermal data within such visually–degraded conditions were
+also presented.
+REFERENCES
+[1] C. Papachristos, S. Khattak, and K. Alexis, “Uncertainty–aware re-
+ceding horizon exploration and mapping using aerial robots,” in IEEE
+International Conference on Robotics and Automation (ICRA), 2017.
+[2] A. Bircher, M. Kamel, K. Alexis, H. Oleynikova and R. Siegwart,
+“Receding horizon ”next-best-view” planner for 3d exploration,” in
+IEEE International Conference on Robotics and Automation (ICRA),
+May 2016. [Online]. Available: https://github.com/ethz-asl/nbvplanner
+[3] A. Bircher, M. Kamel, K. Alexis, H. Oleynikova, and R. Siegwart,
+“Receding horizon path planning for 3d exploration and surface
+inspection,” Autonomous Robots, pp. 1–16, 2016.
+[4] A. Bircher, M. Kamel, K. Alexis, M. Burri, P. Oettershagen, S. Omari,
+T. Mantel and R. Siegwart, “Three-dimensional coverage path planning
+via viewpoint resampling and tour optimization for aerial robots,”
+Autonomous Robots, pp. 1–25, 2015.
+[5] A. Bircher, K. Alexis, M. Burri, P. Oettershagen, S. Omari,
+T. Mantel and R. Siegwart, “Structural inspection path planning
+via
+iterative
+viewpoint
+resampling
+with
+application
+to
+aerial
+robotics,”
+in
+IEEE
+International
+Conference
+on
+Robotics
+and
+Automation (ICRA), May 2015, pp. 6423–6430. [Online]. Available:
+https://github.com/ethz-asl/StructuralInspectionPlanner
+[6] C. Papachristos, K. Alexis, L. R. G. Carrillo, and A. Tzes, “Distributed
+infrastructure inspection path planning for aerial robotics subject to
+time constraints,” in 2016 International Conference on Unmanned
+Aircraft Systems (ICUAS).
+IEEE, 2016, pp. 406–412.
+[7] T. Oksanen and A. Visala, “Coverage path planning algorithms for
+agricultural ﬁeld machines,” Journal of Field Robotics, vol. 26, no. 8,
+pp. 651–668, 2009.
+[8] D. Zermas, D. Teng, P. Stanitsas, M. Bazakos, V. Morellas, D. Mulla,
+and N. Papanikolopoulos, “Automation solutions for the evaluation
+of plant health in corn ﬁelds,” IEEE Intelligent Robots and Systems
+(IROS), Hamburg, 2015.
+[9] D. Zermas, M., V. Morellas, D. Mulla, and N. Papanikolopoulos,
+“Estimating the leaf area index of crops through the evaluation of
+3D models,” IEEE Intelligent Robots and Systems (IROS), Vancouver,
+2017.
+[10] H. Balta, J. Bedkowski, S. Govindaraj, K. Majek, P. Musialik,
+D. Serrano, K. Alexis, R. Siegwart, and G. Cubber, “Integrated data
+management for a ﬂeet of search-and-rescue robots,” Journal of Field
+Robotics, vol. 34, no. 3, pp. 539–582, 2017.
+[11] T. Tomic, K. Schmid, P. Lutz, A. Domel, M. Kassecker, E. Mair,
+I. L. Grixa, F. Ruess, M. Suppa, and D. Burschka, “Toward a fully
+autonomous uav: Research platform for indoor and outdoor urban
+search and rescue,” IEEE robotics & automation magazine, vol. 19,
+no. 3, pp. 46–56, 2012.
+[12] C. Papachristos, D. Tzoumanikas, and K. Alexis, “Aerial robotic
+tracking of a generalized mobile target employing visual and spatio–
+temporal dynamic subject perception,” in Intelligent Robots and Sys-
+tems (IROS), 2015 IEEE/RSJ International Conference on.
+IEEE,
+2015, pp. 4319–4324.
+[13] P. Doherty and P. Rudol, “A uav search and rescue scenario with
+human body detection and geolocalization,” in Australasian Joint
+Conference on Artiﬁcial Intelligence.
+Springer, 2007, pp. 1–13.
+[14] C. Papachristos, S. Khattak and K. Alexis, “Autonomous exploration
+of visually-degraded environments using aerial robots,” in 2017 Inter-
+national Conference on Unmanned Aircraft Systems (ICUAS).
+IEEE,
+2017.
+[15] S. Vidas and S. Sridharan, “Hand-held monocular slam in thermal-
+infrared,” in Control Automation Robotics & Vision (ICARCV), 2012
+12th International Conference on.
+IEEE, 2012, pp. 859–864.
+[16] P. V. K. Borges and S. Vidas, “Practical infrared visual odometry,”
+IEEE Transactions on Intelligent Transportation Systems, vol. 17,
+no. 8, pp. 2205–2213, 2016.
+[17] C. Brunner, T. Peynot, T. Vidal-Calleja, and J. Underwood, “Selective
+combination of visual and thermal imaging for resilient localization in
+adverse conditions: Day and night, smoke and ﬁre,” Journal of Field
+Robotics, vol. 30, no. 4, pp. 641–666, 2013.
+[18] F. Burian, P. Kocmanova, and L. Zalud, “Robot mapping with range
+camera, ccd cameras and thermal imagers,” in Methods and Models
+in Automation and Robotics (MMAR), 2014 19th International Con-
+ference On.
+IEEE, 2014, pp. 200–205.
+[19] L. Chen, L. Sun, T. Yang, L. Fan, K. Huang, and Z. Xuanyuan,
+“Rgb-t slam: A ﬂexible slam framework by combining appearance
+and thermal information,” in Robotics and Automation (ICRA), 2017
+IEEE International Conference on.
+IEEE, 2017, pp. 5682–5687.
+[20] E. Emilsson and J. Rydell, “Chameleon on ﬁrethermal infrared indoor
+positioning,” in Position, Location and Navigation Symposium-PLANS
+2014, 2014 IEEE/ION.
+IEEE, 2014, pp. 637–644.
+[21] D. Borrmann, H. Afzal, J. Elseberg, and A. N¨uchter, “Mutual cali-
+bration for 3d thermal mapping,” IFAC Proceedings Volumes, vol. 45,
+no. 22, pp. 605–610, 2012.
+[22] M. Kamel, T. Stastny, K. Alexis, and R. Siegwart, “Model predictive
+control for trajectory tracking of unmanned aerial vehicles using ros,”
+Springer Book on Robot Operating System (ROS).
+[23] Z. Zhang, “A ﬂexible new technique for camera calibration,” IEEE
+Transactions on pattern analysis and machine intelligence, vol. 22,
+no. 11, pp. 1330–1334, 2000.
+[24] M. Gschwandtner, R. Kwitt, A. Uhl, and W. Pree, “Infrared camera
+calibration for dense depth map construction,” in Intelligent Vehicles
+Symposium (IV), 2011 IEEE.
+IEEE, 2011, pp. 857–862.
+[25] P. Furgale, J. Rehder, and R. Siegwart, “Uniﬁed temporal and spatial
+calibration for multi-sensor systems,” in Intelligent Robots and Systems
+(IROS), 2013 IEEE/RSJ International Conference on.
+IEEE, 2013,
+pp. 1280–1286.
+[26] M. Bloesch, S. Omari, M. Hutter, and R. Siegwart, “Robust visual
+inertial odometry using a direct ekf-based approach,” in Intelligent
+Robots and Systems (IROS), 2015 IEEE/RSJ International Conference
+on.
+IEEE, 2015, pp. 298–304.
+[27] E. Rosten and T. Drummond, “Machine learning for high-speed corner
+detection,” in European conference on computer vision.
+Springer,
+2006, pp. 430–443.
+[28] M. Bloesch, M. Burri, S. Omari, M. Hutter, and R. Siegwart, “Iterated
+extended kalman ﬁlter based visual-inertial odometry using direct pho-
+tometric feedback,” The International Journal of Robotics Research,
+vol. 36, no. 10, pp. 1053–1072, 2017.
+[29] X. Hou and L. Zhang, “Saliency detection: A spectral residual ap-
+proach,” in Computer Vision and Pattern Recognition, 2007. CVPR’07.
+IEEE Conference on.
+IEEE, 2007, pp. 1–8.
+399
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:11:10 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

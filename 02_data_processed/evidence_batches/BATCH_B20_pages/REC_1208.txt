@@ -1,0 +1,1840 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1208.pdf
+sha256: CEB0391C97BD3939D28EC339151E6E6059AF84592D6F4BB7C7C7214D177CE657
+library: pymupdf (fitz) v1.28.2
+pages: 33
+=== BEGIN ===
+[p.1]
+Academic Editor: Yongzhao Hua
+Received: 4 March 2026
+Revised: 2 April 2026
+Accepted: 7 April 2026
+Published: 9 April 2026
+Copyright: © 2026 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license.
+Article
+Energy-Aware Adaptive Communication Topology with Edge-AI
+Navigation for UAV Swarms in GNSS-Denied Environments
+Alizhan Tulembayev 1
+, Alexandr Dolya 2,*
+, Ainur Kuttybayeva 3,*, Timur Jussupbekov 2
+and
+Kalmukhamed Tazhen 3
+1
+Research & Development Center “Kazakhstan Engineering” LLP, Auezova Street, 2, Astana 010000,
+Kazakhstan; tan@analytic.kz
+2
+Research Institute of the National Defense University of the Republic of Kazakhstan, Turan Avenue, 72,
+Astana 010000, Kazakhstan; timur607@mail.ru
+3
+Department of Electronics, Telecommunications and Space Technologies, Satbayev University, Satbayev Street,
+22, Almaty 050013, Kazakhstan; k.tazhen@satbayev.university
+*
+Correspondence: iskander_kst@mail.ru (A.D.); a.kuttybayeva@satbayev.university (A.K.);
+Tel.: +7-7474047491 (A.D. & A.K.)
+Highlights
+What are the main findings?
+•
+A combined energy-conscious adaptive swarm system resulted in the overall energy
+use of UAVs decreasing by 22.7 percent over fixed topology designs, with localization
+errors falling below a 4.8 percentage deviation.
+•
+Adaptive communication radius control according to residual battery levels yielded
+the largest improvement in the communication-energy component under the adopted
+simulation assumptions, while maintaining positive network connectivity.
+What are the implications of the main findings?
+•
+The proposed framework allows for greater mission time and better sustainability of
+UAV swarms flying in GNSS-denied environments.
+•
+Integration of edge-AI navigation with energy-adaptive topology: a scalable base for
+infrastructure-critical and autonomous swarm deployments.
+Abstract
+Energy-efficient and resilient decentralized unmanned aerial vehicles (UAV) swarm opera-
+tion in global navigation satellite system (GNSS) denied environments remains challenging
+because propulsion demand, communication load, and onboard inference are tightly cou-
+pled at the mission level. Although prior studies have examined some of these components
+separately, their joint evaluation within adaptive decentralized swarms remains limited
+under degraded navigation conditions. This study proposes an energy-aware adaptive
+communication-topology framework integrated with lightweight edge artificial intelligence
+(AI)-assisted navigation for decentralized UAV swarms operating without reliable GNSS
+support. The approach combines a unified mission-level energy-accounting structure for
+propulsion, communication, and onboard inference, a residual-energy-aware topology
+adaptation mechanism for preserving swarm connectivity, and a convolutional neural
+network-long short-term memory (CNN–LSTM) based edge-AI navigation module for
+improving localization robustness. The framework was evaluated in 1200 s Robot Op-
+erating System 2 (ROS2)–Gazebo–PX4 simulation scenarios against fixed topology and
+extended Kalman filter (EKF)-based baselines. Under the adopted simulation assumptions,
+the proposed configuration achieved a 22.7% reduction in total energy consumption, with
+the largest decrease observed in the communication-energy component, while preserving
+Drones 2026, 10, 273
+https://doi.org/10.3390/drones10040273
+[p.2]
+Drones 2026, 10, 273
+2 of 33
+positive algebraic connectivity across all evaluated runs. The edge-AI module yielded
+a 4.8% root mean square error (RMSE) reduction relative to the EKF baseline, indicat-
+ing a modest but meaningful improvement in localization performance. These results
+support the feasibility of integrated energy-aware swarm coordination in GNSS-denied
+environments; however, they should be interpreted as simulation-based evidence under the
+adopted modeling assumptions, and further high-fidelity propagation modeling, broader
+learning validation, and hardware-in-the-loop studies remain necessary.
+Keywords: UAV swarm; energy-aware communication; adaptive topology control; spectral
+graph theory; algebraic connectivity; GNSS-denied navigation; edge artificial intelligence;
+CNN–LSTM; multi-objective optimization; decentralized coordination
+1. Introduction
+UAVs have evolved in a short time from single-platform surveillance vehicles to coor-
+dinated multi-agent vehicles with the ability to perform distributed sensing, mapping, and
+autonomous mission execution. UAV swarms in particular offer the advantages of scalabil-
+ity, redundancy, and intensified spatial coverage compared to single-system vehicles; these
+features support various applications in disaster response, inspection of infrastructures,
+environmental monitoring, and in the military sector as vehicles for reconnaissance [1].
+The shift from centralized control to swarm architectures that have a distributed control
+among the robots has led to a major improvement in the robustness of operations; however,
+what has followed at the same time is an increase in the system’s complexity related to
+communication, coordination, and computation on board.
+A critical dependency of most current UAV Systems is that of GNSS for localization
+and synchronization [2]. Various factors may reduce or entirely deny access to GNSS signal
+information in practical user deployments, including the creation of urban ‘canyons’, indoor,
+dense vegetation, underground facilities, or deliberate jamming of the signal. GNSS-denied
+environment creates significant obstacles for swarm coordination because, in this case,
+individual UAVs must depend on onboard sensors and peer-to-peer communication for
+localizing and cooperative decision. This transformation from satellite-based positioning
+to sensor- and network-based localization also accounts for a major rise in computational
+load and an increase in the amount of data that must be exchanged between nodes.
+At the same time, energy availability issues are one of the most limiting factors
+for UAV operations. Unlike ground robotic systems, aerial platforms have substantial
+constraints on battery capacity, in which the propulsive usage proportion is the main energy
+consumption [3]. However, the recent progress in onboard AI, Visual-Inertial processing,
+and edge computing has added other energy components that are not negligible. While
+edge-AI solutions enable autonomy in real-time and thus reduce dependency on centralized
+infrastructure [4], this reduces the onboard detectable computational demand formality.
+Consequently, swarm systems of modern UAVs have to deal with a complex trade-off
+between localization accuracy, communication reliability, and energy sustainability.
+Previous research has already explored important interactions among mobility, com-
+munication, computation, and localization in UAV and wireless networked systems.
+However, these interactions are usually addressed from partially separated perspectives:
+navigation-oriented studies primarily target localization robustness, communication stud-
+ies emphasize connectivity or routing efficiency, and energy-oriented studies mainly focus
+on propulsion endurance or trajectory efficiency. Even when cross-layer elements are
+considered, they are often evaluated under different assumptions and disconnected perfor-
+https://doi.org/10.3390/drones10040273
+[p.3]
+Drones 2026, 10, 273
+3 of 33
+mance metrics. Therefore, the principal novelty of the present work is not the introduction
+of a new standalone propulsion, radio, or learning algorithm, but the development of a
+unified mission-level framework that jointly evaluates propulsion energy, communication-
+topology adaptation, and lightweight edge-AI-assisted navigation within decentralized
+UAV swarm operation in GNSS-denied environments.
+Environment with no external positioning information DE- is best illustrated as being
+an environment with no external positioning signals to aid swarm coordination. In these
+conditions, UAVs have to use sensing, peer-to-peer communication, and distributed pro-
+cessing onboard the vehicles to maintain the formation stability and integrity of the mission
+under execution. This operational paradigm is conceptually demonstrated in Figure 1,
+showing an example of a multi-UAV swarm operating in an urban case with GNSS denial
+and adaptive mesh communication and edge-AI processing.
+ 
+Figure 1. Conceptual illustration of unmanned aerial vehicle (UAV) swarm operation in a global
+navigation satellite system (GNSS)-denied environment with adaptive mesh communication and
+onboard edge-artificial intelligence (AI) processing.
+Without adapted communication capabilities, fixed topology communication setups
+have the risk of causing unproductive transmission overhead and accelerating battery con-
+sumption. As is illustrated in Figure 1, the combination of energy-aware topology control
+and onboard artificial intelligence makes it possible to implement dynamic coordination
+and maintain energy sustainability.
+As such, the proposed work explores the system-level question of the interactions of
+residual-energy-aware sparsified communication protocols and onboard machine-inference-
+assisted navigation at the mission scale in degraded positioning environments. The aim of
+the proposed model is to provide a comparative study of system-level trade-offs, rather than
+being an alternative to detailed models of the individual subsystems. It uniquely addresses
+the interaction of propulsion, communication sparsification, and network inference on
+swarm lifetime, network connectivity, and robust positioning within a single assessment
+framework. The next section, therefore, compares the proposed method against previous
+https://doi.org/10.3390/drones10040273
+[p.4]
+Drones 2026, 10, 273
+4 of 33
+state-of-the-art approaches in GNSS-denied positioning, graph-based coordination, and
+energy-aware UAV swarms.
+2. Literature Review and Problem Statement
+Operation in GNSS-denied environments remains one of the key challenges for de-
+centralized UAV swarms because reliable mission execution under degraded positioning
+conditions requires the simultaneous coordination of localization, communication, and
+energy management. The available literature may be grouped into three partially overlap-
+ping research directions: GNSS-denied localization and navigation, graph-based swarm
+coordination and topology control, and energy-aware mission optimization with onboard
+intelligence. Although these directions have each produced important advances, they
+are commonly developed under different assumptions, validated using different perfor-
+mance criteria, and optimized with respect to different subsystem objectives. As a result,
+direct mission-level comparison remains difficult, and the coupled influence of propulsion
+demand, communication adaptation, and onboard intelligence is still insufficiently charac-
+terized for decentralized UAV swarms operating without reliable satellite support [5–16].
+The first major research direction concerns localization without full dependence on
+GNSS. Cooperative positioning approaches have shown that distributed inter-agent mea-
+surements can improve robustness and estimation quality when external positioning infor-
+mation is degraded or partially unavailable [5]. Vision-based localization techniques have
+demonstrated high accuracy in structured environments, but their performance is affected
+by lighting conditions, visual texture, occlusion, and onboard computational requirements,
+which makes their deployment in embedded aerial systems nontrivial [6]. More broadly,
+localization is increasingly regarded as a foundational capability for future autonomous
+and networked systems, especially in dense, signal-degraded, and infrastructure-limited
+environments [7]. In multi-UAV scenarios, relative localization based on ultra-wideband
+and odometry has shown strong potential for formation-level state estimation without full
+reliance on external positioning infrastructure [8]. Radio-assisted localization methods,
+including angle-of-arrival-based architectures, provide an additional alternative to purely
+vision-driven navigation, although their achievable performance remains sensitive to prop-
+agation conditions, geometry, and node density [9]. Taken together, these studies have
+substantially improved localization robustness in GNSS-denied settings; however, they
+generally evaluate navigation performance in relative isolation and only partially address
+how localization reliability interacts with communication burden and total onboard energy
+expenditure in decentralized swarm missions [5–9].
+The second research direction focuses on swarm coordination, communication struc-
+ture, and topology control. Distributed coordinated-control studies have established that
+the performance of multi-agent robotic systems depends strongly on communication
+architecture, consensus behavior, and structural connectivity [10]. Even in other swarm-
+robotics domains, broader reviews have consistently shown that communication design,
+coordination logic, and platform constraints should be analyzed jointly in distributed
+robotic collectives rather than as isolated design layers [11]. From the network perspec-
+tive, topology-control theory has provided the classical basis for balancing connectivity
+preservation against communication overhead in ad hoc and sensor networks [12]. In
+UAV-related applications, energy-efficient routing has confirmed that communication-
+aware decision-making is essential for scalable and resource-constrained aerial networking,
+but such studies usually focus on routing efficiency rather than swarm-wide topology
+adaptation driven by residual battery state [13]. Therefore, while prior work clearly demon-
+strates the importance of communication-aware coordination, the explicit mission-level
+https://doi.org/10.3390/drones10040273
+[p.5]
+Drones 2026, 10, 273
+5 of 33
+relationship among energy depletion, adaptive connectivity reduction, and global cohesion
+preservation remains insufficiently quantified for GNSS-denied UAV swarms [10–13].
+The third research direction addresses mission efficiency, trajectory optimization, and
+onboard intelligence. Energy-aware UAV research has traditionally concentrated on rout-
+ing efficiency, endurance improvement, and trajectory planning, which is fully justified
+because propulsion is often the dominant contributor to the UAV energy budget [13,14]. At
+the same time, studies on embedded perception and online decision-making have shown
+that stronger onboard autonomy usually improves system responsiveness and environ-
+mental awareness at the cost of increased computational demand [15]. From a broader
+sustainability-oriented engineering perspective, energy availability should also be treated
+as a system-level design constraint rather than as a purely local subsystem parameter,
+especially when multiple functional modules compete for limited onboard resources [16].
+However, these studies rarely evaluate communication adaptation, propulsion demand,
+and onboard inference within a common mission-level objective for decentralized UAV
+swarms operating under degraded navigation conditions [13–16].
+In addition, recent studies on self-organized networking and comprehensive reviews of
+GNSS-denied unmanned aerial vehicle navigation further confirm that decentralized aerial
+systems require joint consideration of communication adaptation, localization robustness,
+and onboard computational constraints rather than isolated subsystem optimization [17,18].
+Taken together, the reviewed literature demonstrates that prior studies have already
+addressed important pairwise interactions among localization, communication, coordina-
+tion, energy efficiency, and intelligent control. Thus, the research gap is not in the complete
+absence of cross-layer thinking because it would exaggerate the value of the current work.
+Instead, this gap is left in the scarcity of frameworks that assess these dimensions together
+and in a single mission-level architecture of decentralized UAV swarms in GNSS-denied
+spaces. The current localization-oriented studies focus on the navigation robustness, the
+topology-control studies concentrate on the connectivity preservation and the coordina-
+tion efficiency, and the energy-aware systems studies are mainly concerned with routing
+or trajectory endurance. These aspects in most instances are justified by partly distinct
+assumptions and disjointed performance measures, which complicate direct system-level
+comparisons [5–18].
+In this context, the principal novelty of the present work does not lie in the introduction
+of a new independent propulsion model, radio model, or navigation algorithm. Specifi-
+cally, the onboard CNN-LSTM estimator employed in this study is to be understood as a
+lightweight robustness-enhancing navigation component, and not as the methodological
+novelty claim. The key input is rather the design of a unified mission-level framework that
+collectively considers propulsion energy, residual-energy-aware communication-topology
+adaptation, and onboard AI-assisted navigation in a decentralized swarm of UAVs in GNSS-
+denied environments. This framing makes it possible to evaluate the interaction between
+communication sparsification, energy availability, and localization robustness in a single
+comparative architecture rather than analyzing them as isolated subsystems [8,10,12–15].
+Accordingly, the research problem addressed in this study can be stated as follows:
+how to design and test a decentralized UAV swarm architecture where residual-energy-
+aware communication adaptation reduces unnecessary communication overhead while
+preserving network cohesion and supporting robust localization in GNSS-denied environ-
+ments, without using a fully centralized control architecture.
+Based on this problem statement, the aim and objectives of the study are formulated in
+the following section, and the unified energy model, graph-based adaptive communication-
+topology mechanism, and onboard AI-assisted navigation framework used for comparative
+mission-level evaluation are developed in the subsequent sections.
+https://doi.org/10.3390/drones10040273
+[p.6]
+Drones 2026, 10, 273
+6 of 33
+3. Aim and Objectives of the Study
+This study aims to develop and evaluate a single mission-level architecture of decen-
+tralized UAV swarm coordination in GNSS-denied environments, where propulsion energy,
+residual-energy-aware communication-topology adaptation, and onboard AI-assisted navi-
+gation are individually evaluated within a common comparative architecture.
+To achieve this aim, the following objectives are defined:
+•
+To formulate a mission-level energy model that jointly accounts for propulsion, com-
+munication, and onboard inference energy consumption in a decentralized UAV
+swarm node.
+•
+To develop a graph-based adaptive communication-topology mechanism, where com-
+munication sparsification is correlated with residual battery energy without losing
+positive algebraic connectivity.
+•
+To integrate a lightweight onboard AI-assisted navigation module and test its
+applicability as a robustness-enhancing unit in the wider swarm architecture of
+energy awareness.
+•
+To validate the proposed framework in a comparative simulation environment with
+the use of energy, localization, and communication-reliability metrics when operating
+in the conditions of GNSS-denial.
+These objectives follow directly from the research gap identified in Section 2, namely:
+inadequate access to system-level models that collaboratively analyze localization robust-
+ness, communication adaptation, and energy sustainability in decentralized UAV swarms
+operating in degraded positioning environments.
+4. Materials and Methods
+4.1. Object of Research, Hypothesis, and Assumptions
+The object of the present research is a distributed multi-UAV swarm system, which
+operates under GNSS-denied conditions with decentralized decision-making and onboard
+edge computing capabilities. The swarm is made up of six identical quadrotor platforms
+with visual–inertial sensing modules, a peer-to-peer communication interface, and embed-
+ded AI processors capable of real-time navigation inference. The system does not depend
+on the satellite positioning signals and achieves cooperative localization via inter-UAV
+communication and a local sensor fusion mechanism.
+Each UAV node operates according to a fully distributed control paradigm where
+the navigation inference, communication management, and energy monitoring modules
+are executed locally. Unlike the centralized swarm architectures, the proposed system is
+not based on a master node. Instead, topology adaptation as well as AI-based navigation
+decisions are handled autonomously on each of the platforms, making things far more
+robust and eliminating single-point failures.
+The single UAV swarm node’s structural architecture, including propulsion, commu-
+nication, AI processing, and energy management modules, is shown in Figure 2.
+The main research hypothesis is that: the integration of an energy-dependent adaptive
+communication topology and lightweight edge AI navigation model promises a measur-
+able reduction in total energy consumption together with localization accuracy within a
+hypothesized tolerance margin compared to a conventional fixed topology swarm con-
+figuration [19]. The theory is based on the assumption that communication energy is a
+controllable part of the general energy expenditure aboard and that it is possible to regulate
+it without jeopardizing swarm connectivity.
+https://doi.org/10.3390/drones10040273
+[p.7]
+Drones 2026, 10, 273
+7 of 33
+ 
+Figure 2. Structural architecture of a single UAV swarm node integrating propulsion, communication,
+edge-AI processing, and energy management modules.
+To ensure methodological consistency, the following assumptions were adopted:
+•
+all UAV nodes have the same hardware setups and battery capacities;
+•
+environmental disturbances are limited and approximated by stationary Gaussian
+wind perturbations;
+•
+payload mass does not change during mission execution;
+•
+sensor noise is a zero-mean Gaussian distributed and has covariance;
+•
+communication
+links
+operating
+under
+mixed
+line-of-sight/non-line-of-sight
+(LOS/NLOS) conditions, depending on scenario geometry, with additional attenua-
+tion, retransmission burden, and reduced effective range for obstacle-obstructed links.
+The above assumptions specify the intended domain of the proposed model. That
+is, the framework is meant for comparative study at the mission level of decentralized
+multi-rotor swarms in the presence of moderate environmental perturbations and commu-
+nications impediments, dependent on the scenario. It is not intended as a full high-fidelity
+representation of all aerodynamic, channel-level, or processor-level effects. Therefore, the
+results should be viewed as comparative evidence at a system level under these assump-
+tions, and not independent of deployment. To further explain the methodological scope,
+the proposed framework is not aimed at being a high-fidelity model of all the aerody-
+namic, communication, and embedded-processing processes and is rather an intended
+reduced-order mission-level model to be used in comparative assessment. The assumptions
+adopted are not then used to remove physical complexity, but to isolate the overriding
+cross-layer interplays between propulsion demand, communication adaptation, and the
+provision of localization under controlled GNSS-denied environment missions. This level
+of modeling is suitable for analyzing relative system-level trade-offs, but it should not
+substitute deployment-quality channel prediction, detailed rotorcraft aerodynamics, and
+processor-level power-state analysis.
+The initial energy capacity at each UAV node is represented as Emax, while the residue
+energy at time t is represented as Eres(t). This parameter is also used later on as a dynamic
+control variable for topology adaptation [20].
+https://doi.org/10.3390/drones10040273
+[p.8]
+Drones 2026, 10, 273
+8 of 33
+A summary of the functional decomposition of a swarm node is given in Table 1.
+Table 1. Functional decomposition of a UAV swarm node.
+Subsystem
+Function
+Propulsion system
+Thrust generation and motion control
+Communication module
+Peer-to-peer data exchange
+Edge-AI processor
+Onboard navigation inference
+Sensor fusion unit
+Visual–inertial data processing
+Energy management module
+Residual battery monitoring
+As shown in Table 1, each subsystem is part of the overall energy budget and a part
+of the distributed control loop. The explicit modular decomposition enables analytical
+modeling of subsystem-level energy consumption in subsequent sections.
+4.2. Mathematical Model of Energy Consumption
+A unified mathematical model was obtained to quantitatively describe the onboard
+energy consumption of a UAV swarm node as a whole. The goal of this model is to explicitly
+bring propulsion, communication, and AI processing energy components into the same
+analytical model.
+The total mission energy used in time T is defined as:
+Etotal = Eprop + Ecomm + EAI,
+(1)
+where Eprop is the energy for propulsion, Ecomm is the energy for communication, and EAI
+is the energy for onboard inference [21].
+To physically model energy flow decomposition of the UAV node, Equation (1) is
+formed and conceptually shown in Figure 3. This additive structure has been one of
+the keys to making it possible to independently model the contributions of the different
+subsystems and still keep the analysis tractable.
+ 
+Figure 3. Energy flow decomposition of the UAV swarm node showing propulsion, communication,
+and AI inference contributions to total energy consumption.
+Propulsion energy is given as:
+Eprop =
+Z T
+0 Pmotor(t)dt,
+(2)
+https://doi.org/10.3390/drones10040273
+[p.9]
+Drones 2026, 10, 273
+9 of 33
+where Pmotor(t) is the instantaneous power in the motor at time t. This formulation has
+been adopted as propulsion power changes dynamically according to the demand of the
+thrust, drag, and intensity of the maneuver. The integral form factors in the time-varying
+power consumption duration over the execution of the mission.
+Using the quasi-steady hover approximation, motor power can be estimated in a
+reference form as
+Phover ≈
+T3/2
+p
+2ρA,
+(3)
+where T is thrust, ρ is air density, and A is the rotor-disk area. This expression follows
+from momentum theory and is used here only as a hover-reference term rather than as
+a complete propulsion model for all flight regimes. The propulsion formulation used in
+this study is therefore suitable for relative mission-level evaluation, but not for detailed
+rotor aerodynamic prediction. The revised propulsion model is intended for comparative
+mission-level energy accounting under moderate swarm maneuvering conditions and
+should not be interpreted as a substitute for high-fidelity rotorcraft aerodynamics or full
+6-DoF flight-dynamics simulation. It can be used for light to medium swarm missions
+with translation, local flight, and formation reconfiguration under disturbance control.
+However, dynamic maneuvers, unsteady aerodynamics, or wind-dominated missions will
+affect the relative proportion of propulsion energy and should therefore not be considered
+as the primary mission application of the current model. In line with that, the propulsion
+formulation can be thought of as a mission-level comparative model in the moderate swarm
+maneuvering, local reconfiguring, and disturbance-constrained operation. Its contribution
+to the current study is to retain physically significant interaction between the demand of
+motion and the dissipation of energy without modifying the entire difficulty of high-fidelity
+simulation of rotorcraft. This compromise between tractability and physical interpretability
+is significant since current work allows metric cross-layers system assessment and not
+subsystem-specific aerodynamic optimization.
+Since the considered swarm missions included translational motion, local acceleration,
+formation reconfiguration, and obstacle-related maneuvering, the propulsion-power model
+was extended at the mission level as
+Pmotor(t) = Phover(t) + cv∥v(t)∥2 + ca∥a(t)∥2 + cz|vz(t)| + cψ|ψ(t)|,
+(4)
+where v(t) is the translational velocity vector, a(t) is the acceleration magnitude, vzt is
+the vertical velocity component, and ψ(t) is the yaw-rate term associated with heading
+correction and maneuvering. The coefficients cv, ca, cz, and cψ are aggregate mission-level
+parameters capturing parasitic drag, maneuvering effort, climb/descent cost, and attitude-
+control overhead, respectively. This extension allows the propulsion-energy term to reflect
+dynamic flight behavior more realistically than a pure hover-based approximation, while
+still preserving tractability at the mission-analysis level.
+Communication energy was modeled in an extended form to take into consideration
+not only active transmission and reception time but also distance-dependent propagation
+losses, retransmissions, and medium access overhead. For UAV node i, the communication
+energy during the mission horizon T is given as
+Ecomm,i = ∑
+Ntx
+k=1
+h
+Ptx
+
+dij,k
+
++ Pc,tx
+
+τtx,k
+i
+Natt,k + ∑
+Ntx
+k=1 (Prx + Pc,rx)τrx,k + Eidle,i + EMAC,i,
+(5)
+where Ptx
+
+dij,k
+
+is the distance-dependent transmission power required for packet k over
+link (i,j), Pc,tx and Pc,rx are transmitter and receiver circuit-power terms, τtx,k and τrx,k are
+packet-level transmission and reception durations, Natt,k is the number of transmission
+https://doi.org/10.3390/drones10040273
+[p.10]
+Drones 2026, 10, 273
+10 of 33
+attempts, including retransmissions, Eidle,i represents idle listening energy, and EMAC,i ac-
+counts for medium-access overhead such as channel sensing, backoff, and synchronization.
+The distance dependence of transmission power is linked to the propagation
+model through
+Ptx(dij,k) = Ptx,0(
+dij,k
+d0
+)
+η
+ξNLOS,kξint,k,
+(6)
+where Ptx,0 is the reference transmission power at distance d0, η is the path-loss exponent,
+ξNLOS,k is the additional attenuation factor for non-line-of-sight conditions, and ξint,k
+is an interference-related margin required to maintain reliable decoding under multi-
+node communication.
+To account for packet errors, the effective number of transmission attempts was
+modeled as
+Natt,k =
+1
+1 −pe(SINRk),
+(7)
+where pe(SINRk) is the packet-error probability as a function of the instantaneous signal-to-
+interference-plus-noise ratio. In this way, links with larger separation, stronger attenuation,
+or higher interference not only require higher transmission energy per packet but may also
+incur additional retransmission cost.
+This formulation makes the communication-energy term explicitly dependent on inter-
+UAV distance, channel conditions, and protocol overhead, which is more appropriate for
+adaptive swarm operation in communication-constrained and GNSS-denied environments
+than the simple active-time approximation.
+Onboard AI inference energy is then defined as the following:
+EAI = Ninf·Einf,
+(8)
+where Ninf is the number of inference cycles, and Einf is the amount of energy per
+one inference.
+This is a multiplicative structure, which reflects the discrete nature of the AI processing
+tasks, and allows us to model the frequency of inference as a controllable system parameter.
+This expression models inference energy in an average mission-level form, in which the
+most important design parameter is the frequency of onboard inference as opposed to the
+fine-grained processor-state dynamics of a specific embedded platform. It is reasonable
+to use such an abstraction in comparative cross-layer evaluation, but it is not explicit
+in resolving dynamic voltage and frequency scaling, memory-access variability, or task-
+scheduling effects at the processor level. Accordingly, the AI-energy term should therefore
+be interpreted as a controllable mission-level computational load instead of a power model
+that is hardware-specific.
+The process of energy development of residual batteries is explained as:
+Eres(t + 1) = Eres(t) −∆Etotal(t),
+(9)
+where Etotalt is the amount of energy consumed in t time interval. Equation (9) gives the
+dynamic relation between the energy consumption and adaptive communication topology,
+which are proposed as follows in the next subsections. The residual energy state is a control
+variable, which influences the density of the network.
+In Table 2, in contrast to the initial simplified radio-energy approximation, the revised
+communication model introduces propagation-, retransmission-, and protocol-dependent
+parameters. These additions allow the model to reflect the fact that communication energy
+in adaptive UAV swarms depends not only on radio active time but also on link distance,
+channel quality, and access-layer overhead. It is important, however, to continue to view the
+https://doi.org/10.3390/drones10040273
+[p.11]
+Drones 2026, 10, 273
+11 of 33
+new formulation of the communication cost as a mission-level reduced-order model, rather
+than as a full packet or PHY/MAC-level simulator. While it incorporates the effects of dis-
+tance, channel quality, retransmission costs, and access-layer overhead, it does not explicitly
+resolve interference-limited communication, congestion, and scheduling effects. This is
+crucial because the communication-energy gains should be regarded as physically moti-
+vated simulation results, based on the communication assumptions. Specifically, although
+the revised formulation includes propagation-dependent transmission power, retransmis-
+sion load, idle listening, or MAC-layer overhead, it does not directly model fine-grained
+LoRa physical-layer timing, contention-based collision dynamics, adaptive data-rate be-
+havior, or dense-network congestion effects. The communication model should therefore
+be interpreted as a lower-order mission-level abstraction yielding better physical fidelity
+than either a simple active-time approximation, but not yet a deployment-grade channel-
+access simulator. Such distinction is noteworthy since the reported communication-energy
+gains are aimed at providing the comparative architectural assessment under the assumed
+guidelines, as opposed to the precise link-budget estimate of a given field implementation.
+Table 2. Model parameters of the energy components.
+Parameter
+Description
+Unit
+η
+Path-loss exponent
+-
+d0
+Reference communication distance
+m
+Ptx,0
+Reference transmission power
+W
+Pc,tx
+Transmitter circuit power
+W
+Pc,rx
+Receiver circuit power
+W
+ξNLOS
+NLOS attenuation factor
+-
+ξint
+Interference margin factor
+-
+Natt
+Mean number of transmission attempts
+-
+Eidle
+Idle listening energy
+J
+EMAC
+MAC-layer overhead energy
+J
+4.3. Adaptive Graph-Based Communication Topology
+For this purpose, to use the energy information for coordination between the UAV
+swarm, a graph theoretical model for the communication was developed [22]. The swarm
+is represented as an undirected dynamic graph:
+G = (V, E),
+(10)
+where V = {v1, v2, . . . , vN} is the set of UAV nodes, and E ⊆V × V is the communication
+links between nodes.
+This representation is used because of the mathematically rigorous framework pro-
+vided by graph theory in the analysis of connectivity, network density, and robust-
+ness. It allows the possibility to formally model the topology adaptation and keep the
+analytical tractability.
+Let dij be the Euclidean distance between the UAV nodes i and j. A communication
+link is made if:
+(i, j) ∈Eifdij < Rdynamic,
+(11)
+This threshold-based rule ensures that the communication is only in the operational
+radius of the nodes and therefore helps control the density of the network.
+However, unlike the conventional fixed topology approaches (Rdynamic = Rmax), the
+proposed model incorporates energy-dependent adaptation.
+The varying communication radius should not be confused with a physical model for
+radio propagation. Instead, it is proposed as a system variable that governs graph sparsity
+https://doi.org/10.3390/drones10040273
+[p.12]
+Drones 2026, 10, 273
+12 of 33
+in response to node residual energy, but is constrained by communication feasibility and
+spectral connectivity. In other words, nodes with low residual energy should refrain from
+holding redundant links, as long as admissible links remain communicationally feasible
+and the graph in question has positive algebraic connectivity. In this sense, the radius law
+is an upper bound control variable rather than an alternative to a link-budget analysis.
+The communication power model was reformulated to form the adaptive communi-
+cation radius instead of being heuristically introduced. Because the inter-UAV distance
+dependence of the needed transmission power is the propagation-dependent relationship
+in Equation (6), the maximum sustainable communication range can be determined using
+the budget of transmission-power available.
+Define the admissible transmission power budget at time t as
+Pavail(t) = Ptx,max( Erest
+Emax
+),
+(12)
+where Etx,max is the maximum communication power budget available when the battery is
+fully charged, Erest is the residual battery energy, and Emax is the initial battery energy. By
+combining Equation (6) with the condition Ptx/availt, the maximum feasible communication
+radius can be written as
+Rdynamict = d0(
+Pavailt
+Ptx,0ξNLOSξint
+)
+1/η
+,
+(13)
+Using the definition of Rmax for the fully charged condition, the expression can be
+rewritten in normalized form as
+Rdynamict = Rmax( Erest
+Emax
+)
+1/η
+,
+(14)
+In the present simulations, the effective path-loss exponent was set to η = 2.2, which
+was chosen as a mission-level mixed LOS/NLOS propagation parameter. Since obstacle-
+related attenuation was additionally represented through the NLOS attenuation factor
+ξNLOS, the selected η value was kept moderately above the free-space case rather than
+using a strongly obstructed-link exponent.
+This formulation provides a physical interpretation of adaptive radius contraction: as
+the residual battery energy decreases, the admissible transmission-power budget decreases
+proportionally, and the feasible communication distance contracts according to the path-loss
+exponent rather than an arbitrary exponential law. Therefore, the communication-radius
+adaptation is directly linked to radio energy consumption and link-budget feasibility under
+the adopted propagation assumptions.
+To avoid network fragmentation during radius contraction, the graph-connectivity
+condition λ2(L) > 0 is enforced as a separate structural constraint. The path-loss-based
+residual-energy-aware communication-radius law and the separately enforced graph-
+connectivity constraint are illustrated in Figure 4.
+To avoid fragmentation of the network, a minimum connectivity constraint is put:
+λ2(L) > 0,
+where λ2(L) is the second smallest eigenvalue (algebraic connectivity) of the Laplacian
+matrix L of a graph G. This condition offers global connectivity. The Laplacian-based
+criterion is prevalent in the multi-agent consensus theory and is employed to ensure
+topology adaptation will not cause a swarm coherence loss [23]. The algebraic-connectivity
+condition, rather than a binary measure of the connectedness of the graph, is employed
+https://doi.org/10.3390/drones10040273
+[p.13]
+Drones 2026, 10, 273
+13 of 33
+in the current research as a structural robustness measure in the process of topology
+sparsification. A drop in λ2(L) indicates a drop in connectivity margin without necessarily
+becoming fragmented. The significance of this interpretation lies in the fact that the
+proposed adaptive mechanism is a deliberate attempt to diminish the redundancy of
+communication due to depletion of residual energy. Accordingly, maximizing graph
+density is not the aim of this, but maintaining a positive and operationally viable spectral-
+connectivity margin without incurring unneeded communication cost. The temporal
+evolution of algebraic connectivity under fixed and adaptive communication topologies is
+shown in Figure 5.
+Figure 4. Residual-energy-aware communication radius as a function of the battery-energy ratio
+(Eres/Emax), derived from the path-loss-based transmission-power constraint. The radius decreases
+according to the admissible communication-power budget, while the graph-connectivity condition is
+enforced separately.
+The approximate expected communication load of each node is given by:
+Ci = ki · fupdate,
+where
+•
+ki is the degree of the node,
+•
+fupdate is the frequency of update.
+Since the node degree is reduced with reducing Rdynamic, the communication load is
+reduced with the degree of reduction. This has a direct effect on Ecomm in Equation (5).
+This dependence also gives a system-level intuitive view of the adaptive process: when
+the radius becomes adaptive and reduces its residual energy, the degree of nodes and com-
+munication activity reduces, which leads to lowering the communication-energy demand,
+and the algebraic-connectivity constraint prevents excessive sparsification. The adaptive
+topology is thus a regulated trade-off between communication economy and structural
+cohesion as opposed to a naive link-removal strategy.
+https://doi.org/10.3390/drones10040273
+[p.14]
+Drones 2026, 10, 273
+14 of 33
+Figure 5. Temporal evolution of algebraic connectivity λ2(L) under fixed and adaptive commu-
+nication topologies.
+The adaptive strategy preserves strictly positive connectivity throughout
+mission duration.
+As shown in Table 3, the topology model has minimal parameters to be tuned, which
+ensures the implementation feasibility.
+Table 3. Adaptive Topology Parameters.
+Parameter
+Description
+Unit
+Rmax
+Maximum communication radius
+m
+η
+Path-loss exponent governing residual-energy-to-range contraction
+-
+ki
+Node degree
+-
+fupdate
+Communication update frequency
+Hz
+λ2(L)
+Algebraic connectivity
+-
+4.4. Edge-AI Navigation Model
+To guarantee the autonomous operation in the GNSS-denied operating conditions,
+a lightweight edge-AI navigation module was developed and deployed on each UAV
+node [24]. The model is capable of taking information from sensors of visual–inertial
+navigation and generating real-time position estimates without reliance on external signals
+from satellites.
+The architecture of navigation follows a hybrid convolutional-recurrent architecture,
+which combines spatial feature extraction and temporal sequence modeling.
+The model of inference is given by:
+yt = fLSTM(FCNN(xt)),
+(15)
+where
+•
+xt represents the fused visual–inertial input of time t,
+•
+fCNN extracts spatial features from image frames,
+•
+fLSTM models temporal dependencies,
+•
+yt denotes the estimated position and velocity states.
+https://doi.org/10.3390/drones10040273
+[p.15]
+Drones 2026, 10, 273
+15 of 33
+This architecture is chosen as convolutional layers work efficiently in encoding space
+information, whereas in the case of recurrent networks, motion continuity and time coher-
+ence (temporal correlations), which are important in GNSS-denied navigation situations.
+The CNN part of the model is used to reduce the dimensionality of the raw sensor and
+reduce the computation from the sensor before the recurrent part is processed. The LSTM
+layer maintains the sequential consistency and reduces the drift accumulation.
+The optimization objective comprises localization accuracy and energy usage:
+L = α·RMSE + β·Etotal,
+(16)
+where
+RMSE =
+r
+1
+N∑
+N
+k=1(xest,k −xtrue,k)2,
+(17)
+•
+Etotal is given in Equation (1),
+•
+α and β are weighting coefficients.
+The factor of Etotal in the loss function makes sure that the frequency of inference and
+computational intensity is bound, so that too much energy is not consumed. This formula-
+tion makes it possible to jointly optimize navigation accuracy and energy sustainability
+that is directly related to the integrated system objective.
+The inference frequency finf is limited by processing capacity to be executed on board:
+finf ≤
+1
+Tinf
+,
+(18)
+where Tinf represents inference latency.
+This constraint ensures real-time feasibility, but for the AI processing to be able to
+process without destabilizing the control loops.
+The energy consumption per inference Einf is given by an estimated
+Einf = PAI · Tinf,
+(19)
+where
+•
+PAI is the power of the processor while doing inference,
+•
+Tinf is the inference time.
+This formulation explicitly makes the link between the complexity of AI architecture
+and energy modeling from Section 4.2.
+As shown in Table 4, the architecture of the model is kept small on purpose to keep the
+calculations on board feasible. The CNN–LSTM navigation module was trained and evalu-
+ated using scenario-diverse visual–inertial trajectory data generated within the simulation
+framework. The dataset was separated into training, validation, and test subsets to reduce
+overfitting and to assess robustness under different layouts, randomized initial conditions,
+and disturbance realizations within the simulated mission set. Input sequences were nor-
+malized prior to training, and the final model was selected based on validation-loss stability
+and embedded inference feasibility. In the present study, the CNN–LSTM model is not
+claimed as a standalone methodological novelty; rather, it is used as a lightweight onboard
+estimator intended to improve localization robustness within the broader energy-aware
+swarm architecture. The mean onboard inference latency of the deployed CNN–LSTM
+model was 12 ms, which remained compatible with the adopted 20 Hz navigation update
+rate. Within the proposed framework, the module serves a primarily supportive role at the
+system level: it enhances localization stability, reduces drift accumulation, and maintains
+onboard estimation feasibility under GNSS-denied conditions, but it is not intended to be
+https://doi.org/10.3390/drones10040273
+[p.16]
+Drones 2026, 10, 273
+16 of 33
+the main driver of system-wide performance improvement. The difference in this respect
+is key to understanding the results; the dominant energy advantage of the architecture
+arises from communication-topology adaptation to communication-topology adaptation,
+and the AI element is the factor primarily used in the robustness of the navigation and
+stable operation.
+Table 4. Edge-AI Model Configuration.
+Parameter
+Value
+CNN layers
+3
+Kernel size
+3 × 3
+LSTM units
+64
+Inference frequency
+20 Hz
+Processor
+Jetson Nano (NVIDIA Corporation, Santa Clara, CA, USA)
+Mean inference latency
+12 ms
+4.5. Experimental Configuration and Validation Setup
+In order to verify the proposed energy-aware adaptive swarm architecture, a well-
+structured experimental framework has been designed using high fidelity simulation envi-
+ronment on multiple UAVs. The goal for this configuration is reproducibility/controlled
+variance and uniformity of evaluation for baseline and proposed configuration.
+The simulation platform has been implemented with Robot Operating System 2
+(ROS2 Humble Hawksbill, Open Robotics, Mountain View, CA, USA) middleware together
+with Gazebo 11 (Open Robotics, Mountain View, CA, USA) physics simulation. The PX4
+Autopilot v1.xx (PX4 Development Team, Zurich, Switzerland) flight control stack was used
+for low-level control emulation. Each UAV node was modeled using realistic aerodynamic
+and battery discharge dynamics, as well as communication restrictions.
+The swarm involved six quadrotor UAVs operating in a common three-dimensional
+environment with configurable obstacle layouts.
+Although the validation was performed in the simulation environment, the parameters
+of the hardware are those of real embedded platforms, to be certain that the validation is
+relevant from a practical point of view. In order to simulate the communication, a simulated
+Long Range (LoRa) like mesh communication model at 868 MHz with variable transmission
+power levels was employed.
+The communication delay Tdelay was modeled as:
+Tdelay = Tpropagation + Tprocessing + Tqueue
+(20)
+where
+•
+Tpropagation is defined as signal travel time,
+•
+Tprocessing is the node processing latency,
+•
+Tqueue is the transmission queue delay.
+This formulation models the realistic behavior of latencies of distributed communica-
+tion in a swarm.
+The operating scenarios that were used in this research were applied only in simulation.
+In fact, there was no actual experiment of GNSS-jamming. The results of the GNSS-denied
+cases were simulated, with satellite-based positioning information simulated as unavailable
+in the ROS2–Gazebo–PX4 simulation system to test mission-level resilience in controlled
+and repeatable scenarios.
+Three operating scenarios were set up to test robustness under different environmental
+conditions:
+https://doi.org/10.3390/drones10040273
+[p.17]
+Drones 2026, 10, 273
+17 of 33
+1.
+Indoor corridor scenario:
+Limited visibility, obstacle-constrained movement, and absence of GNSS signals.
+Communication links may experience intermittent non-line-of-sight (NLOS) conditions
+due to corridor geometry and structural obstruction.
+2.
+Urban canyon scenario:
+Tall building structures, multipath propagation, and signal occlusion. Communica-
+tion links were modeled under mixed LOS/NLOS conditions, depending on inter-UAV
+geometry and obstruction.
+3.
+Open-field GNSS-denied simulation scenario:
+Open-space operation with emulated loss of GNSS-based positioning updates in
+simulation. This scenario preserves largely unobstructed communication links while
+removing external satellite-supported localization, thereby isolating the effect of GNSS
+denial without introducing additional obstacle-induced attenuation.
+The final experimental setup did not assume a global line-of-sight communication.
+Rather, the indoor–corridor and urban-canyon settings were mixed LOS/NLOS. In the case
+of obstacle-obstructed links, the communication model added extra attenuation, decreased
+effective communication range, and increased the probability of packet error. Consequently,
+the cost of retransmission and the reliability of communication were no longer evaluated in
+a scenario-dependent manner and not based on an idealized LOS-only assumption. Each
+of the scenarios was performed for the same duration of mission T = 1200 s to provide
+a consistent comparison. To test performance increases in an objective way, 3 baseline
+configurations were implemented:
+•
+Fixed communication topology + EKF navigation
+•
+Adaptive topology + EKF navigation
+•
+Fixed topology + Edge AI Navigation
+The proposed configuration combines adaptive topology and edge-AI navigation at
+the same time. To improve statistical robustness, each evaluated configuration was executed
+over 30 independent Monte Carlo simulation runs with randomized initial conditions and
+disturbance realizations. Reported results are presented using mean values together with
+variability measures, while confidence intervals and paired significance testing were used
+to assess whether the observed differences between baseline and adaptive configurations
+were reproducible across repeated runs.
+The following quantitative metrics were chosen:
+•
+Total energy consumption Etotal (Equation (1))
+•
+Root Mean Square localization error (RMSE) (Equation (17))
+•
+Packet loss ratio (PLR), defined in Equation (21)
+•
+Integrated performance index J
+PLR is defined as:
+PLR = Nlost
+Nsent
+,
+(21)
+where Nlost is the number of packets that were lost, and Nsent is the number of packets that
+were sent. This measure is a communication reliability under adaptive topology variation.
+The major experimental parameters are summarized in Table 5.
+As shown in Table 5, all parameters were fixed across baseline and proposed configu-
+rations to ensure fair comparison.
+The computational complexity is dominated by the pairwise distance evaluation and
+graph Laplacian updates and is O(N2) in the worst case per update cycle for the adaptive
+https://doi.org/10.3390/drones10040273
+[p.18]
+Drones 2026, 10, 273
+18 of 33
+topology algorithm. However, due to dynamic sparsification, the effective complexity is
+near O(kN), where k is the mean node degree.
+Table 5. Experimental Configuration Parameters.
+Parameter
+Value
+Number of UAV nodes
+6
+Mission duration
+1200 s
+Maximum communication radius
+300 m
+Battery capacity
+5200 mAh
+AI inference frequency
+20 Hz
+Wind disturbance q
+0.5 m/s
+Simulation timestep
+0.01 s
+The CNN-LSTM inference model is computationally complex, where L is the number
+of layers, C is the convolutional filters, and T is the sequence length. For the implemented
+configuration, inference time was less than 12 ms with embedded-class processors, which
+proved suitability for onboard execution.
+The EKF-based navigation configuration was selected as the principal reference base-
+line because it represents a lightweight and widely adopted estimator for embedded UAV
+state estimation under limited onboard computational resources. The purpose of this
+comparison was therefore to evaluate whether the proposed CNN–LSTM module provides
+measurable navigation benefit within a system-level energy-constrained swarm framework,
+rather than to claim superiority over the full spectrum of state-of-the-art vision-based
+SLAM or heavyweight learning-based navigation pipelines, which often operate under
+different computational assumptions.
+Overall, the proposed architecture fulfills the real-time operational constraints of
+medium-scale UAV swarms. Simultaneously, the current validation is simulation-based
+and is to be understood that way. The experimental system is supposed to give controlled
+and repeatable comparative evidence at constant mission assumptions, not a complete
+substitute for hardware-in-the-loop or field deployment experimentation. This validation
+level would be suitable for determining the relative architectural impacts of topology
+adaptation and onboard AI support; however, future experimental efforts would be needed
+that would verify approval communication performance, processing load, and navigation
+survivability under realistic platform and platform channel conditions.
+5. Results
+5.1. Validation of the Energy Consumption Model
+The unified energy-consumption model defined by Equations (1)–(9) was evaluated
+under the three simulation scenarios described in Section 4.5. For each configuration,
+30 Monte Carlo simulation runs were performed using randomized initial conditions and
+disturbance realizations. Energy values were sampled at 10 Hz and integrated over the full
+mission duration T = 1200 s. Reported values are presented as mean ± standard deviation
+across repeated simulation runs.
+The total energy consumption of one UAV node was evaluated by the cumulative
+integral of the energy components at the subsystem level:
+Etotal = Eprop + Ecomm + EAI,
+(22)
+The average total energy consumption of the fixed topology baseline configuration was:
+Efixed
+total = 412.6 ± 6.3,
+https://doi.org/10.3390/drones10040273
+[p.19]
+Drones 2026, 10, 273
+19 of 33
+where the uncertainty represents standard deviation for repeated runs.
+For the adaptive topology configuration, the following value was:
+Eadaptive
+total
+= 318.9 ± 5.1,
+The relative reduction of energy is calculated as:
+∆E =
+Efixed −Eadaptive
+Efixed
+× 100%,
+(23)
+yielding:
+∆E = 22.7%,
+The 95% confidence interval for the reduction was 20.9–24.3%.
+To validate consistency of the additive model in Equation (1), contributions of subsys-
+tems were separately analyzed.
+The propulsion energy component was stable from one configuration to the next:
+Efixed
+prop = 275.3, Eadaptive
+prop
+= 272.8,
+There was a relative stability in the propulsion-energy component between the fixed
+topology and the adaptive topology configuration. According to the mission-level propul-
+sion model that was adopted, the difference between the two was less, meaning that
+the prevalent change in the total energy was introduced by the communication subsys-
+tem. This outcome, though, cannot be perceived as a general principle of the dynamic
+swarm missions, as more aggressive maneuvers, more violent wind upheavals, or more
+frequent formation reconfiguration processes may augment the proportional propulsion-
+energy contribution.
+The communication-energy component exhibited the largest reduction between the
+fixed topology and adaptive topology configurations:
+Efixed
+comm = 98.4, Eadaptive
+comm
+= 67.5,
+which corresponds to a 31.4% reduction under the adopted simulation assumptions. This
+reduction in the revised model of communication is explained not just by a reduced
+active time of transmission and reception but also by the combination of a reduced num-
+ber of active communication links, reduced effective inter-UAV communication ranges,
+lowered re-transmission overhead, and reduced medium access overhead. Hence, the
+communication-energy gain can be seen as the outcome of topology-imposed decrease
+in radio duty cycle, and cost of link-maintenance in the propagation and packet-access
+conditions adopted.
+The energy required for AI inference remained nearly constant:
+Efixed
+AI
+= 38.9, Eadaptive
+AI
+= 38.6,
+with a relative difference of only 0.8%, which is within the uncertainty range of repeated
+runs. This indicates that the dominant contribution to the observed energy reduction
+originated from the communication subsystem rather than from the onboard inference
+component. This finding is significant in the way the proposed architecture is to be
+interpreted. The described energy benefit should not be ascribed equally to all subsystems,
+but to the major part of the controlled restriction of the communication load realized
+through adaptive topology sparsification. By contrast, the onboard AI term is relatively
+stable and can only be seen as more of a complementary computational price of localization
+https://doi.org/10.3390/drones10040273
+[p.20]
+Drones 2026, 10, 273
+20 of 33
+robustness and not a significant factor in energy savings in general. The subsystem-level
+breakdown of energy consumption for the fixed and adaptive configurations is summarized
+in Table 6, highlighting that the dominant reduction was achieved in the communication-
+energy component.
+Table 6. Detailed Energy Component Statistics.
+Component
+Fixed (Wh)
+Adaptive (Wh)
+Std Dev (Wh)
+Reduction (%)
+Propulsion
+275.3
+272.8
+2.1
+0.9
+Communication
+98.4
+67.5
+3.4
+31.4
+AI Inference
+38.9
+38.6
+1.2
+0.8
+Total
+412.6
+318.9
+6.3
+22.7
+The evolution of the total amount of energy over mission time is shown in Figure 6.
+The slope of the adaptive configuration is consistently lower for the entire mission execution
+and verifies the stable energy saving, instead of the transient one.
+ 
+Figure 6. Temporal evolution of total energy consumption for fixed and adaptive topology configura-
+tions over a 1200 s mission. Shaded regions indicate ±1 standard deviation across 30 Monte Carlo
+simulation runs.
+A paired t-test was used to test the statistical significance of total energy reduction.
+The obtained p-value was:
+p < 0.01,
+being statistically significant at a = 0.05 of the difference between fixed and adaptive
+configurations. In addition to statistical significance testing, effect size was assessed by the
+application of Cohen’s d metric. The calculated effect size (d = 1.42) shows that the total
+energy saving due to the adaptive topology is large and that the observed improvement is
+not only statistically significant but also of operational significance.
+5.2. Adaptive Communication Topology Performance
+The adaptive communication topology from Equations (9)–(14) was tested under
+dynamic residual energy variation for these three experimental scenarios. Network perfor-
+https://doi.org/10.3390/drones10040273
+[p.21]
+Drones 2026, 10, 273
+21 of 33
+mance has been evaluated in terms of node degree distribution, algebraic connectivity λ2(L),
+packet loss ratio (PLR), and graph density. The average node degree ki was calculated in
+the following way:
+k = 1
+N∑
+N
+i=1 ki,
+(24)
+where ki is the number of active communication links of node i. In the configuration of the
+fixed topology:
+kfixed = 4.2 ± 0.3,
+For the configuration of the adaptive topology:
+kadaptive = 2.8 ± 0.4
+The reduction in mean node degree was 33.3% in effect of energy-dependent radius
+adjustment for Equation (14). The temporal evolution of node degree is shown in Figure 7.
+Figure 7. Temporal evolution of mean node degree in fixed and adaptive topology configurations.
+Figure 7 shows the temporal evolution of the mean node degree for the fixed and
+adaptive topology configurations. The evolution of algebraic connectivity was presented
+earlier in Figure 5. Summary values of graph density, algebraic connectivity, and mean
+packet loss ratio are reported in Table 7. Overall, the adaptive strategy reduces communica-
+tion redundancy while preserving positive algebraic connectivity and maintaining PLR
+within the adopted operational tolerance.
+Table 7.
+Summary of communication-topology performance metrics for fixed and adaptive
+configurations.
+Metric
+Fixed
+Adaptive Topology
+Mean node degree
+4.2
+2.8
+Graph density
+0.84
+0.56
+Mean algebraic connectivity, λ2(L)
+0.52
+0.29
+Minimum algebraic connectivity, λ2(L)
+0.41
+0.18
+Mean PLR (%)
+4.1
+4.8
+https://doi.org/10.3390/drones10040273
+[p.22]
+Drones 2026, 10, 273
+22 of 33
+In order to verify that topology adaptation did not result in network fragmentation,
+algebraic connectivity λ2(L) was evaluated for every step in the simulation. To evaluate the
+scalability, some more simulations have been done for N = 10 and N = 15 UAV nodes. The
+adaptive topology was able to preserve positive algebraic connectivity in the study of all
+configurations. Energy reduction percentage was still within the range of 20–24%, which
+proves the performance of the swarm results in a consistent scaling relation to the swarm
+size, for moderate density conditions.
+Minimum values observed:
+Fixed topology:
+λfixed,min
+2
+= 0.41,
+Adaptive topology:
+λadaptive,min
+2
+= 0.18,
+In all runs:
+λ2(L) > 0,
+ensuring maintenance of global connectivity according to the algebraic-connectivity con-
+straint λ2(L). At the same time, the fact that the collapse of λ2(L) compared to the fixed
+topology case shows that the adaptive configuration is working with a lower spectral
+connectivity margin, despite the absence of fragmentation. The given behavior is also in
+line with the purpose of the proposed approach: the redundancy of communication is
+minimized to save energy, though up to the point where a positive structural cohesion
+margin is left. Thus, the adaptive strategy is to be construed as nearer the connectivity
+boundary compared to the fixed baseline, although it should have operationally acceptable
+robustness margin within the assessed mission conditions.
+The mean values for the algebraic connectivity were:
+•
+Fixed topology: 0.52
+•
+Adaptive topology: 0.29
+Density D for graph was calculated as:
+D =
+2|E|
+N(N −1),
+(25)
+where |E| is the number of active edges.
+Measured densities:
+•
+Fixed topology: 0.84
+•
+Adaptive topology: 0.56
+This is a 33% reduction in network density.
+Packet loss ratio was calculated by using Equation (21). In all scenarios, the mean
+values for PLR were:
+Fixed topology:
+PLRfixed = 4.1% ± 0.6%,
+Adaptive topology:
+PLRadaptive = 4.8% ± 0.7%,
+The highest instantaneous PLR under adaptive topology was found to be 6.2%, which
+is still low compared to the operational PLR of 8%. In these results, there is also a hint of the
+supposition that uncontrolled link degradation does not result in communication-energy
+savings. The adaptive mechanism, however, tolerates a small decrease in redundancy
+and a small rise in the message-loss phenomenon and ensures positive connectivity, and
+does not increase the PLR beyond the operational tolerance adopted. This is the trade-off
+https://doi.org/10.3390/drones10040273
+[p.23]
+Drones 2026, 10, 273
+23 of 33
+between the energy-aware mission-level coordination strategy and the aggressive pruning
+of the topology.
+As summarized in Table 7, the mean degree of the nodes and the graph density of
+the adaptive topology are minimized compared to the fixed topology configuration, and
+this suggests a purposeful reduction in the communication redundancy. Meanwhile, the
+mean and the minimum value of the algebraic connectivity were also positive, which
+proved that the process of topology sparsification never caused the fragmentation of
+the network. The average ratio of the packets that were lost grew minimally and was
+within acceptable operational limits. This finding substantiates the interpretation that
+the presented residual-energy-aware adaptation provides a controlled trade-off between
+the communication-energy conservation and the maintenance of an adequate network
+cohesion to execute the mission.
+5.3. Edge-AI Navigation Accuracy
+The localization performance of the proposed CNN-LSTM edge-AI navigation model
+(Equations (15)–(19)) was tested for all the experimental scenarios in Section 4.5. Accuracy
+was measured in terms of root mean square error (RMSE) given in Equation (17) and also
+in terms of cumulative distribution function (CDF) and maximum trajectory deviation.
+For each of the scenarios, we run 30 Monte Carlo simulations and average the lo-
+calization performance over the different runs. The RMSEs presented in this study are
+thus based on repeated randomization of the scenarios rather than a deterministic set of
+trajectories. In this research, we tested the robustness of the edge-AI navigation module
+over multiple randomized evaluations of the scenarios preliminarily verified, including
+variations of the initial position, trajectory distortion arising from the presence of obstacles,
+and different levels of disturbances in the mission layouts, where GNSS is denied. But
+the present results should be considered as a robustness test within the simulated family
+of scenarios rather than an out-of-domain cross-scenario validation. A more extensive
+cross-validation involving held-out (unseen) layouts and external data should be the focus
+of future research.
+The average values of the RMSEs for all scenarios were:
+RMSEEKF = 0.83 ± 0.05 m,
+RMSEAI = 0.79 ± 0.04 m
+The relative decrease in RMSE was 4.8%. Even though this improvement is insignifi-
+cant in the absolute percentage terms, its significance lies in the stability-oriented nature of
+the estimator in GNSS-denied mode. The edge-AI module, as it is constructed within the
+current structure, is not to be dominant in the aggregate system gain; it aims at reducing cu-
+mulative drift, discouraging greater localization of involuntary motions, and enabling more
+onboard categorical approximations of state under worsened positioning circumstances.
+The 95% confidence interval of the AI-based navigation error was 0.75 m to 0.83 m.
+To assess distribution characteristics, the cumulative distribution function (CDF) of
+localization error was calculated.
+The probability of remaining within 1.0 m from the error was:
+•
+EKF baseline: 82.4%
+•
+Edge-AI model: 88.7%
+The likelihood of occurrences of large errors (>1.5 m) was:
+•
+EKF: 6.9%
+•
+Edge-AI: 3.2%
+https://doi.org/10.3390/drones10040273
+[p.24]
+Drones 2026, 10, 273
+24 of 33
+The error distribution curves are shown in Figure 8.
+ 
+Figure 8. Cumulative distribution function (CDF) of localization error for the extended Kalman
+filter (EKF) baseline and the edge-AI navigation model. The dashed vertical line indicates the 1.0 m
+reference error threshold used to compare the probability of maintaining sub-meter localization
+accuracy. The edge-AI approach shows a higher probability of maintaining low error magnitudes.
+Maximum instantaneous position deviation was measured when segments of dynamic
+maneuvers were taken.
+Observed peak errors:
+•
+EKF baseline: 2.34 m
+•
+Edge-AI model: 1.96 m
+This corresponds to 16.2% less peak trajectory deviation.
+The spatial deviation heatmap over the mission path is given in Figure 9.
+Figure 9. Spatial localization error heatmap over mission trajectory for EKF (left) and edge-AI (right)
+navigation models. Warmer colors indicate higher localization error magnitude.
+https://doi.org/10.3390/drones10040273
+[p.25]
+Drones 2026, 10, 273
+25 of 33
+Drift accumulation was measured by calculating the mean absolute position error over
+mission time:
+MAE(t) = 1
+N∑
+N
+k=1 xestt −xtruet,
+(26)
+The drift slope coefficient from linear regression was:
+•
+EKF: 0.00072 m/s
+•
+Edge-AI: 0.00051 m/s
+The drift accumulation rate reduction was 29.1%. This result confirms that the main
+contribution of the artificial intelligence module is to increase reliability, rather than signifi-
+cantly improve the accuracy of the headers. In long-term GNSS-denied swarm missions,
+reducing drift growth and reducing tail errors may be more important from an operational
+point of view than significantly reducing the average error in itself, as they directly affect
+formation stability, consistency of joint decisions, and mission continuity. The principal
+navigation-accuracy results, including RMSE, maximum deviation, drift slope, and the
+probability of maintaining an error below 1 m, are summarized in Table 8.
+Table 8. Navigation Accuracy Metrics.
+Metric
+EKF
+Edge-AI
+Mean RMSE (m)
+0.83
+0.79
+Max deviation (m)
+2.34
+1.96
+Drift slope (m/s)
+0.00072
+0.00051
+Probability of error < 1 m (%)
+82.4%
+88.7%
+5.4. Integrated System Performance Evaluation
+To give a holistic quantitative analysis for the proposed architecture, an integrated
+performance index was calculated by incorporating the localization accuracy, total energy
+consumption, and communication reliability as a single metric.
+The integrated performance index J is given as:
+J = w1· RMSE
+RMSEref
++ w2·Etotal
+Eref
++ w3· PLR
+PLRref
+,
+(27)
+where:
+•
+RMSE is defined in Equation (17),
+•
+Etotal is defined as Equation (1),
+•
+PLR is defined in Equation (21),
+•
+RMSEref, Eref, and PLRref are the fixed topology EKF baseline values,
+•
+w1, w2, and w3 are the weighting coefficients.
+In this study, the integrated performance metric was used as an additional decision-
+making tool at the mission level, rather than as an isolated performance indicator. A
+reference weighting set was considered over w1 = 0.4, w2 = 0.4, and w3 = 0.2, with position-
+ing accuracy and total energy consumption considered as primary decision criteria, while
+communication reliability related to packet loss was considered as a secondary goal. This
+was due to the fact that all configurations remained below the adopted operational packet-
+loss tolerance and retained positive algebraic connectivity, while the key mission trade-off
+in the present context was between energy sustainability and navigation performance.
+In order to evaluate the sensitivity of this integrated index to subjective choice of
+priorities, a sensitivity study was also conducted by considering alternative weighting
+sets that represent four mission-dependent priorities, including balanced, energy-priority,
+navigation-priority, and reliability-dominant mission weighting sets. The results are re-
+ported in Table 9. They show that the relative ranking between configurations remains
+https://doi.org/10.3390/drones10040273
+[p.26]
+Drones 2026, 10, 273
+26 of 33
+favorable to the proposed architecture under balanced, energy-priority, and navigation-
+priority weighting sets, while reliability-dominant weighting makes the adaptive EKF
+configuration more competitive because of its slightly lower packet-loss ratio. As such, the
+integrated index must be considered as a comparative (ranking) rather than an absolute
+(scalar) measure of performance, since operational preferences affect the ranking. Accord-
+ingly, the objective of the built-in index in the current research is not to determine a globally
+optimal weighting guideline, but to offer an open-minded mission-level comparison in-
+strument within the various levels of operation priorities. The extra sensitivity analysis
+makes it appear that the suggested architecture can be seen as still favorable to a number
+of reasonable weighting configurations, in addition to showing that reliability-dominated
+missions can move the desirable ordering towards other configurations.
+Table 9. Sensitivity of the integrated performance index to alternative weighting schemes.
+Scheme
+w1
+w2
+w3
+Best-Ranked
+Configuration
+Interpretation
+Balanced
+0.4
+0.4
+0.2
+Adaptive + Edge-AI
+Best compromise between
+energy and navigation
+Energy-priority
+0.2
+0.6
+0.2
+Adaptive + Edge-AI
+Energy benefit dominates
+Navigation-priority
+0.6
+0.2
+0.2
+Adaptive + Edge-AI
+Navigation improvement
+remains favorable
+Reliability-aware
+0.3
+0.3
+0.4
+Adaptive + EKF
+Slightly lower PLR becomes
+more influential
+We also ran a set of 30 Monte Carlo runs and performed a paired t-test to test
+the reproducibility of the integrated performance improvement under different random
+simulation runs.
+Results:
+Significance of reducing energy:
+p < 0.01,
+Integrated index improvement importance:
+p < 0.01
+The differences in observed performance are statistically significant at a = 0.05.
+The results of the quantitative comparison of all evaluated configurations are presented
+in Table 10.
+Table 10. Integrated System Performance Comparison.
+Configuration
+Total Energy (Wh)
+RMSE (m)
+PLR (%)
+J (Normalized)
+Fixed + EKF
+412.6
+0.83
+4.1
+1.00
+Adaptive + EKF
+330.2
+0.82
+4.4
+0.86
+Adaptive + AI
+318.9
+0.79
+4.8
+0.78
+In order to visualize performance trade-offs, a radar chart was built from normal-
+ized inverse metrics (higher = better performance). The adaptive topology with edge-AI
+configuration had the largest area of its performance envelope.
+https://doi.org/10.3390/drones10040273
+[p.27]
+Drones 2026, 10, 273
+27 of 33
+The radar visualization given in Figure 10 gives a consolidated representation of the
+multi-criteria system performance for all configurations evaluated. The adaptive topology
+and the edge-AI model of navigation have the most balanced performance envelope,
+which means that all three parameters, energy efficiency, localization accuracy, and overall
+integrated system index, improve at the same time.
+Figure 10. Radar chart of normalized performance metrics for different swarm configurations.
+The adaptive topology combined with edge-AI navigation demonstrates the largest balanced
+performance envelope.
+Importantly, the result is not due to a single dominant metric, but rather the result of
+coordination in improving the communication energy reduction, controlled topology spar-
+sification, and reduced localization drift accumulation. The integrated performance index
+is to be considered as a secondary multi-criteria index. With the reference weight set, the
+adaptive topology and edge-AI navigation achieved the best compromise between energy
+consumption and localization scores while satisfying the operational tolerance in commu-
+nication reliability. Similarly, the proposed integrated index presents different rankings
+among the considered setups, especially if the single priority is assigned to communication
+reliability. This highlights that the integrated index can be used for organized mission-level
+analysis, but it always needs to be interpreted with respect to the defined missions.
+While communication reliability (PLR) reveals a slight improvement under adaptive
+topology with controlled reduction in radius, values are under acceptable operational
+criterion (<6%), and global connectivity is also maintained as ensured by positive algebraic
+connectivity λ2(L) across all runs of simulations.
+Collectively, the quantitative results have offered evidence to agree with the working
+hypothesis formulated in Section 4: a combination of residual-energy-based topology
+control and lightweight edge-AI-based navigation allows measurable and statistically
+significant improvements in decentralized UAV swarm performance under GNSS-denied
+conditions. To separate out the contribution of the system components, an ablation study
+was carried out with four configurations:
+1.
+Fixed topology + EKF navigation
+2.
+Adaptive topology only
+3.
+Edge-AI navigation only
+4.
+Full integrated architecture
+https://doi.org/10.3390/drones10040273
+[p.28]
+Drones 2026, 10, 273
+28 of 33
+The results show that topology adaptation alone is able to save about 18% energy,
+and edge-AI helps to improve localization stability but has little effect on propulsion
+energy. The combined configuration has a synergistic behavior, which verifies performance
+improvement by coordinated cross-layer optimization instead of the enhancement of
+individual components.
+6. Discussion
+The obtained results verify that energy-aware adaptive topology control is a struc-
+turally efficient mechanism for decentralized UAV swarm coordination under GNSS-denied
+conditions. More importantly, the findings can be viewed as supporting the overarching
+system-level hypothesis of this research, according to which the key contribution to the
+issue is not an individual subsystem under its own access, but an integrated view on
+cross-layer assessment of propulsion demand, communication-topology adaptation, and
+onboard AI-assisted localization of decentralized swarm operation based on GNSS denial.
+Unlike static communication architectures, the proposed residual energy-dependent radius
+adaptation has a dynamic function of reducing the communication redundancy dynami-
+cally while ensuring the algebraic connectivity (λ2(L) > 0). This behavior reflects the fact
+that global connectivity can be maintained even if progressive sparsification of the topology
+is carried out, provided that the spectral constraints are explicitly enforced.
+One of the important results of this work is the excessive percentage of communication
+energy as a total swarm consumption. Simulation results indicate a dominating part of
+energy expenditure because of communication during coordination-intensive mission
+phases. Therefore, even moderate decreases in the radius of transmission have measurable
+global benefits in efficiency. The 22.7% reduction in total energy consumption and 31.4%
+reduction in communication energy confirm that adaptive sparsification results in practical
+and not marginal improvements.
+From a graph-theoretical point of view, the fact that the strictly positive algebraic
+connectivity is preserved in all the cases is an indication of the structural robustness of the
+adaptive mechanism. Importantly, λ2(L) remained bounded away from zero throughout the
+evaluated mission scenarios, indicating that the path-loss-derived adaptive communication
+radius did not lead to network fragmentation under the adopted propagation assumptions
+and spectral-connectivity constraint. This confirms that the objective of energy optimization
+and the preservation of connectivity are not mutually exclusive objectives if they are
+constrained properly. Although the communication-energy formulation has been improved,
+the current research is still simulation-based and has yet to settle all the effects of physical-
+layer and protocol-layer around the actual deployments. Specifically, channel realizations,
+interference behavior, and retransmission statistics were modeled at a mission level instead
+of being checked by hardware-in-the-loop or the field. Hence, the communication-energy
+gain that is reported is to be viewed as a physically informed simulation finding and not a
+generalized deployment-independent one.
+The integration of CNN-LSTM-based edge-AI navigation has contributed to local-
+ization stability, but not much to propulsion energy reduction. While the 4.8% RMSE
+improvement may not sound like much, analysis of the distribution demonstrates sup-
+pression of extreme accumulation of drift, which results in the probability of sub-meter
+localization accuracy of 88%. This is a particularly relevant improvement in GNSS-denied
+environments in which the cumulative drift errors can have a critical effect on swarm
+cohesion. This meaning is to be maintained in equilibrium. The AI-module does not remain
+the assumption of overall performance gain in the current investigation; instead, it is the
+empowering robustness system that decreases the accumulation of drift and contributes to
+the stabilization of localization in case of poor positioning. Communication-topology adap-
+https://doi.org/10.3390/drones10040273
+[p.29]
+Drones 2026, 10, 273
+29 of 33
+tation is the key driver of the main energy benefit, but there is an operationally significant
+contribution of the AI benefit in enabling resilient decentralized estimation.
+From the ablation study, it can be seen further that the performance gain is not from
+the optimization of the system subsystems but from the cross-layer interaction. Topology
+adaptation alone yields a significant energy reduction; however, where this is combined
+with intelligence onboard the system, there is a synergy in terms of improved stability
+and improved communication reliability. This confirms the fact that decentralized swarm
+efficiency involves joint consideration of the communication structure and the navigation
+intelligence. Our results are relevant for a range of mission types where decentralized UAV
+swarms need to operate with potentially poor satellite positioning accuracy. In search-and-
+rescue scenarios, for example, communication-preserving topology adaptation can extend
+the lifetime of the multi-agent system while ensuring adequate coordination among agents
+for search, data-relaying, and mapping. In sensor networks, particularly in the presence
+of large industrial and urban structures, reduced communication redundancy can help
+increase mission endurance while maintaining robust positioning. In security and defense
+applications, where the GNSS may be purposefully degraded or denied, the complementary
+use of communication-aware topology adaptation and onboard navigation assistance is
+important for robust decentralized behavior. More generally, the findings demonstrate
+the need for co-design in future autonomous aerial networks, in which communication,
+energy, and onboard reasoning should be considered as an integrated whole. The results
+are not limited to the UAV-swarm scenario at hand and can be applied in the larger
+context of the development and evolution of edge-intelligent autonomous systems, as
+well as the development of 6G-enabled aerial networking concepts. The future aerial
+platforms are projected to be more closely coupled amongst communication adaptability,
+onboard intelligence, and energy-conscious autonomy. In this spirit, the current framework
+can be considered a step-down version of cross-layer resilient swarm architectures where
+localization support, mesh connectivity, and mission endurance are jointly designed instead
+of independently optimized.
+This longer meaning can also coincide with recent advances in unified robotic sensa-
+tions and autonomous control. The combination of distributed sensing and autonomous
+environmental awareness has been shown to be practically useful in field-oriented de-
+ployments with distributed acoustic sensing on robot platforms [25]. It has also been
+demonstrated that route control and multi-UAV collision avoidance in the smart-city con-
+texts require not just geometric path planning-based safe and scalable swarm operation but
+also relying on communication-aware coordination and decentralized decision support [26].
+Platform research on autonomous unmanned ground vehicles has also stressed the im-
+portance of evaluating sensing, mobility, and control not in isolation but as a combined
+subsystem [27]. Moreover, the significance of solid onboard intelligence in dynamic operat-
+ing conditions has been signified by reinforcement-learning-contained stabilization under
+external disturbances, even though these strategies are not directly concerned with the
+mission-level trade-off between communication cost, energy sustainability, and connectivity
+preservation assumed in the current UAV swarm framework [28].
+Scalability analysis of up to N = 15 nodes shows energy saving is in the range of
+20–24% on moderate density swarms. Although there is O(N2) worst-case complexity of
+pairwise graph updates, dynamic sparsification allows limitation of the effective growth of
+computational complexity. Another limitation involves the validation domain of the AI
+navigation module. While the proposed CNN-LSTM state estimator was benchmarked
+relative to the baseline EKF approach and tested for multiple randomized simulations,
+the current work does not yet involve benchmarking of the estimator against a range
+of state-of-the-art learning-based and SLAM-based navigation approaches. This would
+https://doi.org/10.3390/drones10040273
+[p.30]
+Drones 2026, 10, 273
+30 of 33
+provide useful information for demonstrating the competitiveness of the algorithm itself
+beyond the embedded system level evaluated here.
+Although the revised communication model accounts for mixed LOS/NLOS con-
+ditions at the mission level, the present study does not resolve full site-specific radio
+propagation as would be required for deployment-grade channel prediction in dense urban
+or highly cluttered indoor environments. Therefore, the communication results should
+be interpreted as scenario-informed simulation results rather than exact physical-layer
+predictions for a specific site.
+A similar weakness is related to the resistance to more serious structural perturbations.
+While adaptive topology maintained λ2(L) > 0 in all the practical runs conducted, the
+current paper explains no formal failure-tolerance analysis, as explicitly removing nodes,
+link degradation via adversarial links, or catastrophic packet loss. Deployment-oriented
+confidence would be useful in deployment-focused energy-aware swarm coordination.
+Future work will focus on hardware in the loop validation, extension towards het-
+erogeneous multi-role swarms, and experimental deployment in controlled GNSS-denied
+environments. Integration with adaptive power control in the physical layer might also
+further increase communication efficiency.
+7. Conclusions
+This study demonstrates the feasibility of an integrated mission-level framework
+for energy-aware coordination of decentralized UAV swarms in environments denied to
+GNSS. The principal contribution of the work lies in the unified cross-layer evaluation
+of propulsion energy, residual-energy-aware communication-topology adaptation, and
+lightweight onboard AI-assisted localization within a single comparative framework for
+decentralized GNSS-denied swarm operation. Among the assumed simulation hypotheses,
+the dominant advantage comes from the sparsification of the adaptive topology, which
+reduces the communication load while maintaining positive algebraic connectivity, while
+the edge-AI module contributes to a smaller but operationally useful improvement in
+localization robustness. In comparison, a smaller, yet nonetheless operationally useful
+contribution through enhancing localization strength, minimizing drift expansion, and
+enabling decentralized estimation stability is offered by the onboard AI module, not
+the main driver of overall energy reduction, but by complementing other energy-saving
+strategies. The results, therefore, support the value of system-level co-design for resilient
+UAV swarm operation under degraded positioning conditions. At the same time, the
+current results should be interpreted as simulation-based evidence within the assumed
+limits of modeling, rather than as performance limits independent of use.
+Future work should therefore focus on broader hardware-in-the-loop validation, more
+complete evaluation of AI generalization, and controlled experimental studies with higher-
+fidelity communication and propulsion modeling. Additional work regarding robustness
+to node failure and more severe communication degradation, as well as interface to more re-
+alistic channel-access models and heterogeneous multi-role swarm architectures, should be
+pursued in the future, along with edge-intelligent devices and 6G-oriented aerial systems.
+The proposed path-loss-based residual-energy-aware communication-radius law, sub-
+jected to the spectral graph connectivity constraint (λ2(L) > 0), showed that global swarm
+cohesion can be maintained while reducing communication redundancy. The results indi-
+cate that adaptive topology sparsification can reduce total energy consumption, particularly
+in the communication-energy component under the adopted propagation and protocol
+assumptions, while maintaining positive algebraic connectivity throughout the evaluated
+mission scenarios.
+https://doi.org/10.3390/drones10040273
+[p.31]
+Drones 2026, 10, 273
+31 of 33
+From the theoretical perspective, this study proposes a limited energy-adaptive topol-
+ogy mechanism that explicitly incorporates spectral graph stability into the communication
+control. Contrary to static or heuristically adjusted communication schemes, the proposed
+approach offers a mathematically bounded way to balance the efficiency of energy with the
+robustness of the structure.
+Practically speaking, the results mean that communication-aware cross-layer opti-
+mization can increase swarm operational endurance while enhancing navigation stability
+in satellite-denied environments. The scalability analysis has verified the applicability to
+medium-scale swarms, where there is a consistent performance gain up to N = 15 nodes.
+The shown synergy between the adaptive communication structure and the onboard
+intelligence reveals the need for a combined system-level design of the next generation of
+autonomous swarm architectures. The introduced framework establishes a feasible basis
+for resilient and energy-aware UAV coordination in a communication-constrained and
+GNSS-denied operation environment.
+Future research will focus on simulation-based evaluation using hardware-in-the-
+loop platforms and real-world multi-agent deployments, as well as extension towards
+heterogeneous swarm systems and adaptive physical-layer power control strategies.
+Author Contributions: Conceptualization, A.T. and A.D.; methodology, T.J.; software, K.T.; validation,
+K.T., AK. and A.T.; formal analysis, A.T.; investigation, A.D.; resources, T.J.; data curation, K.T.;
+writing—original draft preparation, A.D.; writing—review and editing, A.K.; visualization, K.T.;
+supervision, T.J.; project administration, A.T.; funding acquisition, A.D. All authors have read and
+agreed to the published version of the manuscript.
+Funding: This research is funded by the Committee of Science of the Ministry of Science and Higher
+Education of the Republic of Kazakhstan (Grant No. AP 227019/0223).
+Data Availability Statement: The data supporting the findings of this study are available from
+the corresponding author Dolya Alexandr, upon reasonable request, as the data is presented in the
+form of unpublished drawings, diagrams, patent-sensitive models, or contain elements requiring
+intellectual property protection.
+Acknowledgments: The authors used ChatGPT (OpenAI, GPT-5.3) for language editing and clarity.
+All content was reviewed and revised, and the authors take full responsibility for the final manuscript.
+Conflicts of Interest: Author Alizhan Tulembayev was employed by the Research & Development
+Center “Kazakhstan Engineering” LLP. The remaining authors declare that the research was con-
+ducted in the absence of any commercial or financial relationships that could be construed as a
+potential conflict of interest.
+Abbreviations
+The following abbreviations are used in this manuscript:
+UAV
+Unmanned Aerial Vehicle
+GNSS
+Global Navigation Satellite System
+AI
+Artificial Intelligence
+CNN
+Convolutional Neural Network
+LSTM
+Long Short-Term Memory
+EKF
+Extended Kalman Filter
+RMSE
+Root Mean Square Error
+PLR
+Packet Loss Rate
+RSSI
+Received Signal Strength Indicator
+SNR
+Signal-to-Noise Ratio
+LOS
+Line of Slight
+NLOS
+Non-Line of Sight
+https://doi.org/10.3390/drones10040273
+[p.32]
+Drones 2026, 10, 273
+32 of 33
+MAC
+Medium Access Control
+QoS
+Quality of Service
+R_dynamic
+Dynamic Communication Radius
+R_max
+Maximum Communication Radius
+E_total
+Total Energy Consumption
+E_prop
+Propulsion Energy
+E_comm
+Communication Energy
+E_AI
+Artificial Intelligence Processing Energy
+References
+1.
+Akhundov, R.; Hashimov, E. Enhancing the efficiency of the military environmental security system through the implementation
+of advanced technical means. In Modeling, Control and Information Technologies: Proceedings of International Science and Practical
+Conference; National University of Water and Environmental Engineering: Rivne, Ukraine, 2025; pp. 348–352. [CrossRef]
+2.
+Wu, C.; Han, S.; Chen, Q.; Wang, Y.; Meng, W.; Benslimane, A. Enhancing LEO mega-constellations with inter-satellite links:
+Vision and challenges. IEEE Wirel. Commun. 2025, 32, 196–202. [CrossRef]
+3.
+Pan, Z.F.; An, L.; Wen, C.Y. Recent advances in fuel cells based propulsion systems for unmanned aerial vehicles. Appl. Energy
+2019, 240, 473–485. [CrossRef]
+4.
+Sarma, W.; Dey, S.; Tiwari, S. Autonomous IoT: AI-Driven Edge Computing to Power Intelligent Decision-Making. Int. J. AI
+BigData Comput. Manag. Stud. 2022, 3, 52–61. [CrossRef]
+5.
+Jin, R.; Zhang, G.; Hsu, L.T.; Hu, Y. A survey on cooperative positioning using GNSS measurements. IEEE Trans. Intell. Veh. 2024,
+9, 7402–7420. [CrossRef]
+6.
+Alkendi, Y.; Seneviratne, L.; Zweiri, Y. State of the art in vision-based localization techniques for autonomous navigation systems.
+IEEE Access 2021, 9, 76847–76874. [CrossRef]
+7.
+Trevlakis, S.E.; Boulogeorgos, A.A.A.; Pliatsios, D.; Querol, J.; Ntontin, K.; Sarigiannidis, P.; Chatzinotas, S.; Di Renzo, M.
+Localization as a key enabler of 6G wireless systems: A comprehensive survey and an outlook. IEEE Open J. Commun. Soc. 2023,
+4, 2733–2801. [CrossRef]
+8.
+Guo, K.; Li, X.; Xie, L. Ultra-wideband and odometry-based cooperative relative localization with application to multi-UAV
+formation control. IEEE Trans. Cybern. 2019, 50, 2590–2603. [CrossRef] [PubMed]
+9.
+Florio, A.; Avitabile, G.; Talarico, C.; Coviello, G. A reconfigurable full-digital architecture for angle of arrival estimation. IEEE
+Trans. Circuits Syst. I Regul. Pap. 2023, 71, 1443–1455. [CrossRef]
+10.
+Yu, D.; Li, J.; Wang, Z.; Li, X. An overview of swarm coordinated control. IEEE Trans. Artif. Intell. 2023, 5, 1918–1938. [CrossRef]
+11.
+Connor, J.; Champion, B.; Joordens, M.A. Current algorithms, communication methods and designs for underwater swarm
+robotics: A review. IEEE Sens. J. 2020, 21, 153–169. [CrossRef]
+12.
+Santi, P. Topology control in wireless ad hoc and sensor networks. ACM Comput. Surv. 2005, 37, 164–194. [CrossRef]
+13.
+Baek, J.; Han, S.I.; Han, Y. Energy-efficient UAV routing for wireless sensor networks. IEEE Trans. Veh. Technol. 2019, 69, 1741–1750.
+[CrossRef]
+14.
+Ma, L.; Jiang, W.; Tian, Y.; Zhang, Y. Analysis of key technologies for UAV conflict-free four-dimensional trajectory planning in
+controlled airspace. In 2023 35th Chinese Control and Decision Conference (CCDC); IEEE: New York, NY, USA, 2023; pp. 2785–2790.
+[CrossRef]
+15.
+Ros, G.; Ramos, S.; Granados, M.; Bakhtiary, A.; Vazquez, D.; Lopez, A.M. Vision-based offline-online perception paradigm
+for autonomous driving. In 2015 IEEE Winter Conference on Applications of Computer Vision; IEEE: New York, NY, USA, 2015;
+pp. 231–238. [CrossRef]
+16.
+Kovalskyi, M.; Serbov, M.; Zolotarova, O.; Hrachuk, V.; Novosad, I. Development of Renewable Energy Sources: Impact on
+Sustainability and the Environment. Grassroots J. Nat. Resour. 2024, 7, 131–148. [CrossRef]
+17.
+Zhang, Z.; Long, K.; Wang, J.; Dressler, F. On swarm intelligence inspired self-organized networking: Its bionic mechanisms,
+designing principles and optimization approaches. IEEE Commun. Surv. Tutor. 2013, 16, 513–537. [CrossRef]
+18.
+Jarraya, I.; Al-Batati, A.; Kadri, M.B.; Abdelkader, M.; Ammar, A.; Boulila, W.; Koubaa, A. Gnss-denied unmanned aerial vehicle
+navigation: Analyzing computational complexity, sensor fusion, and localization methodologies. Satell. Navig. 2025, 6, 9.
+[CrossRef]
+19.
+Priyadarshi, R. Exploring machine learning solutions for overcoming challenges in IoT-based wireless sensor network routing: A
+comprehensive review. Wirel. Netw. 2024, 30, 2647–2673. [CrossRef]
+20.
+Gençata, A.; Mukherjee, B. Virtual-topology adaptation for WDM mesh networks under dynamic traffic. IEEE/ACM Trans. Netw.
+2003, 11, 236–247. [CrossRef]
+https://doi.org/10.3390/drones10040273
+[p.33]
+Drones 2026, 10, 273
+33 of 33
+21.
+Abro, G.E.M.; Zulkifli, S.A.B.; Kumar, K.; El Ouanjli, N.; Asirvadam, V.S.; Mossa, M.A. Comprehensive review of recent
+advancements in battery technology, propulsion, power interfaces, and vehicle network systems for intelligent autonomous and
+connected electric vehicles. Energies 2023, 16, 2925. [CrossRef]
+22.
+Wang, L.; Lu, D.; Zhang, Y.; Wang, X. A complex network theory-based modeling framework for unmanned aerial vehicle swarms.
+Sensors 2018, 18, 3434. [CrossRef]
+23.
+Belkin, M.; Niyogi, P. Towards a theoretical foundation for Laplacian-based manifold methods. J. Comput. Syst. Sci. 2008, 74,
+1289–1308. [CrossRef]
+24.
+Ji, H.; Alfarraj, O.; Tolba, A. Artificial intelligence-empowered edge of vehicles: Architecture, enabling technologies, and
+applications. IEEE Access 2020, 8, 61020–61034. [CrossRef]
+25.
+Dolya, A.; Abdykadyrov, A.; Tulembayev, A.; Kassenov, D.; Kuttybayeva, A. Development of Distributed Acoustic Sensing for
+Environmental Monitoring and Hazard Detection on Robotic Platforms. Appl. Sci. 2026, 16, 1559. [CrossRef]
+26.
+Kutpanova, Z.A.; Kozhakhmetova, D.O.; Baiseitov, G.; Dolya, A.; Uskenbayeva, G.A. Route Control and Collision Avoidance for
+Multiple UAVS in a Smart City Context Using Geographic Information System. Ser. Geol. Tech. Sci. News Natl. Acad. Sci. Repub.
+Kazakhstan 2024, 5, 71–93. [CrossRef]
+27.
+Dolya, A.; Kolumbetov, B.; Kalkabek, A. Development of a Model and Performance Analysis of the Characteristics of a
+Multifunctional Autonomous Unmanned Ground Vehicle. Adv. Mater. Sci. Eng. 2025, 2025, 6614303. [CrossRef]
+28.
+Dolya, A.; Kolumbetov, B.; Tulembayev, A.; Buldeshov, A.; Nessipova, S. Design of a turret stabilization system using reinforce-
+ment learning with external disturbance compensation. Sustain. Eng. Innov. 2025, 7, 619–630. [CrossRef]
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+https://doi.org/10.3390/drones10040273
+=== END ===

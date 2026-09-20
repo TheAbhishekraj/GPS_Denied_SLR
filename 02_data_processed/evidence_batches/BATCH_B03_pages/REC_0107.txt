@@ -1,0 +1,546 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0107.pdf
+sha256: 1D85CD1A2E1BE9A3D7924569E0460FA71F48CDCE94AC04CA2503A972A42CEAF3
+library: pymupdf (fitz) v1.28.2
+pages: 5
+=== BEGIN ===
+[p.1]
+Augmented Radar Odometry by Nested Optimal 
+Filter Aided Navigation for UAVS in GNSS   
+Denied Environment 
+[[
+S.Zahran*
+MMSS Group, Department of 
+Geomatics Engineering 
+University of Calgary 
+Calgary, Canada 
+shady.zahran1@ucalgary.ca  
+A.Salib
+Department of Geomatics Engineering 
+University of Calgary 
+Calgary, Canada 
+abanob.salib@ucalgary.ca 
+M.Mostafa*
+Department of Electrical Engineering 
+Air Defence Collage 
+Alexandria, Egypt, 
+mostafa.mostafa@ ucalgary.ca 
+{ 
+A.Moussa
+Electrical and Computer  
+Engineering Department Port-     
+Said University, Egyp, 
+Department of Geomatics Engineering 
+University of Calgary 
+Calgary, Canada 
+ amelsaye@ucalgary.ca 
+.M.Moussa 
+Department of Geomatics Engineering 
+University of Calgary 
+Calgary, Canada 
+mohamed.moussa1@ucalgary.ca 
+N.El-Sheimy
+Department of Geomatics Engineering 
+University of Calgary 
+Calgary, Canada 
+elsheimy@ucalgary.ca 
+Abstract—Nowadays, Unmanned Aerial Vehicles (UAVs) 
+have been exploited in numerous civil and military aspects such 
+as disaster management and border monitoring. Although most 
+of these UAVs are equipped with Global Navigation Satellite 
+System (GNSS) / Inertial Navigation System (INS) reliable 
+integrated system for localization proposes, they are susceptible 
+to lose their GNSS signals under some environmental and 
+artificial challenging circumstances such as, flying in urban 
+areas, jamming, and spoofing. In such complicated scenarios, 
+the navigation solution will degrade rapidly due to the 
+accumulated INS drift errors. Although various aiding sensors 
+such as cameras, and radar are employed to mitigate the INS 
+drift errors, their estimated positioning accuracy is still affected 
+by some factors. This paper presents a nested optimal filter 
+approach (G-H filter, Extended Kalman Filter (EKF)) for UAVs 
+in GNSS denied environment, to enhance the estimated 
+positioning accuracy by integrating the Radar Odometry 
+(RO)/INS/MAG to sustain a reliable navigation solution during 
+GNSS outage. First, the UAV relative velocity is calculated 
+based on image processing approach from the radar range 
+doppler map, then the G-H filter is deployed to improve the 
+accuracy of the vehicle estimated forward velocities based on the 
+vehicle dynamic characteristics to reduce the effect of 
+unrealistic velocity estimate from the radar. These improved 
+velocities are then fused with the Inertial Measurement Unit 
+(IMU), magnetometer, and barometer via EKF to mitigate the 
+positioning RMS errors during the GNSS signals outages. The 
+experimental results demonstrate the proposed system’s ability 
+to notably enhance the 3D positioning accuracy during the 
+GNSS signal outage by more than 99% when compared to a 
+stand-alone IMU dead reckoning solution. 
+Keywords—Navigation, EKF, G-H filter, Radar odometry. 
+I. INTRODUCTION 
+Over the recent years, UAVs have been exploited 
+significantly in many applications, such as firefighting, 
+rescue, downtown traffic management, first aid delivery, and 
+reconnaissance. The merits of deploying such UAVs in these 
+aspects can help in minimizing human exposure to hazards 
+and risky situations. The majority of the existing UAVs 
+depend upon their onboard GNSS/INS integrated navigation 
+system to localize themselves. Although this system 
+configuration has the superiority for providing an accurate 
+navigation solution, it is still prone to lose its satellite signals 
+due to signals blockage, attenuation, multipath effects, 
+jamming, spoofing, and flying in natural canyons. In such 
+severe scenarios, the navigation solution is acquired only by 
+the INS prior to retrieving the GNSS signals. Therefore, the 
+estimated navigation solution by the INS will deteriorate 
+during a short period of time especially if it is low cost. The 
+fusion of other aiding sensors is important for reducing the 
+INS standalone drift errors. Different GNSS denied 
+environments navigation systems have been proposed by 
+many researchers in an attempt to enhance the estimated 
+positioning accuracy. 
+Visual sensors-based approaches have been proposed as an 
+alternative navigation system for UAVs during the GNSS 
+signal outages[1], [2]. The consequents of the evolvement of 
+the onboard camera’s technology, are to have low power 
+consumption, small size, and lightweight. In addition, it can 
+provide valuable imagery measurements such as, color 
+intensity and features, which contribute to enhancing the 
+navigation solution accuracy. Despite such great benefits of 
+cameras, their measurements are substantially affected by the 
+brightness, lighting conditions, and featureless areas. 
+Monocular and stereo Visual Odometry (VO) based 
+approaches have been presented in many works to estimate 
+the vehicle motion [3], [4]. While in [5] they used a 
+smartphone camera (attached on the dashboard) and On-
+Board Diagnostics II (OBD-II) to estimate the change in 
+heading and car velocity respectively, then they integrated 
+this information with IMU through a loosely coupled EKF to 
+bound the IMU errors during GNSS unavailability. The core 
+limitation of the monocular VO is the scale ambiguity [6], 
+which can lead to degrading the accuracy of the navigation 
+solution dramatically, while the main drawbacks of the stereo 
+VO configuration are the need for sufficient base-line and the 
+sensitivity to the lever arm and boresight calibration 
+parameters variations. The monocular VO has been fused 
+with INS for resolving the scale ambiguity issue and 
+improving the positioning accuracy in [7]–[10]. 
+The 2021 International Telecommunication Conference, ITC-Egypt’2021 
+July 13 – 15, 2021, ADC, Egypt 
+978-1-6654-4574-0/21/$31.00 ©2021 IEEE
+2021 International Telecommunications Conference (ITC-Egypt) | 978-1-6654-4574-0/21/$31.00 ©2021 IEEE | DOI: 10.1109/ITC-EGYPT52936.2021.9513978
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+Due to the advancement in manufacturing microwave 
+technology, a new generation of miniaturized Frequency 
+Modulated Continuous Wave (FMCW) radars have been 
+developed, which makes them more promising to be adapted 
+for UAV navigation. Many researches had been proposed 
+lately to accommodate such promising technology in 
+navigation as presented in [11]–[17]. Another RO based on a 
+Synthetic-Aperture Radar (SAR) aided inertial navigation 
+system is proposed in [18]. 
+This paper presents a nested optimal filter approach G-H 
+filter [19], and Extended Kalman Filter (EKF) [20] for UAVS 
+in GNSS denied environment, to enhance the estimated 
+positioning accuracy by integrating the Radar Odometry 
+(RO)/INS/MAG to sustain a reliable navigation solution 
+during GNSS outage. The main contribution of the proposed 
+nested optimal filter system is that it significantly enhances 
+the 3D positioning accuracy during a long period of GNSS 
+signal outages, by correcting the estimated forward vehicle 
+velocity from the RO using the G-H filter, based on the UAV 
+dynamic model constraint (acceleration). This paper is 
+organized as follows: Section II describes the system 
+overview of the proposed algorithm and system structure. 
+The experimental results are presented and discussed in 
+Section III. Finally, the conclusions are given in Section IV. 
+II. SYSTEM STRUCTURE  AND PROPOSED METHODOLOGY 
+A. Hardware setup  
+The quadcopter utilized during the experiment is a 3DR 
+SOLO quadcopter, with onboard Pixhawk-2 autopilot based 
+on MEMS IMU (MPU6000), and U-Blox GNSS. The FMCW 
+radar is mounted on the Quadcopter belly and connected to 
+Single Board Computer (UDOO X86) for data management 
+and data storing. The full hardware setup is shown in Fig.1. 
+ 
+Fig. 1. UAV and radar hardware setup. 
+B. Target Detection from Radar Range Doppler Map 
+The target detection follows [2], it is performed by 
+convolving a Gaussian filter with measured range-Doppler 
+map image from the radar, to depress the clutters, which may 
+affect the RO UAV estimated relative velocity. Then a local 
+maxima-based approach is employed with the global 
+threshold to separate the cluttered noisy background from the 
+desired features foreground as in Fig.2.  
+The strongest 15 candidates are treated as detected 
+targets.  The radial velocities for these detected targets are 
+obtained directly from the horizontal axis of the range-
+Doppler map after converting the pixel location to velocity. 
+The forward velocities components for each target are then 
+acquired by projecting these radial velocities by the radar 
+tilting angle. The resultant forward velocity is then computed 
+by averaging these components together for each epoch. 
+ 
+Fig. 2. Target detection process from the cluttered RDM. 
+ 
+The epoch shown in Fig.2 is an ideal case where all the 
+clutters are removed, but that’s not usually the real scenario. 
+Mainly the estimated velocity from the detected features 
+which is based on simple averaging technique suffers from 
+outliers. These outliers affect the total estimated UAV relative 
+velocity. To improve the estimated velocity before fusion with 
+INS a G-H filter is utilized which is constrained with the 
+dynamic capabilities of the UAV. 
+C. RO Velocity Estimate using G-H Filter 
+G-H filter can be considered as a simple form of Kalman 
+Filter (KF), without the extensive computation required for 
+optimizing the filter performance. KF tweaks its coefficient 
+automatically based on the statistics of the measurements, 
+while G-H filter coefficients are either fixed or variable 
+according to the requirement of the problem. The G-H filter 
+also is composed of prediction and update steps as shown in 
+(1-4), where 𝑥̂𝑘is the predicted state,  𝑥𝑘−1 is the state estimate 
+of the previous epoch, dx is the derivative of the state, dt is the 
+step time, z is the measurements, Res is the residuals, g is the 
+scale coefficient for measurements, and h is scale coefficient 
+for the variation of the state over time.     
+The prediction step is shown in (1). 
+𝑥̂𝑘= 𝑥𝑘−1 + 𝑑𝑥∗𝑑𝑡 
+(1) 
+The update step is shown in (2-4). 
+𝑅𝑒𝑠= 𝑧− 𝑥̂𝑘 
+(2) 
+𝑑𝑥= 𝑑𝑥+ ℎ∗𝑅𝑒𝑠𝑑𝑡
+⁄
+ 
+(3) 
+𝑥𝑘= 𝑥̂𝑘+ 𝑔∗𝑅𝑒𝑠  
+(4) 
+The g coefficient in the filter resembles how much we are 
+in favor of the measurements with respect to the prediction. 
+While the h coefficient shows our belief of the ability of our 
+state to change over time, higher h means faster response to 
+the transit change in the estimated state, lower h means slower 
+response to the change of the state over time. 
+Based on our knowledge of the quadcopter dynamics 
+(from vendor specification and previous flights), the 
+quadcopter cannot exceed 5 m/𝑠2 acceleration as shown in 
+Fig.3, which shows a real acceleration profile for a typical 
+flight. 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+ 
+Fig. 3. Raw accelerometer measurements. 
+ 
+Output velocity obtained from radar contains unrealistic 
+acceleration as shown in Fig.4 which can’t be accomplished 
+by such UAV, that’s why the G-H filter coefficients are set to 
+limit these outlier measurements based on the dynamic 
+limitation imposed over such a small drone. 
+ 
+ 
+Fig. 4. Estimated RO acceleration. 
+ 
+The filter coefficient is changed based on the acceleration 
+measured from the radar velocity such that, if the acceleration 
+is within acceptable limits our faith in the measurements and 
+its change over time increase (by increasing g and h) if the 
+acceleration is greater than the acceleration dynamic threshold 
+(5 m/𝑠2) our faith in the measurements and its change over 
+time decrease (by lowering g and h coefficients). In addition 
+to these coefficients adaptation, a maximum and minimum are 
+set as a limit for the maximum acceleration or deceleration 
+limit. Fig.5 shows a sample of the velocity before and after the 
+filter. 
+ 
+Fig. 5. Comparison between the estimated RO  velocity before and after 
+applying the GH filter. 
+The previous figure shows that velocity estimate with filter 
+exerts slow response to the abrupt changes in radar velocity 
+estimates which cannot be achieved by such drone.   
+D. EKF and overall system overview. 
+ 
+All the information obtained from the radar (velocity), 
+IMU, and magnetometer (heading) were fused employing 
+loosely coupled EKF following the same process as in [2]. The 
+EKF is composed of 21 error states as shown in (5). 
+𝛿𝑥= [𝛿𝑝 𝛿𝑉 𝛿𝜀 𝑎𝑏 𝑔𝑏 𝑎𝑠𝑓 𝑔𝑠𝑓]𝑇 
+(5) 
+ 
+Where: 𝛿𝑝, 𝛿𝑉, 𝛿𝜀 are the position, velocity, and attitude 
+error vectors respectively, 𝑎𝑏, 𝑔𝑏 are the accelerometer and 
+gyroscope biases vectors respectively, while 𝑎𝑠𝑓, 𝑔𝑠𝑓 are the 
+accelerometer and gyroscope scale factors respectively. 
+ 
+The overall system diagram is shown in Fig.6.where the 
+IMU measurements (accelerations and angular rates) are 
+passed to the mechanization process to yield the dead 
+reckoning solution, this solution is then fused with the heading 
+from mag, position, and velocity from GNSS when available, 
+and velocity from radar during GNSS signal outage.  
+    
+Fig. 6. The proposed system block diagram. 
+III. EXPERIMENTS AND RESULTS 
+The experimental flight was conducted with a 3DR SOLO 
+quadcopter with the attached radar on board. The flight 
+composed of 20 waypoints as shown in Fig.7 with a total flight 
+time of 390 seconds. 
+ 
+Fig. 7. Flight trajectory. 
+The estimated velocity from the radar after the G-H filter 
+is shown in Fig.8. The RMS error of the estimated velocity 
+when compared to the reference velocity (obtained from the 
+onboard full navigation system solution) is 0.98 m/sec. 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+ 
+Fig. 8. RMS error for the RO estimated velocity vs the reference velocity. 
+ 
+ 
+To evaluate the performance of the system during GNSS 
+outages, several outage periods were conducted which range 
+from 1 min to 4 min of total GNSS signal blockage. The 
+solution of the purposed system (Radar/IMU/Mag) integration 
+is compared against the performance of the stand-alone IMU 
+dead reckoning solution integrated with MAG. 
+ 
+Fig.9 shows the performance of the IMU dead reckoning 
+solution during the outage period of 1 min. During this 1 min 
+of GNSS signals outage, the performance of the navigation 
+system deteriorated rapidly, as the 2D RMS error reached  
+165 m. 
+ 
+Fig. 9. The estimated 2D flight ground truth trajectory outage segments and 
+the INS in standalone mode for 1 min.  
+ 
+ 
+While Fig.10 shows the performance of the purposed 
+system for the same outage period of 1 min. Fig.10 shows the 
+effect of the purposed system integration on the navigation 
+system performance, as the 2D RMSE reached 1.95 m. 
+ 
+Fig. 10. The estimated 2D flight ground truth trajectory outage segments 
+and the proposed system for 1 min.  
+ 
+The rest of the experimental results are shown in Table I.   
+TABLE I.  
+EXPERIMENTAL RESULTS FOR NAVIGATION SYSTEM 
+                       PERFORMANCE OF PROPOSED SYSTEM 
+System  
+(2D RMS) 
+GNSS Outage Periods 
+1 Min 
+2 Min 
+3 min 
+4 min 
+IMU DR 
+165 meters 
+1470 meters 
+Thousands 
+Thousands 
+Purposed 
+System 
+1.95 meters 
+1.77 meters 
+1.58 
+meters 
+1.49 meters 
+ 
+ 
+As shown in the previous table the ability of the proposed 
+system to enhance the performance of the navigation solution 
+during GNSS outage periods, even when using low-cost 
+MEMS-based IMU.  
+IV. CONCLUSION 
+ 
+Due to the massive spread of low-cost MEMS-based IMU 
+in navigation systems nowadays; the navigation systems can 
+maintain reliable performance during GNSS signal outages 
+for a limited time period. This limitation raises the need for a 
+different aiding system to bound the low-cost MEMS-based 
+IMU drift during the unavailability of the GNSS system. 
+ 
+This paper proposes an integrated navigation system based 
+on radar odometry/magnetometer/IMU through EKF, to aid in 
+bounding IMU drift during this GNSS outage period. To 
+reliably integrate the information from the radar with 
+magnetometer and IMU, a G-H filter is utilized with vehicle 
+dynamic constraint (based on the limitation of the quadcopter 
+acceleration) to adapt the filter parameters.  
+ 
+The 
+experimental 
+results 
+revealed 
+the 
+massive 
+enhancement in the navigational system solution of the 
+proposed method when compared to the IMU/magnetometer 
+dead reckoning solution. The proposed system 2D RMS errors 
+reached 1.5 m during 240 seconds of a complete GNSS system 
+outage, while the performance of the IMU dead 
+reckoning/mag integration reached thousands of meters for 
+2D RMS error for the same GNSS outage period. These 
+results prove the effectiveness of the proposed nested filter 
+scheme (G-H and EKF) to integrate radar information with 
+magnetometer and IMU to reach a reliable navigation system 
+solution. 
+REFERENCES 
+[1] 
+J. Courbon, Y. Mezouar, N. Guénard, and P. Martinet, “Vision-
+based navigation of unmanned aerial vehicles,” Control Eng. 
+Pract., vol. 18, no. 7, pp. 789–799, Jul. 2010, doi: 
+10.1016/j.conengprac.2010.03.004. 
+[2] 
+M. M. Mostafa, A. M. Moussa, N. El-Sheimy, and A. B. Sesay, 
+“Optical flow based approach for vision aided inertial navigation 
+using regression trees,” in Proceedings of the 2017 International 
+Technical Meeting of The Institute of Navigation, ITM 2017, Feb. 
+2017, pp. 856–865, doi: 10.33012/2017.14898. 
+[3] 
+A. McConville et al., “Visual Odometry Using Pixel Processor 
+Arrays for Unmanned Aerial Systems in GPS Denied 
+Environments,” Front. Robot. AI, vol. 7, p. 126, Sep. 2020, doi: 
+10.3389/frobt.2020.00126. 
+[4] 
+A. Gupta, H. Chang, and A. Yilmaz, “GPS-DENIED GEO-
+LOCALISATION USING VISUAL ODOMETRY,” in ISPRS 
+Annals of the Photogrammetry, Remote Sensing and Spatial 
+Information Sciences, Jun. 2016, vol. 3, pp. 263–270, doi: 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+10.5194/isprs-annals-III-3-263-2016. 
+[5] 
+A. Salib, M. Moussa, A. Moussa, and N. El-Sheimy, “Visual 
+Odometry/Inertial Integration for Enhanced Land Vehicle 
+Navigation in GNSS Denied Environment,” in IEEE Vehicular 
+Technology Conference, Nov. 2020, vol. 2020-November, doi: 
+10.1109/VTC2020-Fall49728.2020.9348698. 
+[6] 
+M. O. A. Aqel, M. H. Marhaban, M. I. Saripan, and N. B. Ismail, 
+“Review of visual odometry: types, approaches, challenges, and 
+applications,” SpringerPlus, vol. 5, no. 1. SpringerOpen, p. 1897, 
+Dec. 01, 2016, doi: 10.1186/s40064-016-3573-7. 
+[7] 
+P. V. Gakne, “Tackling the Scale Factor Issue in a Monocular 
+Visual Odometry Using a 3D City Model,” in International 
+Technical Symposium on Navigation and Timing 2018, Dec. 2018, 
+p. 2018, doi: 10.31701/itsnt2018.20. 
+[8] 
+T. T. Duong, K. W. Chiang, and D. T. Le, “On-line smoothing and 
+error modelling for integration of GNSS and visual odometry,” 
+Sensors (Switzerland), vol. 19, no. 23, Dec. 2019, doi: 
+10.3390/s19235259. 
+[9] 
+S. Choi, J. Park, and W. Yu, “Resolving scale ambiguity for 
+monocular visual odometry,” in 2013 10th International 
+Conference on Ubiquitous Robots and Ambient Intelligence, URAI 
+2013, 2013, pp. 604–608, doi: 10.1109/URAI.2013.6677403. 
+[10] 
+I. Esteban, L. Dorst, and J. Dijk, “Closed form solution for the 
+scale ambiguity problem in monocular visual odometry,” in 
+Lecture Notes in Computer Science (including subseries Lecture 
+Notes in 
+Artificial 
+Intelligence 
+and 
+Lecture Notes 
+in 
+Bioinformatics), Nov. 2010, vol. 6424 LNAI, no. PART 1, pp. 
+665–679, doi: 10.1007/978-3-642-16584-9_64. 
+[11] 
+E. B. Quist, R. W. Beard, and A. I. of A. and Astronautics, “Radar 
+Odometry on Small Unmanned Aircraft (AIAA 2013-4698),” 
+2013, pp. 1569–1586. 
+[12] 
+E. B. Quist, P. C. Niedfeldt, and R. W. Beard, “Radar odometry 
+with recursive-RANSAC,” IEEE Trans. Aerosp. Electron. Syst., 
+vol. 
+52, 
+no. 
+4, 
+pp. 
+1618–1630, 
+Aug. 
+2016, 
+doi: 
+10.1109/TAES.2016.140829. 
+[13] 
+E. B. Quist and R. W. Beard, “Radar odometry on fixed-wing 
+small unmanned aircraft,” IEEE Trans. Aerosp. Electron. Syst., 
+vol. 
+52, 
+no. 
+1, 
+pp. 
+396–410, 
+Feb. 
+2016, 
+doi: 
+10.1109/TAES.2015.140186. 
+[14] 
+K. Kauffman, J. Raquet, Y. Morton, and D. Garmatyuk, “Real-
+time UWB-OFDM radar-based navigation in unknown Terrain,” 
+IEEE Trans. Aerosp. Electron. Syst., vol. 49, no. 3, pp. 1453–1466, 
+2013, doi: 10.1109/TAES.2013.6557998. 
+[15] 
+A. F. Scannapieco, A. Renga, G. Fasano, and A. Moccia, 
+“Experimental Analysis of Radar Odometry by Commercial 
+Ultralight Radar Sensor for Miniaturized UAS,” J. Intell. Robot. 
+Syst. Theory Appl., vol. 90, no. 3–4, 2018, doi: 10.1007/s10846-
+017-0688-1. 
+[16] 
+A. F. Scannapieco, “A novel outlier removal method for two-
+dimensional radar odometry,” IET Radar, Sonar Navig., vol. 13, 
+no. 10, 2019, doi: 10.1049/iet-rsn.2018.5661. 
+[17] 
+A. F. Scannapieco, A. Renga, G. Fasano, and A. Moccia, 
+“Ultralight radar for small and micro-UAV navigation,” in 
+International Archives of the Photogrammetry, Remote Sensing 
+and Spatial Information Sciences - ISPRS Archives, Aug. 2017, 
+vol. 42, no. 2W6, pp. 333–338, doi: 10.5194/isprs-archives-XLII-
+2-W6-333-2017. 
+[18] 
+A. F. Scannapieco, A. Renga, G. Fasano, and A. Moccia, 
+“Ultralight radar sensor for autonomous operations by micro-
+UAS,” 2016, doi: 10.1109/ICUAS.2016.7502664. 
+[19] 
+E. Brookner, Tracking and Kalman Filtering Made Easy. 1998. 
+[20] 
+A. Noureldin, T. B. Karamat, and J. Georgy, Fundamentals of 
+inertial navigation, satellite-based positioning and their 
+integration. 2013. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:06 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

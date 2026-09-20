@@ -1,0 +1,1031 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0485.pdf
+sha256: 10B7D672BE4EC95F9E1D64E58C193D26856A370F8E493A02E674DA7DF9974814
+library: pymupdf (fitz) v1.28.2
+pages: 7
+=== BEGIN ===
+[p.1]
+Multi-Sensor 6-DoF Localization For Aerial Robots In Complex
+GNSS-Denied Environments
+J.L. Paneque, J.R. Mart´ınez-de Dios and A. Ollero
+Abstract— The need for robots autonomously navigating in
+more and more complex environments has motivated intense
+R&D efforts in making robot pose estimation more accurate and
+reliable. This paper presents a multi-sensor multi-hypothesis
+method for robust 6-DoF localization in complex environments.
+Robustness and accuracy requirements are addressed as follows.
+First, camera and LIDAR features are seamlessly integrated in
+the same statistical framework, beneﬁting from their synergies
+and providing robustness in scenarios with low or varying den-
+sities of LIDAR and visual features. Second, a multi-hypothesis
+approach is adopted to cope with scenario symmetries. The
+method has been carefully designed to operate in real time
+using feature and hypothesis ﬁltering and efﬁcient hypothesis
+reﬁnement, and has been coded in a multi-core implementation.
+The proposed method has been extensively validated for closed-
+loop aerial robot navigation in different urban and industrial
+scenarios and has shown advantages over well-known single-
+sensor techniques.
+I. INTRODUCTION
+Our work is motivated by aerial robots that need robust and
+accurate 6-DOF pose estimations for autonomous safe navi-
+gation in complex, unstructured, GNSS-denied environments
+with high density of obstacles and potentially strong lighting
+changes. This paper is within the context of the EU-H2020
+AEROARMS project, in which an aerial robot autonomously
+navigates in industrial environments and performs physical-
+contact tasks such as gathering contact measurements or
+installing sensors [1].
+Most existing real-time robot pose estimation methods
+employ only one main exteroceptive sensor such as a monoc-
+ular/stereo camera or a 2D/3D LIDAR (LIght Detection And
+Ranging) [2]–[5], or combine it with internal sensors such
+as an Inertial Measurement Unit (IMU) or an altimeter [6]–
+[8]. In many cases using one sole exteroceptive sensor cannot
+capture the complexity of the scenario and do not provide the
+required robustness and/or accuracy. Some very few methods
+such as [9], [10] combine cameras and LIDARs. The above
+methods have a mono-hypothesis approach, which can fail in
+complex scenarios with symmetries, not infrequent in urban
+or industrial settings. Schemes based on Particle Filters have
+a multi-hypothesis approach, but integrating both LIDAR and
+camera measurements would lead to excessive computational
+burden, unsuitable for real-time on-board execution.
+This paper presents a robust multi-sensor multi-hypothesis
+6-DoF localization ﬁlter for complex environments. It seam-
+lessly integrates camera and LIDAR features in the same
+statistical framework and adopts a multi-hypothesis Recur-
+sive Bayesian Filter approach. In the Prediction stage the
+Robotics, Vision and Control Group, University of Seville, Seville, Spain
+[jlpaneque,jdedios,aollero]@us.es
+robot odometry is computed jointly considering LIDAR-
+camera features. In the Update stage the hypotheses are
+iteratively reﬁned to efﬁciently maximize the consistency
+between LIDAR-camera features and a previously-computed
+multi-sensor map. Bundle adjustment optimization is used
+to integrate images and LIDAR scans gathered at different
+rates. The method has been designed to operate in real time
+using feature and hypothesis ﬁltering and efﬁcient hypothesis
+reﬁnement, and has been coded in a multi-core implementa-
+tion. It has been extensively validated for closed-loop robot
+navigation in different urban and industrial scenarios (see
+Fig. 1-top), showing signiﬁcant robustness and accuracy
+when compared with existing well-known techniques.
+Fig. 1.
+Top) Validation ﬂight in a bridge at the School of Engineering
+of Seville. Bottom) Multi-sensor map obtained during the ﬂight. LIDAR
+features are in orange, the UWB (Ultra-Wide-Band) radio-range beacons in
+the scenario are in green. Camera texture features can be seen in the map.
+This paper is structured as follows. Related work is sum-
+marized in Section II. The design motivation and approach
+is in Section III. The method is presented in Section IV.
+The experimental validation and comparison is in Section
+V. Section VI summarizes the conclusions and future work.
+II. RELATED WORK
+Robot localization is a traditional problem in robotics
+where many successful techniques have been developed [2],
+[10]–[12]. The need for robots autonomously navigating in
+more and more complex environments [13] has motivated
+intense R&D efforts in multi-sensor pose estimation. Very
+good methods have been developed fusing camera or LIDAR
+Preprint version of:
+J.L. Paneque, J.R. Mart´ınez-de Dios and A. Ollero (2019), Multi-Sensor 6-DoF Localization For Aerial Robots In Complex GNSS-Denied Environments,
+In 2019 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Macao, China, 2019.
+[p.2]
+with IMU, altimeter, and many other sensors [6], [14], [15].
+Most multi-sensor methods integrate one main exteroceptive
+sensor (mainly LIDAR or monocular/stereo camera) and one
+or more proprioceptive sensors. A monocular camera and an
+IMU are integrated in a SLAM in [6]. Work [14] fuses a
+LIDAR and an IMU and uses the IMU to compensate for the
+low LIDAR scan frequency. However, only one exteroceptive
+sensor cannot always capture the complexity of unstructured
+scenarios with strong geometrical symmetries and sudden
+lighting changes. For instance, cameras capture texture but
+can be highly affected by lighting conditions. LIDARs cap-
+ture geometry but do not provide texture information.
+Very few of the existing methods integrate cameras and
+LIDARs. DEMO (Depth Enhanced Monocular Odometry)
+[9] is a real-time monocular visual odometry that uses
+LIDAR measurements to improve the depth estimations of
+visual features. It does not use LIDAR features: it relies
+only on visual features, which can be insufﬁcient in many
+scenarios. vLOAM (visual-Lidar Odometry And Mapping)
+[10] is a very good method that combines a high-frequency
+monocular camera odometry with a low-frequency LIDAR-
+based odometry and mapping. These two methods have a
+mono-hypothesis approach, which can fail when a robot with
+unconstrained movements, such as an aerial robot, moves in
+scenarios with strong symmetries, e.g. in urban and industrial
+settings. This can happen when sudden movements lead to
+multiple possible solutions for the matching of the features.
+SLAM (Simultaneous Location and Mapping) and aug-
+mented odometry schemes perform joint map-pose opti-
+mization, which make them suitable for missions where
+there is no previous knowledge of the scenario. In other
+methods the optimization concentrates only on robot pose
+assuming that the scenario map is available. Work [16]
+uses an AMCL (Adaptive Monte Carlo Localization) for
+pose estimation analyzing the consistency of RGB-D camera
+measurements with a precomputed map. AMCL ﬁlters have
+high computational burden that is often addressed by using
+simple likelihood functions that do not always fully exploit
+the information contained in the features. Several SLAM
+schemes, such as [2], [11], can also be used in localization-
+only mode. However, this is done for only one robot state,
+not exploiting the multi-hypothesis advantages of AMCLs.
+This paper presents a robust multi-sensor multi-hypothesis
+localization ﬁlter for complex scenarios. It exploits multi-
+sensor synergies by seamlessly integrating camera and LI-
+DAR features in the same statistical framework. It adopts a
+multi-hypothesis approach to cope with scenario symmetries,
+but includes tools to largely reduce burden without affecting
+accuracy. It uses a prior map of the scenario but compensates
+errors due to scenario changes by integrating a higher number
+of features from different sources.
+III. GENERAL DESCRIPTION
+Robustness and accuracy are the main drivers in the design
+of our method. They are addressed by adopting an multi-
+sensor multi-hypothesis approach. Two main sensors are
+integrated: a stereo camera system and a 3D LIDAR. Stereo
+cameras provide images and depth images that are accurate
+for nearby objects but affected by lighting conditions and
+their depth error quickly increases with distance. LIDARs
+provide accurate point clouds at medium distances –up to
+60-80 m–, but cannot provide texture and cannot receive
+measurements from very near objects. In addition to com-
+plementary information, these sensors provide perception at
+complementary ranges. Stereo cameras are particularly infor-
+mative when ﬂying at low altitudes (take-off/landing) or near
+obstacles, whereas LIDARs are blind to very near objects and
+are very informative at medium distances. Our method treats
+jointly LIDAR and visual features in the same framework
+using a globally higher number of features, which enables se-
+lecting the most informative ones, and provides robustness in
+scenarios with low feature-density or with varying densities
+of LIDAR and visual features. Besides, our method can also
+integrate other optional on-board sensors such as altimeter
+or IMU. Additionally, in many environments, e.g. industrial
+settings, there are sensors distributed in the scenario. These
+sensors can act as radio beacons: a robot equipped with a
+reader can measure the range to these beacons. If available,
+our method can also integrate these measurements. These
+radio range measurements are not very accurate but enable
+perception at high ranges. As shown in Section V, these
+optional sensors reduce the computational burden but have
+no signiﬁcant effect on robustness or accuracy.
+As many other robustness-driven methods, our scheme
+assumes that a map of the scenario is available. In a
+previous multi-sensor mapping phase the robot creates a
+map integrating information from the available sensors. In
+the real-time localization phase the multi-hypothesis ﬁlter
+computes robot pose estimates by analyzing the consistency
+of its measurements with the multi-sensor map. This two-
+phase scheme is suitable for many applications, such as
+inspection or monitoring, in which many ﬂights are to be
+performed in the same moderate-changing scenario. In our
+method the estimation errors originated by the potential
+scenario changes are compensated by the integration of a
+higher number of features of different nature. Besides, the
+measurements logged in these later ﬂights can be used to
+off-line update the map. The building and update of the
+multi-sensor map is out of the scope of this paper. Figure
+1-bottom shows one multi-sensor map built in an inspection
+experiment performed in September 2018.
+IV. THE PROPOSED MULTI-SENSOR FILTER
+This section describes the proposed method. It seamlessly
+integrates visual and LIDAR measurements in the same
+framework and, if available, uses altimeter, IMU and radio-
+range measurements to reduce the computational burden.
+Three main stages can be distinguished: measurements pre-
+processing, Prediction and Update.
+A. Measurements pre-processing
+This stage extracts 3D features from cameras and LIDAR
+measurements and also metrics of their quality for pose
+estimation. Fk is the resulting uniﬁed set of LIDAR-camera
+[p.3]
+features extracted at time k. LIDAR features are denoted as
+F l
+k, and camera features, as F c
+k.
+Two types of LIDAR features are extracted: edge points
+and planar points [14]. LIDAR feature quality is related to
+the smoothness of the local surface between the feature point
+and its adjacent neighbours deﬁned as in [14]:
+sj =
+1
+Ne
+
+
+
+F l
+k,j
+
+
+
+
+
+
+
+
+
+
+
+j+Ne/2
+X
+i=j−Ne/2
+F l
+k,j −lpi
+
+
+
+
+
+
+
+2
+(1)
+where F l
+k,j is the LIDAR feature j at instant k, and lpi is
+each of its total Ne neighboring points. One LIDAR edge
+feature F l
+k,j with higher sj is more informative than one
+with lower sj. This is opposite for planar features. Hence,
+the quality of each feature F l
+k,j is q(F l
+k,j)=sj if the feature
+is an edge, or q(F l
+k,j)=s−1
+j
+if it is planar.
+SURF (Speeded Up Robust Features) features are ex-
+tracted in one of the stereo images. Our method treats camera
+and LIDAR features in the same 3D space. Hence, we need
+to estimate the depth of each visual feature. Depth error using
+stereo reconstruction is low for features near the camera but
+increases non-linearly with distance [17]. To reduce depth
+error we combine stereo depth estimations with LIDAR
+depth estimations obtained using triangularization and raster-
+ization as in [18]. The triangularization is performed between
+neighbour points in the LIDAR pointcloud and the obtained
+triangles are rasterized from the camera perspective to obtain
+depth estimations. Triangles which edge lengths are >0.5m
+are ﬁltered out. We obtained an analytical expression of
+the depth accuracy by propagating the LIDAR measurement
+error. The expression is complex: it is not shown for brevity.
+The resulting error is lower than σ=2cm –the measurement
+error of our LIDAR sensor– due to an averaging effect. We
+compute the depth of each visual feature by fusing the stereo
+and LIDAR depth estimations similarly to in [18]. The depth
+estimation with the highest depth accuracy is taken. The
+quality of camera feature F c
+k,j is its depth estimation error.
+B. The Prediction stage
+Our method assumes that the LIDAR and stereo camera
+are synchronized but the camera rate is N times the LIDAR
+rate: new images are received at every frame k, whereas
+a new LIDAR scan is received at every N frames. For
+better understanding this section presents a Prediction stage
+that assumes that the stereo camera and the LIDAR are
+synchronized and have the same rate. Section IV-C describes
+the bundle adjustment optimization to integrate all camera
+measurements when their rate is a multiple of the LIDAR’s.
+The robot odometry between times k-1 and k is estimated
+with an ICP algorithm extended to evenly consider 3D-
+3D matchings between LIDAR features or between camera
+features. Different tools are used in the ICP to match camera
+features and LIDAR features. Camera features are matched
+using SURF feature similarity expressed as distance in the
+SURF 64-dimensional space. LIDAR features are matched
+using 3D distance criteria. These matchings are computed
+efﬁciently using kD-trees. Each feature’s match quality met-
+ric (distance to the match) is used for computing its weight
+in the ICP algorithm. These weights are calculated for both
+camera and LIDAR feature matchings as follows:
+wj(Fk,j) = Aj(md(Fk,j) · q(Fk,j))−1,
+(2)
+where q(Fk,j) is the quality of feature Fk,j as deﬁned
+in Section IV-A and md(Fk,j) is the Euclidean distance
+between feature Fk,j and its matching pair in Fk−1. This
+deﬁnition is the same for camera and for LIDAR features.
+For both types of features, matches between distant pairs or
+involving low quality features are assigned with low weight.
+Aj is different for LIDAR features (Aj=AL) and for camera
+features (Aj=AC) in order to compensate for the different
+deﬁnitions in the quality of both features. AL and AC are
+parameters that can be tuned manually or trained using
+accurately localized ﬂights. We used AC=2.5AL, AL = 1
+in the reported experiments.
+Finally, the 6-DoF motion of the robot in consecutive times
+is used in the prediction of the robot state hypotheses as in
+standard Monte-Carlo Filters. This stage can be implemented
+with low burden. LIDAR feature matching is performed
+efﬁciently due to the low amount of features involved.
+Besides, the burden of the ICP algorithm can be reduced
+by considering only the most informative features. Also, the
+ICP can be easily combined with the IMU. For instance, if
+some IMU measurements are very accurate (typically roll
+and pitch), these values can be ﬁxed in the ICP, reducing the
+dimension of the optimization problem and thus lowering
+even more the computational burden of this stage.
+Traditionally vision-based techniques compute motion re-
+construction using 2D-3D feature matching in order to avoid
+the uncertainty in the depth estimation of the features in
+Fk. In the bundle adjustment, see Section IV-C, we consider
+3D-3D matching of LIDAR features together with 2D-
+3D matching of visual features in the same optimization
+problem.
+C. Bundle adjustment
+Section IV-B presented a Prediction stage that assumes
+that the stereo camera and the LIDAR have the same rate.
+In our method the stereo camera rate is assumed multiple of
+the LIDAR scan rate. In this section we describe the bundle
+adjustment (BA) optimization to integrate all camera mea-
+surements. It is performed as follows. First, for each time k
+where only camera images are available, we compute visual
+odometry between k and k-1 using a 2D-3D PnP solver to
+obtain higher-frequency pose estimates. Second, for each k
+where a LIDAR scan and camera images are available, we
+conjointly optimize the last N robot poses using LIDAR and
+camera feature matchings with the following BA framework.
+Assume that we receive a LIDAR scan at k=1. At k =
+1, 2, ..., N we estimate the robot motion (i.e. T k
+k−1) using the
+2D-3D PnP solver. At k=N we receive a new LIDAR scan
+and new camera images and optimize T N
+1
+= QN
+k=2 T k
+k−1
+using BA. First, we summarize the BA problem with visual
+features and next we extend it also to LIDAR features.
+[p.4]
+Assume that the robot at k=1 is at ﬁxed initial pose
+W1. The classical visual BA problem [19] seeks to ﬁnd the
+most likely transformations T k
+1 , k=2...N, that minimize the
+reprojection error of F c
+k|W1 –the visual features in Fk in the
+frame W1– to pc
+k, the visual features in points in image k.
+Assuming Gaussian noise, this reprojection error is:
+Ec =
+N
+X
+k=1
+X
+j
+∥h(T k
+1 , F c
+k,j|W1) −pc
+k,j∥2
+Σ
+(3)
+where F c
+k,j|W1 is feature j in F c
+k|W1 and pc
+k,j is feature j
+in pc
+k. Also, h(T k
+1 , F c
+k,j|W1) is the function that predicts pc
+k,j
+from the measurements F c
+k,j|W1 and the transformation T k
+1 .
+k and j encode the data association, i.e. feature j is only
+considered in image k if it is seen in it. The notation ∥e∥2
+Σ ≜
+eT Σe is the squared Mahalanobis distance with covariance
+Σ. This Σ is obtained from the quality metrics in (2).
+LIDAR features are treated differently. The error to be
+minimized is the 3D translation and rotation error between
+the previous LIDAR features in F l
+k=1|W1 and their matching
+features in F l
+k=N|WN . The error function is as follows:
+El =
+X
+j
+∥F l
+j,k=1|W1 −T N
+1 F l
+j,k=N|WN ∥2
+Σ
+(4)
+Combining (3) and (4), the joint error to be minimized is:
+E(T 2
+1 , ..., T N
+1 , F c, F l) = Ec + El
+(5)
+Ec and El are coupled and need to be optimized con-
+jointly. We chose the gtsam framework [19] for implement-
+ing the BA, since it can easily integrate 3D-3D and 3D-2D
+feature matchings in the same BA problem, and provides a
+straightforward way of integrating the matching quality met-
+rics of LIDAR and camera features deﬁned in SectionIV-B.
+Previously obtained pose estimations from visual odometry
+can be used as priors of the optimization problem. In our
+system with a 60Hz camera frame rate and a 10Hz LIDAR
+frame rate, the BA converges in few miliseconds and enables
+for LIDAR feature re-matching if necessary.
+D. The Update stage
+The Update stage estimates the state and probability of
+each hypothesis by analyzing the consistency of the mea-
+surements with the multi-sensor map. A traditional particle
+ﬁlter would require evaluating for each state hypothesis (hun-
+dreds) the consistency of 3D LIDAR and camera features
+(thousands) with the multi-sensor map features (hundreds of
+thousands). The output of such evaluation is the level of
+suitability of each hypothesis (particle): this uses a very high
+computational effort for a low-reward result. In our method,
+instead of computing this particle suitability, we employ an
+approach in which the hypotheses are iteratively reﬁned to
+maximize the consistency between the measurements and
+the multi-sensor map. On the other hand, traditional ICP-
+based schemes evaluate only one solution that can get stuck
+in local minima or even diverge due to multi-modality
+in scenarios with symmetries, which are not infrequent in
+industrial and urban environments. The proposed approach
+solves this by exploiting the advantages of both ICP and
+particle ﬁlters by using ICP-like iterative reﬁnement in a
+multi-hypothesis framework. The method is accurate, robust
+to scenario symmetries and can be implemented in real time
+with moderate computational cost.
+The set of hypotheses at time k is denoted as xk.
+Hypothesis i is x[i]
+k . The Update stage is shown in Alg.
+1. It implements an iterative reﬁnement process with two
+main steps. In Step1, Lines 4-7, the measurements from the
+radio-range beacons ({rk}) and from the altimeter (hk) are
+used to evaluate the likelihood of each hypothesis. Then,
+a set of hypotheses χk is randomly drawn from xk with
+probabilities proportional to their likelihoods. In Step2, Lines
+8-13, each selected hypothesis (x[i]
+k ∈χk) is reﬁned through
+optimizing the consistency between the features in the multi-
+sensor map and Fk|x[i]
+k –the current LIDAR-camera feature
+set Fk expressed in the reference frame of x[i]
+k –. In Line
+14 all the hypotheses x[i]
+k
+/∈χk are randomly reinitialized.
+The iterations ﬁnish if all the reﬁnements are below a
+given threshold TH, or if timing constraints are met. The
+likelihood of each hypothesis is re-computed in Line 16
+and returned together with xk. The resulting likelihoods are
+represented as l.
+Algorithm 1 The Update Stage
+1: function UPDATE STAGE(xk, Fk, hk, {rk})
+2:
+do
+3:
+Convergence = 1
+4:
+for each hypothesis x[i]
+k do
+5:
+Compute lh
+i and lR
+i
+6:
+Normalize li = lh
+i lR
+i
+7:
+Draw x[i]
+k in χk with probability ∝li
+8:
+for each hypothesis x[i]
+k ∈χk do
+9:
+Find matchings between Fk|x[i]
+k and FMap
+10:
+Find T = arg minT (∥FMap −TFk|x[i]
+k ∥)
+11:
+if ∥x[i]
+k −T∥> TH then
+12:
+Reﬁne x[i]
+k := T
+13:
+Convergence = 0
+14:
+Reinitialize x[i]
+k /∈χk
+15:
+while (!Convergence || !Timeout)
+16:
+Compute li for all hypotheses as in lines 5-6
+17:
+return xk, l
+Step1 reduces burden by randomly rejecting most hypothe-
+ses with low likelihood. This step is optional and can be
+omitted if the altimeter or radio beacons are unavailable. The
+likelihood of x[i]
+k is li=lh
+i lR
+i . The value of lh
+i reﬂects the con-
+sistency between hi,k, the expected altimeter measurement
+for x[i]
+k , and hk, the actual measurement. hi,k is calculated
+by tracing in the multi-sensor map a ray from the altimeter
+pose at the hypothesis x[i]
+k . lh
+i is computed evaluating hi,k
+with a Gaussian likelihood function with mean hk. The value
+of lR
+i reﬂects the consistency between the actual radio-range
+[p.5]
+readings {rk} and the expected measurements considering
+the pose of x[i]
+k , using also a Gaussian likelihood function.
+In Step2 each selected hypothesis (x[i]
+k ∈χk) is reﬁned to
+optimize the consistency between Fk and the multi-sensor
+map features FMap. First, for each hypothesis the features in
+Fk|x[i]
+k are matched to FMap using the same matching criteria
+as in Section IV-B. In Line 10, the optimal transformation
+matrix that minimizes the distance between Fk|x[i]
+k and FMap
+is computed in the same 3D-3D framework as in Section
+IV-B. The matching of the LIDAR features involves high
+computational cost. Hence, only the features with the highest
+quality are considered. Finally, each computed transforma-
+tion is used to update the corresponding hypothesis.
+The developed method can be implemented in real-time
+with standard COTS hardware on-board the robot. The Pre-
+diction stage is rather accurate. Thus, the Update stage often
+converges after one or two iterations. Also, in many cases
+different hypotheses converge in only one, decreasing the
+computational cost. We used 60 hypotheses in our scheme,
+reﬁning 30% of them in each iteration. The statistical mean
+of xk (rejecting outliers) is used as the robot pose estimation.
+V. EXPERIMENTAL RESULTS
+The method has been extensively validated in sets of
+experiments at different complex scenarios. This section
+describes the method implementation, and analyses and
+compares its performance versus well-known techniques.
+A. Implementation
+The ﬁnal implementation platform is the DARIUS aerial
+robot. DARIUS is a custom-design hexarotor with a MTOW
+(Maximum Take Off Weight) of 22 kg and tip-to-tip blade
+size of 1700 mm. Propulsion is composed by electrical
+brushless motors and carbon ﬁber propellers and achieves
+a ﬂight endurance of between 20 min, sufﬁcient for the
+designed experiments. DARIUS is equipped with a Velodyne
+HDL-32E, a ZED stereo camera, an IMU, a laser altimeter
+and an UWB ToF radio-range sensor that receives range
+measurements from UWB beacons deployed in the scenario.
+Fig. 2.
+DARIUS aerial robot used in the experiments.
+It is also equipped with a centimeter-level accuracy RTK D-
+GPS that is used only as ground truth. For processing and
+logging it has on-board an Intel NUC and a Nvidia Jetson
+TX2. All sensors are synchronized at software level. The
+LIDAR and camera were placed so that their ﬁeld of view
+were coincident during most of the performed ﬂights.
+The proposed localization method was developed under
+Ubuntu 16.04 and ROS Kinetic. The NUC and Jetson
+TX2 boards are communicated through Ethernet. All the
+GPU-heavy calculations (SURF features detection, stereo
+depth estimations) are performed in the TX2 board, whereas
+CPU-heavy calculations (LIDAR feature matchings, bundle
+adjustment), in the NUC board. An efﬁcient multi-core
+implementation of the Update stage was performed to fulﬁll
+the timing requirements. LIDAR features matching is done
+using the library nanoﬂann [20] due to its signiﬁcantly fast
+performance. One CPU core in both the NUC and TX2
+boards was left for data logging purposes. The resulting pose
+estimation of our localization is sent to the Pixhawk autopilot
+via a MAVROS interface. This pose is used for closed-loop
+navigation of the aerial robot in the performed experiments.
+B. Performance evaluation
+A total of more than 150 validation ﬂights were performed
+at three different scenarios: School of Engineering of Sevilla,
+see Fig. 1, namely ETSI; a testing scenario near Seville, see
+Fig. 3-right, namely Karting; and at a road bridge, see Fig.
+3-left, namely Bridge. The robot position ground-truth in
+the Karting and ETSI scenarios was provided by the RKT-
+GPS, whereas in the Bridge scenario it is given by a Leica
+TotalStation. The experiments were performed in a realistic
+way, similarly to the envisioned Inspection and Maintenance
+(I&M) operation in AEROARMS. First, a multi-sensor map
+of the scenario was built in prior manually-assisted ﬂights.
+Next, a number of ﬂights in fully-autonomous navigation
+mode were performed and the proposed method computed
+pose estimations in real-time using that map. Figure 4 shows
+the results obtained in one bridge inspection experiment
+performed in December 2018. The robot 3D localization
+obtained with our method is shown in blue, and the ground-
+truth localization, in magenta. Only the geometrical compo-
+nent of the map is shown for better visualization.
+We compared our method to two of the most extended
+Fig. 3. Pictures of the experiment scenarios: left) Karting and right) Bridge.
+[p.6]
+Fig. 4.
+Results in one bridge inspection experiment. The ﬁgure shows
+the geometrical map component (in green), the localization obtained by our
+method (in blue) and the ground-truth localization (in magenta).
+and publicly available localization techniques: LOAM (Lidar
+Odometry and Mapping) [14], based on LIDAR and ORB-
+SLAM2 (Oriented FAST and rotated BRIEF -SLAM2) [2],
+based on camera. We used the latest available codes of
+LOAM and ORB-SLAM2. The LOAM code was modiﬁed
+to properly use all 32 channels of our LIDAR. ORB-SLAM2
+was used in stereo mode. For better comparison, the optional
+sensors (IMU, altimeter, and UWB sensors) were not inte-
+grated in our method. LOAM, ORB-SLAM2, and our method
+are all initialized with the take-off pose of each ﬂight. ORB-
+SLAM2 was used in localization mode with a precomputed
+map. The measurements were logged and processed off-line
+with the three methods. Camera images were logged at 60Hz,
+and LIDAR measurements, at 10Hz.
+Figure 5 shows the 3D localization errors versus ground-
+truth in one Karting experiment. The errors were generally
+low for all methods in the X axis, but LOAM gave worse
+results during the beginning of the ﬂight due to the lack
+of rich geometrical features when ﬂying at low altitudes
+after take-off. LOAM and ORB-SLAM2 were not accurate
+during mid-ﬂight, since the robot was ﬂying parallel to a
+pipe for performing inspection. The multi-modal solutions
+due to symmetries in the scenario made them loose accuracy.
+For ORB-SLAM2 the Z estimation is best when the robot
+is near to the ground at the end of the ﬂight (since there
+are rich visual features on the ﬂoor), while LOAM gives
+better results for higher altitudes. Our method provided low-
+variability errors along the full ﬂight.
+The results obtained in the rest of experiments offered
+similar conclusions. Table I shows the absolute translation
+RMS errors (trms) and maximum errors (tmax) in some
+experiments performed in the three scenarios. All were
+performed in exactly the same conditions as stated before. It
+has been noticed that, while LOAM and ORB-SLAM2 tend
+to give accurate results in many experiments, at different
+times in the experiments they were affected by the lack of
+0
+20
+40
+60
+80
+100
+0.2
+0.4
+0.6
+0.8
+1
+X error(m)
+Proposed method
+LOAM
+ORB-SLAM2
+0
+20
+40
+60
+80
+100
+0.2
+0.4
+0.6
+0.8
+1
+Y error(m)
+0
+20
+40
+60
+80
+100
+Time (s)
+0.2
+0.4
+0.6
+0.8
+Z error(m)
+Fig. 5.
+3D localization errors in the experiment in Fig. 4 obtained by the
+proposed method, LOAM and ORB-SLAM2.
+features and by different scenario symmetries. LOAM had
+most problems when landing and taking off, and when ﬂying
+near the bridge and the pipe for performing inspection. ORB-
+SLAM2 had most problems when visual features were very
+far from the robot, which is a common problem in large
+scenarios such as in the Bridge experiments. These situations
+affect their overall accuracy, but mostly their error variability.
+Our method takes advantage of the synergies of both sensors,
+which in combination with the multi-hypothesis framework
+lead to signiﬁcantly less variable solution. Also, our method
+assumes that a map with rich information is available and
+focuses only on the optimization of the robot pose.
+C. Analysis
+Our method uses visual and LIDAR features and can also
+integrate measurements from other frequently-used sensors
+if available. This section brieﬂy describes how integrating
+different sensors inﬂuence on the resulting accuracy and
+the computational burden. The implementation with four
+sets of sensors is analysed: S1) camera+IMU+altimeter,
+S2) LIDAR+IMU+altimeter, S3) LIDAR+camera and S4)
+TABLE I
+COMPARISON WITH OTHER METHODS IN DIFFERENT SCENARIOS
+ORB-SLAM2 [2]
+LOAM [14]
+Our method
+Experiment
+trms
+tmax
+trms
+tmax
+trms
+tmax
+(m)
+(m)
+(m)
+(m)
+(m)
+(m)
+Karting1
+0.56
+1.89
+0.62
+1.24
+0.13
+0.28
+Karting2
+0.18
+0.72
+0.31
+0.85
+0.11
+0.19
+Karting3
+0.51
+0.97
+0.40
+1.12
+0.21
+0.26
+ETSI1
+0.69
+1.34
+1.31
+2.08
+0.23
+0.34
+ETSI2
+0.50
+0.81
+0.74
+1.35
+0.13
+0.21
+ETSI3
+0.23
+0.42
+0.41
+0.70
+0.11
+0.19
+Bridge1
+1.68
+3.12
+0.49
+0.78
+0.14
+0.23
+Bridge2
+1.19
+2.41
+0.53
+0.91
+0.18
+0.25
+Bridge3
+0.84
+1.73
+0.34
+0.69
+0.21
+0.32
+[p.7]
+TABLE II
+PERFORMANCE OF THE METHOD WITH DIFFERENT SENSOR SETUPS
+S1
+S2
+S3
+S4
+Experiment
+trms
+ut
+trms
+ut
+trms
+ut
+trms
+ut
+(m)
+(ms)
+(m)
+(ms)
+(m)
+(ms)
+(m)
+(ms)
+Karting1
+0.39
+6
+0.34
+48
+0.13
+55
+0.09
+27
+Karting2
+0.22
+7
+0.15
+51
+0.11
+69
+0.06
+31
+Karting3
+0.34
+6
+0.35
+44
+0.21
+61
+0.12
+23
+ETSI1
+0.46
+8
+0.62
+65
+0.23
+73
+0.11
+28
+ETSI2
+0.37
+6
+0.51
+61
+0.13
+91
+0.09
+42
+ETSI3
+0.18
+7
+0.24
+78
+0.11
+85
+0.06
+33
+Bridge1
+1.36
+11
+0.18
+81
+0.14
+157
+0.11
+59
+Bridge2
+1.27
+9
+0.43
+89
+0.18
+175
+0.12
+65
+Bridge3
+0.72
+12
+0.29
+78
+0.21
+147
+0.08
+56
+LIDAR+camera+IMU+altimeter+UWB. Table II compares
+their performance focusing on the mean error and the com-
+putational time (in ms) used in the Update stage (ut), which
+concentrates the most burden of our method.
+The best accuracy is obtained in S3 and S4, which exploit
+the combination of LIDAR and camera features. On the other
+hand, the computational burden is signiﬁcantly higher in
+conﬁgurations S2-S4 than in S1. This is due to the presence
+of 3D LIDAR features, whose iterative matching with the
+map is of great cost. Burden is alleviated in S2 by using an
+altimeter, and in S4 using all the optional sensors: altimeter,
+IMU and UWB. S3 and S4 have similar errors but integrating
+the optional sensors signiﬁcantly reduces burden in S4. These
+measurements are used in Step1 of the Prediction stage to
+reject hypothesis with low likelihood and save burden in
+Stage2. Bridge experiments have the largest and most varied
+map, the Update stage of S4 takes ≈60ms at most. Even in
+these cases, it is enough for our sensors’ frame rate. Reducing
+the number of hypothesis or the number of employed features
+can reduce this time if necessary, at the cost of accuracy.
+VI. CONCLUSIONS
+This work is motivated by aerial robots that need robust
+and accurate pose estimations for autonomous safe naviga-
+tion in complex GNSS-denied industrial and urban scenarios.
+This paper presents a robust multi-sensor multi-hypothesis
+localization method. It is based on three main ideas. First, it
+integrates camera and LIDAR features in the same statistical
+framework, beneﬁting from their synergies and improving ro-
+bustness and accuracy in scenarios with low or varying den-
+sities of features. Second, to cope with the potentially strong
+symmetries in the scenarios, it adopts a multi-hypothesis
+approach where the different hypotheses are updated using
+the consistency between the gathered measurements and
+a pre-existing multi-sensor map. Third, its computational
+burden has been carefully addressed to operate in real time
+using feature and hypothesis ﬁltering, efﬁcient hypothesis
+reﬁnement and codiﬁcation in a multi-core implementation.
+As many other robustness-driven methods, it assumes that a
+map of the scenario is available. This approach is valid in
+the envisioned I&M applications, in which many ﬂights are
+performed in the same moderate-changing scenario.
+The proposed method has been compared to other well-
+known techniques and validated for closed-loop aerial robot
+navigation in three different urban and industrial scenarios.
+The integration of the next-generation 3D solid-state LI-
+DARs with higher scan rates but signiﬁcantly lower ﬁelds of
+view opens interesting challenges to be researched. Also, the
+extension of the method to consider semantic information is
+expected to provide additional robustness. These topics are
+object of current research.
+ACKNOWLEDGMENTS
+This work was performed in the UE project AEROARMS
+(H2020-ICT-2014-1-644271) and in ARM-EXTEND, funded
+by the Spanish R&D plan (DPI2017-89790-R). The research
+of J. L. Paneque is supported by the Spanish Ministerio de
+Educaci´on y Formaci´on Profesional FPU Program.
+REFERENCES
+[1] A. Ollero et al., “The aeroarms project: Aerial robots with advanced
+manipulation capabilities for inspection and maintenance,” IEEE
+Robotics and Automation Magazine, vol. 25, no. 4, 2018.
+[2] R. Mur-Artal and J. D. Tardos, “ORB-SLAM2: An Open-Source
+SLAM System for Monocular, Stereo, and RGB-D Cameras,” IEEE
+Transactions on Robotics, 2017.
+[3] S. Kohlbrecher, J. Meyer, O. von Stryk, and U. Klingauf, “A ﬂexible
+and scalable slam system with full 3d motion estimation,” in IEEE
+Intl. Symp. on Safety, Security and Rescue Robotics (SSRR), 2011.
+[4] A. Pumarola, A. Vakhitov, A. Agudo, A. Sanfeliu, and F. Moreno-
+Noguer, “PL-SLAM: Real-time monocular visual SLAM with points
+and lines,” in IEEE ICRA, 2017.
+[5] J. Engel, T. Schops, and D. Cremers, “LSD-SLAM: Direct Monocular
+SLAM,” in European Conf. on Computer Vision (ECCV), 2014.
+[6] L. Kneip, M. Chli, and R. Siegwart, “Robust Real-Time Visual
+Odometry with a Single Camera and an IMU,” in BMVC, 2011.
+[7] K. Kapach and Y. Edan, “Evaluation of grid-map sensor fusion
+mapping algorithms,” in IEEE Intl. Conf. on Systems, Man and
+Cybernetics, 2007.
+[8] G. N¨utzi, S. Weiss, D. Scaramuzza, and R. Siegwart, “Fusion of imu
+and vision for absolute scale estimation in monocular slam,” Journal
+of Intelligent and Robotic Systems, vol. 61, 2011.
+[9] J. Zhang, M. Kaess, and S. Singh, “Real-time depth enhanced monoc-
+ular odometry,” in IEEE IROS, 2014.
+[10] J. Zhang and S. Singh, “Visual-lidar odometry and mapping: Low-
+drift, robust, and fast,” in IEEE ICRA, 2015.
+[11] I. Cviˇsi´c, J.
+´Cesi´c, I. Markovi´c, and I. Petrovi´c, “SOFT-SLAM
+: Computationally Efﬁcient Stereo Visual SLAM for Autonomous
+UAVs,” Journal of Field Robotics, 2017.
+[12] C. Forster, M. Pizzoli, and D. Scaramuzza, “SVO: Fast semi-direct
+monocular visual odometry,” in IEEE ICRA, 2014.
+[13] J. R. Martinez-De Dios, A. Torres-Gonzalez, J. L. Paneque, D. Fuego-
+Garcia, J. R. A. Ramirez, and A. Ollero, “Aerial Robot Coworkers for
+Autonomous Localization of Missing Tools in Manufacturing Plants,”
+in Intl. Conf. on Unmanned Aircraft Systems (ICUAS), 2018.
+[14] J. Zhang and S. Singh, “LOAM: Lidar Odometry and Mapping in
+Real-time,” in Robotics: Science and Systems, 2015.
+[15] T. Zhang, Z. J. Chong, B. Qin, J. G. M. Fu, S. Pendleton, and M. H.
+Ang, “Sensor fusion for localization, mapping and navigation in an
+indoor environment,” in HNICEM, Nov 2014.
+[16] F. J. Perez-Grau, R. Ragel, F. Caballero, A. Viguria, and A. Ollero,
+“An architecture for robust UAV navigation in GPS-denied areas,”
+Journal of Field Robotics, 2018.
+[17] L. E. Ortiz, E. V. Cabrera, and L. M. Gonc¸alves, “Depth data error
+modeling of the zed 3d vision sensor from stereolabs,” Electronic
+letters on computer vision and image analysis, vol. 17, no. 1, 2018.
+[18] W. Maddern and P. Newman, “Real-time probabilistic fusion of sparse
+3D LIDAR and dense stereo,” in IEEE IROS, 2016.
+[19] F. Dellaert, “Factor graphs and gtsam: A hands-on introduction,”
+Georgia Institute of Technology, Tech. Rep., 2012.
+[20] J. L. Blanco and P. K. Rai, “nanoﬂann: a C++ header-only fork
+of FLANN, a library for nearest neighbor (NN) with kd-trees,”
+https://github.com/jlblancoc/nanoﬂann, 2014.
+=== END ===

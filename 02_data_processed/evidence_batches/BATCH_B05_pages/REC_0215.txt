@@ -1,0 +1,668 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0215.pdf
+sha256: E57E0C0FEDC26798A5C4DE0A688AE819C3BEB735F13F0393B9AAE3BF16D93ABC
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+GPS-Denied UAV-UGV Relative Positioning
+System via Vision-UWB Fusion
+Guan Mingyang, Krishna Sagar, and Xu Ning
+Advanced Remanufacturing and Technology Centre, A*STAR. Cleantech Loop, #01/01 CleanTech Two, Singapore 637143
+{guan mingyang, krishna sagar, xu ning}@artc.a-star.edu.sg
+Abstract—Locating drones in GPS-denied environments is a
+challenging task, particularly for hardware platforms with lim-
+ited computational resources and sensors. A common approach
+for positioning a drone within the environment is to cooperate
+with an unmanned ground vehicle (UGV) by estimating the
+drone’s relative position on the UGV frame. In this paper,
+we propose a real-time drone positioning system that uses a
+Vision-UWB fusion framework. The fusion system involves two
+steps: 1) processing the state estimation using UWB ranging
+measurements and vision information separately, and 2) fusing
+the estimations from UWB and vision to provide the ﬁnal state
+estimation for the drone. To evaluate the accuracy of our method,
+we deployed an accurate localization system, named OptiTrack,
+as the ground truth system. The experimental results demonstrate
+the accuracy and robustness of the developed system, which
+overcomes the limitations of individual sensors and enhances
+their advantages.
+Index Terms—GPS-Denied, UAV localization, Sensor fusion,
+Ultra-wide Band
+I. INTRODUCTION
+Drone localization in GPS-denied scenarios is a critical
+challenge in various applications, such as search and res-
+cue [1]–[3], infrastructure inspection [4], and ﬁreﬁghting [5].
+These tasks often take place in environments where GPS
+signals may be weak or unavailable, as shown in Figure I of a
+typical UAV-UGV relative position system. Despite the recent
+advances in drone localization techniques, reliably locating the
+drone in a GPS-denied environment remains an open research
+problem.
+To achieve accurate and reliable drone localization, one
+approach is to rely on self-location information by fusing mul-
+tiple onboard sensors on the unmanned aerial vehicle (UAV).
+These sensors include IMUs [6], infrared sensors [7], laser
+scanning [8], and vision sensors [9]. Among these, visual-
+inertial-odometry (VIO) is a notable method that combines
+visual information and IMU data to estimate the drone’s
+position and orientation [10], [11]. By tracking visual features
+in the frames captured by a camera and using the IMU data
+to estimate the drone’s motion, VIO can provide accurate and
+robust estimates of the drone’s pose even in GPS-denied envi-
+ronments. However, these fusion systems are limited by their
+range and are susceptible to lighting conditions, occlusion, and
+motion blur, which can signiﬁcantly limit their applicability
+and increase error accumulation [12], [13].
+Another approach to drone localization is to combine Ultra-
+wideband (UWB) technology with VIO to reduce the drifts
+of the VIO approach [12], [14]. By combining the range
+Fig. 1. A typical UAV-UGV relative positioning system
+measurements from UWB with VIO, a Kalman ﬁlter or
+other probabilistic model can provide a stable estimation of
+the drone’s position and orientation. However, these sensing
+systems still face challenges due to the limited size, payload,
+and power supply of drones that prevent the use of high-end
+sensors (e.g., 3D laser scanning) and powerful computational
+units [15].
+In contrast, some researchers have attempted to estimate
+the drone’s location relative to a ground station, such as
+an unmanned ground vehicle (UGV) [16]–[18]. For instance,
+Tognon et al. [16] proposed a drone tracking system relative to
+a moving platform using an observer-based control technique.
+Lima et al. [17] presented a ﬁlter-based self-localization sys-
+tem for a tethered drone that assumes the drone will form
+a catenary shape in static or quasi-static conditions and the
+cable-tension force is known. Al-Hourani et al. [18] developed
+a 3D location estimation system for a tethered drone using a
+227
+979-8-3503-1220-1/23/$31.00 ©2023 IEEE
+2023 IEEE 18th Conference on Industrial Electronics and Applications (ICIEA) | 979-8-3503-1220-1/23/$31.00 ©2023 IEEE | DOI: 10.1109/ICIEA58696.2023.10241577
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+low pass ﬁlter and an extended Kalman ﬁlter (EKF). However,
+these methods require knowledge of the cable-tension force,
+which is difﬁcult to measure directly in practice. To over-
+come this limitation, Al-Hourani et al. [15] proposed a self-
+localization system for a tethered drone that estimates both
+the 3D drone location and the cable-tension force using only
+onboard IMUs and altimeters.
+To achieve accurate and reliable localization, it is common
+to use a combination of sensors, such as UWBs, IMUs, and
+cameras, in robotics. UWB is a radio technology that pro-
+vides high-accuracy distance measurements between UWB-
+equipped devices. IMUs provide information about the orien-
+tation and movement of the device to which they are attached.
+Cameras capture visual information about the environment and
+can be used for object detection and recognition. However,
+each sensor has its limitations. For example, UWB is sensitive
+to occlusion and reﬂection, IMUs have the issue of drift, and
+cameras are sensitive to lighting conditions.
+Therefore, fusing these sensors can complement each other
+and provide more accurate and stable estimation performance.
+There have been many successful fusion approaches to address
+the robotic localization problem in various ﬁelds. For example,
+UWB with RGB-D camera [19], UWB with IMU [20], RGB-
+D camera with UWB and IMU [12], [21], and UWB with
+LiDAR [22], [23].
+In this paper, we present a contactless drone tracking
+system to locate a tethered drone by fusing UWB rangings
+and vision information without using cable-tension force. The
+developed system has been veriﬁed and evaluated using a high-
+accuracy localization system, named OptiTrack. According to
+the experimental results, the proposed UWB-Vision fusion
+system has achieved an accurate yet reliable drone tracking
+performance.
+II. APPROACH
+A. Problem formulation
+We consider fusing two kinds of sensor data which are
+• the peer-to-peer ranges between UWB nodes, and
+• the vision image frames from a Realsense camera which
+looks at the top direction
+to provide the position estimation for the drone. The hardware
+conﬁguration is illustrated in Figure 3, where several UWB
+beacons and a Realsense camera are mounted on a ground
+mobile robot Gr. Meanwhile, one UWB tag is attached
+to the drone. We denote the position of these beacons as
+PB
+i = [px, py, pz]T , i = 1, ..., Nb where Nb is the number of
+beacons, UWB ranging measurements as r(UW B) and image
+frames as I. Given all r(UW B)
+1:t
+and I1:t up to time t, and
+the calibrated beacons’ position PB
+i , our goal is to estimate
+the drone’s location PUAV
+t
+= [px, py, pz]T and direction θd
+respect to Gr. In the following sections, we will elaborate on
+the details steps.
+B. UWB-based localization
+We deﬁne a coordinate system OG based on the ground
+robot, then well measure the position of the UWB beacons
+on Gr. Given the UWB ranging measurements at time t as
+rt,i, i = 1, ..., Nb, we proposed to ﬁnd the location of UWB
+tag PT
+t by solving the following equations:
+⎧
+⎪
+⎨
+⎪
+⎩
+∥PT
+t −PB
+1 ∥= [rt]1
+...
+∥PT
+t −PB
+N∥= [rt]N
+(1)
+Then transform Equation 1 to the matrix formulation as
+MPT
+t = H,
+(2)
+where
+M = 2
+⎡
+⎢⎢⎢⎣
+(p2,x −p1,x)
+(p2,y −p1,y)
+(p2,z −p1,z)
+(p3,x −p2,x)
+(p3,y −p2,y)
+(p3,z −p2,z)
+· · ·
+...
+· · ·
+(pN,x −pN−1,x)
+(pN,y −pN−1,y)
+(pN,z −pN−1,z)
+⎤
+⎥⎥⎥⎦
+(3)
+and
+H =
+⎡
+⎢⎢⎢⎣
+[rt]2
+1 −[rt]2
+2 −∥PB
+1 ∥2 + ∥PB
+2 ∥2
+[rt]2
+2 −[rt]2
+3 −∥PB
+2 ∥2 + ∥PB
+3 ∥2
+...
+[rt]2
+N−1 −[rt]2
+N −∥PB
+N−1∥2 + ∥PB
+N∥2
+⎤
+⎥⎥⎥⎦,
+(4)
+where ∥PB
+i ∥2 = (p2
+i,x +p2
+i,y +p2
+i,z). According to Equation 2,
+we have the error equation ϵ = MPT
+t −H. Thus we can ﬁnd
+the location of UWB tag PT
+t such that the following objective
+is minimized:
+E = ∥ϵ∥2 = (MPT
+t −H)T (MPT
+t −H).
+(5)
+Then, taking the derivative of Equation 5 regarding to PT
+t and
+equating it to zeros yields
+PT
+t = (MT M)−1(MT H)
+(6)
+C. Visual object detection
+On the other hand, to utilize the information from the
+Realsense camera effectively, we applied the YOLOX model
+[24] to detect the drone. The YOLO series [25], [26] at-
+tempts to balance detection speed and accuracy for practical
+applications. However, the YOLO series are still anchor-based
+detectors with hand-crafted assigning rules for training. To
+implement anchor-free technology for the YOLO series, [24]
+proposes a YOLOX model that switches the YOLO detector to
+an anchor-free manner and simultaneously applies advanced
+detection techniques to further improve the YOLO series.
+Moreover, YOLOX won 1st Place in the Streaming Perception
+Challenge at CVPR 2021 [24].
+As the application scenario involves detecting the drone
+based on the image frames captured from the bottom view,
+the main challenge for object detection is lighting variation.
+To address this issue, we trained our own YOLOX model
+for drone detection using the drone images collected in our
+environments and an open dataset [27]. YOLOX [24] is an
+open-source project1, and the source code can be downloaded
+1https://github.com/Megvii-BaseDetection/YOLOX.git
+228
+2023 IEEE 18th Conference on Industrial Electronics and Applications (ICIEA)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+freely. We trained the YOLOX model on our customized
+dataset by following the steps on the YOLOX project page.
+Firstly, we deﬁned our new class ”drone” using the VOC
+format. Then we downloaded the pre-trained YOLOX medium
+weights available in the YOLOX project. Our new model
+for drone detection was trained based on the existing trained
+YOLOv3 model. Finally, we collected our dataset for the drone
+from a Realsense camera mounted on a mobile robot and
+looking at the top. The dataset was well-labeled and followed
+the VOC format for YOLOX training. The new model was
+trained on the desktop with a single Nvidia Geforce RTX 3080
+Ti, and all the training parameters followed the default settings
+of YOLOX.
+The custom-trained YOLOX model outputs a rectangle
+bounding box Rc,UAV = [px, py, w, h]T , and the center of
+the bounding box represents the pixel coordinate of the UAV
+Pc,UAV = [u, v, 1]T in the camera’s frame. Let Mc be the
+camera calibration matrix, and let R and T denote the rotation
+and translation matrix of the camera’s mounting position with
+respect to the ground robot’s frame, respectively. Then, we
+can compute the coordinates Pr,UAV = [xw, yw, zw]T of the
+detected UAV with respect to the ground robot by applying
+the following equation:
+Pr,UAV = RM−1
+c PC,UAV + T
+(7)
+In the next section, we will discuss how the results from
+YOLOX object detection and UWB localization are fused to
+obtain the ﬁnal estimation of the drone.
+D. Fusion framework
+In this paper, we propose a light-coupled fusion framework
+that leverages the complementary information from vision and
+UWB ranging to provide a reliable and accurate estimation of
+the UAV’s state. We adopt a particle ﬁlter with a sequential
+important sampling framework to achieve the fusion task.
+Given the drone’s state estimation at time t as xt, our objective
+is to estimate it smoothly based on the observations from
+UWB localization zUW B
+t
+= PT
+t and image object detection
+zUAV
+t
+= Pr,UAV .
+The fusion process consists of three steps: 1) Initializing
+the state of the particles x(i)
+0 , i = 1, ..., Np and the initial
+distribution π0, where Np is the total number of particles.
+2) Updating the state of particles and estimating the drone’s
+state xt at time t. 3) Resampling particles to eliminate
+those with small weights. The entire process is shown in
+Algorithm 1, where p(zUAV
+t
+|x(i)
+t ) and p(zUW Bt|x(i)
+t ) are the
+joint observation pdf for YOLOX object detection and UWB
+estimation, respectively. Moreover, p(xt|xt −1(i)) represents
+the state evolution model, and η is a pre-deﬁned threshold
+used to determine if resampling is required.
+III. EXPERIMENTS
+In this section, we present experimental results to demon-
+strate the advantages of the developed Vision-UWB fusion
+framework and its robustness in an indoor scenario.
+Algorithm 1 Sensor fusion framework
+Input: drone’s initial state x0, observation from YOLOX
+zUAV
+1:t
+and UWB estimation zUW B
+1:t
+Output: estimated location of drone xt
+% Initialization
+for particle i = 1 : Np do
+Sample the initial state based on π0, x(i)
+0
+∼π0(x0)
+Initial the weight ω(i)
+0
+= p(x(i)
+0 )
+π0(x(i)
+0 )
+end for
+Normalize the weights to have Np
+1
+ω(i)
+0
+= 1
+% State updating
+for t = 1, 2, ... do
+for particle i = 1 : Np do
+Sample the state using the importance distribution q,
+x(i)
+t
+∼q(xt|x(i)
+t−1, zUAV
+1:t
+, zUW B
+1:t
+)
+Update the weight
+ω(i)
+t
+∝ω(i)
+t−1
+p(zUAV
+t
+|x(i)
+t )p(zUW B
+t
+|x(i)
+t )p(x(i)
+t |x(i)
+t−1)
+q(xt|x(i)
+t−1)
+end for
+Normalize the weights, Np
+1
+ω(i)
+t
+= 1
+Estimate the state xt = Np
+1
+ω(i)
+t x(i)
+t
+% Resampling
+Evaluate the weights, Neff = [Np
+i
+(ω(i)
+t )2]−1
+if Neff < η, then resample the particles by their ω(i)
+t ,
+and set a same weight for all particles, ω(i)
+t
+= 1
+Np
+end for
+A. Hardware
+Fiqure 3 shows the hardware components used in our
+Vision-UWB fusion tracking system, which includes 1) a
+DJI Mavic 2 equipped with a Decawave UWB tag, 2) a
+Husky robot equipped with 4 UWB beacons and a Realsense
+camera. The four UWB beacons are mounted on the Husky
+robot at ﬁxed positions, which are well-calibrated for accurate
+measurements. It should be noted that the UWB units used in
+our system are commercial products that generally provide an
+accuracy of 10-20 centimeters of range measurement.
+To evaluate the accuracy and performance of the developed
+Vision-UWB fusion system, we used an accurate localization
+system, named OptiTrack [28], as shown in Figure 3, as the
+ground truth of location.
+There are three tags of the OptiTrack system mounted on the
+top of the DJI drone, as shown in Figure III-A. The tracking
+program is running on an ASUS laptop with Nvidia Geforce
+GTX 1660 Ti Mobile GPU and Intel®CoreT M i7-10750H
+CPU. Both the DJI drone and Husky robot are controlled
+manually in our experiments.
+2023 IEEE 18th Conference on Industrial Electronics and Applications (ICIEA)
+229
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+Fig. 2. OptiTrack position system
+Fig. 3. Hardware of our fusion tracking system
+B. Performance evaluation
+We conducted experiments to evaluate the performance of
+the developed Vision-UWB fusion system. The DJI drone was
+ﬂown in a workshop at a height between 1.2m to 2.1m while
+the Husky robot followed its movement on the ground. The
+fusion system continually estimated the drone’s position with
+respect to the Husky robot during the ﬂight. The accuracy of
+the system was evaluated using the OptiTrack system as the
+ground truth of location.
+Figure 3 shows the hardware setup of the system, which
+includes a DJI Mavic 2 mounted with a Decawave UWB
+tag, a Husky robot mounted with 4 UWB beacons, and
+a Realsense camera. The four UWB beacons are mounted
+on the Husky ﬁxedly, and their relative positions are well-
+calibrated. Note that the UWB units used in our system are
+commercial products that generally provide an accuracy of 10-
+20 centimeters of range measurement.
+The results are shown in Table III-B, which presents the
+average errors and standard deviation of the drone’s position
+estimation at different ﬂying heights. The developed UWB-
+Vision fusion framework provided accurate position estimation
+for the drone, with average errors of around 0.2 meters and low
+standard deviation (i.e., around 0.1 meters), demonstrating the
+accuracy and reliability of the state estimation of the proposed
+method.
+TABLE I
+AVERAGE ERRORS/STDS. OF THE DRONE’S POSITION ESTIMATION AT
+DIFFERENT FLYING HEIGHTS
+1.2 meter
+1.6 meter
+2.1 meter
+err. in meters
+0.182
+0.194
+0.241
+std. in meters
+0.113
+0.105
+0.152
+TABLE II
+COMPARISON OF THE AVERAGE ERRORS AMONG THE ESTIMATION FROM
+DIFFERENT INFORMATION RESOURCES
+UWB Est.
+YOLO Det.
+Fusion
+1.2 meter
+0.232
+0.134
+0.182
+1.6 meter
+0.236
+0.155
+0.194
+2.1 meter
+0.332
+0.153
+0.241
+Meanwhile, Table III-B presents a comparison of the drone’s
+position estimation based on UWB ranging, YOLOX detec-
+tion, and the proposed fusion approach. Note that the YOLOX
+object detection results are only available when the drone is
+within the camera’s FOV. According to the comparison, the
+fusion system has achieved a good balance between UWB
+estimation and YOLOX object detection. For UWB estimation,
+it can provide accurate state estimation when the ﬂying height
+is low (i.e., less than 1.6m), but the performance degrades
+as the height increases due to the small baseline between
+UWB beacons compared to the distance of beacons-to-tag (as
+illustrated in Figure III-A). Small vibrations on the UWB tag
+can introduce signiﬁcant errors in the ﬁnal state estimation.
+On the other hand, YOLOX object detection is limited by
+factors such as the camera’s FOV, lighting variations, and
+230
+2023 IEEE 18th Conference on Industrial Electronics and Applications (ICIEA)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+computational limitations. The ground robot will completely
+lose track of the drone once it is outside the camera’s FOV.
+Additionally, the drone detection rate for 720p image streams
+is limited to around 9 FPS on the mentioned PC. Thus, the
+fusion of these two information resources can provide a stable
+estimation for the drone by complementing the limitations of
+each sensor and enhancing their advantages. An example of the
+visualization result is shown in Figure 4, where the trajectory
+estimated by the proposed method is aligned well with the
+ground truth trajectory.
+Fig. 4.
+Visualization of the trajectories estimation at 1.6m of different
+approaches
+IV. CONCLUSION
+In this paper, we proposed a sensor fusion framework
+for the tracking of drones. The experimental results have
+demonstrated the accuracy and stability of the developed fu-
+sion framework, which combines UWB ranging and YOLOX
+object detection. The developed fusion framework has made
+a good balance between different information resources and
+effectively addressed the limitations of each sensor, resulting
+in more accurate and reliable state estimation of the drone.
+However, it is worth noting that the tracking results from the
+developed fusion framework mostly make a trade-off between
+different information resources, and further improvements can
+be made to enhance the overall performance of the system. For
+example, additional sensors or algorithms can be incorporated
+into the framework to provide more accurate and robust state
+estimation or the parameters of the current fusion algorithm
+can be further optimized. Nevertheless, the proposed fusion
+framework provides a promising solution for the tracking of
+drones in various scenarios, especially in indoor environments
+where GPS signals are not available.
+V. ACKNOWLEDGMENTS
+This
+research/project
+is
+supported
+by
+A*STAR
+(C211518001 and C221518005). Any opinions, ﬁndings, and
+conclusions, or recommendations expressed in this material
+are those of the author(s) and do not reﬂect the views of the
+A*STAR.
+REFERENCES
+[1] O. Al Nuaimi, O. Almelhi, A. Almarzooqi, A. A. S. Al Mansoori,
+S. Sayadi, and I. Swamidoss, “Persistent surveillance with small un-
+manned aerial vehicles (suav): a feasibility study,” in Electro-optical
+remote sensing XII, vol. 10796.
+SPIE, 2018, pp. 116–131.
+[2] D. Tarchi, G. Guglieri, M. Vespe, C. Gioia, F. Sermi, and V. Kyovtorov,
+“Search and rescue: Surveillance support from rpas radar,” in 2017
+European Navigation Conference (ENC).
+IEEE, 2017, pp. 256–264.
+[3] X. Jing, “Research on key technologies of uav cluster cooperative system
+for internet of things applications,” Journal of Control and Decision, pp.
+1–10, 2022.
+[4] (2021) What are the beneﬁts of tethered drones? [Online]. Available:
+https://elistair.com/tethered-drones-beneﬁts/
+[5] (2019)
+Fotokite
+launches
+tethered
+drone
+system
+for
+ﬁreﬁghters.
+[Online]. Available: https://dronelife.com/2019/04/17/fotokite-launches-
+tethered-drone-system-for-ﬁreﬁghters/
+[6] A. Al-Radaideh, M. Al-Jarrah, and A. Jhemi, “Uav testbed building and
+development for research purposes at the american university of sharjah,”
+in 7th International Symposium on Mechatronics and its Applications.
+IEEE, 2010, pp. 1–7.
+[7] J. Escareno, S. Salazar-Cruz, and R. Lozano, “Embedded control of a
+four-rotor uav,” in 2006 American Control Conference.
+IEEE, 2006,
+pp. 6–pp.
+[8] R. He, S. Prentice, and N. Roy, “Planning in information space for
+a quadrotor helicopter in a gps-denied environment,” in 2008 IEEE
+International conference on Robotics and Automation.
+IEEE, 2008,
+pp. 1814–1820.
+[9] N. Guenard, T. Hamel, and R. Mahony, “A practical visual servo control
+for an unmanned aerial vehicle,” IEEE Transactions on Robotics, vol. 24,
+no. 2, pp. 331–340, 2008.
+[10] D. Honegger, L. Meier, P. Tanskanen, and M. Pollefeys, “An open source
+and open hardware embedded metric optical ﬂow cmos camera for in-
+door and outdoor applications,” in 2013 IEEE International Conference
+on Robotics and Automation.
+IEEE, 2013, pp. 1736–1741.
+[11] G. Loianno, C. Brunner, G. McGrath, and V. Kumar, “Estimation,
+control, and planning for aggressive ﬂight with a small quadrotor with a
+single camera and imu,” IEEE Robotics and Automation Letters, vol. 2,
+no. 2, pp. 404–411, 2016.
+[12] T. H. Nguyen, T.-M. Nguyen, and L. Xie, “Range-focused fusion
+of camera-imu-uwb for accurate and drift-reduced localization,” IEEE
+Robotics and Automation Letters, vol. 6, no. 2, pp. 1678–1685, 2021.
+[13] W. Jia, W. Zhao, Z. Song, and Z. Li, “Object servoing of differential-
+drive service robots using switched control,” Journal of Control and
+Decision, pp. 1–12, 2022.
+[14] G. Guan and G. Chen, “An improved lse-ekf optimisation algorithm
+for uav uwb positioning in complex indoor environments,” Journal of
+Control and Decision, pp. 1–13, 2022.
+[15] A. Al-Radaideh and L. Sun, “Self-localization of tethered drones without
+a cable force sensor in gps-denied environments,” Drones, vol. 5, no. 4,
+p. 135, 2021.
+[16] M. Tognon, S. S. Dash, and A. Franchi, “Observer-based control of
+position and tension for an aerial robot tethered to a moving platform,”
+IEEE Robotics and Automation Letters, vol. 1, no. 2, pp. 732–737, 2016.
+[17] R. R. Lima and G. A. Pereira, “On the development of a tether-
+based drone localization system,” in 2021 International Conference on
+Unmanned Aircraft Systems (ICUAS).
+IEEE, 2021, pp. 195–201.
+[18] A. Al-Radaideh and L. Sun, “Observability analysis and bayesian
+ﬁltering for self-localization of a tethered multicopter in gps-denied
+environments,” in 2019 International Conference on Unmanned Aircraft
+Systems (ICUAS).
+IEEE, 2019, pp. 1041–1047.
+2023 IEEE 18th Conference on Industrial Electronics and Applications (ICIEA)
+231
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:34 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+[19] F. J. Perez-Grau, F. Caballero, L. Merino, and A. Viguria, “Multi-
+modal mapping and localization of unmanned aerial robots based on
+ultra-wideband and rgb-d sensing,” in 2017 IEEE/RSJ international
+conference on intelligent robots and systems (IROS).
+IEEE, 2017, pp.
+3495–3502.
+[20] A. Benini, A. Mancini, and S. Longhi, “An imu/uwb/vision-based
+extended kalman ﬁlter for mini-uav localization in indoor environment
+using 802.15. 4a wireless sensor network,” Journal of Intelligent &
+Robotic Systems, vol. 70, pp. 461–476, 2013.
+[21] C. Wang, H. Zhang, T.-M. Nguyen, and L. Xie, “Ultra-wideband aided
+fast localization and mapping system,” in 2017 IEEE/RSJ international
+conference on intelligent robots and systems (IROS).
+IEEE, 2017, pp.
+1602–1609.
+[22] Y. Song, M. Guan, W. P. Tay, C. L. Law, and C. Wen, “Uwb/lidar fusion
+for cooperative range-only slam,” in 2019 international conference on
+robotics and automation (ICRA).
+IEEE, 2019, pp. 6568–6574.
+[23] M. Guan and C. Wen, “Autonomous exploration using uwb and lidar,”
+Journal of Automation and Intelligence, vol. 2, no. 1, pp. 51–60, 2023.
+[24] Z. Ge, S. Liu, F. Wang, Z. Li, and J. Sun, “Yolox: Exceeding yolo series
+in 2021,” arXiv preprint arXiv:2107.08430, 2021.
+[25] N. Carion, F. Massa, G. Synnaeve, N. Usunier, A. Kirillov, and
+S. Zagoruyko, “End-to-end object detection with transformers,” in
+Computer Vision–ECCV 2020: 16th European Conference, Glasgow,
+UK, August 23–28, 2020, Proceedings, Part I 16.
+Springer, 2020,
+pp. 213–229.
+[26] Q. Chen, Y. Wang, T. Yang, X. Zhang, J. Cheng, and J. Sun, “You only
+look one-level feature,” in Proceedings of the IEEE/CVF conference on
+computer vision and pattern recognition, 2021, pp. 13 039–13 048.
+[27] (2019)
+Drone
+dataset
+(uav).
+[Online].
+Avail-
+able:
+https://www.kaggle.com/datasets/dasmehdixtr/drone-dataset-
+uav?resource=download
+[28] High
+speed,
+precise
+tracking
+for
+medium-sized
+areas.
+[Online].
+Available: https://optitrack.com/cameras/primex-13/
+232
+2023 IEEE 18th Conference on Industrial Electronics and Applications (ICIEA)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:34 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

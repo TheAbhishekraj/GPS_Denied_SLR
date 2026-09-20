@@ -1,0 +1,669 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0652.pdf
+sha256: DBB19B746B94588344084E0C5865CBD2D6D02C11E371ADA8C75DC1B635493B6C
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+Reinforcement Learning-Based Autonomous UAV
+Navigation in Indoor Environments Towards Human
+Detection
+Vishwani Geeganage
+Department of Information Technology
+University of Moratuwa
+Colombo, Sri Lanka
+bhagyalgv.21@itfac.mrt.ac.lk
+ORCID: 0009-0004-4925-5589
+Lakmina Gamage
+Department of Information Technology
+University of Moratuwa
+Colombo, Sri Lanka
+gamagelpg.21@itfac.mrt.ac.lk
+ORCID: 0009-0008-8061-9300
+Haritha Weerathunga
+Department of Information Technology
+University of Moratuwa
+Colombo, Sri Lanka
+weerathungakdh.21@itfac.mrt.ac.lk
+ORCID: 0009-0003-6339-3681
+Chinthaka Premachandra
+Graduate School of Engineering and Science
+Shibaura Institute of Technology
+Tokyo, Japan
+chintaka@shibaura-it.ac.jp
+ORCID: 0000-0002-5775-5047
+B.H. Sudantha
+Department of Information Technology
+University of Moratuwa
+Colombo, Sri Lanka
+bh.sudantha@itfac.mrt.ac.lk
+ORCID: 0000-0001-9121-3383
+Abstract—Unmanned Aerial Vehicles (UAVs) have become
+indispensable in search and rescue (SAR) missions by enabling
+rapid aerial reconnaissance in unstructured and GPS denied
+environments that are inaccessible to ground teams. Conventional
+autonomous navigation systems typically depend on heavy sensor
+suites such as LiDAR or reliable GPS signals, which are often
+impractical for lightweight and low-cost rescue drones operating
+in cluttered indoor spaces, including partially collapsed buildings
+in disaster zones. To address this limitation, this paper introduces
+a cost-effective, fully autonomous UAV navigation framework
+that leverages Deep Reinforcement Learning (DRL) to replace
+brittle rule-based decision logic with adaptive policy learning.
+The framework integrates real-time human detection using a
+monocular RGB camera and YOLOv8n, and evaluates two DRL
+strategies for autonomous indoor maneuvering toward detected
+humans, specifically Deep Q-Network (DQN) and Proximal Policy
+Optimization (PPO). Simulation results indicate that rule-based
+navigation shows low generalization to dynamic and unstructured
+conditions. Although DQN shows limited reliability, the PPO
+based agent achieves higher navigation success rates and more
+stable decision policies. The proposed system is further validated
+through Sim to Real transfer using a DJI Tello drone on
+indoor flight tasks, demonstrating practical deployment without
+expensive sensing hardware. The results confirm the feasibility
+of lightweight, low-cost, vision based autonomous UAV agents
+capable of adaptive indoor navigation toward detected humans.
+Index
+Terms—Unmanned
+Aerial
+Vehicles,
+Reinforcement
+Learning, YOLOv8n, Sim-to-real transfer, Proximal Policy Op-
+timization.
+I. INTRODUCTION
+The increasing frequency and severity of natural disasters
+ranging from earthquakes to urban structural collapses have
+underscored the urgent need for rapid, autonomous search
+and rescue (SAR) technologies. In the immediate aftermath
+of such events, the golden hour is critical for victim survival,
+yet ground access is often severed by debris or hazardous
+conditions. Unmanned Aerial Vehicles (UAVs) offer a promis-
+ing solution, capable of traversing three dimensional spaces
+to locate victims [1]–[4]. However, the unique constraints
+of disaster zones render many standard commercial drone
+technologies ineffective.
+The primary operational challenge in these scenarios is the
+denial of Global Positioning System (GPS) signals. Whether
+due to urban canyons, dense canopy cover, or signal jamming
+in conflict zones, reliance on satellite positioning is often
+impossible. Consequently, UAVs must depend on onboard
+sensing to navigate. While larger autonomous platforms utilize
+heavy sensor suites such as LIDAR or high fidelity depth
+cameras to map their environment, these solutions impose
+severe weight and power penalties [5]. Small, UAVs essential
+for maneuvering through tight, collapsed structures cannot
+carry the heavy computational payload required to process
+complex 3D point clouds in real-time [6]. This creates a critical
+bottleneck, the need for a navigation system that is computa-
+tionally efficient, lightweight, and capable of operating using
+only monocular vision.
+Historically, UAV navigation has relied on classical control
+theory. [7]–[9] Proportional Integral Derivative (PID) con-
+trollers are the industry standard for flight stability but lack the
+cognitive ability to make high level path planning decisions in
+unknown environments. To bridge this gap, methods such as
+Artificial Potential Fields (APF) have been widely explored.
+APF functions by assigning repulsive forces to obstacles and
+attractive forces to targets, mathematically guiding the robot
+through a safe path [10]. While effective in static simulations,
+2026 International Conference on Image Processing and Robotics (ICIPRoB) | 979-8-3195-4220-5/26/$31.00 ©2026 IEEE | DOI: 10.1109/ICIPRoB69625.2026.11497788
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:38 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+APF and similar geometric approaches often suffer from the
+’local minima’ problem, where a drone gets trapped behind
+an obstacle, unable to calculate a path around it without
+human intervention [11]. Furthermore, rigid heuristics often
+fail to account for the stochastic nature of dynamic obstacles,
+necessitating a more adaptive approach [12].
+Recognizing these limitations, we initially explored a rule-
+based vision approach. By integrating YOLOv8n [13] for real-
+time object detection, we developed a logic driven controller
+where the UAV adjusted its yaw and pitch based on the cen-
+troid offset of a detected human. While this proved effective
+in controlled, empty environments, the ’if then’ nature of
+the algorithm failed to generalize. In complex scenarios with
+multiple obstacles or erratic target movement, the rigid rules
+often led to oscillating flight paths or collisions, highlighting
+the necessity for a system that could learn to adapt rather than
+simply follow instructions.
+This necessity has driven the shift toward Deep Reinforce-
+ment Learning (RL). Unlike traditional control, which requires
+explicit programming of flight dynamics, RL enables a UAV
+to learn optimal navigation policies through trial and error.
+By interacting with an environment and receiving probabilistic
+rewards or penalties, an RL agent develops an intuitive under-
+standing of flight dynamics and obstacle avoidance [14]. This
+capability is particularly significant for rescue operations, as an
+RL trained agent can generalize its training from simulation to
+real world environments that it has never seen before a process
+known as sim-to-real transfer exhibiting robust behavior even
+when sensor data is noisy [15], [16].
+In this work, we propose a vision based autonomous navi-
+gation system designed for lightweight UAVs in GPS denied
+environments. Unlike conventional approaches that rely on
+fiducial markers (e.g., ArUco tags) for localization or navi-
+gate to pre defined coordinates while simply avoiding static
+obstacles, our framework leverages semantic visual feedback
+to actively search for and approach dynamic human subjects.
+Our focus is on a low-cost platform that detects human victims
+and navigates toward them autonomously. We investigate the
+transition from rule-based control to learning based control,
+specifically comparing two prominent algorithms, Deep Q
+Networks (DQN) and Proximal Policy Optimization (PPO)
+[17]. We analyze the distinct behavioral characteristics of
+these algorithms in continuous control tasks and validate the
+superior approach on a DJI Tello drone. By utilizing a custom
+Gymnasium environment and a shaped reward mechanism,
+our system demonstrates the feasibility of deploying low-cost,
+vision based autonomous agents in search and rescue missions.
+The primary contributions of this research are fourfold.
+First, we propose an integrated vision-based navigation
+framework using YOLOv8n for real-time human de-
+tection on resource-constrained hardware. Second, we
+provide a comparative analysis between DQN and PPO
+algorithms, establishing the superior stability of PPO for
+continuous indoor navigation. Third, we develop a custom
+Gymnasium-based simulation environment with a shaped
+reward function to accelerate policy convergence. Finally,
+we validate the system through sim-to-real transfer on a
+DJI Tello drone, achieving autonomous human-following
+behavior using RGB camera and off-board processing.
+II. RELATED WORK
+The problem of autonomous UAV navigation in complex
+environments has been approached through various method-
+ologies, ranging from classical control theory to modern
+learning based systems. This section reviews existing literature
+on rule-based navigation, real-time object detection, and the
+growing application of Deep Reinforcement Learning (DRL)
+in aerial robotics.
+A. Classical and Rule-Based Navigation Strategies
+Early UAV autonomy relied on deterministic algorithms like
+PID controllers for stability and Artificial Potential Fields
+(APF) for path planning [5], [10]. While mathematically
+simple, APF uses repulsive and attractive forces that often trap
+drones in local minima, such as U-shaped obstacles, causing
+them to stall [11].
+Furthermore, these rule-based methods are brittle in unstruc-
+tured, GPS-denied environments. They assume reliable state
+estimation and struggle with the stochastic nature of shifting
+debris or dynamic obstacles found in disaster zones
+[18]. Because ”if-then” heuristics cannot account for such
+high-level unpredictability, traditional approaches lack the
+adaptability necessary for effective autonomous search and
+rescue, necessitating more robust, non-deterministic solutions.
+B. Real Time Object Detection for Lightweight UAVs
+To navigate without external positioning, small rescue
+drones require highly efficient visual perception. While
+transformer-based models like Mamba offer high accuracy
+[19], their computational weight hinders real-time inference
+on edge devices like the Raspberry Pi or DJI Tello.
+Consequently, CNNs, specifically the YOLO (You Only
+Look Once) family, are the standard for resource-constrained
+detection [1]. Unlike slow multi-stage detectors (e.g., Faster R-
+CNN), YOLO’s single-stage architecture provides an optimal
+trade-off between inference speed (FPS) and accuracy (mAP)
+[20], [21]. This work utilizes YOLOv8n, a superior lightweight
+model that enables the high-frequency control loops necessary
+for responsive, high-speed autonomous navigation and human
+tracking.
+C. Deep Reinforcement Learning in UAVs
+To overcome the rigidity of classical control and utilize
+visual inputs effectively, researchers have turned to Deep
+Reinforcement Learning (DRL). Unlike supervised learning,
+which relies on labeled datasets, DRL enables an agent to learn
+optimal behaviors through trial and error interactions with an
+environment [18], [22].
+Fundamentally, the UAV navigation problem is modeled
+as a Markov Decision Process (MDP), defined by the tuple
+(S, A, R, γ). At each timestep t, the UAV (agent) observes a
+state St from the environment (e.g., camera feed), executes
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:38 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+an action At (e.g., flight command), and receives a reward
+Rt indicating the quality of that action. The goal is to learn
+a policy π that maximizes the expected cumulative reward
+P γtRt over time. This paradigm allows the UAV to discover
+complex navigation strategies that are difficult to manually
+encode [23].
+Within this framework, two primary families of algorithms
+have been applied to UAVs:
+1) Value-Based Methods (DQN): Early literature often uti-
+lized Deep Q Networks (DQN). DQN approximates the ’Q
+value’ the expected return of taking a specific action in a
+specific state. While effective in discrete domains like video
+games, DQN is inherently limited in robotic control. It requires
+discretizing the action space (e.g., ’move left’ vs. ’move
+right’), which often leads to jerky, ’bang bang’ flight patterns
+that destabilize the UAV and waste energy [24], [25].
+2) Policy Gradient Methods (PPO): To address the need for
+smooth, continuous control, research has shifted toward Policy
+Gradient methods. Specifically, Proximal Policy Optimization
+(PPO) has become the standard for aerial robotics. PPO
+optimizes the policy πθ directly, rather than estimating values,
+allowing it to output continuous flight commands. While PPO
+is capable of continuous control, in this study, we utilize it
+for its robust policy optimization stability over DQN, even
+within a discretized action space necessitated by the drone’s
+SDK. Its ’clipped’ objective function prevents drastic policy
+updates that could cause the drone to crash during training
+[26]. As highlighted in recent surveys [14], PPO provides a
+more consistent convergence profile for continuous navigation
+tasks compared to value based counterparts.
+D. Sim-to-Real Transfer Challenges
+A major hurdle in DRL is the ’reality gap’ the discrepancy
+between the simulation where the agent is trained and the
+physical world where it operates. Simulation is indispensable
+in this context, as training agents directly on physical hardware
+would result in frequent collisions and costly mechanical
+damage during the initial trial and error exploration phase.
+However, transferring these policies remains challenging.
+Recent studies emphasize the importance of domain random-
+ization and robust reward shaping to facilitate this transfer. As
+discussed in [15], agents trained solely on perfect simulation
+data often fail when exposed to real world lighting variations
+or aerodynamic disturbances. By employing a robust PPO
+algorithm and simplifying the input state to relative bounding
+box coordinates (as opposed to raw pixel data), our approach
+aims to minimize this gap, leveraging the principles of domain
+randomization to bridge the disparity between synthetic and
+real world visual data [27], [28].
+III. METHODOLOGY
+This section details the development of the autonomous
+navigation framework, progressing from a preliminary rule-
+based visual servoing approach to a robust Deep Reinforce-
+ment Learning (DRL) agent. The system architecture aims
+to enable a lightweight UAV to locate and approach human
+subjects in GPS denied environments using only monocular
+vision.
+A. Phase I: Rule-Based Visual Servoing
+To establish a baseline for navigation performance, we
+first implemented a classical visual servoing algorithm. This
+method relies on geometric relationships between the detected
+target and the UAV’s camera frame.
+The perception module utilizes YOLOv8n to extract the
+bounding box of the detected human, defined by coordinates
+(x1, y1) and (x2, y2). The centroid of the bounding box
+(Cx, Cy) is calculated as:
+Cx = x1 + w
+2 ,
+Cy = y1 + h
+2
+(1)
+where w and h represent the width and height of the bounding
+box.
+The navigation logic is governed by the horizontal offset
+δx between the target centroid and the image frame center
+(Fx, Fy). The controller attempts to minimize this offset to
+zero, as illustrated in Figure 1.
+Fig. 1. Calculation of bounding box centroid and horizontal offset used for
+the Rule-Based control logic.
+The control law operates as a proportional ’bang bang’
+controller. If |δx| exceeds a predefined threshold (100 pixels),
+the system issues a yaw command to center the target. Once
+centered (|δx|
+<
+100), the UAV moves forward. While
+computationally inexpensive, this approach proved brittle in
+testing, frequently suffering from oscillating flight paths when
+the target moved laterally.
+B. Phase II: Deep Reinforcement Learning Implementation
+To overcome the rigid nature of rule-based control, we
+developed a learning based architecture capable of adapting
+to dynamic environments.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:38 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+1) RL System Pipeline: The proposed architecture, illus-
+trated in Figure 2, integrates the perception and decision
+making modules into a cohesive pipeline. The UAV captures
+a video stream which is processed frame by frame by the
+YOLOv8n neural network [20]. The detection results are
+converted into a state vector, which is then passed to the PPO
+agent. The agent outputs a high level discrete action, which
+is translated into low level SDK commands sent to the drone
+via Wi Fi.
+Fig. 2. RL Based System Architecture: Data flow from YOLOv8n perception
+to PPO decision making and flight control.
+2) MDP Formulation: We formulated the navigation task
+as a Markov Decision Process (MDP). As depicted in Figure
+3, the RL agent interacts with the environment in a continuous
+loop, observing the state processed by YOLO and outputting
+navigational actions [22].
+Fig. 3. Reinforcement Learning Control Loop: The PPO Agent receives the
+State derived from YOLOv8n, executes an Action, and receives a Reward.
+3) State Space: The observation state St is a continuous
+vector normalized to [−1, 1], representing the relative position
+of the target and a proxy for distance:
+St = [dx, dy, sizebbox]
+(2)
+where dx, dy are the horizontal and vertical deviations from
+the frame center, and sizebbox is the normalized area of the
+bounding box. As established in [27], using bounding box
+parameters rather than raw pixel data significantly reduces the
+’reality gap’ during sim-to-real transfer.
+4) Action Space: To ensure compatibility with the discrete
+command structure of the DJI Tello SDK, we defined a discrete
+action space consisting of 5 atomic actions:
+A = {Forward, Backward, Left, Right, Hover}
+(3)
+5) Reward Function Engineering: A critical challenge in
+RL is designing a reward signal that ensures effective con-
+vergence. Purely sparse rewards (e.g., +1 only for reaching
+the target) often lead to the ’temporal credit assignment’
+problem, where the agent fails to associate early actions with
+the eventual outcome due to a lack of immediate feedback
+[14]. Conversely, relying solely on shaped rewards (continuous
+feedback) can sometimes lead to local optima where the
+agent exploits the shaping function without achieving the main
+objective.
+To address this, a hybrid reward structure that combines the
+goal oriented nature of sparse rewards with the dense guidance
+of reward shaping was used.
+6) Reward Function : The total reward Rtotal is calculated
+as:
+Rtotal = Rstep + Rprogress + Ralign + Rterm
+(4)
+The reward function is balanced as follows:
+• Rstep (-0.2): Serves as a time-pressure mechanism to
+encourage efficient trajectories.
+• Rprogress (15 × ∆D): Provides a dense gradient based
+on the change in sizebbox to accelerate depth navigation.
+• Ralign (+30): Rewards visual centering (|dx, dy| < 0.6)
+to ensure target stability.
+• Rterm (+50): A large sparse reward granted only when
+reaching the target (sizebbox > 0.8).
+• Guidance (Shaped) Components: To accelerate learning,
+we provide continuous feedback through Rprogress (re-
+warding reduction in distance) and Ralign (rewarding
+visual centering). This creates a gradient for the agent to
+follow, preventing aimless exploration in the early stages
+of training.
+• Goal (Sparse) Components: To ensure the agent priori-
+tizes the actual objective, we implement a large Terminal
+Reward (Rterm
+= +50) that is only granted upon
+successfully reaching the target distance (< 1.0m). Addi-
+tionally, a Step Penalty (Rstep = −0.2) serves as a ’time
+pressure’ mechanism to encourage efficient trajectories.
+This hybrid approach effectively mitigates the sparsity prob-
+lem while ensuring the optimal policy aligns with the true
+objective of the rescue mission.
+C. Algorithm Selection: PPO vs. DQN
+We compared Deep Q Networks (DQN) and Proximal
+Policy Optimization (PPO). While DQN is effective for dis-
+crete spaces, its value based updates often resulted in jerky,
+oscillating flight paths in our tests (30% success rate). PPO, a
+policy gradient method, optimizes the policy directly using a
+clipped objective function [26]:
+LCLIP (θ) = ˆEt[min(rt(θ) ˆAt, clip(rt(θ), 1−ϵ, 1+ϵ) ˆAt)] (5)
+PPO demonstrated superior stability in handling the contin-
+uous variations of visual data, achieving a 61.2% ± 4.3%
+success rate in simulation.
+D. Sim-to-Real Transfer
+To deploy the trained policy, we utilized domain randomiza-
+tion. By initializing the drone and human at random positions
+during training (Sstart ∼U(0, grid size)), the agent learned
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:38 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+TABLE I
+PPO AGENT TRAINING CONFIGURATION
+Parameter
+Value
+Learning Rate
+3 × 10−4
+Batch Size
+64
+n steps
+2048
+a generalized policy robust to environmental variations. This
+enabled the successful transfer of the PPO model to the physi-
+cal UAV without retraining, validating the approach described
+in [15].
+IV. RESULTS AND DISCUSSION
+A. Comparative Performance Analysis
+To ensure statistical rigor, all models were evaluated over
+500 episodes in a 5×5 grid environment with a 30-step limit.
+Statistical significance was verified using 95% confidence
+intervals (CI95).
+Table II summarizes the results. The Rule-Based approach,
+while computationally lightweight, achieved a moderate suc-
+cess rate of 47.6% ± 4.4%. It performed well in static scenarios
+but failed significantly when the target moved laterally, often
+losing the target due to the rigid ’stop and turn’ logic.
+DQN showed limited capability for this continuous control
+task. The discretization of the action space resulted in ’bang
+bang’ control behavior, where the drone would oscillate vio-
+lently between left and right commands to maintain the center.
+This instability led to a low success rate of 40.4% ± 4.3% and
+frequent crashes.
+PPO emerged as the superior method, achieving a suc-
+cess rate of 61.2% ± 4.3%. The policy gradient approach
+allowed for smoother, continuous adjustments to the drone’s
+trajectory. Unlike the rule-based agent, the PPO agent learned
+to anticipate target movement, adjusting its heading while
+simultaneously moving forward, resulting in more efficient
+paths. These findings align with similar comparative studies
+in aerial robotics [29].
+TABLE II
+COMPARATIVE PERFORMANCE EVALUATION (500 EPISODES)
+Method
+Success Rate
+Avg. Steps Avg. Reward
+Rule-Based
+47.6% ± 4.4%
+23.6 ± 8.2
+420.2
+DQN (RL)
+40.4% ± 4.3%
+25.1 ± 7.7
+563.6
+PPO (RL)
+61.2% ± 4.3% 22.9 ± 8.0
+509.8
+B. Qualitative Real-World Validation
+We validated the trained PPO agent on a physical DJI
+Tello drone. Figure 4 illustrates the system in operation. The
+green bounding boxes indicate the YOLOv8n detections, while
+the on screen overlay displays the real-time state metrics
+calculated by the perception module, including horizontal
+offset (dx), vertical offset (dy), and bounding box size.
+The high-level actions selected by the PPO agent (e.g.,
+’Move Forward’, ’Hover’) were logged in the ground station
+terminal to verify decision making accuracy. The system
+demonstrated robust tracking behavior, issuing ’Forward’ com-
+mands when the bounding box size was small (indicating
+distance) and ’Hover’ commands when the safety threshold
+was reached (bbox size > 0.7).
+Fig. 4.
+Real world flight test: (Top) The UAV detects a human subject.
+(Bottom) The PPO agent executes a ’Move Forward’ command to approach
+the victim while maintaining visual lock.
+The ’sim-to-real’ transfer was largely successful due to
+the domain randomization applied during training. The agent
+correctly identified the human subject and issued ’Forward’
+commands when the bounding box size was small (indicating
+distance) and ’Hover’ commands when the safety threshold
+was reached (bbox size > 0.8).
+C. Latency and Computational Constraints
+A significant challenge in this implementation is the pro-
+cessing architecture. As the DJI Tello lacks sufficient onboard
+compute power for deep learning, we adopted an off board
+processing model. The UAV generates a dedicated IEEE
+802.11n Wi Fi Access Point, to which the ground station
+laptop (Apple MacBook M1) connects directly. Video frames
+and control commands are transmitted via UDP packets over
+this local network link.
+We observed an average round trip latency of approximately
+150ms-200ms. While acceptable for walking speed human
+targets, this latency could be critical in high-speed rescue
+scenarios. The breakdown of this latency is as follows:
+• Video Transmission: 60-80ms
+• YOLOv8 Inference: 15-20ms
+• PPO Policy Inference: < 5ms
+• Command Transmission: 30-50ms
+Future iterations must prioritize Edge Computing solutions
+(e.g., NVIDIA Jetson) to eliminate this transmission latency.
+V. CONCLUSION
+This study demonstrates a cost-effective, autonomous nav-
+igation framework for lightweight UAVs operating in GPS-
+denied indoor environments. By integrating YOLOv8n for
+real-time human detection with a Proximal Policy Optimiza-
+tion (PPO) agent, the framework addresses the rigidity of rule-
+based logic and the instability of discrete Deep Q-Networks
+(DQN). The PPO-based agent achieved a success rate of
+61.2% ± 4.3% over 500 evaluation episodes in simulation,
+outperforming both rule-based and value-based baselines with
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:38 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+statistical significance. Furthermore, the system exhibited ro-
+bust sim-to-real transfer capabilities on the DJI Tello platform,
+confirming that adaptive navigational behaviors can be imple-
+mented using only monocular vision and resource-constrained
+hardware. These results validate the technical feasibility of
+deploying affordable, learning-based aerial agents for rapid
+search and rescue missions in unstructured environments.
+Fig. 5. Proposed Future Architecture: The UAV acts as an intelligent scout,
+feeding data to a Centralized System that coordinates supply drops and rescue
+teams.
+Future work will focus on extending this architecture to
+handle multi-person tracking and prioritization. Furthermore,
+as illustrated in Fig. 5, we propose a hierarchical architecture
+where the UAV functions as an intelligent edge node, offload-
+ing strategic coordination to a central server that manages
+large-scale resource deployment.
+REFERENCES
+[1] A. A. Bany and G. Rabadi, “Human detection from unmanned aerial
+vehicles’ images for search and rescue missions: A state-of-the-art
+review,” IEEE Access, pp. 1–1, 2024, doi: 10.1109/access.2024.3479988.
+[2] C. Premachandra and Y. Kunisada, “Gan based audio noise suppression
+for victim detection at disaster sites with uav,” IEEE Transactions
+on Services Computing,Vol. 17, Issue 1, pp. 183–193, Feb,2024, doi:
+10.1109/TSC.2023.3338488.
+[3] Y. Yamazaki, C. Premachandra, and C. J. Perera, “Audio-processing-
+based human detection at disaster sites with unmanned aerial ve-
+hicle,” IEEE Access, pp. 101 398–101 405, 2020, doi: 10.1109/AC-
+CESS.2020.2998776.
+[4] T. Furusawa and C. Premachandra, “Innovative colormap for em-
+phatic imaging of human voice for uav-based disaster victim search,”
+2023 IEEE Region 10 Symposium (TENSYMP), pp. 1–5, 2023, doi:
+10.1109/TENSYMP55890.2023.10223627.
+[5] J. Li, X. Xiong, Y. Yan, and Y. Yang, “A survey of indoor UAV obstacle
+avoidance research,” IEEE Access, vol. 11, pp. 51 861–51 891, 2023, doi:
+10.1109/access.2023.3262668.
+[6] Z. Wang, M. Wang, C. Zhu, S. Ge, and W. Liu, “Cal-yolov8:
+An object detection algorithm for multi-scale UAV aerial images
+in complex scenes,” 2025 6th International Conference on Com-
+puter Engineering and Application (ICCEA), 2025, doi: 10.1109/IC-
+CEA65460.2025.11102195.
+[7] M. Demirhan and C. Premachandra, “Development of an automated
+camera-based drone landing system,” in IEEE Access, Vol. 8, 2020, pp.
+202 111–202 121, doi: 10.1109/ACCESS.2020.3034948.
+[8] C. Premachandra, D. N. H. Thanh, T. Kimura, and H. Kawanaka, “A
+study on hovering control of small aerial robot by sensing existing floor
+features,” in IEEE/CAA Journal of Automatica Sinica, Vol. 7, Issue4,
+2020, pp. 1016–1025, doi: 10.1109/ACCESS.2020.3034948.
+[9] C. Premachandra, M. Otsuka, R. Gohara, T. Ninomiya, and K. Kato,
+“A study on development of a hybrid aerial/terrestrial robot sys-
+tem for avoiding ground obstacles by flight,” in IEEE/CAA Jour-
+nal of Automatica Sinica, Vol. 7, Issue4, 2019, pp. 327–336, doi:
+10.1109/JAS.2018.7511258.
+[10] R. He, “Applications and prospects of APF in robot path planning,”
+Highlights in Science Engineering and Technology, vol. 120, pp. 384–
+391, 2024, doi: 10.54097/7zg0w183.
+[11] A. Ma’Arif, W. Rahmaniar, M. A. M. Vera, A. A. Nuryono, R. Majdoubi,
+and A. C¸ akan, “Artificial potential field algorithm for obstacle avoidance
+in UAV quadrotor for dynamic environment,” in IEEE International
+Conference on Communication, Networks and Satellite, 2021, doi:
+10.1109/COMNETSAT53002.2021.9530803.
+[12] X. L. Wei, X. L. Huang, T. Lu, and G. G. Song, “An improved method
+based on deep reinforcement learning for target searching,” in 2019
+4th International Conference on Robotics and Automation Engineering
+(ICRAE), 2019, doi: 10.1109/ICRAE48301.2019.9043821.
+[13] J. Terven and D. Cordova-Esparza, “A comprehensive review of yolo:
+From yolov1 to yolov8 and beyond,” arXiv preprint arXiv:2304.00501,
+2023, doi: 10.48550/arXiv.2304.00501.
+[14] H. Chen, Y. Lin, M. Fu, L. Yao, and M. Sheng, “A survey on
+reinforcement learning methods for UAV systems,” ACM Computing
+Surveys, vol. 58, no. 4, pp. 1–37, 2025, doi: 10.1145/3769426.
+[15] B.
+Joshi,
+D.
+Kapur,
+and
+H.
+Kandath,
+“Sim-to-real
+deep
+re-
+inforcement
+learning
+based
+obstacle
+avoidance
+for
+UAVs
+un-
+der measurement uncertainty,” 2024 10th International Conference
+on
+Automation,
+Robotics
+and
+Applications
+(ICARA),
+2024,
+doi:
+10.1109/ICARA60736.2024.10553074.
+[16] Y. Zhu, W. Zuha, Hafiz, Nor, Muhamad, and Y. Yao, “Deep reinforce-
+ment learning of mobile robot navigation in dynamic environment: A
+review,” Sensors, vol. 25, no. 11, p. 3394, 2025, doi: 10.3390/s25113394.
+[17] J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov, “Prox-
+imal policy optimization algorithms,” arXiv preprint arXiv:1707.06347,
+2017.
+[18] M. Ogunsina, C. P. Efunniyi, and O. S. Osundare, “Reinforcement learn-
+ing in autonomous navigation: Overcoming challenges in dynamic and
+unstructured environments,” Engineering Science Technology Journal,
+vol. 5, no. 9, pp. 2724–2736, 2024, doi: 10.51594/estj.v5i9.1547.
+[19] M.-T. Do, M.-H. Ha, M.-H. Le, and O. Tzyh-Chiang, “The efficiency
+cost-sensitive loss of transformer based on mamba mechanism for air-
+craft detection,” EAI Endorsed Transactions on Industrial Networks and
+Intelligent Systems, vol. 12, no. 4, 2025, doi: 10.4108/eetinis.v12i4.8279.
+[20] M. K. A. Maaroof and M. S. Bouhlel, “Real-time object detection using
+YOLO-8 model: A drone based approach,” Journal of Wireless Mobile
+Networks, Ubiquitous Computing, and Dependable Applications, vol. 16,
+no. 1, pp. 190–204, 2025, doi: 10.58346/jowua.2025.i1.011.
+[21] M. Y. Arafat, M. M. Alam, and S. Moh, “Vision-based navigation tech-
+niques for unmanned aerial vehicles: Review and challenges,” Drones,
+vol. 7, no. 2, p. 89, 2023, doi: 10.3390/drones7020089.
+[22] R. S. Sutton and A. G. Barto, Reinforcement Learning: An Introduction,
+2nd ed.
+MIT Press, 2018.
+[23] A. Seel, F. Kreutzjans, B. K¨uster, M. Stonis, and L. Overmeyer, “Deep
+reinforcement learning based uav for indoor navigation and exploration
+in unknown environments,” 2022 8th International Conference on
+Control, Automation and Robotics (ICCAR), pp. 388–393, 2022, doi:
+10.1109/ICCAR55106.2022.9782602.
+[24] X. Zhao, X. Huang, J. Cheng, Z. Xia, and Z. Tu, “A vision-based
+end-to-end reinforcement learning framework for drone target tracking,”
+Drones, vol. 8, no. 11, p. 628, 2024, doi: 10.3390/drones8110628.
+[25] V. Mnih and et al., “Human-level control through deep reinforce-
+ment learning,” Nature, vol. 518, no. 7540, pp. 529–533, 2015, doi:
+10.1038/nature14236.
+[26] A. JONNARTH, O. JOHANSSON, J. ZHAO, and M. FELSBER, “Deep
+reinforcement learning for autonomous drone navigation,” Master’s
+thesis, Halmstad University, 2023, available at: https://www.diva-portal.
+org/smash/get/diva2:1990716/FULLTEXT02.
+[27] T. Czarnecki, M. Stawowy, and A. Kadłubowski, “Cost-effective au-
+tonomous drone navigation using reinforcement learning: Simulation and
+real-world validation,” Applied Sciences, vol. 15, no. 1, p. 179, 2024,
+doi: 10.3390/app15010179.
+[28] J. Tobin, R. Fong, A. Ray, J. Schneider, W. Zaremba, and P. Abbeel,
+“Domain randomization for transferring deep neural networks from
+simulation to the real world,” in IEEE/RSJ International Conference
+on Intelligent Robots and Systems (IROS), 2017, pp. 23–30, doi:
+10.1109/IROS.2017.8202133.
+[29] Z. Rybchak and M. Kopylets, “Comparative analysis of DQN and PPO
+algorithms in uav obstacle avoidance 2d simulation,” CEUR Workshop
+Proceedings, vol. 3688, 2024, doi: 10.31110/COLINS/2024-3/025.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:38 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

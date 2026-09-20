@@ -1,0 +1,951 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0647.pdf
+sha256: 76537BDF1C8F5B162949E96B636AA98CEB1ED588EDABC6E71768BC707F2C359D
+library: pymupdf (fitz) v1.28.2
+pages: 8
+=== BEGIN ===
+[p.1]
+Radiation Source Localization in GPS–denied Environments
+using Aerial Robots
+Frank Mascarich1, Taylor Wilson2, Christos Papachristos3, and Kostas Alexis4
+Abstract— This paper details the system and methods de-
+veloped to enable autonomous nuclear radiation source lo-
+calization and mapping using aerial robots in GPS–denied
+environments. A Thallium-doped Cesium Iodide (CsI(Tl)) scin-
+tillator and a Silicon Photomultiplier are combined with
+custom–built electronics for counting and spectroscopy, and
+the provided radiation measurements are pose–annotated using
+visual–inertial localization enabling autonomous operation in
+GPS–denied environments. Provided this capability, a strategy
+for radioactive source localization, as well as active source
+search path planning was developed. The proposed method is
+motivated and accounts for the limited endurance of the vehicle,
+which entails a very small amount of dwell points, and the fact
+that GPS–denied localization implies varying uncertainty of the
+robot’s position estimate. The complete system is evaluated in
+multiple experimental studies using a small aerial robot and a
+Cesium-137 radiation source. As shown, accurate radioactive
+source localization is achieved, enabling efﬁcient radiation
+mapping of indoor GPS–denied environments.
+I. INTRODUCTION
+Nuclear sites, active, decomissioned, or scheduled for
+decomissioning, represent major assets and critical facilities
+requiring rigorous, systematic and comprehensive inspection
+that necessitate radiometric surveying. Examples include the
+nuclear enrichment and waste storage facilities of the Man-
+hattan Project, active nuclear power stations, and the sites of
+nuclear disaster. Robotized nuclear site inspection ensures
+the safety of personnel, advances the systematicity of the
+inspection process, enables repeatable monitoring missions,
+facilitates access in highly radioactive environments, and
+allows rapid and comprehensive search at low cost.
+In the literature multiple efforts can be identiﬁed, largely
+based on automatically guided or teleoperated ground
+robots [1–3], unmanned aerial vehicles operating in open–
+ended GPS–supported environments [1, 4], underwater robots
+for pipe inspection [5] and more. Despite the signiﬁcant
+progress and pioneering efforts of the community, reliable
+robotic autonomy and information gathering in the complex,
+cluttered, often highly contaminated and GPS–denied nuclear
+sites remains particularly challenging. Iconic examples are
+the “sarcophagus” of Chernobyl’s Unit 4, the recent efforts
+to inspect the Fukushima Daiichi nuclear power plant, and
+the need to inspect the nuclear waste storage facilities at the
+Hanford Site.
+This material is based upon work supported by the Department of Energy
+under Award Number [DE-EM0004478].
+1,3,4 The authors are with the Autonomous Robots Lab, Univer-
+sity of Nevada, Reno, 1664 N. Virginia, 89557, Reno, NV, USA
+fmascarich@nevada.unr.edu
+2 The author is with the Wilson Laboratory for Radiation Physics,
+University of Nevada, Reno, 1664 N. Virginia, 89557, Reno, NV, USA
+Fig. 1. Instance of experiment for autonomous active search and radioactive
+source localization using a small aerial robot integrating a miniaturized
+CsI(Tl) scintillator operating in a GPS–denied environment.
+This work contributes the system design and algorithmic
+solutions to enable small aerial robots to conduct autonomous
+radiation detection, source localization, 3D/radiation map-
+ping, and active source–seeking behavior in indoor, GPS–
+denied environments. A miniature Thallium-doped Cesium
+Iodide (CsI(Tl)) scintillator combined with a Silicon Photo-
+multiplier (SiPM) allows radiation measurement and detec-
+tion and is interfaced through an in–house designed counting
+and spectroscopy circuit. Its data are combined with the
+localization estimates of a visual–inertial localization and
+mapping unit to derive pose–annotated radiation measure-
+ments in GPS–denied areas.
+Due to the limited endurance of small aerial robots and the
+need for long dwelling times to allow the radiation counting
+statistics to provide reliable estimates, a source localization
+method tailored to operate with a very limited number of
+measurements is developed. The proposed method further
+exploits the fact that the robot derives a volumetric occu-
+pancy map of its environment in real–time which enables to
+a) constrain the problem of source localization (considering
+solid sources), b) better handle the existence of objects
+with materials that attenuate the radiation levels (shielding),
+and also c) develop a volumetric map of the environment
+annotated with expected radiation intensity levels. Finally,
+precisely due to the necessarily small number of radiation
+measurements, an active source localization informative path
+planning strategy in environments for which no prior map is
+available is developed. The overall system and methods are
+evaluated in experimental studies using a small aerial robot
+and real radiation sources.
+The remainder of this paper is structured as follows:
+2018 IEEE International Conference on Robotics and Automation (ICRA)
+May 21-25, 2018, Brisbane, Australia
+978-1-5386-3081-5/18/$31.00 ©2018 IEEE
+6537
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:09:22 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+Section II provides an overview of related work, while
+the developed radiation detection and mapping sensor unit
+is presented in III. The proposed source localization and
+active source–seeking algorithms are detailed in Section IV,
+followed by experimental evaluation in Section V. Finally,
+conclusions are drawn in Section VI.
+II. RELATED WORK
+The topic of radiological source localization has been
+studied through a set of contributions including those in [6–
+10]. Among them, maximum likelihood estimation is utilized
+in [7, 8, 10], numerical adjoints in conjunction to a bayesian
+formulation are used in [6], while a particle ﬁlter is employed
+in [7]. In all of these strategies, a large number of sensor
+measurements per iteration of the localization method is
+required. Typically these radiation measurements are con-
+sidered to be provided by a ﬁxed array of sensors. Aiming
+to address the questions of sensor deployment and multi–
+robot guidance, the works in [11, 12] present a framework
+for relevant information–gathering tasks. Active source (e.g.
+radiological, chemical) localization has been studied in [13–
+15]. Sequential testing theory is utilized in [16, 17]. In the
+speciﬁc ﬁeld of nuclearized robotics, a set of works [1,
+2, 4, 18–21] have presented interesting results. The authors
+in [18] describe a distributed guidance strategy by means of
+information gradients to estimate the distribution of radiation
+and tested their method using light as a “radiation analog”
+source. The works in [19, 21] aim to handle multiple sources
+and evaluate their method in simulation. The authors in [1]
+employ semantic scene segmentation based on aerial robotic
+data in order to better inform the information gathering
+trajectories of a ground robot (and broadly an aerial-ground
+robot team). The work in [20] uses an RMAX helicopter
+to map radiation over large environments. The contribution
+in [4] refers to post–disaster radiation mapping also using
+an RMAX helicopter combined with a grid–based Bayesian
+estimator for single source localization and contour analysis
+for multiple source handling, while the presented results refer
+to 2D radiation mapping and source localization. Finally,
+research activities such as those in [2] aim to address
+the problem of 3D mapping and remote access in highly
+contaminated sites.
+The solutions detailed above require large aerial vehicles
+which map macro-sized geographic areas with a low res-
+olution understanding of the contamination, or an expan-
+sive network of sensors which utilize a large number of
+measurements to estimate the covered area’s radiation ﬁeld.
+The contribution of this paper refers to a) the integration of
+radiation detection and source localization with the GPS–
+denied navigation capabilities onboard a small aerial robot,
+b) an online 3D source localization and mapping method that
+is tailored to the limited amount of measurements that can
+be provided by small aerial robots and further exploits the
+availability of the real–time reconstructed volumetric map,
+as well as c) informative path planning for source seeking
+behavior in cluttered and geometrically complex spaces.
+III. ONBOARD RADIATION DETECTION
+The developed system that enables onboard radiation
+detection and source localization is presented in this section.
+A. System Overview
+The system developed consists of a small hexarotor plat-
+form with a take–off weight of 2.6kg. The robot is equipped
+with the developed radiation detection system further detailed
+below. A Pixhawk–autopilot is employed for the attitude con-
+trol, while an Intel NUC5i7RYH and a stereo visual–inertial
+sensor are integrated. The visual–inertial sensor provides
+synchronized stereo frames (using a StereoLabs ZED) that
+are then software synchronized with the IMU data (UM7).
+All the planning, localization and mapping, and position
+control loops are running on the NUC5i7RYH and with the
+support of the Robot Operating System (ROS). The system
+performs visual–inertial odometry using ROVIO [22] and
+mapping through the point cloud from the stereo camera
+and the robot pose estimates. The environment is represented
+using an occupancy map M [23] with voxels m of edge
+length r. For position control, the linear model predictive
+controller described in [24] is utilized.
+The choice of radiation detector for this research was
+driven by three main considerations, namely a) sensitivity, b)
+weight and power consumption, as well as c) spectroscopic
+resolution. Scintillation detectors for gamma radiation offer
+high sensitivity. Selecting and integrating a new generation
+scintillator and photosensor, we demonstrate a highly efﬁ-
+cient detector package for miniaturized robots that weighs
+41g including the counting and spectroscopy electronics.
+For this work, a Thallium-doped Cesium Iodide (CsI(Tl))
+scintillator was used and it offers spectroscopy–grade energy
+resolution and timing. The complete detector system consists
+of a) a Scionix V10B10 CsI(Tl) scintillation crystal, a
+small SiPm, and a preampliﬁer integrated in a 18g, cylin-
+drical package (66mm long, 16mm wide), as well as b)
+a custom–designed pulse counting and spectroscopy circuit
+which weighs 23g. The scintillator has a voltage output
+in which pulses correspond to gamma photons interacting
+with the scintillation crystal. These pulses have amplitudes
+proportional to the energy of the gamma photon unique
+to each radionuclide. Therefore for spectroscopy, not only
+must the counting circuit count the number of pulses present
+on the scintillators output, it must also log the amplitude
+of the pulses. The pulse counting circuit is a series of 32
+comparators which compare reference voltages generated by
+a resistor ladder against the output signal from the scintillator
+pre-ampliﬁer. The outputs of the comparators are read by
+a 32-bit, 180 MHz ARM microcontroller and the system
+can discern between 32 different pulse amplitudes, therefore
+enabling spectroscopy and separate counting of gamma ra-
+diation at different energy levels. Updated measurements are
+reported by the microcontroller at 10Hz.
+B. Radiation Counts
+A radiation detector is used to detect, track, and iden-
+tify high–energy particles from radioactive materials. In the
+6538
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:09:22 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+case of this work, gamma–detection is considered and the
+observed radiation counts received by the detector can be
+modeled as a mixture of the signal from the radioactive
+source and the natural background radiation [25, 26].
+The radiation counts received due to a radioactive source
+s by a symmetric detector at a position pk follows a
+homogenous Poisson process [25, 27] with mean intensity
+rate per time unit being equal to:
+E(ypk
+s )
+=
+Aevs
+4π||pk −ps||2
+(1)
+where A and e are the area and the efﬁciency of the detector,
+vs is the source intensity, and ||pk −ps||2 denotes the eu-
+clidean distance from the detector to the source. Considering
+that the dwell time of detection period is T k
+D, then the
+expected total number of counts E(Y pk
+s
+) at the detector due
+to the source will be:
+E(Y pk
+s
+)
+=
+T k
+D
+Aevs
+4π||pk −ps||2
+(2)
+while the detector also receives radiation from the natural
+background (also a Poisson distribution) that takes the form:
+E(Y pk
+b
+)
+=
+T k
+DAevb
+(3)
+where vb is the background intensity. Since signals due to the
+source and background are independent, the total radiation
+counts remains a Poisson distribution and the expected value
+for the T k
+D period takes the form:
+E(Y pk) = E(Y pk
+s
++ Y pk
+b
+) = T k
+DAe(
+vs
+4π||pk −ps||2 + vb)
+(4)
+The quantities A and e of Eq (4) are determined by the
+calibration of the detector in a pre–characterized chamber.
+The intensity vs is completely determined by the radioactive
+source and is therefore unknown. The background intensity
+rate vb can be derived through preliminary measurements
+away from the expected radiation source (exploiting the fast
+decay of the inverse square law). Due to the fact that the
+measurement process is governed by a Poisson distribution,
+the role of dwell time is critical to ensure reliable measure-
+ments through averaging of the counting statistics. For every
+dwell position pk, the reading ypk
+s
+is averaged over T k
+D,
+background is subtracted and the average value λk is used
+for source localization purposes.
+C. Detector Calibration
+The Scionix V10B10 has a voltage output consisting of
+pulses with a width of 2.2μs and an amplitude proportional
+to the energy of the gamma photon that triggered the
+pulse. This is the basic principle of gamma spectroscopy
+- different radioactive sources produce different amplitude
+spectra dependent on their energy. The frequency of the
+pulses, reported in Counts Per Second (CPS), is proportional
+to the level of gamma photons, or the intensity of the ﬁeld.
+Therefore, calibration of such a scintillator occurs in two
+steps, a dosimetric calibration, and an energy calibration.
+Fig. 2. Upper plot: Results of the ﬁrst step of the count calibration in which
+the scintillator’s dose rate response (¯λ), measured in counts per second
+(CPS), at distances 19cm to 31cm from the source was evaluated. The
+scintillator is placed in a calibration chamber with the head of the scintillator
+directly facing the source. The data gathered, presented in a lin-log plot,
+shows that the count rate complies with inverse square law. Lower plot:
+Results of the second step of count calibration in which the scintillator’s
+dose rate response (¯λ) over various orientations (δ) was evaluated. Data
+is collected at various orientations to the source and reveals a symmetric
+response for all angles apart from a narrow cone of reduced sensitivity when
+the scintillator faces directly away from the source.
+The purpose of dosimetric calibration is to determine the
+scintillator’s efﬁciency. For accurate source localization and
+more importantly ﬁeld intensity estimation, it is necessary
+to determine the relationship between a scintillator’s count
+rate, and the true dose rate of the ﬁeld. To determine this
+relationship, the scintillator is placed in a calibration chamber
+which contains a radioactive source and pre-characterized
+dose rate characteristics at various positions.
+There are two sub-steps in a dosimetric calibration. The
+ﬁrst is to determine the count rate with the scintillator at an
+ideal orientation directly facing the source. The scintillator is
+placed at various distances from the source, and count rates
+are recorded over long dwell times. The second step relates to
+determining the directionality of the scintillator in response
+to its shape and the position of the integrated electronics.
+The scintillator is placed at a single distance from the source
+and is rotated around its yaw axis. Variation around its roll
+angle is not required due to the symmetrical nature of the
+scintillation crystal.
+The results of this calibration procedure on our scintillator
+are shown in Figure 2. As shown, the scintillator has a
+dose rate response in agreement with the inverse square
+law of radiation propagation, and from this calibration we
+can extract the expression which transforms counts from the
+scintillator into the true dose rate of the ﬁeld. The results
+also reveal a mostly symmetric orientation response with
+roughly 50% decrease in detected counts over a small arc
+of orientations when its back faces the source (due to the
+interfacing electronics inducing a shielding effect). The latter
+results in a cone of reduced sensitivity to sources located
+directly behind the sensor.
+The second step of a scintillator calibration determines the
+energy response of the scintillator when exposed to different
+radioactive sources. While sources of a particular energy will
+produce pulses of varying amplitude due to back-scattering
+6539
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:09:22 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+and other effects, there will be a dominant amplitude in
+a subset of the channels. This dominant subset will be
+characteristic for a particular energy level. Figure 2 shows
+results of this calibration for Cobalt-60, and Cesium-137.
+0
+10
+20
+30
+0
+500
+1000
+1500
+2000
+2500
+Co-60
+0
+10
+20
+30
+0
+2000
+4000
+6000
+8000
+10000
+12000
+14000
+Cs-137
+Fig. 3.
+Plot showing the results of the energy calibration in which the
+scintillator’s energy response to different gamma sources was evaluated.
+Speciﬁcally, the cases for Cobalt-60 and Cesium-137 are shown and the
+different peak energy channels are presented.
+D. Sources of Error and Noise
+For a certain detector, a number of reasons for ﬂuctuation
+in the response exist. Those include a) possible drift of
+the operating characteristics, b) sources of random noise
+within the interfacing electronics, c) dead times due to
+the time required to separate two interaction events, and
+d) statistical noise arising from the discrete nature of the
+measured signal (which follows a Poisson distribution) [25].
+The latter typically is the most signiﬁcant and represents
+an irreducible minimum amount of ﬂuctuation that will
+necessarily be present in the detector signal despite the
+quality of the scintillator and interfacing circuitry. This arises
+from the fact that the charge generated within the detector
+by a quantum of radiation is not a continuous variable but
+rather represents a discrete number of charge carriers. A
+Poisson distribution models the effect and for a mean value
+λk, the variance is λk and the standard deviation is √λk.
+For multiple measurements acquired at a certain point, the
+Poisson distribution can be approximated by a Gaussian one.
+E. Automated Dwell Time Calculation
+As the variance of the measurement follows its mean,
+more measurements must be acquired at higher count rates
+to ensure a reliable estimate. Therefore, for robot locations
+at higher radiation levels, longer dwell times are required. To
+automatically adjust the dwell time T k
+D, the system calculates
+the derivative of the mean of the signal ypk and considers T k
+D
+to be sufﬁcient once ˙ypk < yp
+thres over a duration tthres
+D
+> tmin
+D .
+This allows the robot to optimally use its limited endurance,
+dwelling for a short period of time at areas of decreased
+radiation intensity (and therefore small variance) and longer
+times in the presence of stronger ﬁelds.
+IV. SOURCE LOCALIZATION AND ACTIVE
+SOURCE SEARCH
+Provided the ability of the robot to acquire radiation de-
+tection measurements, counting and spectroscopic, alongside
+its capability to operate in a GPS–denied manner and map
+its environment, a strategy for radioactive source localization
+as well as active source search was developed. The proposed
+strategy is motivated and accounts for the limited endurance
+of the vehicle which entails a very small amount of dwell
+points and the fact that GPS–denied localization implies
+varying uncertainty of the robot’s own position estimate.
+A. Radiation Source Localization
+A source localization method designed around key limita-
+tions of aerial robots operating in GPS–denied environments
+is proposed. It is speciﬁcally motivated from the fact that a)
+limited ﬂight endurance implies a constrained set of dwell
+points Pk
+d especially because long dwell times are required
+for reliable measurements, as well as b) the localization
+uncertainty of the robot, alongside c) the inherent variance of
+radiation detection which increases with the intensity of the
+measurement as described by the Poisson distribution statis-
+tics. Given that for increased intensity values, longer dwell
+times are needed, which further challenges the endurance of
+the robot, the ability of the method to operate with a very
+limited set of measurements is crucial.
+The source localization algorithm begins when the robot
+ﬁrst acquires three radiation readings that are above back-
+ground at different dwell point locations. The averaged
+radiation reading λk (background effect removed) is used. A
+main challenge of source localization methods is to appro-
+priately use multiple measurements to disambiguate between
+possible source locations. Given a single intensity reading,
+distinguishing between the cases of a weak source close to
+the robot, or a stronger source far away is not possible. The
+key insight of the method is that provided at least three
+measurements at different locations with variation among all
+axes, there will be a single point that satisﬁes the inverse
+square law for all three measurements in an environment
+with a single radioactive source and no shielding materials.
+Expressed geometrically, there will be a single point of
+intersection between three spheres corresponding to the same
+intensity but each of them centering at a different measure-
+ment point. Below, the algorithmic steps leading to source
+localization are detailed and summarized in Algorithm 1.
+In this framework, the ﬁrst step of the proposed approach
+is to spawn sets {Sk} of N concentric spheres for each of
+the dwell points pk ∈Pk
+d . Each sphere in each of these
+sets corresponds to a certain intensity and radius from its
+associated dwell point. Subsequently, the algorithm identiﬁes
+the set of all possible points I that lie on the circles deﬁning
+the intersections between spheres which center on different
+dwell locations but have matching intensities. Discretization
+of the spheres’ radii and the circles of intersections is used
+for efﬁcient calculation.
+Given the locations of the intersection points pj
+I ∈I and
+considering each of them as a possible source location, the
+method then estimates the expected radiation reading at all
+dwell points from each point of intersection. For all dwell
+points, using the normal distribution of radiation readings
+centered around the dwell point’s average value
+¯λk and
+associated standard deviation σλk, the value ρp→pk of the
+probability density function (PDF) of the expected reading
+˜λpj
+I→pk is calculated against all intersections (each of which
+6540
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:09:22 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+Algorithm 1 Source Localization Algorithm - Iteration
+1: for all pk ∈Pk
+d do
+2:
+spawn spheres S(pk)
+3: end for
+4: for all combinations of pk do
+5:
+ﬁnd the set I of intersection points pj
+6: end for
+7: for all combinations of pj ∈I and pk ∈Pk
+d do
+8:
+calculate expected reading ˜λpj→pk
+9:
+derive normal distribution N( ¯λk, σλk)
+10:
+derive ρpj→pk ←PDF(N( ¯λk, σλk), ˜λpj→pk)
+11: end for
+12: for all pj ∈I do
+13:
+derive average probability ¯ρj
+14: end for
+15: I′ ←{pj ∈I : ¯ρj ≥α max({¯ρj})}
+16: derive centroid c of pj ∈I′ and associated σc
+17: derive Iopt by removing outliers from I′
+18: derive centroid ps of pj ∈Iopt, σs and intensity ¯λs
+19: test new source estimate [ps, σs, ¯λs]
+20: (identify centroid ps
+m of closest voxel m in map M)
+21: (ps ←ps
+m)
+22: Return [ps, σs, ¯λs]
+are considered as a possible source location). A cumulative
+set Λj
+I of such probabilities {ρp→pk} for all intersection
+points is derived and the average value ¯ρj is calculated. Then,
+the set of averaged probabilities ΛI is formulated.
+Provided this set, the method sorts the probabilities
+¯ρj and chooses the top subset given a tunable factor a
+deﬁning the proportion of values in this subset. Then the
+probabilistically–weighted centroid of locations of these in-
+tersection points is derived along with its standard deviation.
+Searching within the selected subset of the intersecting
+points, the algorithm checks if its location lies within the
+bounds of one standard deviation and only then it considers
+it as part of a new set B of possible ﬁnal estimation results
+for the source location and intensity (otherwise considered as
+an outlier). Subsequently, the centroid ps of locations of the
+points in B is found alongside the average intensity ˜λs. This
+tuple [ps, σs, ¯λs] corresponds to the new estimate regarding
+the source location and its expected intensity.
+Before it is returned as the new best estimate, the tuple
+[ps, σs, ¯λs] is tested in terms of reducing the following error
+metric:
+ϵ
+=
+1
+k
+k
+
+i=1
+||λk −ˆλps→pk||2
+(5)
+where ˆλps→pk denotes the expected radiation reading at
+pk given the source estimate [ps, σs, ¯λs]. As long as this
+error metric is improved between subsequent iterations, the
+new source estimate becomes the output of the method.
+Furthermore, if signiﬁcant increase in this metric is detected
+and by performing ray casting on the map (when available for
+the relevant subset of the environment) it is found that there
+is an object occluding the latest dwell point with the previous
+source location, that dwell point is considered uninformative
+or inﬂuenced by external factors (e.g. radiation shielding
+materials) and is therefore dropped.
+Finally, if the area around the source estimate ps has
+been explored, the robot ﬁnds the closest occupied voxel
+m in the occupancy map M. Its centroid ps
+m updates the
+source location estimate, a procedure that exploits the fact
+that sufﬁciently accurate maps are derived online and only
+solid radiation sources are considered. The whole procedure
+is then iteratively repeated at the next dwell point.
+B. Radioactive Source Search
+For the robot to be able to efﬁciently detect and estimate
+the radioactive source location and intensity, informative
+measurements are required. In this work, we evaluated both
+ﬁxed–lattice patterns when the environment is considered to
+be known, and propose a new active radioactive source search
+path planner for the cases of initially unknown environments.
+This section focuses on the latter part, while the experimental
+results also present studies with ﬁxed–lattice trajectories.
+1) Environment Representation and Mapping: The envi-
+ronment is volumetrically represented in an occupancy map
+M that consists of cubical voxels m ∈M with edge length
+r. Each voxel is considered as either “unexplored”, “free”
+or “occupied”. Update of the map relies on the onboard
+localization of the system that exploits visual–inertial cues
+and depth data coming from a stereo camera. The robust
+odometry framework in [22] is employed to estimate the
+robot pose pk. This volumetric map representation is used
+for autonomous robot planning.
+2) Initial Area Exploration: When the robot is requested
+to identify and estimate the source location and intensity in
+unknown environments, a set of initial steps take place that
+allow it to explore the space until radiation measurements
+above background are detected. For this particular step, we
+employ our previous work related to next–best–view path
+planning [28] with the only difference being that the robot
+dwells at each planned exploration viewpoint for time T k
+D
+adaptively calculated according to Section III-E. This step is
+disengaged once three radiation readings λk at respective
+dwell points above background are detected and enable
+a ﬁrst estimate of the source location. At this point, the
+source localization algorithm has returned its ﬁrst estimate
+[ps, σs, ¯λs] regarding the radioactive source location and
+strength.
+3) Active Source Search: Provided the current source esti-
+mate [ps, σs, ¯λs] and occupancy map M, a path planning ap-
+proach is proposed and aims to derive informative next dwell
+points and collision free paths for the robot to efﬁciently
+inform the subsequent iteration of the source localization
+method. The proposed planner accounts for certain facts and
+limitations, namely: a) the fact that only a limited set of
+measurements can possibly be acquired due to the endurance
+constraints of the robot, b) the importance of sufﬁcient dwell
+time to ensure that reliable radiation readings are derived
+6541
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:09:22 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+without compromising the battery life of the robot, as well
+as c) the localization uncertainty of the robot as represented
+by the covariance matrix of its position Σp. Furthermore, it
+aims to ensure progress in the exploration mission which then
+ensures that new collision free trajectories can be identiﬁed
+and the map within which the source lies is -to a large extent-
+explored. Planning takes place in the conﬁguration space of
+positions and heading of the robot, that is ξ = [x, y, z, ψ]
+assuming small roll and pitch angles.
+Given the latest map M, the planner starts from the
+current robot conﬁguration ξ0 and incrementally builds a
+geometric random tree T with maximum edge length ℓ.
+The resulting tree consists of NT nodes ni, associated robot
+conﬁgurations ξi and a set of collision free paths μ. A
+minimum of Nmin and maximum of Nmax nodes are deﬁned
+to ensure sufﬁcient exploration of the conﬁguration space and
+low computational times. During the tree spanning process,
+yaw rate constraints
+˙ψmax are respected given a constant
+linear velocity vt. The proposed information gain of a node
+ni is denoted as Gain(ni) and takes the form:
+Gain(ni)
+=
+r2
+i→s
+δ2 e−
+r2
+i→s
+δ2
+2
+Nk
+d
+
+j=0,j̸=j
+e
+−
+ζ2
+r2
+i→j
+2Nk
+d
+(6)
+where ri→j = ||ξi −ξj||2 the distance between the sampled
+conﬁgurations xi, xj at nodes ni, nj, ri→s = ||ξi −ξs|| the
+distance of the sampled conﬁguration ξi to the source, ξs
+is the conﬁguration corresponding to the estimated source
+location ps, N k
+d is the current number of dwell points, and
+δ, ζ are tunable factors that control the maximum of the
+function. The node nopt that maximizes this gain is selected
+and the associated collision free path μopt
+0
+leading to ξopt
+is extracted. This path is sampled at ν points and a set
+of q yaw angle orientations are randomly sampled at each
+new vertex. Subject to the maximum yaw rate ˙ψmax, the
+method then identiﬁes the sequence of yaw angle orientations
+that simultaneously maximize the unexplored volume to be
+covered based on the exploration gain described in our
+previous work in [28]. The robot is then commanded to
+follow this path, dwell at ξopt and perform a new step
+of source localization, while the whole process is repeated
+iteratively. Through the proposed gain, dwell points that a)
+approach the expected source location while avoiding points
+very near the source estimate as the robot has localization
+uncertainty and very high radiation readings require longer
+dwell times, and b) keep distance from all the previous dwell
+points are identiﬁed. Figure 4 depicts an illustrative example.
+In addition, to ensure further robustness against increased
+localization uncertainty of the robot and its correlation with
+a possibly wrong estimate of the distance from the source,
+which has signiﬁcant inﬂuence due to the inverse square law
+of radiation propagation, nodes sampled closer than 1 semi–
+major axis of the ellipsoid corresponding to the position
+covariance Σp are considered invalid. Similarly, any nodes
+corresponding to a robot conﬁguration that would lead to
+a measurement λk < λmin, λmin →0 given the current
+Fig. 4.
+Illustrative example of the next–best–dwell–point location selection
+using the proposed gain formulation. In this example, a 3 × 3m grid with
+equally–spaced dwell candidates (blue ’×’ marker) are evaluated given the
+current source location (red ’◦’ marker) and three previous dwell points
+(black ’□’ marker) is considered, while δ = 1 and ζ = 1.85. The next–
+best–dwell–point is indicated (green ’▽’ marker), while a surface plot of
+the gain over all possible locations is simultaneously presented. As shown,
+the method accounts for the previous locations of the dwell points and
+the estimate of the source therefore selecting a next dwell location that
+provides information from a signiﬁcantly different part of the map and a
+varied distance from the source.
+source estimate are also eliminated. Overall, this imposes a
+geometric constraint ensuring that the next dwell point will
+not a) be too far from the expected source location risking
+the possibility of getting a measurement close to background,
+and b) will not be very close to the source making its inherent
+localization uncertainty a reason for erroneous estimation.
+V. EXPERIMENTAL EVALUATION
+Three experiments were conducted to evaluate the per-
+formance of the system, the source localization algorithm,
+as well as the active source search path planner. Each
+experiment was performed in an indoor environment using a
+Cs-137 source measuring roughly 618.1μR/h at a distance of
+0.65m. The source is a non-destructive testing device com-
+monly used in civil engineering and projects a hemispherical
+radiation ﬁeld facing upward when the source is exposed.
+The ﬁrst experiment consists of the robot ﬂying in a
+predetermined ﬁxed-lattice pattern in which the environment
+is assumed to be known. The ﬁxed-lattice pattern is a series
+of nine measurement locations (dwell points), the ﬁrst of
+which is a point just above background and the remaining
+eight points are in a grid surrounding the true source location.
+The second experiment consists of a similar ﬁxed-lattice
+pattern with ten measurements, but also includes a L-shaped
+wall of cinder blocks partially surrounding the radiation
+source which serves to attenuate the radiation ﬁeld by about
+50% at measurement points on the opposite side of the wall
+from the source. Finally, the third experiment demonstrates
+the active source search path planner, and consists of ﬁve
+measurement points whose positions were determined au-
+tonomously online. It is noted that due to the requirement to
+dwell for several seconds (from 5s to 15s in these results),
+the robot is limited to derive the needed source estimate with
+typically less than 12 dwell points. The proposed localization
+and active search strategy was demonstrated to derive an
+accurate source estimate within the ﬁrst four autonomously
+selected dwell points.
+6542
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:09:22 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+In each of the visualizations below, the robot’s perception
+of the environment is expressed as an octomap [23]. Figure 5
+visualizes the results of the ﬁrst experiment in which the
+source was localized after the third measurement, at which
+point the error ed in distance between the source estimate
+and the true source location was ed = 1.52m. After the ﬁnal
+measurement, this error in distance was reduced to ed =
+0.32m.
+Fig. 5.
+Fixed–lattice source localization experiment without attenuating
+cinder blocks surrounding the source. The robot’s trajectory is presented
+as a red line gathered from the robot’s odometry data. Dwell points are
+represented as light green semi-transparent spheres with an adjoining solid
+green sphere representing the position of the sensor. The true source location
+is represented by a green arrow and is unknown to the source localization
+algorithm. Finally, the source location estimate is drawn as a solid red
+sphere, while the nearest voxel, and true source estimate is denoted by
+the yellow arrow positioned above a yellow cube.
+Fig. 6.
+Fixed–lattice source localization experiment with attenuating cinder
+blocks partially surrounding the source. Measurement points #6, #7, and #8
+(where measurement point #1 is the point on the lower right side of the
+image) are shielded from the radiation source by the cinder block wall, and
+their readings are 50% lower than those expected given their position and
+the source’s intensity. In this experiment, the ﬁnal source localization error
+is 0.28m.
+Figure 6 demonstrates that the localization algorithm per-
+forms sufﬁciently in the presence of partially attenuated read-
+ings given that a ﬁrst set of non–attenuated measurements
+were acquired. Operation subject to partially attenuated
+measurements is achieved due to the additional step of the
+localization method that checks and veriﬁes if a new source
+estimate is in agreement with all the dwell points pk and
+associated radiation readings λk and drops a measurement if
+a signiﬁcant disagreement is identiﬁed.
+Fig. 7.
+Autonomous active source search experiment. The experiment is
+initiated through exploration paths using the exploration planner in [28].
+Once three dwell points with radiation readings above background are
+identiﬁed, the method commands the robot to dwell, a ﬁrst radioactive source
+estimate becomes available and subsequently the active source search for
+next–best–dwell–points is engaged. With only 5 dwell points, the method
+achieves an error of only ed = 0.31m in the position of the source.
+Figure 7 shows the active source search algorithm in its
+entirety. At the ﬁnal measurement, the localization error
+is 0.31m a result achieved with only 5 dwell points and
+associated radiation readings. Finally, Figure 8 presents a
+radiation map for the same experiment, using the source
+localization estimate (position and source strength) and the
+inverse square law to indicate the expected radiation level
+at different parts of the map. Overall, the aforementioned
+set of results illustrates the ability of the proposed system
+to conduct radioactive source localization in GPS–denied
+environments, as well as active source search in initially
+unknown and unmapped environments through a combina-
+tion of ﬁrst steps for exploration, subsequent identiﬁcation
+of optimized dwell points and identiﬁcation of intermediate
+yaw orientations that support the exploration process during
+the source seeking behavior. The complete set of recorded
+data are released as an open dataset to enable community
+re–utilization [29].
+VI. CONCLUSIONS
+This paper presented a system and method for localizing a
+radiation source in known and unknown environments using
+a small aerial robotic platform. The described method is
+able to localize a radiation source given a small number of
+measurements due to the limited ﬂight endurance of the plat-
+form, and accounts for the robot’s own position uncertainty in
+ﬂight. Furthermore the algorithm achieves source localization
+in the presence of attenuated and inaccurate readings. The
+above described planner is able to identify optimal dwell
+points for measurement and greatly improves the abilities of
+6543
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:09:22 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+Fig. 8.
+Radiation mapping applied on the volumetric map based on the
+source localization estimate (location and source strength) and the inverse
+square law. This map is derived based on the source estimates and online
+maps derived during the autonomous active source search experiment and
+presents the potential of 3D/Radiation mapping using small aerial robots. It
+is noted that due to the fast decrease of radiation strength values as a result
+of the inverse square law, log–scale has been applied on the relevant values
+for better colormap representation.
+the robot given the platform’s endurance constraints. Finally,
+the robot exploits the real-time generated occupancy map
+to constrain the search space and achieve higher accuracy
+source localization.
+Future work will include utilization of the spectroscopy
+abilities of the scintillator circuit to perform multi-source
+localization. Additionally, semantic classiﬁcation can be uti-
+lized to further constrain the search space and improve the
+localization of the source using objects visible in the scene.
+Finally, methods to improve not only the position, but the in-
+tensity estimate of the source should be explored, especially
+in cases where measurements are partially attenuated.
+REFERENCES
+[1] G. Christie, A. Shoemaker, K. Kochersberger, P. Tokekar, L. McLean,
+and A. Leonessa, “Radiation search operations using scene understand-
+ing with autonomous uav and ugv,” Journal of Field Robotics, 2016.
+[2] M. Maimone, L. Matthies, J. Osborn, E. Rollins, J. Teza, and
+S. Thayer, “A photo-realistic 3-d mapping system for extreme nuclear
+environments: Chernobyl,” in Intelligent Robots and Systems, 1998.
+Proceedings., 1998 IEEE/RSJ International Conference on, vol. 3.
+IEEE, 1998, pp. 1521–1527.
+[3] R. Guzman, R. Navarro, J. Ferre, and M. Moreno, “Rescuer: Devel-
+opment of a modular chemical, biological, radiological, and nuclear
+robot for intervention, sampling, and situation awareness,” Journal of
+Field Robotics, vol. 33, no. 7, pp. 931–945, 2016.
+[4] J. Towler, B. Krawiec, and K. Kochersberger, “Radiation mapping in
+post-disaster environments using an autonomous helicopter,” Remote
+Sensing, vol. 4, no. 7, pp. 1995–2015, 2012.
+[5] A. Mazumdar, M. Lozano, A. Fittery, and H. H. Asada, “A compact,
+maneuverable, underwater robot for direct inspection of nuclear power
+piping systems,” in Robotics and Automation (ICRA), 2012 IEEE
+International Conference on.
+IEEE, 2012, pp. 2818–2823.
+[6] K. D. Jarman, E. A. Miller, R. S. Wittman, and C. J. Gesh, “Bayesian
+radiation source localization,” Nuclear technology, vol. 175, no. 1,
+2011.
+[7] H. Wan, T. Zhang, and Y. Zhu, “Detection and localization of
+hidden radioactive sources with spatial statistical method,” Annals of
+Operations Research, vol. 192, no. 1, pp. 87–104, 2012.
+[9] H. E. Baidoo-Williams, R. Mudumbai, E. Bai, and S. Dasgupta,
+“Some theoretical limits on nuclear source localization and tracking,”
+in Information Theory and Applications Workshop (ITA). IEEE, 2015.
+[8] H. E. Baidoo-Williams, “Maximum likelihood localization of ra-
+diation sources with unknown source intensity,” arXiv preprint
+arXiv:1608.00427, 2016.
+[10] G. Cordone, R. R. Brooks, S. Sen, N. S. Rao, C. Q. Wu, M. L. Berry,
+and K. M. Grieme, “Improved multi-resolution method for mle-based
+localization of radiation sources,” in Information Fusion (Fusion),
+2017 20th International Conference on.
+IEEE, 2017, pp. 1–8.
+[11] S. Martinez, J. Cortes, and F. Bullo, “Motion coordination with
+distributed information,” IEEE Control Systems, 2007.
+[12] J. Cortes, S. Martinez, and F. Bullo, “Spatially-distributed coverage
+optimization and control with limited-range interactions,” ESAIM:
+Control, Optimisation and Calculus of Variations, vol. 11, no. 4, pp.
+691–719, 2005.
+[13] C. Zhang, D. Arnold, N. Ghods, A. Siranosian, and M. Krstic, “Source
+seeking with non-holonomic unicycle without position measurement
+and with tuning of forward velocity,” Systems & control letters, 2007.
+[14] S. Pang and J. A. Farrell, “Chemical plume source localization,” IEEE
+Transactions on Systems, Man, and Cybernetics, Part B (Cybernetics),
+vol. 36, no. 5, pp. 1068–1080, 2006.
+[15] C. G. Mayhew, R. G. Sanfelice, and A. R. Teel, “Robust source-
+seeking hybrid controllers for autonomous vehicles,” in American
+Control Conference, 2007. ACC’07.
+IEEE, 2007, pp. 1185–1190.
+[16] A. Kumar, H. G. Tanner, A. V. Klimenko, K. Borozdin, and
+W. C. Priedhorsky, “Automated sequential search for weak radiation
+sources,” in Control and Automation, 2006. MED’06. 14th Mediter-
+ranean Conference on.
+IEEE, 2006, pp. 1–6.
+[17] R. Cortez, X. Papageorgiou, H. Tanner, A. Klimenko, K. Borozdin, and
+W. Priedhorsk, “Experimental implementation of robotic sequential
+nuclear search,” in Control & Automation, 2007. MED’07. Mediter-
+ranean Conference on.
+IEEE, 2007, pp. 1–6.
+[18] R. A. Cortez, H. G. Tanner, and R. Lumia, “Distributed robotic
+radiation mapping,” in Experimental Robotics.
+Springer, 2009.
+[19] A. A. R. Newaz, S. Jeong, H. Lee, H. Ryu, N. Y. Chong, and
+M. T. Mason, “Fast radiation mapping and multiple source localization
+using topographic contour map and incremental density estimation,” in
+Robotics and Automation (ICRA), 2016 IEEE International Conference
+on.
+IEEE, 2016, pp. 1515–1521.
+[20] K. Vetter, D. Chivers, and B. Quiter, “Advanced concepts in multi-
+dimensional radiation detection and imaging,” in Nuclear Threats and
+Security Challenges.
+Springer, 2015, pp. 179–192.
+[21] A. A. R. Newaz, S. Jeong, H. Lee, H. Ryu, and N. Y. Chong, “Uav-
+based multiple source localization and contour mapping of radiation
+ﬁelds,” Robotics and Autonomous Systems, vol. 85, pp. 12–25, 2016.
+[22] M. Bloesch, S. Omari, M. Hutter, and R. Siegwart, “Robust visual
+inertial odometry using a direct ekf-based approach,” in Intelligent
+Robots and Systems (IROS), 2015 IEEE/RSJ International Conference
+on.
+IEEE, 2015, pp. 298–304.
+[23] A. Hornung, K. M. Wurm, M. Bennewitz, C. Stachniss, and W. Bur-
+gard, “OctoMap: An efﬁcient probabilistic 3D mapping framework
+based on octrees,” Autonomous Robots, 2013.
+[24] M. Kamel, T. Stastny, K. Alexis, and R. Siegwart, “Model predictive
+control for trajectory tracking of unmanned aerial vehicles using ros,”
+Springer Book on Robot Operating System (ROS).
+[25] G. F. Knoll, Radiation detection and measurement.
+John Wiley &
+Sons, 2010.
+[26] G. J. Feldman and R. D. Cousins, “Uniﬁed approach to the classical
+statistical analysis of small signals,” Physical Review D, 1998.
+[27] S. Fetter, T. B. Cochran, L. Grodzins, H. L. Lynch, and M. S. Zucker,
+“Gamma-ray measurements of a soviet cruise-missile warhead,” Sci-
+ence, vol. 248, no. 4957, pp. 828–834, 1990.
+[28] A. Bircher, M. Kamel, K. Alexis, H. Oleynikova and R. Siegwart,
+“Receding horizon ”next-best-view” planner for 3d exploration,” in
+IEEE International Conference on Robotics and Automation (ICRA),
+May 2016. [Online]. Available: https://github.com/ethz-asl/nbvplanner
+[29] F. Mascarich, T. Wilson, C. Papachristos, and K. Alexis, “GPS-
+denied Radiation Source Localization Dataset.” [Online]. Available:
+https://github.com/unr-arl/radiation-source-localization-dataset
+6544
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:09:22 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

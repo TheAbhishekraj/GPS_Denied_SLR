@@ -1,0 +1,716 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0278.pdf
+sha256: E5AC3F84F3A0F1C51EF97131AD8B707291CE2851A57AC0A67F8C0538111B9A14
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+Navigation Methods for UAVs in GNSS-Denied 
+Environments Using Artificial Intelligence 
+Nga Vu Quynh 
+Hanoi University of Science and 
+Technology (HUST) 
+Hanoi, Vietnam 
+Nga.VQ250001D@sis.hust.edu.vn 
+Phat Nguyen Huu 
+Hanoi University of Science and 
+Technology (HUST) 
+Hanoi, Vietnam 
+Phat.nguyenhuu@hust.edu.vn
+Thanh Han-Trong 
+Hanoi University of Science and 
+Technology (HUST) 
+Hanoi, Vietnam 
+Thanh.hantrong@hust.edu.vn 
+Abstract— With the rapid advancement of autonomous 
+flight technology, there is an increasing demand for higher 
+precision and advanced navigation techniques, with permissible 
+distance errors often restricted to a few meters. Furthermore, 
+the ubiquitous deployment of Unmanned Aerial Vehicles 
+(UAVs) necessitates the integration of novel technologies to 
+ensure operational continuity under adverse conditions, such as 
+environmental signal interference, hostile attacks, or traversal 
+through zones of complete signal loss. This study presents a 
+methodology to address these challenges, enabling the 
+maintenance of coordinates and navigation for UAVs to traverse 
+jammed or completely out-of-coverage zones, thereby avoiding 
+the need for emergency landings or Return-to-Home (RTH) 
+protocols common in current UAV systems. The proposed 
+approach leverages the TransGAN model, a framework 
+typically employed for data analysis comprising a Generator 
+and a Discriminator. In this context, the model processes 
+sequential real-world coordinate data. Under normal GNSS 
+operation, TransGAN is trained as a high-precision prediction 
+model utilizing velocity and coordinate data as inputs. 
+Conversely, during GNSS outages or interference, the trained 
+TransGAN model is utilized to generate coordinates, thereby 
+maintaining navigation capabilities for the UAV. 
+Keywords— 
+UAV 
+Navigation; 
+TransGAN; 
+GPS/INS 
+Integration; GPS Jamming; Signal Outage; Deep Learning; 
+Trajectory Reconstruction 
+I.
+INTRODUCTION 
+Rapid advancements in autonomous systems demand 
+highly accurate Positioning, Navigation, and Timing (PNT) 
+data, shrinking acceptable error margins to mere meters. 
+While Global Navigation Satellite Systems (GNSS) are 
+ubiquitous, their fundamental acquisition principles remain 
+unchanged. In UAV operations, civilian GPS signals—
+broadcasted at low power over wide bandwidths without 
+dedicated security—are highly susceptible to interference, 
+spoofing, and complete signal loss in complex environments. 
+Conversely, Inertial Navigation Systems (INS) provide 
+autonomous spatial coordinates but suffer from accumulated 
+measurement errors leading to positional drift. Integrating INS 
+with GPS mitigates these issues [1]–[3], offering enhanced 
+accuracy, robust signal tracking, fault tolerance, and anti-
+jamming capabilities [4]. Despite this integration, maintaining 
+reliability in heavily jammed or GNSS-denied zones 
+(common in military contexts) remains a critical challenge for 
+UAVs. Current countermeasures, such as fiber-optic tethers, 
+are constrained by short operational ranges (< 20 km) and 
+payload limits. Consequently, when standard radio-controlled 
+UAVs lose GPS, mission continuity is severely compromised. 
+To address this limitation, we propose a novel trajectory 
+reconstruction method utilizing a Transformer Generative 
+Adversarial Network (TransGAN). Trained on real-world 
+coordinate sequences acquired via a standard, cost-effective 
+NEO-M8N module, the model learns historical movement 
+dynamics to generate highly accurate simulated GPS 
+coordinates during signal outages or interference. This enables 
+UAVs to autonomously maintain navigation without resorting 
+to emergency protocols. 
+While 
+TransGAN 
+has 
+demonstrated 
+exceptional 
+performance in image generation, its direct application to 
+continuous UAV trajectory reconstruction presents significant 
+challenges. Therefore, the main contributions of this paper are 
+explicitly focused on the methodological adaptations tailored 
+for GNSS-denied navigation: 
+•
+Domain 
+Adaptation 
+of 
+TransGAN: 
+We 
+fundamentally redesign the vision-based TransGAN 
+architecture to effectively process and generate 1D 
+multi-dimensional 
+spatio-temporal 
+sequences 
+(Longitude, Latitude, Altitude, Velocity). This shifts 
+its application from static image synthesis to dynamic, 
+time-series trajectory forecasting. 
+•
+Customized Loop-back Inference Pipeline: We
+propose a novel continuous prediction mechanism
+that completely bypasses the Critic during the
+inference phase. By integrating an Adaptive Step
+Adjustment and a Savitzky-Golay filter, our custom
+pipeline successfully mitigates cumulative INS drift,
+ensuring smooth and physically viable trajectory
+reconstruction during prolonged GNSS signal
+outages.
+The remainder of this paper is organized as follows: 
+Section II outlines related work on GPS/INS and generative 
+models; Section III details the system architecture; Section IV 
+analyzes experimental results and error metrics; and Section 
+V concludes the study with future directions 
+II.
+BACKGROUND AND RELATED WORKS
+This section provides a brief overview of the fundamental 
+concepts regarding positioning technologies and the deep 
+learning models utilized to address the problem at hand. Given 
+the inherent limitations of traditional navigation systems when 
+operating in complex environments, the application of 
+advanced neural networks, such as Generative Adversarial 
+Networks (GANs), is emerging as a promising approach for 
+reconstructing and predicting spatio-temporal data sequences. 
+The Global Positioning System (GPS) is structurally 
+categorized into three core segments: the Space Segment, the 
+Control Segment, and the User Segment [5]. Operating 
+through this architecture, GPS determines 3D spatial 
+coordinates via trilateration based on a network of satellite 
+constellations [6]. Despite providing high accuracy, GPS 
+signals are highly susceptible to attenuation, obstruction, or 
+intentional jamming. To mitigate these issues, GPS is 
+frequently integrated with an Inertial Navigation System 
+361
+2026 Eleventh International Conference on Communications and Electronics (ICCE) | 979-8-3195-4689-0/26/$31.00 ©2026 IEEE | DOI: 10.1109/ICCE70609.2026.11658445
+979-8-3195-4689-0/26/$31.00 ©2026 IEEE
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:46 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+(INS)—a system that utilizes accelerometers and gyroscopes 
+to calculate the relative motion of an object. However, due to 
+its 
+reliance 
+on 
+dead-reckoning 
+principles, 
+minute 
+measurement errors within the INS accumulate over time, 
+leading to increasingly severe positional drift during 
+prolonged GPS signal outages. To mitigate these critical 
+shortcomings, traditional filtering algorithms often prove 
+insufficient 
+in 
+modeling 
+complex, 
+non-linear 
+error 
+accumulations during extended outages. Consequently, data-
+driven approaches leveraging deep generative models have 
+been proposed to learn and reconstruct the underlying spatio-
+temporal dynamics of the vehicle's trajectory. Among these 
+architectures, Generative Adversarial Networks (GANs) have 
+emerged as a highly effective framework for synthesizing 
+realistic sequential data, thereby motivating their application 
+in this study. 
+A. Overview of GAN Model
+Generative Adversarial Networks (GANs) [8], [9]
+represent an unsupervised learning technique based on a 
+synergistic application of game theory and machine learning. 
+The architecture fundamentally consists of two neural 
+networks: a Generator tasked with creating synthetic data 
+from random input, and a Discriminator that evaluates 
+whether the input data is real or generated. 
+These networks are trained in an adversarial manner. To 
+match the generator's distribution with real data, a prior 
+distribution ()is defined on the input noise, learning a
+mapping to the data space as a multi-layer perceptron 
+(; 	
+) . Similarly, the Discriminator is modeled as
+(; 	
+), representing the probability that a sample comes
+from the real data distribution. This adversarial training is 
+modeled as a min-max game [10] striving for a Nash 
+equilibrium, governed by the value function (, ):
+min
+ max
+
+ (, )
+= ∼()log  ()#
++ ∼%() &log '1 −*()+,-
+ (1)
+Since their inception, various prominent GAN variants 
+have been developed [11] to address specific challenges, 
+including Vanilla GAN, WGAN (utilizing Wasserstein 
+Distance 
+for 
+training 
+stability), 
+cGAN 
+(conditional 
+generation), CycleGAN, and StyleGAN. However, this study 
+focuses specifically on analyzing and applying the TransGAN 
+model [11] for trajectory reconstruction. TransGAN is an 
+advanced architecture that entirely eschews Convolutional 
+Neural 
+Networks 
+(CNNs), 
+employing 
+Transformer 
+architectures for both the Generator and Discriminator to 
+efficiently process spatial-temporal data sequences. 
+B. TransGAN Architecture
+The integration of Transformers into Generative
+Adversarial Networks has recently demonstrated robust 
+capabilities in modeling complex data, ranging from time-
+series synthesis [12] to high-fidelity image super-resolution 
+reconstruction [13]. Building upon these foundational 
+advancements, the specific TransGAN model [14] utilized in 
+this study constructs its adversarial framework entirely upon 
+Transformer architectures, moving away from traditional 
+Convolutional Neural Networks (CNNs). 
+The core mechanism of this model is the Multi-Head Self-
+Attention (MHSA) module, which inherently excels at 
+capturing global dependencies and selectively prioritizing 
+critical temporal correlations within sequential data by 
+quantifying vector similarities. To alleviate the quadratic 
+computational complexity traditionally associated with 
+processing long sequences, TransGAN introduces a grid self-
+attention module. This allows the model to efficiently process 
+high-dimensional spatio-temporal data without exceeding 
+memory constraints. 
+Structurally, TransGAN consists of two primary 
+components operating in an adversarial loop. The Generator 
+is composed of a series of Transformer encoder blocks. It 
+receives an initial input—such as random noise or a 
+conditioning state—and processes it through multiple self-
+attention layers and up-sampling modules to progressively 
+synthesize the target data representation. Conversely, the 
+Discriminator (or Critic) employs a symmetrical Transformer-
+based structure. It ingests either the real data sequences or the 
+generated outputs, processes the sequence tokens through its 
+attention layers, and concludes with a classification head to 
+output a probability score indicating the authenticity of the 
+data (REAL or FAKE). By leveraging these pure attention 
+mechanisms, TransGAN becomes highly effective for 
+modeling complex, dynamic sequential variations, making it 
+particularly suitable for continuous UAV coordinate 
+generation. 
+C. Existing GNSS-Denied Navigation Methods
+To maintain navigation continuity during GNSS outages,
+various trajectory estimation methods have been developed. 
+Traditionally, filtering algorithms have been the primary 
+countermeasures. For instance, Qi and Moore [15] utilized a 
+direct Kalman Filtering (KF) approach for GPS/INS 
+integration, providing a fundamental baseline for error 
+estimation. However, traditional KF heavily relies on 
+predefined linear mathematical models and often struggles to 
+adapt to the highly non-linear error accumulations inherent in 
+prolonged signal denial scenarios. 
+To overcome the limitations of classical filters, data-
+driven machine learning models have been extensively 
+explored. Kong et al. [16] leveraged Multi-Layer Perceptron 
+(MLP) architectures to model GPS path detection. While 
+effective for short-term prediction, standard MLPs often lack 
+the capacity to capture complex temporal dependencies over 
+extended periods. Addressing this, Wei et al. [17] introduced 
+a mixed optimization method combining an Adaptive Kalman 
+Filter with a Wavelet Neural Network (WNN) to compensate 
+for INS drift. Although WNNs demonstrate improved 
+robustness, these methods primarily focus on pointwise error 
+compensation rather than full sequence generation. 
+While KF [15], MLP [16], and WNN [17] serve as reliable 
+baselines for GNSS-denied navigation, they generally lack the 
+generative capacity required to fully reconstruct long-term 
+spatio-temporal sequences. This limitation directly motivates 
+our application of the TransGAN model, which is specifically 
+designed to capture global temporal dependencies and 
+synthesize continuous trajectory data under extreme outage 
+conditions. 
+While established temporal and structural models, such as 
+Long Short-Term Memory (LSTM) networks or Tree-
+structured Deep Neural Networks (TDNN), have been widely 
+applied for signal processing and short-term trajectory 
+forecasting, they present notable limitations in prolonged 
+GNSS-denied environments. Specifically, sequential models 
+362
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:46 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+struggle with information decay and vanishing gradients over 
+extended periods, making them ill-equipped to maintain long-
+range spatial-temporal dependencies. Furthermore, standard 
+regression-based temporal models tend to produce over-
+smoothed predictions that gradually deviate from physical 
+constraints, leading to severe cumulative drift. In contrast, the 
+integration of Transformer architectures within an adversarial 
+framework (TransGAN) addresses these exact bottlenecks. 
+The Multi-Head Self-Attention mechanism allows for the 
+simultaneous processing of global sequence contexts, while 
+the adversarial loss enforces adherence to realistic physical 
+flight dynamics, ensuring that the generated coordinates do 
+not degrade into averaged, drifting paths over long iterations. 
+III. 
+PROPOSED METHOD 
+The coordinate generation architecture proposed in this 
+study (Figure 1) comprises two core components: the Data 
+Processing Block and the Data Generator Block. Following 
+pre-processing, the data is fed into the TransGAN model to 
+learn the spatio-temporal relationships between coordinate 
+points, thereby generating substitute trajectories during GNSS 
+signal outages.  
+ 
+Fig. 1. Overview of Coordinate Generation Model 
+A. Data Processing Block 
+This study utilizes the Pixhawk flight controller to acquire 
+and process input data. Real-world trajectory coordinates are 
+interpolated from peripheral modules, specifically the GPS 
+and IMU. Through the filtering algorithms integrated within 
+the Pixhawk, sensor noise is attenuated to produce a highly 
+reliable and comprehensive input dataset for the subsequent 
+data generation phase.  
+B. Data Generator Block 
+This block employs the TransGAN architecture to 
+effectively exploit long-term dependencies within spatio-
+temporal data sequences. The framework encompasses the 
+adversarial architecture of the model and its operational 
+prediction process during inference. 
+1) Model Architecture (Training Mode) 
+As illustrated in Figure 2, the Generator processes the pre-
+processed data sequence, applying Positional Encoding to 
+preserve temporal order before utilizing Transformer 
+Encoder blocks to extract dynamic features. Its output 
+separates into three independent linear branches to predict 
+position variations Δ/0123204 for Longitude (LON), Latitude 
+(LAT), and Altitude (ALT) at each time step. Conversely, the 
+Critic (Discriminator) evaluates the authenticity of the 
+generated Δ/0123204 sequence. By employing a Transformer 
+Encoder coupled with sub-networks to assess component-
+wise plausibility and detect motion discontinuities, the Critic 
+outputs a Real/Fake score to continuously optimize the 
+trajectory generation process. 
+ 
+Fig. 2. Proposed TransGAN Training Architecture 
+2) Prediction Process (Inference Mode) 
+When the Unmanned Aerial Vehicle (UAV) enters an 
+interference zone or experiences complete GNSS signal loss, 
+the Data Generator Block transitions from training to 
+inference mode. It is crucial to clarify that during this 
+inference phase, the Discriminator (Critic) and its 
+REAL/FAKE scoring mechanism are completely deactivated. 
+The trajectory reconstruction relies exclusively on the trained 
+Generator via a continuous loop-back mechanism, as 
+accurately depicted in Figure 3. 
+The process initializes from the final validated coordinate 
+point of the training set (Preceding Position), utilizing only the 
+available INS data corresponding to the duration of the signal 
+interruption. The data flow operates step-by-step as follows: 
+First, the input INS data passes through a Positional 
+Encoding layer to preserve temporal order, and is then 
+processed by the Transformer Encoder to synthesize a 
+positional variation segment ( Δ/0123204 for LON, LAT, 
+ALT) directed toward the target checkpoint. 
+In the subsequent loop-back trajectory generation process, 
+this generated Δ/0123204 is routed through an Adaptive Step 
+Adjustment module. This mechanism dynamically scales the 
+output to prevent the trajectory from overshooting due to 
+cumulative INS drift. The adjusted variation is then fed into 
+the Coordinate Accumulation block, where it is added to the 
+Preceding Position to calculate the new absolute coordinates. 
+This new coordinate then loops back to serve as the preceding 
+position for the next time step. 
+Finally, the accumulated position sequence is processed 
+through the Savitzky-Golay Filter block for trajectory 
+smoothing and denormalization. This final filtering step 
+eliminates sharp, physically impossible positional jumps, 
+ensuring the reconstructed flight path achieves maximal 
+precision and continuity before outputting the final Predicted 
+Coordinates. 
+363
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:46 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+ 
+Fig. 3. TransGAN Coordinate Prediction Process 
+IV. 
+EXPERIMENTS AND RESULTS 
+A. Experimental Setup 
+The TransGAN model was trained and evaluated using a 
+real-world GPS trajectory acquired in central Hanoi via a 
+NEO-M8N module. The 75-minute flight yielded over 3,000 
+coordinate points at a 1 Hz update frequency. To address 
+signal anomalies and receiver errors, the raw data underwent 
+filtering and smoothing (as detailed in III.A) to preserve 
+trajectory integrity. Subsequently, to simulate adverse 
+operational environments, specific segments of the processed 
+trajectory 
+were 
+intentionally 
+subjected 
+to 
+simulated 
+interference and complete signal outages (as depicted in Fig. 
+4), forming the foundational scenarios for the navigation 
+experiments. While this single handcrafted trajectory dataset 
+effectively serves as an initial proof-of-concept to validate the 
+TransGAN 
+coordinate 
+generation 
+framework, 
+we 
+acknowledge that it limits the immediate generality of our 
+conclusions. Extensive testing across diverse public UAV 
+datasets and varied topographical environments remains a 
+primary focus for our future research. 
+ 
+Fig. 4. Simulation of Flight Path with Jamming and Signal Loss Segments 
+B. Application of TransGAN Model to Navigation and 
+Positioning 
+As shown in Figure 4, when the GPS signal is interrupted, 
+the entire system switches from training mode to prediction or 
+inference mode. Measured INS values (i.e., velocity along 3 
+axes) are transmitted to the trained TransGAN network model 
+with inputs including 3-dimensional spatial position: 
+longitude (LON), latitude (LAT), and altitude (ALT) from 
+points prior to signal interruption. Inertial INS signals 
+obtained and the time interval between coordinate points 
+( 56738_3 ) are normalized using the Min-Max method 
+(MinMaxScaler) separately for each component.  
+1) Applying TransGAN Model to Signal Interference 
+Problem 
+a) Implementing Interference Model: As depicted by 
+the yellow trajectory in Figure 5, this scenario simulates a 
+UAV encountering a GPS-degrading environment (e.g., 
+urban canyons or active jamming). The 1,200-point dataset is 
+partitioned into a Training Set (initial 900 points comprising 
+optimal GNSS and INS data), a Signal Interference Set 
+(subsequent 100 points), and an Orientation Set (final 200 
+points). In the Signal Interference Set, unlike a complete 
+blackout, GNSS data is still partially available but heavily 
+degraded and corrupted by Gaussian noise, serving as a low-
+reliability reference alongside the INS data. The model is 
+trained to process this noisy GNSS/INS fusion to maintain 
+trajectory accuracy. Furthermore, the Orientation Set 
+provides target directional vectors (waypoints). These 
+predefined waypoints are utilized by the adaptive step 
+adjustment mechanism to calculate the remaining distance 
+and correct cumulative drift during the reconstruction process  
+b) Evaluating Model Results in Interference Case: In 
+this section, parameters are utilized to compare and evaluate 
+the effectiveness of the TransGAN model in positioning and 
+navigating coordinates for unmanned aerial vehicles. 
+As depicted in Figure 5, the density curves for generated 
+and 
+real 
+coordinates 
+exhibit 
+significant 
+overlap, 
+demonstrating 
+TransGAN's 
+proficiency 
+in 
+trajectory 
+reconstruction. Latitude (LAT) and altitude distributions are 
+highly similar to the ground truth. While longitude (LON) 
+effectively captures the overall pattern, a slight rightward shift 
+indicates a marginal eastward deviation. Quantitatively, 
+TransGAN’s performance was benchmarked against Multi-
+Layer Perceptron (MLP), Wavelet Neural Network (WNN), 
+and Kalman Filter (KF) models [15], [16], [17]. As 
+consolidated in the "Signal Interference" section of Table 1, 
+TransGAN consistently yields significantly lower Mean 
+Absolute Error (MAE) and Standard Deviation (SD) for 
+spatial coordinates compared to the baseline methods. 
+ 
+Fig. 5. Graph Representing Quality of Generated Coordinates 
+2) Applying TransGAN Model to Complete Signal Loss 
+Problem 
+ 
+364
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:46 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+a) Implementing Problem Conditions: This scenario 
+simulates a UAV navigating a completely GNSS-denied zone 
+where traditional Return-to-Home (RTH) mechanisms fail. 
+The dataset is partitioned into a Training Set (initial 2,100 
+points), a Complete Signal Loss Set (subsequent 100 points), 
+and an Orientation Set (final 273 points). In stark contrast to 
+the interference scenario, the Complete Signal Loss Set 
+assumes a total GNSS blackout. Here, Gaussian noise is 
+injected into the retained INS signals to emulate realistic 
+sensor inaccuracies, and the TransGAN model must 
+reconstruct the trajectory relying exclusively on these noisy 
+INS signals and the last known valid coordinates. The 
+Orientation Set again provides the necessary target 
+destination waypoints to guide the generative process and 
+prevent the simulated flight path from diverging wildly from 
+the intended mission route.  
+b) Evaluating Model Quality and Error: In this section, 
+results are compared and processed against original data to 
+evaluate the accuracy and completeness of the model, as well 
+as compared with errors of models deployed in other studies. 
+Under conditions of complete GNSS denial, Figure 6 
+illustrates that the generated coordinates continue to closely 
+approximate the ground truth. LAT maintains the highest 
+graphical 
+alignment, 
+despite 
+minor 
+secondary 
+peak 
+suppression (0.0075–0.0082) caused by the Savitzky-Golay 
+smoothing algorithm. LON accurately captures the primary 
+directional movement, though a slight leftward shift suggests 
+marginal underestimation. Conversely, the model struggles to 
+replicate the multimodal nature of altitude, generating a single 
+primary peak rather than two. As cross-referenced in the 
+"Complete Loss" section of Table 1, comparative assessment 
+confirms that TransGAN yields substantially lower MAE and 
+SD for both LAT and LON compared to the baseline models 
+[15], [16], [17]. While altitude exhibits comparatively higher 
+deviations, this limitation can be mitigated via future hardware 
+Kalman Filter (KF) integration. 
+Given the limited size of the initial handcrafted dataset, 
+training a Transformer-based GAN architecture inherently 
+raises valid concerns regarding overfitting and model 
+memorization. To effectively mitigate this, the dynamic 
+injection of Gaussian noise into the INS data serves a critical 
+dual purpose in our methodology: it not only emulates realistic 
+environmental sensor degradation but also acts as a 
+continuous data augmentation technique. By exposing the 
+network to varied noise distributions across training epochs, 
+the Generator is forced to learn the underlying kinematic 
+constraints rather than merely memorizing the finite training 
+samples. This technique significantly enhances the model's 
+generalization capability despite the restricted data volume. 
+Nevertheless, validating this proof-of-concept framework on 
+large-scale, diverse public UAV trajectory datasets remains a 
+primary objective for future comprehensive evaluations. 
+ 
+Fig. 6. Distribution of Generated and Real Coordinate Data 
+C. Computational Complexity and Hardware Feasibility 
+To determine the feasibility of deploying the proposed 
+TransGAN model on resource-constrained UAV companion 
+computers, we evaluated its computational complexity. The 
+lightweight design of our Transformer-based architecture 
+requires approximately 0.355 million parameters. The 
+computational cost is evaluated at 0.0007 Giga-FLOPS 
+(GFLOPS), which is significantly lower than large-scale 
+vision transformers and well-suited for embedded systems. 
+Furthermore, the average inference speed for generating a 
+single spatial coordinate update (Δ/0123204) was measured at 
+2.69 milliseconds (ms) per step. Given that the typical GPS 
+update frequency for UAV navigation is 1 Hz (1000 ms per 
+cycle), our model's inference speed is well within the real-time 
+operational constraints. These metrics confirm that the 
+proposed TransGAN methodology is highly practical and can 
+be effectively executed on onboard UAV edge devices, such 
+as NVIDIA Jetson Nano or Raspberry Pi, without causing 
+latency bottlenecks. 
+V. 
+CONCLUSION AND FUTURE DEVELOPMENT 
+A. Conclusion 
+This study proposes a hardware-efficient, TransGAN-
+based navigation algorithm that utilizes standard UAV GPS 
+modules (e.g., NEO-M8N) to ensure continuous operation in 
+GNSS-denied or heavily jammed environments, effectively 
+circumventing forced landings and RTH protocols. While the 
+current framework achieves acceptable operational accuracy, 
+its precision remains constrained by inherent sensor errors, 
+environmental factors, and a simplistic INS architecture. 
+Future iterations will integrate advanced multi-axis IMUs 
+(accelerometers and gyroscopes) to diversify input data and 
+mitigate these structural limitations, ultimately targeting high-
+precision, robust navigation with error margins restricted to a 
+mere few meters. 
+B. Future Development 
+To advance this research toward practical deployment, 
+future work will focus on three primary avenues. First, 
+enhancing the hardware and data foundation by integrating 
+multi-axis IMU sensors to minimize device errors , alongside 
+expanding the training dataset across diverse topographies 
+(e.g., urban canyons, forests, and mountainous terrains) to 
+improve 
+model 
+generalization. 
+Second, 
+algorithmic 
+refinement will involve exploring advanced generative 
+TABLE I.  
+COMPARISON OF MAE AND SD ERRORS ACROSS MODELS UNDER SIGNAL INTERFERENCE AND COMPLETE LOSS CONDITIONS 
+Scenario 
+Parameter 
+TransGAN (MAE / SD) 
+MLP (MAE / SD) 
+WNN (MAE / SD) 
+KF (MAE / SD) 
+Signal Interference 
+LAT 
+4e-05 / 7.1e-05 
+0.0027 / 0.0016 
+0.0045 / 0.0037 
+0.0056 / 0.004 
+LON 
+6.6e-05 / 9.8e-05 
+0.0038 / 0.0024 
+0.0001 / 0.0002 
+0.0001 / 0.000 
+HEL 
+0.184 / 0.3643 
+0.008 / 0.0049 
+0.0057 / 0.0048 
+0.007 / 0.005 
+Complete Loss 
+LAT 
+0.000153 / 0.000063 
+0.0027 / 0.0016 
+0.0045 / 0.0037 
+0.0056 / 0.004 
+LON 
+0.000165 / 0.000205 
+0.0038 / 0.0024 
+0.0001 / 0.0002 
+0.0001 / 0.000 
+HEL 
+0.225546 / 0.254919 
+0.007995 / 0.00492 
+0.00572 / 0.00481 
+0.007011 / 0.005 
+365
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:46 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+frameworks, such as TimeGAN and Diffusion Models, to 
+synthesize smoother and more realistic temporal sequences. 
+Finally, future efforts will transition to real-world deployment 
+by embedding the model directly into UAVs for field testing 
+in complex signal environments, such as military or densely 
+populated zones. Furthermore, the system's applicability can 
+be extended by modulating the generated data into I/Q signals 
+for external GPS receivers and developing spoofing signal 
+generation for electronic warfare countermeasures. 
+REFERENCES 
+[1] S. F. Wu, X. Xiao and Q. G. Ding, “Adversarial sparse transformer for 
+time series forecasting,” in Proc. 34th Conf.on Neural Information 
+Processing Systems (NeurIPS), Vancouver, Van, Canada, pp. 43–47, 
+2020. 
+[2] F. Zhou, L. Y. Liang and P. Lin, “Research on INS/GNSS/RADAR 
+integrated navigation with covariance intersection fusion,” Aerospace 
+Control, vol. 39, no. 4, pp. 22–27, 2021. 
+[3] C. Y. Wang, C. Xu and X. Yao, “Evolutionary generative adversarial 
+networks,” IEEE Transactions on Evolutionary Computation, vol. 33, 
+no. 6, pp. 921–934, 2020 
+[4] J. Li, N. F. Song, G. L. Yang and M. Li, “Improving positioning 
+accuracy of vehicular navigation system during GPS outages utilizing 
+ensemble learning algorithm,” Information Fusion, vol. 35, no. 3, pp. 
+1–10, 2017. 
+[5] Carrano, C.S., Groves, K.M., "The GPS Segment of the AFRL-
+SCINDA Global Network and the Challenges of Real-Time TEC 
+Estimation in the Equatorial Ionosphere," Proceedings of the 2006 
+National Technical Meeting of The Institute of Navigation, Monterey, 
+CA, January 2006, pp. 1036-1047. 
+[6] D. Roy, T. Mukherjee, A. Riden, J. Paquet, E. Pasiliao and E. Blasch, 
+"GANSAT: A GAN and SATellite Constellation Fingerprint-Based 
+Framework for GPS Spoof-Detection and Location Estimation in GPS 
+Deprived Environment," in IEEE Access, vol. 10, pp. 45485-45507, 
+2022, 
+[7] Noureldin, A., Karamat, T.B., Georgy, J. (2013). INS/GPS Integration. 
+In: Fundamentals of Inertial Navigation, Satellite-based Positioning 
+and their Integration. Springer, Berlin, Heidelberg. 
+[8] A. Creswell, T. White, V. Dumoulin, K. Arulkumaran, B. Sengupta and 
+A. A. Bharath, "Generative Adversarial Networks: An Overview," in 
+IEEE Signal Processing Magazine, vol. 35, no. 1, pp. 53-65, Jan. 2018. 
+[9] I. J. Goodfellow, J. Pouget-Abadie, M. Mirza, B. Xu and F. David, 
+“Generative adversarial networks,” Advances in Neural Information 
+Processing Systems, vol. 3, no. 2, pp. 2672–2680, 2014. 
+[10] D. Fudenberg, F. Drew, D. K. Levine, and D. K. Levine, “The Theory 
+of Learning in Games”, vol. 2. Cambridge, MA, USA: MIT Press, 
+1998. 
+[11] K. S and M. Durgadevi, "Generative Adversarial Network (GAN): a 
+general review on different variants of GAN and applications," 2021 
+6th International Conference on Communication and Electronics 
+Systems (ICCES), Coimbatre, India, 2021 
+[12] Li, X., Metsis, V., Wang, H., Ngu, A.H.H. “TTS-GAN: A 
+Transformer-Based Time-Series Generative Adversarial Network” In: 
+Michalowski, M., Abidi, S.S.R., Abidi, S. (eds) Artificial Intelligence 
+in Medicine. AIME 2022 
+[13] Y. Dong, X. Xu and C. Gao, "Trans-GAN network for image super-
+resolution reconstruction," 2022 IEEE International Conference on 
+Signal Processing, Communications and Computing (ICSPCC), Xi'an, 
+China, 2022 
+[14] Y. Jiang, S. Chang and Z. Wang, “TransGAN: Two pure transformers 
+can make one strong GAN, and that can scale up,” in Proc. 35th Conf. 
+on Neural Information Processing Systems (NeurIPS), Montreal, MTL, 
+Canada, 2021. 
+[15] Honghui Qi and J. B. Moore, "Direct Kalman filtering approach for 
+GPS/INS integration," in IEEE Transactions on Aerospace and 
+Electronic Systems, vol. 38, no. 2, pp. 687-693, April 2002 
+[16] H. Kong, S. Cho and E. Kim, "GPS First Path Detection Network 
+Based on MLP-Mixers," in IEEE Transactions on Wireless 
+Communications, vol. 21, no. 9, pp. 7764-7777, Sept. 2022, 
+[17] X. Wei et al., "A Mixed Optimization Method Based on Adaptive 
+Kalman Filter and Wavelet Neural Network for INS/GPS During GPS 
+Outages," in IEEE Access, vol. 9, pp. 47875-47886, 2021 
+ 
+366
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:03:46 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

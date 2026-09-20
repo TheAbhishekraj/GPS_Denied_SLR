@@ -1,0 +1,1587 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0814.pdf
+sha256: C5E53013FFB3213A2BF67637BEF280CE6937CF50D13C68F5E50D1243F42DC4C8
+library: pymupdf (fitz) v1.28.2
+pages: 13
+=== BEGIN ===
+[p.1]
+Monocular Vision Aided Autonomous UAV
+Navigation in Indoor Corridor Environments
+Ram Prasad Padhy
+, Feng Xia
+, Senior Member, IEEE,
+Suman Kumar Choudhury, Pankaj Kumar Sa
+, Member, IEEE, and Sambit Bakshi
+, Member, IEEE
+Abstract—Deployment of autonomous Unmanned Aerial Vehicles (UAV) in various sectors such as disaster hit environments,
+industries, agriculture, etc., not only improves productivity but also reduces human intervention resulting in sustainable beneﬁts. In this
+regard, we present a model for autonomous navigation and collision avoidance of UAVs in GPS-denied corridor environments. In the
+ﬁrst stage, we suggest a fast procedure to estimate the set of parallel lines whose intersection would yield the position of the vanishing
+point (VP) inside the corridor. A suitable measure is then formulated based on the position of VP on the intersecting lines in reference to
+any of the image boundary axes. The knowledge of VP location alongside the formulated mechanism govern the necessary set of
+commands to safely navigate the UAV avoiding any collision with the side walls. Furthermore, the relative Euclidean distance scale
+expansion of matched scale-invariant keypoints in a pair of frames is taken into account to estimate the depth of a frontal obstacle;
+usually a wall at the end of the corridor. However, turbulence in the UAV arising due to its rotors or other external factors such as wind
+may introduce uncertainty in depth estimation. It is rectiﬁed with the help of a constant velocity aided Kalman ﬁlter model. Necessary
+set of control commands are then generated to avoid the frontal wall before collision. Exhaustive experiments in different corridors
+reveal the efﬁcacy of the proposed scheme.
+Index Terms—Collision avoidance, monocular vision, vanishing point, UAV navigation, scale-invariant features, Kalman ﬁlter
+Ç
+1
+INTRODUCTION
+S
+USTAINABLE robotics is an emerging area of research,
+which deals with the deployment of energy efﬁcient robots
+in the ﬁelds of scientiﬁc research, geology, renewal energy,
+agriculture, and many more. It poses an exciting challenge,
+where researchers from around the world can equally contrib-
+ute and beneﬁt. Development of Unmanned Aerial Vehicles
+(UAV), popularly known as drones, is turning out to be a great
+ally of sustainability. UAVs with on-board camera(s) can be
+used to analyze real-time video data of disaster hit environ-
+ments, such as ﬂoods, earthquake affected areas, forest ﬁre etc.
+from a remote location. This in turn helps in taking reasonable
+decisions before hand, and thereby saves time and energy.
+Furthermore, UAVs with the power of autonomy acts as an
+additive for attaining sustainability.
+Autonomous navigation of UAVs with collision avoidance
+has been a key area of research in the ﬁeld of robotics and
+computer vision. It has enormous applications in both
+public and private sectors such as, aerial surveillance, search
+and rescue movements, militarily applications, disaster
+management, intelligent transportation, precision agriculture,
+and so forth. Also, UAVs can venture to places, where
+humans cannot and collect video data for further understand-
+ing. The data accumulated by the UAVs are used for scientiﬁc
+studies and launch alerts whenever necessary, thus assists a
+great deal towards sustainability. However, a robust collision
+avoidance algorithm with autonomous navigation is essential
+to carry out the desired tasks with absolute aplomb.
+In general, most of the UAVs are equipped with in-built
+GPS technology, which acts as a reliable sensor in maintain-
+ing the precise pose of the UAV in unknown outdoor envi-
+ronments [1], [2], [3], [4], [5]. However, in indoor scenarios,
+the GPS precision is very low or the GPS signal is not pres-
+ent at all, and thereby cannot be relied upon for obtaining
+the precise pose. Hence, in these scenarios, proximity sen-
+sors are utilized to carryout the task of autonomous naviga-
+tion [6], [7], [8]. However, most of the proximity sensors,
+such as LIDARs are high power-consuming and heavy-
+weight sensors, and hence these are more suitable for
+ground-based vehicles as compared to UAVs.
+Autonomous UAV navigation with monocular vision [9],
+[10], [11], [12], [13], [14], [15] is an emerging, yet more chal-
+lenging task. This paper presents a monocular vision aided
+method to navigate a UAV safely inside corridor environ-
+ments. The UAV is equipped with a forward facing camera
+and the video extracted from this camera is processed to gen-
+erate the next set of control commands for safe autonomous
+navigation. It may be noted that the forward facing camera of
+the UAV is the only sensor that is used by our algorithm for
+accomplishing the task. The whole method is a two stage pro-
+cess occurring sequentially:
+
+R. P. Padhy, S. K. Choudhury, P. K. Sa, and S. Bakshi are with the
+Department of Computer Science and Engineering, National Institute of
+Technology, Rourkela, Odisha 769008, India. E-mail: {ramprasad.nitr,
+sumanchoudhury.nitr, sambitbaksi}@gmail.com, pankajksa@nitrkl.ac.in.
+
+F. Xia is with the School of Software, Dalian University of Technology,
+Dalian 116620, China. E-mail: f.xia@ieee.org.
+Manuscript received 31 Aug. 2017; revised 24 Dec. 2017; accepted 19 Feb.
+2018. Date of publication 1 Mar. 2018; date of current version 6 Mar. 2019.
+(Corresponding author: Sambit Bakshi.)
+Recommended for acceptance by M. Qiu and S.-Y. Kung.
+For information on obtaining reprints of this article, please send e-mail to:
+reprints@ieee.org, and reference the Digital Object Identiﬁer below.
+Digital Object Identiﬁer no. 10.1109/TSUSC.2018.2810952
+96
+IEEE TRANSACTIONS ON SUSTAINABLE COMPUTING,
+VOL. 4,
+NO. 1,
+JANUARY-MARCH 2019
+2377-3782  2018 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission.
+See ht_tp://www.ieee.org/publications_standards/publications/rights/index.html for more information.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+(a)
+avoid collision with the side walls.
+(b)
+at the end of the corridor, detect and avoid the fron-
+tal obstacle, usually a wall.
+The ﬁrst task is achieved with the help of a fast vanishing
+point algorithm, while for accomplishing the second task,
+scale-invariant features are used. This obstacle avoidance
+algorithm can be used in many applications, such as intelli-
+gent transportation, navigation inside collapsed buildings
+for monitoring purpose etc. Autonomous navigation of a
+UAV inside a corridor is shown in Fig. 1.
+Overview of the Solution Strategy. The proposed sys-
+tem architecture, as shown in Fig. 2, comprises two major
+components: a UAV and a vision module (VM). Communi-
+cation between the two components is achieved by means
+of wireless LAN, generated by the UAV. The video from the
+UAV front camera is ﬁrst extracted and then processed by
+the VM on a frame-by-frame basis. In the ﬁrst stage, VM
+tries to ﬁnd the vanishing point and depending on its rela-
+tive position on the image plane with reference to any of the
+image boundary axes, the next set of control commands are
+generated to avoid collision with the side walls. In the sec-
+ond stage, at the end of the corridor, VM estimates the
+depth of the frontal obstacle (usually a wall) based on the
+scale-invariant visual features extracted from the video
+frames. Noisy depth measurements arising due to turbu-
+lence in the UAV is rectiﬁed by means of a Kalman ﬁlter
+model. The corrected depth value is then utilized to design
+the next set of control commands to avoid the frontal wall
+before collision. The internal PID controller of the UAV is
+responsible for modifying the control commands (change in
+yaw, roll and pitch values).
+Contributions. The contributions of our proposed work
+can be summarized as follows:
+(a)
+We propose a monocular vision aided fast novel
+method to locate the vanishing point of the corridor
+on a frame-by-frame basis on the 2D image plane.
+Fig. 1. UAV is navigating autonomously inside a GPS-denied corridor
+environment. While navigating, it has to avoid collision with the side
+walls, and at the same time, it should cease its motion before colliding
+with the frontal wall present at the end of the corridor.
+Fig. 2. The proposed system architecture with two major components: UAV Module and a Vision Module (VM). The video feed from the UAV front
+camera is transmitted on a frame-by-frame basis to the VM via Robot Operating System (ROS) interface for further processing. VM ﬁrst tries to locate
+the position of the vanishing point in each frame with the proposed fast algorithm (Section 3.1). The relative position of the vanishing point on the
+image plane with respect to any of the image boundary axes is then utilized to devise an algorithm for deriving the next set of control commands that
+will ensure safe navigation of the UAV through the corridor without colliding with the side walls (Section 3.2). Once the vanishing point could not be
+located, our algorithm utilizes the scale invariant visual features to avoid the collision with the frontal obstacle; usually a wall at the end of the corridor
+(Section 3.3).
+PADHY ET AL.: MONOCULAR VISION AIDED AUTONOMOUS UAV NAVIGATION IN INDOOR CORRIDOR ENVIRONMENTS
+97
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+(b)
+An algorithm is then designed, based on the knowl-
+edge of vanishing point location alongside a formu-
+lated measure, to generate the required set of control
+commands for safe and secured navigation of the
+UAV without colliding the side walls.
+(c)
+At the end of the corridor, an algorithm based on scale-
+invariant features is applied to estimate the depth of
+the frontal wall. However, depth value might be noisy
+owing to the turbulence in the UAV, caused due
+to wind and its rotors. A constant velocity aided 1D-
+Kalman ﬁlter is then employed to rectify noisy depth
+measurements. Depending on the rectiﬁed depth, next
+set of essential control commands are designed to
+avoid the frontal collision well before time.
+(d)
+Efﬁcacy of the proposed algorithm is demonstrated
+by navigating a UAV in GPS-denied indoor corridors
+with varying dimensions.
+Rest of the paper is organized as follows. Section 2
+presents an overview of the prior research. Section 3 delin-
+eates the proposed methodology followed by a detailed
+elaboration on the proposed collision avoidance method.
+The experimental results are discussed in Section 4. Finally,
+Section 5 provides the concluding remarks.
+2
+RELATED WORK
+Quite a signiﬁcant amount of work on autonomous UAV
+navigation in varying environments have been reported in
+the recent past. The sensors utilized by different navigation
+methods vary according to the application and availability.
+Hence, depending upon the use of sensors, the prior work
+in this ﬁeld can broadly be grouped into two major catego-
+ries: (a) Proximity sensors, such as LIDAR, and (b) Vision
+sensors, such as monocular or stereo cameras.
+Proximity Sensors. These sensors usually employ the elec-
+tromagnetic radiations, such as infrared rays to detect the
+obstacles in the environment. Few of the research works have
+reported the use of LIDAR and ultrasonic sensors to measure
+the distance of the obstacle from the UAV [16], [17], [18]. How-
+ever, the constrained pay-load of the light-weight UAVs make
+it infeasible to install laser range-ﬁnders and over-whelming
+weight sensors. Cruz and Scherer applied the Harmonic func-
+tions to model the UAV goal position and the obstacles with
+help of on-board proximity sensors, and thereby avoided the
+presence of local minima [19]. Chen et al. recorded the data
+from several IMU readings and ultrasonic sensors to create a
+SLAM system that maps the environment using an android
+application [20]. Stubblebine et al. proposed a laser-light
+guided algorithm for obstacle detection followed by the use
+of LIDAR to combine the present data with the previous read-
+ings [21]. Roberts et al. [22] used a Kalman ﬁlter model along
+with the readings from an ultrasonic sensor to precisely esti-
+mate the UAV pose in GPS-denied environments. In their
+work, at each feasible location, the UAV estimates a favorable
+path based on the observation density, calculated from an
+existing map. However, proximity sensors are not always a
+good choice for obstacle detection, because of their heavy
+weight and high power consumption, and also create mount-
+ing problem in UAVs.
+Vision Sensors. These light-weight sensors are ideal
+replacements for obstacle detection because of the property
+of low power consumption. The modern UAVs usually
+employ the vision sensors for obstacle avoidance and naviga-
+tion task. For instance, a UAV with a pair of cameras, usually
+apply the parallax of stereo vision to obtain the depth infor-
+mation that governs the UAV movement [23], [24], [25].
+However, the computational cost with two cameras some-
+times troubles the algorithm to work in real time. Subse-
+quently, UAV navigation with monocular vision (using one
+camera only) becomes an emerging, yet more challenging
+task. Most of the monocular vision based collision avoidance
+systems apply cues like optical ﬂow, visual odometry to
+sense the obstacles in the vicinity of a robot [9], [11], [12],
+[13], [14], [15]. He et al. applied the motion ﬁeld data of the
+camera and other IMU readings of the UAV to precisely
+assess the ego-motion parameters to ﬁne-tune the motion
+estimates [26]. Achtelik et al. employed the IMU measure-
+ments in co-ordination with the vision data of the front cam-
+era to subdue the effect of less-frequent vision updates,
+where the accurate scale of the pose is estimated using a pres-
+sure sensor [27]. Sa et al. developed an autonomous PID con-
+troller algorithm using Parallel Tracking and Mapping
+(PTAM) and Kalman ﬁlter [15]. Lioulemes et al. proposed a
+vanishing point based algorithm for autonomous navigation
+of UAV in indoor corridors [28]. Engel et al. employed a
+monocular SLAM technique to approximate the UAV pose
+and integrated the results with an extended Kalman ﬁlter
+to compensate the communication delay. They further
+designed a PID controller algorithm to autonomously navi-
+gate the UAV without any collision [29], [30]. In another
+work, Wang et al. introduced a learning based optical ﬂow
+method for UAV navigation [13]. Carranza et al. imple-
+mented a method based on visual odometry for controlling
+and localizing the UAV in GPS-denied environments [14].
+Bills et al. proposed an autonomous UAV navigation algo-
+rithm for avoiding collision in different indoor environments
+such as corridors, staircases and closed rooms using single
+image perspective cues [31]. Martins et al. utilized the video
+from a static monocular camera to navigate the UAV in
+unknown indoor environments [32] with the help of door
+detection at the end of the corridor using image processing
+techniques. A group of researchers from Czech Technical
+University in Prague utilized the inputs from a monocular
+camera and odometry to develop a navigation system based
+on dead-reckoning and histogram voting scheme [33].
+Another group of researchers utilized the visual features and
+their scale change to estimate the distance from the frontal
+obstacle [11], [12], [34].
+Our current work utilizes the video from the front camera
+to safely navigate the UAV in indoor corridor environments.
+Unlike existing methods, where multiple sensors are emp-
+loyed to accomplish the task of autonomous navigation, our
+proposed method uses only a monocular static camera. Apart
+from using the front facing camera, other sensors are neither
+used nor any extra sensors are added to the UAV for carrying
+out the task of obstacle detection and safe navigation.
+3
+PROPOSED METHODOLOGY
+In this article, we present a collision avoidance algorithm for
+autonomous UAV navigation through a corridor. In other
+words, the UAV, in motion, should be able to navigate
+98
+IEEE TRANSACTIONS ON SUSTAINABLE COMPUTING,
+VOL. 4,
+NO. 1,
+JANUARY-MARCH 2019
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+without any collision to the side walls, at the same time,
+detect and avoid the frontal obstacle at the end of the corri-
+dor. The overall task, using the proposed approach, can be
+achieved using the following steps:
+a.
+Prior knowledge: Estimating the position of vanishing
+point in each processed frame.
+b.
+Collision avoidance against side walls: An algorithm is
+designed to guide the appropriate direction for the
+ﬂying UAV based on the knowledge of vanishing
+point on the 2-D image plane and a formulated
+measure.
+c.
+Collision avoidance against front-wall: An algorithm is
+designed to estimate the depth of a frontal obstacle
+from the current position of the ﬂying UAV, inspired
+by the perspective vision principle, to cease the
+motion before hitting the corridor end.
+3.1
+Vanishing Point Estimation
+Vanishing point (VP) is a point, present at inﬁnity, at which
+all the parallel lines intersect. In other words, it can be said
+that the lines having same directional vector in 3D will con-
+verge to the same VP. If the camera axes are parallel to the
+the 3D world co-ordinate system, the lines parallel to
+the axis which is perpendicular to the camera plane will
+converge at the inﬁnity, i.e., the VP. VP formation inside a
+corridor is depicted with the help of Fig. 3.
+Earlier schemes usually apply the least-square paradigm
+that requires matrix inversion to obtain the position of
+VP [28], a time consuming process. In addition, lack of
+sufﬁcient input lines often create the rank-deﬁciency ill-pose
+problem. In our work, we present a simple, yet fast method to
+compute the position of VP on a 2-D image plane. The steps
+required for VP estimation are as follows:
+(a)
+Convert the input RGB image to its gray equivalent.
+(b)
+Reduce the noise content by applying Gaussian blur.
+(c)
+Extract the set of parallel lines intersecting at inﬁnity: The
+suitable candidates for the set of required parallel
+lines, in a corridor environment, correspond to the
+intersections of the side walls with the ﬂoor and the
+roof as these lines have a high probability of intersect-
+ing perpendicularly with the image plane. To accom-
+plish this task, we ﬁrst apply the popular Canny edge
+detector on the top one-third portions of the image as
+well as on the bottom one-third portions of the image
+that yield a binary map with a set of edges. However,
+these edges are discontinuous and random. Therefore,
+the Hough line transform is applied on the binary
+map to acquire a set of perspective lines. Hough line
+transform uses the polar coordinate system
+r; a
+ð
+Þ
+to represent a line on the image plane, given by
+x cos a þ y sin a ¼ r, where r represents the length of
+the perpendicular drawn from the origin onto the line
+and a represents the angle made by the perpendicular
+with positive X-axis. Pictorial representation of Hough
+line transform is depicted in Fig. 4.
+It can be noticed from the ﬁgure that the direction of
+Y-axis on image co-ordinate system differs by 180
+from the standard Cartesian co-ordinate system. The
+set of Hough lines are then grouped into two classes:
+positive-slopped-lines (lines with slope of the perpendic-
+ular > 0, i.e., 0  a < 90), and negative-slopped-lines
+(lines with slope of the perpendicular < 0, i.e.,
+90  a < 180). However, all the extracted lines do
+not correspond towards the estimation of VP. Hence,
+the outliers need to be removed for a better prediction.
+The outlier lines are discarded based on the following
+conditions:
+Condition 1. In particular, the horizontal and verti-
+cal lines do not play any role in the estimation of VP as
+Fig. 3. Formation of vanishing point inside a corridor environment. The
+blue point represents the vanishing point. It can be deduced that the
+lines in the 3D world co-ordinate system which are perpendicular to the
+image plane and having same direction cosines converge at the inﬁnity
+and form the vanishing point on the image plane.
+Fig. 4. Hough line representation on an image plane.
+PADHY ET AL.: MONOCULAR VISION AIDED AUTONOMOUS UAV NAVIGATION IN INDOOR CORRIDOR ENVIRONMENTS
+99
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+these lines are parallel to image co-ordinate axes.
+Accordingly, we consider only those lines where a lies
+within the following range, decided by means of
+experimental analysis.
+20 < a < 70
+for positive-slopped-lines
+110 < a < 160
+for negative-slopped-lines:
+
+Condition 2. Furthermore, it has been observed
+that VP usually lies in the close proximity of the
+image center. Therefore, we include only those lines
+that pass across a rectangular window taken around
+the image center having h width  height i ¼ 1
+4  h
+input-image-width  input-image-height i. This rect-
+angular window makes sure that the lines which con-
+tribute towards the formation of VP are only
+considered.
+(d)
+Estimation of VP Location: VP lies at the minimum
+distance from all the ﬁltered out Hough lines. We
+propose a fast procedure named Mean Line Method
+(MLM) to estimate the VP. r and a values of all the
+positive-slopped-lines are averaged out to yield a sin-
+gle positive-slopped-line, parameterized by
+rp; ap
+
+
+.
+The same is also applied for all the negative-slopped-
+lines to yield one negative-slopped-line, parameter-
+ized by rn; an
+ð
+Þ. The equations for both the lines are
+given by
+x cos ap þ y sin ap ¼ rp
+for positive-slopped-lines
+x cos an þ y sin an ¼ rn
+for negative-slopped-lines;
+
+where
+ap ¼
+P
+ai
+Np ; rp ¼
+P
+ri
+Np
+for 20 < ai < 70
+an ¼
+P
+ai
+Nn ; rn ¼
+P
+ri
+Nn
+for 110 < ai < 160
+8
+>
+<
+>
+:
+The intersection of these two lines is estimated as the
+Vanishing Point. Mathematically
+VP ¼
+rp sin an  rn sin ap
+sin ðan  apÞ
+; rn cos ap  rp cos an
+sin ðan  apÞ
+
+
+(1)
+where Np and Nn are the number of positive-slopped-lines and
+negative-slopped-lines respectively. As compared to the previ-
+ous method, which uses least-square paradigm [28] and
+matrix inversion to estimate the VP, proposed method is
+very fast.
+3.2
+Autonomous Navigation of UAV through
+Corridor
+The position of the UAV in the real world is directly related
+to the location of VP on the image plane. VP lies close to the
+central vertical line of the image plane, whenever the under-
+lying UAV resides approximately near the median axis of
+the two side walls. However, any signiﬁcant deviation of
+VP from the central-vertical line on the image plane implies
+that the UAV is out-of-track from the desired path and may
+collide against either of the side walls. A typical example
+with three possible scenarios of VP location is depicted in
+Fig. 5. It can be observed that VP lies within the two blue
+vertical lines (safe region) in case-(a), however resides out-
+side in case-(b) and (c). In the latter cases, the vision module
+needs to modify the control commands such that VP will
+move within the secured region.
+Besides the position of VP, another major factor, respon-
+sible for computing the required control commands, is the
+relative position of VP on each of the two intersecting lines
+with respect to a reference axis. Any of the image boundary
+axes can be taken as the reference line. We have taken the
+X-axis as the reference for determining the relative position
+of VP on the intersecting lines. This has been better illus-
+trated in Fig. 6 with four possible scenarios. One end of the
+positive-slopped-line meets the X-axis at Q, whereas the other
+end meets the image plane at R. It has to be carefully
+observed that Q may lie either on the image plane (case-c
+and case-d) or beyond the image plane (case-a and case-b).
+In other words, one end of the intersecting line is allowed to
+go beyond the image boundary to meet the reference axis, if
+necessary. The same scenarios are also reﬂected for the
+negative-slopped-line, where S corresponds to the point of
+intersection of the line with the reference X-axis and T cor-
+responds to the intersection of the line with image plane.
+Let W and H be the width and height of the image plane
+and P(Vx; Vy) be the position of VP at any instant of time.
+We introduce three terms, Positive-slope-line-ratio (PSLR),
+Negative-slope-line-ratio (NSLR), and PSLR-to-NSLR-ratio
+(PTNR), deﬁned below:
+PSLR ¼ PR
+PQ ; NSLR ¼ PT
+PS ; PTNR ¼ PSLR
+NSLR
+The vision module requires the knowledge of two
+parameters for generating the next command: (a) position
+of vanishing point P Vx; Vy
+
+
+, and (b) PTNR. Furthermore,
+the direction of UAV is decided only by the abscissa of VP,
+i.e., Vx. In the best case, VP should lie on the central vertical
+line, given by X ¼ W
+2 , and PTNR should be 1 (one). We
+Fig. 5. Various possible vanishing point locations. C is the center of the image plane and P is the vanishing point. d is the bandwidth of the safe
+region, which is enclosed by two vertical blue lines.
+100
+IEEE TRANSACTIONS ON SUSTAINABLE COMPUTING,
+VOL. 4,
+NO. 1,
+JANUARY-MARCH 2019
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+consider a bounded region enclosed by two vertical lines
+X ¼ W
+2  d, where d deﬁnes the bandwidth of safe region
+within which Vx should lie. In our case, we have taken
+d ¼ 0:04  Image-Width. Similarly, we consider an accept-
+able range for PTNR, given by 1  ; In our work,  is
+experimentally set 0.02. When the UAV is too far from the
+median axis of the two side walls (possible collision sce-
+narios), at least one of the following conditions holds:
+(a)
+Vx > W
+2 þ d,
+(b)
+Vx < W
+2  d,
+(c)
+PTNR  1 þ ,
+(d) PTNR  1  . It may so happen that while maneuver-
+ing, in some cases, VP may not be visible. In such cases,
+for a certain number of frames (f), the UAV will not
+change its direction. We have experimentally set f ¼ 30. If
+the vanishing point continues to remain invisible after that,
+it can be inferred that the vision module could not extract
+the required lines for vanishing point formation as the
+UAV is approaching towards the end of the corridor. At
+this instant of time, an obstacle detection algorithm should
+be employed to measure the depth of the frontal obstacle
+(usually a wall) at the end of the corridor. The possible sce-
+narios of Vx and PTNR are taken into consideration to pre-
+pare a rule base that governs the generation of control
+commands to navigate the UAV within the corridor safe
+region, enumerated in Algorithm 1.
+3.3
+Frontal Collision Avoidance
+Modeling. In perspective vision, whenever the relative dis-
+tance between an object and the center of projection
+decreases, the object size on the image plane increases. The
+relative scale of expansion of an object, being captured in
+successive frames by a front facing camera of UAV, is for-
+mulated to approximate the depth of the obstacle from the
+current position. Consider a UAV that takes t unit of time to
+traverse from one deﬁned location to another with a con-
+stant velocity, and let the size of a head-on object, in the
+camera view, increases from h to s  h, where s being the
+scaling factor. The whole scenario is depicted in Fig. 7.
+Height of the frontal obstacle AB is H0 in 3D world coordi-
+nates. The UAV navigates from position E to C with a con-
+stant velocity v in time t. At the same time, height of the
+frontal object increases from h to sh on the image plane
+(pixel-wise expansion). Let f be the focal length of the static
+pin-hole camera of the UAV, installed at the front.
+It may be observed from Fig. 7 that DABC 	 DDPC and
+DABE 	 DFGE. Therefore,
+DC
+DP ¼ AC
+AB ) f
+sh ¼ AC
+Ho
+and
+FE
+FG ¼ AE
+AB ) f
+h ¼ AE
+Ho
+From the above two equations, it can be deduced that
+s ¼ AE
+AC ) sAC ¼ AE ) sAC ¼ AC þ CE
+) AC ¼ CE
+s  1
+) AC ¼ v  tEC
+s  1
+) AC ¼ v  ðtC  tEÞ
+s  1
+The above equation represents the depth of the UAV
+from the current position C to the frontal obstacle stationed
+at point A. Hence, the ﬁnal equation for depth can be
+expressed as
+DC ¼ v  t
+s  1 ;
+s > 1
+(2)
+where t ¼ tC  tE, indicates the time required by the UAV
+to navigate from position C to A with a constant velocity v.
+However, the above expression assumes that the UAV
+Fig. 6. PSLR and NSLR measures with reference to X-axis.
+PADHY ET AL.: MONOCULAR VISION AIDED AUTONOMOUS UAV NAVIGATION IN INDOOR CORRIDOR ENVIRONMENTS
+101
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+moves with a constant velocity on a straight path. In realis-
+tic situations, we may encounter two major issues as
+described below-
+Algorithm 1. Control Command Generation
+Input: Vanishing point abscissa: Vx,
+PSLR-to-NSLR-ratio: PTNR
+Output: UAV direction: ½pitch; roll; yaw
+Initialisation: Number of frames without vanishing point
+N 0, f Number of threshold frames to
+initiate obstacle avoidance algorithm, UAV
+initial direction Pitch Forward
+1 if Vanishing point not found then
+2
+if N < f then
+3
+Actuate UAV in previous direction
+4
+N N þ 1
+5
+else
+6
+Jump to Algorithm 2 for frontal obstacle avoidance
+7 else
+8
+if 1   < PTNR < 1 þ  then
+9
+if Vx < W
+2  d then
+10
+Actuate UAV in Yaw Left
+11
+else if Vx > W
+2 þ d then
+12
+Actuate UAV in Yaw Right
+13
+else
+14
+Actuate UAV in Pitch Forward
+15
+else if PTNR  1   then
+16
+Actuate UAV in Roll Left
+17
+else if PTNR  1 þ  then
+18
+Actuate UAV in Roll Right
+19
+N 0
+20 return ½pitch; roll; yaw
+Issues:
+(a)
+A pragmatic scenario could be the absence of any
+well-shaped objects at the end of the corridor. In
+most of the indoor environments, the end of a corri-
+dor is usually a wall. Hence it is implausible to detect
+the scale change for estimating depth.
+(b)
+Rotor turbulence and gusty wind may deviate the
+UAV’s ﬂight path from a straight line, hence yielding
+noisy depth measurements.
+Solution:
+(a)
+First issue is resolved with the help of scale-invariant
+keypoints detected on the frontal obstacle. Instead of
+considering the scale change of an object on the
+image plane, relative scale expansion of the Euclid-
+ean distance of scale-invariant keypoints from their
+centroid in a number of frames is considered to esti-
+mate the depth (Fig. 8).
+(b)
+To alleviate the second issue, well-established con-
+stant velocity based 1D-Kalman ﬁlter is employed to
+remove the noisy depth measurements.
+Detailed explanation of above solutions is delineated in
+following sections.
+Depth Estimation with Scale-Invariant Keypoints. The
+premise of our approach lies with the relative increase in the
+Euclidean distance of the matched scale-invariant keypoints
+from their centroid position in the respective frames. In recent
+years, scale invariant visual features such as SIFT [35],
+SURF [36], ORB [37] have gained huge popularity in accom-
+plishing various vision-centric tasks. However, in our work,
+we employ the SURF feature descriptor as it is faster than
+SIFT and more robust than ORB.
+As the UAV approaches an obstacle, the Euclidean dis-
+tance of the keypoints from their centroid position in respec-
+tive frames increases and so the ratio, which is pictorially
+depicted in Fig. 8. If the frame-f occurs before frame-g with
+KPf and KPg denoting their SURF keypoint lists respectively,
+the SURF match between two frames can be expressed as
+Mfg ¼ MatchðKPf; KPgÞ
+Mfg contains the tuple of pair-wise scale invariant key-
+points, one from frame-f and other from frame-g.
+The Euclidean scale for a matched pair of keypoints is
+deﬁned as the ratio of the Euclidean distances of the
+Fig. 7. Pin-hole camera model. Visualizing the relative scale change of
+an object AB, when the UAV moves towards the obstacle with velocity v
+from point E to C.
+Fig. 8. Depth estimation at current frame-g using the SURF matches with frame-f. It may be noted than the frame-f is not necessarily the immediate
+predecessor of frame-g, rather it is a frame among all the previously processed frames in last 1 second and contains maximum number of SURF
+matches with the current frame. Blue keypoints represent the SURF matches and the red point is the centroid of the matched keypoints in respective
+frames. It can be noticed that some of the keypoints (green) are not matched. The Euclidean scale si ¼
+egi
+efi, where efi and egi denote the Euclidean
+distances of the ith matched keypoint from the centroid in respective frames.
+102
+IEEE TRANSACTIONS ON SUSTAINABLE COMPUTING,
+VOL. 4,
+NO. 1,
+JANUARY-MARCH 2019
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+keypoints from the centroid of their respective frames.
+Mathematically, the Euclidean scale for the ith entry in Mfg
+can be deﬁned as:
+si ¼ egi
+efi
+(3)
+where egi and efi denote the Euclidean distances of the ith
+matched keypoint from the centroid of the matched key-
+points in respective frames.
+Our algorithm requires only those matches in Mfg, where
+the Euclidean distance scale can be utilized to estimate a
+valid depth value. Hence, some of the matches are dis-
+carded based on following condition.
+Condition. As the UAV is moving in the forward direc-
+tion, the Euclidean distance of the matched keypoints from
+their centroid in respective frames should increase subse-
+quently and the Euclidean scale must be greater than 1.
+Those matches, where the Euclidean scale is decreasing or
+remaining same will yield an erroneous depth value and
+hence, should be discarded. In other words, if si  1, ith
+match is discarded from Mfg.
+After incorporating the above condition and using only
+the valid Euclidean scale values, the depth equation in (2)
+can be redeﬁned as:
+Dfgi ¼ v  jtg  tfj
+si  1
+(4)
+where Dfgi denotes the depth of the frontal obstacle from
+the current frame g, considering only the ith matched key-
+point from the SURF matches obtained between frame-f
+and frame-g. tf and tg denote the time-stamps for frame-f
+and frame-g respectively. Putting the value of si from (3) in
+(4), the depth equation can be rewritten as:
+Dfgi ¼ v  efi  jtg  tfj
+egi  efi
+(5)
+The representative depth is deﬁned as the depth of the fron-
+tal obstacle from the UAV current position considering all
+the valid matched keypoints. Hence, it is averaged over all
+the depth values. Mathematically:
+Dfg ¼
+1
+jMfgj
+X
+jMfgj
+i¼1
+Dfgi
+(6)
+where Mfg contains only the valid matched keypoint pairs.
+It may be noted that the current frame-g might have
+SURF matches with one or more of the previous frames. In
+our work, we consider only those frames, which were proc-
+essed in last 1 second. Out of those matches, the match hav-
+ing the largest number of entries is considered for the ﬁnal
+depth estimation. The algorithm for depth measurement is
+outlined in Algorithm 2.
+Depth Correction with 1D Kalman Filter. The depth
+estimated in the previous step is based on the assumption
+that the UAV is navigating on a straight line path without
+any deviation. However, in real scenarios, many external
+and internal factors such as wind and rotor turbulence
+might alter the direction slightly from a straight line path,
+giving rise to erroneous depth measurements. In our work,
+we have modeled a constant velocity aided Kalman ﬁlter to
+rectify the noisy measurements.
+Algorithm 2. Depth Measurement at Frame g
+Input: The frame-f is a frame processed in last 1 second and
+has the largest SURF match list with frame -g
+Result: Depth at current frame-g: Dfg
+1 Mfg MatchðKPf; KPgÞ;
+2 Calculate the Euclidean scale si (3) for each entry i in Mfg;
+3 Discard the entry i from Mfg, if si  1;
+4 for each match i in Mfg do
+5
+Evaluate Dfgi by (5);
+6 Compute the representative depth of all jMfgj matched key-
+points as in (6):
+7
+Dfg 
+1
+jMfgj
+PjMfgj
+i¼1 Dfgi ,
+jMfgj 6¼ 0;
+8 return Dfg
+We follow the principles of a 1D-Kalman ﬁlter as there is
+only one state variable to predict. Let D0 be the initial depth
+of the frontal obstacle. If the UAV is navigating with a con-
+stant velocity of v units, the depth after time dt can be iter-
+ated as —
+Di ¼ Di1  ðv  dtÞ
+However, the depth estimated by the above formula is erro-
+neous because of the deviation in path, as discussed above.
+Hence the generative estimate for depth can be written as a
+summation of the estimated depth and a white Gaussian
+noise (w):
+Di ¼ Di1  ðv  dtÞ þ w
+The expectation and variance of Di can be written as:
+^Di ¼ ^Di1  ðv  dtÞ
+s2
+i ¼ s2
+i1 þ s2
+w
+(
+(7)
+From the above equation, it can be inferred that the depth
+can be precisely obtained in future if there is no uncertainty
+(sw = 0). However, in real scenarios, sw > 0 and the pre-
+dicted depth becomes increasingly erroneous as the process
+continues. Hence, the depth measured by our vision algo-
+rithm acts as a perfect catalyst for a better prediction. As the
+depth measured by our vision module is not also accurate,
+it gives rise to another Gaussian noise assumption. The
+measured depth can be written as:
+Xi ¼ Di þ y
+(8)
+where y is the noise caused due to measurement. Equations (7)
+and (8) can be put into the Kalman ﬁlter update equation [38]
+as follows:
+ki ¼
+s2
+i
+s2
+i þs2y
+^D
+0
+i ¼ ^Di þ kiðXi  ^DiÞ
+s
+02
+i ¼ ð1  kiÞs2
+i
+8
+>
+>
+>
+<
+>
+>
+>
+:
+(9)
+where ki is the Kalman gain for ith iteration. The above
+equation formulates the rectiﬁed depth by taking into
+account both the predicted and measured depth values.
+PADHY ET AL.: MONOCULAR VISION AIDED AUTONOMOUS UAV NAVIGATION IN INDOOR CORRIDOR ENVIRONMENTS
+103
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+When ki ¼ 0, there is no trust on predicted data, however if
+ki ¼ 1, there is complete trust.
+Control Command Generation. The VM designs a
+desired control command (change in yaw, pitch and roll
+values) based on the rectiﬁed depth value, and communi-
+cates with the UAV. The UAV PID controller implements
+the modiﬁed command to navigate the UAV safely before it
+collides with the front-wall.
+4
+EXPERIMENTS
+The proposed algorithm is validated in a series of real
+world indoor corridors having varying dimensions. In
+this section, we ﬁrst outline the system setup followed
+by the experiments carried out for collision free indoor
+corridor navigation.
+4.1
+System Setup
+(a)
+The proposed algorithm is validated using a Parrot
+AR Drone power edition quadcopter having one
+front facing static camera, one down facing camera,
+and IMUs like accelerometer and gyroscope.
+(b)
+Apart from using the video from the front facing
+camera, our vision algorithm neither uses the input
+from any other sensor nor extra sensors are used to
+carry out the task of autonomous navigation.
+(c)
+The frames from the front facing camera are re-
+corded at 30 fps with a 92 (ﬁsheye) FoV having
+640  360 frame resolution. The captured ﬁsheye
+frames are then converted to its equivalent rectilin-
+ear form for further processing.
+(d)
+Once the UAV is powered on, it generates its own
+wiﬁzone and the ground based VM is connected to
+it for further communication.
+(e)
+The VM is executed on a ground station having
+Ubuntu 14.04 OS, 4 GB RAM, and 2.4 GHz processor.
+We employed C++ with OpenCV libraries to carry
+out various computer vision tasks. Communication
+between the UAV and the VM is performed via the
+Robot Operating System (ROS)1.
+(f)
+A UAV successfully completes an experiment, if the
+following conditions are satisﬁed:
+
+It navigates through the corridor with no contact
+with the side walls.
+
+It successfully ceases the UAV motion at the end
+of the corridor without hitting the front-wall.
+(g)
+It may be noted that, our vision based obstacle avoid-
+ance algorithm will not work as desirable, when the
+VM exits the wiﬁzone created by the UAV. How-
+ever, our proposed work solely concentrates on
+vision based autonomous navigation rather than the
+inherent hardware and software properties of the
+UAV. Hence, while performing the experiments, we
+made sure that the VM never exits the wiﬁzone cre-
+ated by the UAV.
+(h)
+Although the experiments are carried out with a Parrot
+AR Drone quadcopter, the proposed vision based
+autonomous navigation algorithm will perform for any
+UAV equipped with a forward facing static camera.
+(i)
+All experimental results including the tables, ﬁgures,
+some of the video outputs are uploaded at https://
+sites.google.com/site/monoVisionUAV.
+4.2
+Implementation
+We let the Parrot AR Drone quadcopter ﬂy autonomously
+from a start point inside indoor corridors having varying
+dimensions. A set of corridors used in our experiments is
+delineated in Fig. 9.
+The various steps of vanishing point estimation are
+shown in Figs. 10a, 10b, 10c, 10d, and 10e. An instance of
+the observed corridor view is shown in Fig. 10a. The steps
+carried out for collision free corridor navigation are as
+follows:
+Fig. 9. Various instances of indoor corridors.
+1. https://github.com/AutonomyLab/ardrone_autonomy
+104
+IEEE TRANSACTIONS ON SUSTAINABLE COMPUTING,
+VOL. 4,
+NO. 1,
+JANUARY-MARCH 2019
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.10]
+Step 1 Our proposed model helps in real-time autono-
+mous UAV navigation inside corridor environ-
+ments. The vision module ﬁrst extracts the video
+from UAV front camera on a frame-by-frame basis
+through the ROS interface. One such frame is
+shown in Fig. 10a.
+Step 2 The input RGB image is converted to its gray equiva-
+lent for further processing. A Guassian blur of kernel
+5  5 is applied to the gray image to remove noise in
+the input. The parallel lines in 3D world coordinate
+system, which are perpendicular to the image plane,
+intersect at the inﬁnity to form the vanishing point.
+In a corridor environment, most of those lines appear
+due to the edges formed by the intersection of the
+wall with the ﬂoor and the roof. Hence, the binary
+map, as shown in Fig. 10b, is obtained by applying
+the Canny edge detector on the top and bottom one-
+third portions of the image, however not on the
+middle area.
+Step 3 The Hough line transform on the Canny edge-
+map yields a set of lines (Fig. 10c). The outlier
+lines, which do not play any role in the formation
+of the VP are discarded. The conditions for dis-
+carding the outliers are described in Section 3.1.
+The lines obtained after ﬁltering are shown in
+Fig. 10d. The central green box represents the
+area through which all the lines should pass to
+yield a valid VP.
+Step 4 After removing the outliers, all the positive-slopped-
+lines and negative-slopped-lines are averaged respec-
+tively to yield two resultant lines, whose intersection
+is estimated as the vanishing point, represented by a
+yellow circle in Fig. 10e. The area bounded by two
+vertical pink lines and the image plane deﬁnes the
+safe region, where the VP should ideally lie for safe
+navigation. We have experimentally chosen the band-
+width of the safe region as d ¼ 0:04  Image-Width.
+For our experiments, Image-Width = 640 pixels,
+hence d  26 pixels.
+Step 5 The VP location and the PTNR are responsible
+for navigating the UAV safely in the appropriate
+direction without colliding with the side walls
+(Algorithm 1). This has been suitably depicted in
+Figs. 10f, 10g, 10h, 10i, 10j, 10k, and 10l, and summa-
+rized in Table 1; PTNR measures the ratio of PSLR
+to NSLR. Ideally, when the UAV navigates over the
+median axis of the corridor, PTNR ¼ 1. We have
+experimentally chosen the safe range for PTNR as
+½1  ; 1 þ 
+ and  ¼ 0:02.
+Step 6 When the UAV approaches towards the end of the
+corridor, the VP will not be visible. However, the
+invisibility of the VP might be caused due to some
+erroneous inputs. Hence, in cases where the VP is
+not visible, the UAV will move in the previous direc-
+tion for 30 frames (chosen experimentally). How-
+ever, if the VP continues to remain invisible after
+that, it can be concluded that the UAV is approach-
+ing towards the end of the corridor and the frontal
+collision avoidance algorithm should be employed
+to avoid head-on collision.
+Step 7 SURF scale invariant visual features are utilized to
+estimate the depth of the frontal obstacle (Algo-
+rithm 2); usually a wall at the end of the corridor.
+The noise in depth estimation arising due to different
+factors such as wind and rotor turbulence, is then
+rectiﬁed with the help of a constant velocity aided
+1D-Kalman ﬁlter.
+Fig. 10. (a–e) Various stages of VP estimation and (f–l) possible scenarios of UAV motion.
+PADHY ET AL.: MONOCULAR VISION AIDED AUTONOMOUS UAV NAVIGATION IN INDOOR CORRIDOR ENVIRONMENTS
+105
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.11]
+4.3
+Results and Discussion
+We have conducted experiments on ﬁve different corridor
+environments with 50 trials across each environment.
+It may be noted that there does not exist any publicly avail-
+able standard dataset in this research area. Also, the UAV
+and sensors used by different researchers for the task of col-
+lision avoidance are environment and application depen-
+dent. Hence the results are shown for our own real-time
+ﬂight experiments. We introduce three measures to check
+the efﬁcacy of the proposed algorithm
+(a)
+No Collision Rate (NCR): Measures the percentage of
+times the UAV successfully navigates without hit-
+ting the side walls over the total number of trials.
+(b)
+Full Flight Rate (FFRd): Measures the percentage of
+times the UAV collides the side walls, yet success-
+fully navigates the corridor without ceasing its
+motion, over the total number of trials, depending
+on a threshold d equals to number of collisions with
+the side walls for a single trial. Accordingly, we
+deﬁne the following performance metrics:
+(i)
+FFR2: The percentage of trials where d  2
+(ii)
+FFR5: The percentage of trials where d  5
+(iii)
+FFR5þ: The percentage of trials where d > 5
+(c)
+Obstacle Avoidance Rate (OAR): Measures the percent-
+age of times the UAV successfully detects the front-
+wall at the end of the corridor and ceases its motion
+over the total number of trials.
+The UAV and the vision senor used by our method, and
+the methods proposed by Bills et al. [31] and Lioulemes
+et al. [28] are similar. Also, these are the baseline
+research articles depicting the state-of-the-art in this ﬁeld.
+Hence, we have compared the results by implementing
+their method in our real-world corridor experiments.
+However, their method does not perform collision avoid-
+ance at the end of the corridor. The results of different
+performance
+measures
+in
+various
+environments
+are
+detailed in Table 2.
+5
+CONCLUSION
+In this work, a monocular vision assisted scheme for
+autonomously navigating a UAV in corridor environments
+is proposed. A simple and fast method of vanishing point
+estimation is proposed. An algorithm, based on the posi-
+tion of vanishing point and a formulated measure is pro-
+posed to modify the yaw, pitch, and roll to safely navigate
+the UAV in the close proximity of median axis of the two
+side walls. In addition, a scale invariant feature based
+obstacle avoidance algorithm is also proposed to avoid the
+obstacles/walls present at the end of a corridor. Our
+scheme has been tested under different corridor environ-
+ments and is found to be very robust in terms of No Colli-
+sion Rate, Full Flight Rate, and Obstacle Avoidance Rate.
+As the algorithm uses only the video extracted from front
+camera, it is a good candidate for UAVs with power and
+weight constraints. Also, the proposed model is suitable
+for implementation in disaster hit indoor environments,
+where the human intervention is not advisable, and
+thereby results in sustainability.
+TABLE 1
+UAV Direction Based on Vanishing Point Abscissa (Vx) and PTNR
+Fig. 10
+PSLR
+NSLR
+PTNR
+Vanishing Point Abscissa (Vx)
+Command
+(f)
+0.731
+0.732
+0.9986
+within safe region
+Pitch Forward
+(g)
+0.462
+0.903
+0.5116
+left-side of safe region
+Roll Left
+(h)
+1.062
+0.933
+1.1383
+within safe region
+Roll Right
+(i)
+0.8593
+0.8592
+1.0001
+left-side of safe region
+Yaw Left
+(j)
+0.905
+0.901
+1.0044
+right-side of safe region
+Yaw Right
+(k)
+nan
+nan
+nan
+no VP (only single line)
+Previous Direction
+(l)
+nan
+nan
+nan
+no VP (no line)
+Previous Direction
+(d  26 pixels;  ¼ 0:02)
+TABLE 2
+Various Accuracy Measures for the Proposed Method
+Environment
+Corridor 1
+Corridor 2
+Corridor 3
+Corridor 4
+Corridor 5
+TOTAL
+Number of Trials
+50
+50
+50
+50
+50
+250
+NCR
+Bills et al. [31]
+37 (74%)
+35 (70%)
+33 (66%)
+33 (66%)
+35 (70%)
+173 (69.2%)
+Lioulemes et al. [28]
+37 (74%)
+36 (72%)
+35 (70%)
+34 (68%)
+33 (66%)
+175 (70.0%)
+Proposed
+41 (82%)
+40 (80%)
+45 (90%)
+33 (66%)
+37 (74%)
+196 (78.4%)
+FFR2
+Bills et al. [31]
+40 (80%)
+38 (76%)
+37 (74%)
+36 (72%)
+36 (72%)
+187 (74.8%)
+Lioulemes et al. [28]
+40 (80%)
+37 (74%)
+36 (72%)
+35 (70%)
+35 (70%)
+183 (73.2%)
+Proposed
+45 (90%)
+45 (90%)
+46 (92%)
+37 (74%)
+41 (82%)
+214 (85.6%)
+FFR5
+Bills et al. [31]
+44 (88%)
+40 (80%)
+38 (76%)
+38 (76%)
+37 (74%)
+197 (78.8%)
+Lioulemes et al. [28]
+42 (84%)
+39 (78%)
+38 (76%)
+38 (76%)
+37 (74%)
+194 (77.6%)
+Proposed
+48 (96%)
+47 (94%)
+48 (96%)
+39 (78%)
+44 (88%)
+226 (90.4%)
+FFR5þ
+Bills et al. [31]
+45 (90%)
+42 (84%)
+40 (80%)
+40 (80%)
+39 (78%)
+206 (82.4%)
+Lioulemes et al. [28]
+43 (86%)
+40 (80%)
+40 (80%)
+39 (78%)
+40 (80%)
+202 (80.8%)
+Proposed
+50 (100%)
+50 (100%)
+50 (100%)
+40 (80%)
+45 (90%)
+235 (94.0%)
+OAR
+Proposed
+44 (88%)
+37 (74%)
+43 (86%)
+35 (70%)
+34 (68%)
+193 (77.2%)
+106
+IEEE TRANSACTIONS ON SUSTAINABLE COMPUTING,
+VOL. 4,
+NO. 1,
+JANUARY-MARCH 2019
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.12]
+ABBREVIATIONS
+FFR :
+Full Flight Rate
+FoV :
+Field of View
+GPS :
+Global Positioning System
+IMU :
+Inertial Measurement Unit
+LIDAR :
+Light Detection And Ranging
+NCR :
+No Collision Rate
+NSLR :
+Negative-slope-line-ratio
+OAR :
+Obstacle Avoidance Rate
+ORB :
+Oriented FAST and rotated BRIEF
+PID :
+Proportional Integral Derivative
+PSLR :
+Positive-slope-line-ratio
+PTNR :
+PSLR-to-NSLR-ratio
+ROS :
+Robot Operating System
+SIFT :
+Scale Invariant Feature Transform
+SLAM :
+Simultaneous Localization and Mapping
+SURF :
+Speeded up Robust Features
+UAV :
+Unmanned Aerial Vehicle
+VM :
+Vision Module
+VP :
+Vanishing Point
+ACKNOWLEDGMENTS
+This research work has been partially supported by the fol-
+lowing projects:
+1. Grant Number 1(1)/ISEA-II/PMU/2015 of Information
+Security Education and Awareness (ISEA) Phase-II project
+funded by the Ministry of Electronics and Information Tech-
+nology (MeitY), Government of India.
+2. Grant Number SB/FTP/ETA-0059/2014 by the Science
+and Engineering Research Board (SERB), Department of Sci-
+ence and Technology, Government of India.
+REFERENCES
+[1]
+J. Wendel, O. Meister, C. Schlaile, and G. F. Trommer, “An inte-
+grated GPS/MEMS-IMU navigation system for an autonomous
+helicopter,” Aerosp. Sci. Technol., vol. 10, no. 6, pp. 527–533, 2006,
+doi: 10.1016/j.ast.2006.04.002.
+[2]
+X. Wang, N. Cui, and J. Guo, “INS/VisNav/GPS relative naviga-
+tion system for UAV,” Aerosp. Sci. Technol., vol. 28, no. 1, pp. 242–
+248, 2013, doi: 10.1016/j.ast.2012.11.004.
+[3]
+X. Yun, E. Bachmann, R. McGhee, R. Whalen, R. Roberts,
+R. Knapp, A. Healey, and M. Zyda, “Testing and evaluation of an
+integrated GPS/INS system for small AUV navigation,” IEEE J.
+Ocean. Eng., vol. 24, no. 3, pp. 396–404, Jul. 1999, doi: 10.1109/
+48.775301.
+[4]
+Y. Cui and S. S. Ge, “Autonomous vehicle positioning with GPS in
+urban canyon environments,” IEEE Trans. Robot. Autom., vol. 19,
+no. 1, pp. 15–25, Feb. 2003, doi: 10.1109/TRA.2002.807557.
+[5]
+K. Gryte, J. M. Hansen, T. Johansen, and T. I. Fossen, “Robust nav-
+igation of UAV using inertial sensors aided by UWB and RTK
+GPS,” in Proc. AIAA Guidance Navigation Control Conf., 2017,
+pp. 1035–1050, doi: 10.2514/6.2017-1035.
+[6]
+S. Hening, C. A. Ippolito, K. S. Krishnakumar, V. Stepanyan, and
+M. Teodorescu, “3D LiDAR SLAM integration with GPS/INS for
+UAVs in urban GPS-degraded environments,” in AIAA Informa-
+tion Systems-AIAA Infotech @ Aerospace Grapevine, TX, USA:
+AIAA, 2017, pp. 448–457, doi: 10.2514/6.2017-0448.
+[7]
+F. Amzajerdian, V. E. Roback, A. Bulyshev, P. F. Brewster, and
+G. D. Hines, “Imaging ﬂash LIDAR for autonomous safe landing
+and spacecraft proximity operation,” in AIAA SPACE. Long Beach,
+CA, USA: AIAA, 2016, pp. 5591–5602, doi: 10.2514/6.2016-5591.
+[8]
+S. Ramasamy, R. Sabatini, A. Gardi, and J. Liu, “LIDAR obstacle
+warning and avoidance system for unmanned aerial vehicle
+sense-and-avoid,” Aerosp. Sci. Technol., vol. 55, pp. 344–358, 2016,
+doi: 10.1016/j.ast.2016.05.020.
+[9]
+S. Weiss, M. W. Achtelik, S. Lynen, M. Chli, and R. Siegwart,
+“Real-time onboard visual-inertial state estimation and self-
+calibration of MAVs in unknown environments,” in Proc. IEEE
+Int.
+Conf.
+Robot.
+Autom.,
+2012,
+pp.
+957–964,
+doi:
+10.1109/
+ICRA.2012.6225147.
+[10] C. Schlaile, O. Meister, N. Frietsch, C. Keßler, J. Wendel, and
+G. F. Trommer, “Using natural features for vision based naviga-
+tion of an indoor-VTOL MAV,” Aerosp. Sci. Technol., vol. 13, no. 7,
+pp. 349–357, 2009, doi: 10.1016/j.ast.2009.09.001.
+[11] T. Mori and S. Scherer, “First results in detecting and avoiding
+frontal obstacles from a monocular camera for micro unmanned
+aerial vehicles,” in Proc. IEEE Int. Conf. Robot. Autom., 2013,
+pp. 1750–1757, doi: 10.1109/ICRA.2013.6630807.
+[12] S. Saha, A. Natraj, and S. Waharte, “A real-time monocular vision-
+based frontal obstacle detection and avoidance for low cost UAVs
+in GPS denied environment,” in Proc. IEEE Int. Conf. Aerosp. Elec-
+tron. Remote Sens. Technol., 2014, pp. 189–195, doi: 10.1109/
+ICARES.2014.7024382.
+[13] C. Wang, W. Liu, and M. Q.-H. Meng, “Obstacle avoidance for
+quadrotor using improved method based on optical ﬂow,” in
+Proc. IEEE Int. Conf. Inf. Autom., 2015, pp. 1674–1679, doi: 10.1109/
+ICInfA.2015.7279555.
+[14] J. Martınez-Carranza, E. O. Garcia, H. J. Escalante, and W. Mayol-
+Cuevas, “Towards autonomous ﬂight of low-cost MAVs by using
+a probabilistic visual odometry approach,” in Proc. Advances Artif.
+Intell. Appl., 2015, pp. 560–573, doi: 10.1007/978-3-319-27101-9_43.
+[15] I. Sa, H. He, V. Huynh, and P. Corke, “Monocular vision
+based autonomous navigation for a cost-effective MAV in
+GPS-denied environments,” in Proc. IEEE/ASME Int. Conf. Adv.
+Intell.
+Mechatronics,
+2013,
+pp.
+1355–1360,
+doi:
+10.1109/
+AIM.2013.6584283.
+[16] S. Grzonka, G. Grisetti, and W. Burgard, “Autonomous indoor
+navigation using a small-size quadrotor,” in Proc. Workshop SIM-
+PAR, 2008, pp. 455–463.
+[17] A. Bachrach, S. Prentice, R. He, and N. Roy, “RANGE–Robust
+autonomous navigation in GPS-denied environments,” J. Field
+Robot., vol. 28, no. 5, pp. 644–666, 2011, doi: 10.1002/rob.20400.
+[18] N. Gageik, P. Benz, and S. Montenegro, “Obstacle detection and
+collision avoidance for a UAV with complementary low-cost
+sensors,” IEEE Access, vol. 3, pp. 599–609, 2015, doi: 10.1109/
+ACCESS.2015.2432455.
+[19] G. C. S. Cruz and P. M. M. Encarnac¸~ao, “Obstacle avoidance for
+unmanned aerial vehicles,” J. Intell. Robotic Syst., vol. 65, no. 1–4,
+pp. 203–217, 2012, doi: 10.1007/s10846-011-9587-z.
+[20] M. Y. Chen, D. H. Edwards, E. L. Boehmer, N. M. Eller, J. T. Slack,
+C. R. Speck, S. M. Brown, H. G. Williams, S. H. Wilson, C. S. Gillum,
+et al., “Designing a spatially aware and autonomous quadcopter,”
+in Proc. Syst. Inf. Eng. Des. Symp., 2013, pp. 213–218, doi: 10.1109/
+SIEDS.2013.6549521.
+[21] A. Stubblebine, B. Redmond, B. Feie, and E. Kivelevitch, “Laser-
+guided quadrotor obstacle avoidance,” in AIAA Infotech @ Aero-
+space. Kissimmee, FL, USA: AIAA, 2015, pp. 2026–2037, doi:
+10.2514/6.2015-2026.
+[22] J. F. Roberts, T. Stirling, J.-C. Zufferey, and D. Floreano,
+“Quadrotor using minimal sensing for autonomous indoor
+ﬂight,” in Proc. Eur. Micro Air Vehicle Conf. Flight Competition,
+2007.
+[23] M. Achtelik, A. Bachrach, R. He, S. Prentice, and N. Roy, “Stereo
+vision and laser odometry for autonomous helicopters in GPS-
+denied indoor environments,” in Proc. SPIE Defense Security Sens.,
+2009, pp. 733 219–733 228, doi: 10.1117/12.819082.
+[24] K. McGuire, G. de Croon, C. De Wagter, K. Tuyls, and H. Kappen,
+“Efﬁcient optical ﬂow and stereo vision for velocity estimation
+and obstacle avoidance on an autonomous pocket drone,” IEEE
+Robot. Autom. Lett., vol. 2, no. 2, pp. 1070–1076, Apr. 2017, doi:
+10.1109/LRA.2017.2658940.
+[25] H. Qin, Y. Bi, K. Z. Ang, K. Wang, J. Li, M. Lan, M. Shan, and
+F. Lin, “A stereo and rotating laser framework for UAV
+navigation in GPS denied environment,” in Proc. IEEE Annu.
+Conf. Ind. Electron. Soc., 2016, pp. 6061–6066, doi: 10.1109/
+IECON.2016.7793246.
+[26] Z. He, R. V. Iyer, and P. R. Chandler, “Vision-based UAV ﬂight
+control and obstacle avoidance,” in Proc. Amer. Control Conf., 2006,
+pp. 2166–2170, doi: 10.1109/ACC.2006.1656540.
+[27] M. Achtelik, M. Achtelik, S. Weiss, and R. Siegwart, “Onboard
+IMU and monocular vision based control for MAVs in unknown
+in-and outdoor environments,” in Proc. IEEE Int. Conf. Robot.
+Autom., 2011, pp. 3056–3063, doi: 10.1109/ICRA.2011.5980343.
+PADHY ET AL.: MONOCULAR VISION AIDED AUTONOMOUS UAV NAVIGATION IN INDOOR CORRIDOR ENVIRONMENTS
+107
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:49 UTC from IEEE Xplore.  Restrictions apply. 
+[p.13]
+[28] A. Lioulemes, G. Galatas, V. Metsis, G. L. Mariottini, and F. Make-
+don, “Safety challenges in using AR.drone to collaborate with
+humans in indoor environments,” in Proc. Int. Conf. Pervasive Tech-
+nol. Related Assistive Environments, 2014, pp. 33–36, doi: 10.1145/
+2674396.2674457.
+[29] J. Engel, J. Sturm, and D. Cremers, “Camera-based navigation of a
+low-cost quadrocopter,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots
+Syst., 2012, pp. 2815–2821, doi: 10.1109/IROS.2012.6385458.
+[30] J. Engel, J. Sturm, and D. Cremers, “Scale-aware navigation of a
+low-cost quadrocopter with a monocular camera,” Robot. Auton.
+Syst., vol. 62, no. 11, pp. 1646–1656, 2014, doi: 10.1016/j.
+robot.2014.03.012.
+[31] C. Bills, J. Chen, and A. Saxena, “Autonomous MAV ﬂight in
+indoor environments using single image perspective cues,” in
+Proc. IEEE Int. Conf. Robot. Autom., 2011, pp. 5776–5783, doi:
+10.1109/ICRA.2011.5980136.
+[32] F. de Babo Martins, L. F. Teixeira, and R. Nobrega, “Visual-inertial
+based autonomous navigation,” in Proc. Robot 2nd Iberian Robot.
+Conf., 2016, pp. 561–572, doi: 10.1007/978-3-319-27149-1_43.
+[33] A. S. Etienne, R. Maurer, J. Georgakopoulos, and A. Grifﬁn, “Dead
+reckoning (path integration), landmarks, and representation of
+space in a comparative perspective,” in Wayﬁnding Behavior: Cog-
+nitive Mapping and Other Spatial Processes, Baltimore, MD, USA:
+The Johns Hopkins Univ. Press, pp. 197–228, 1999.
+[34] A. Chavez and D. Gustafson, “Vision-based obstacle avoidance
+using SIFT features,” in Proc. Advances Visual Comput., 2009,
+pp. 550–557, doi: 10.1007/978-3-642-10520-3_52.
+[35] D. G. Lowe, “Distinctive image features from scale-invariant key-
+points,” Int. J. Comput. Vis., vol. 60, no. 2, pp. 91–110, 2004, doi:
+10.1023/B:VISI.0000029664.99615.94.
+[36] H. Bay, A. Ess, T. Tuytelaars, and L. Van Gool, “Speeded-up
+robust
+features (SURF),”
+Comput. Vis.
+Image Understanding,
+vol. 110, no. 3, pp. 346–359, 2008, doi: 10.1016/j.cviu.2007.09.014.
+[37] E. Rublee, V. Rabaud, K. Konolige, and G. Bradski, “ORB: An efﬁ-
+cient alternative to SIFT or SURF,” in Proc. IEEE Int. Conf. Comput.
+Vis., 2011, pp. 2564–2571, doi: 10.1109/ICCV.2011.6126544.
+[38] R. E. Kalman, “A new approach to linear ﬁltering and prediction
+problems,” J. Basic Eng., vol. 82, no. 1, pp. 35–45, 1960, doi:
+10.1115/1.3662552.
+Ram Prasad Padhy received the BTech degree
+in computer science from the National Institute of
+Technology Rourkela, India, in 2011. He is cur-
+rently pursuing the PhD degree in the Depart-
+ment of Computer Science and Engineering,
+National Institute of Technology Rourkela, India.
+He has 3.5 years of industrial research experi-
+ence with the Samsung Research Institute Delhi,
+India. His research interest includes autonomous
+robotics, machine learning, computer vision, and
+visual surveillance. He has worked on some
+research and development projects that are funded by SERB, DST and
+MeitY.
+Feng Xia (M’07-SM’12) received the BSc and
+PhD degrees from Zhejiang University, Hang-
+zhou, China. He was a research fellow with the
+Queensland University of Technology, Australia.
+He is currently a full professor with the School
+of Software, Dalian University of Technology,
+China. He is the (guest) editor of several interna-
+tional journals. He serves/served as general
+chair, PC chair, workshop chair, or publicity chair
+for a number of conferences. He has published
+two books and more than 200 scientiﬁc papers in
+international journals and conferences. His research interests include
+computational social science, big data, and mobile social networks. He
+is a senior member of the IEEE Computer Society and the IEEE SMC
+Society and the ACM (SIGWEB), and a member of the AAAS.
+Suman Kumar Choudhury received the MTech
+and PhD degrees in computer science from the
+National Institute of Technology, Rourkela, India.
+He is currently serving as a research scientist with
+Eyessory Fashion Private Limited, Gurgaon, India.
+His research interest includes video surveillance,
+machine learning, computer vision, image process-
+ing, and pattern recognition.
+Pankaj Kumar Sa received the PhD degree in
+computer science, in 2010. He is currently serving
+as an associate professor with the Department of
+Computer Science and Engineering, National Insti-
+tute of Technology Rourkela, India. His research
+interest
+includes
+computer
+vision,
+biometrics,
+visual surveillance, and robotic perception. He has
+coauthored a number of research articles in various
+journals, conferences, and book chapters. He has
+co-investigated some research and development
+projects that are funded by SERB, DRDO-PXE,
+DeitY, and ISRO. He is the recipient of prestigious awards and honors for
+his excellence in academics and research. Apart from research and teach-
+ing, he conceptualizes and engineers the process of institutional automa-
+tion. He is a member of the IEEE.
+Sambit Bakshi received the PhD degree in com-
+puter science, in 2015. He is currently with the
+Centre for Computer Vision and Pattern Recogni-
+tion, National Institute of Technology Rourkela,
+India. He also serves as an assistant professor
+with the Department of Computer Science and
+Engineering, National Institute of Technology
+Rourkela. His research interest includes visual
+surveillance and biometric security. He serves as
+an associate editor of IEEE Access (2016 -), Plos
+One (2017 -), Innovations in Systems and Soft-
+ware Engineering - A NASA Journal (2016 -), International Journal of
+Biometrics (2013 -), and Expert Systems, Wiley (2018 -). He is a techni-
+cal committee member of the IEEE Computer Society Technical Com-
+mittee on Pattern Analysis and Machine Intelligence. He received the
+Prestigious Innovative Student Projects Award in 2011 from the Indian
+National Academy of Engineering for his masters thesis. He has more
+than 50 publications in journals, reports, and conferences. He is a
+member of the IEEE.
+" For more information on this or any other computing topic,
+please visit our Digital Library at www.computer.org/publications/dlib.
+108
+IEEE TRANSACTIONS ON SUSTAINABLE COMPUTING,
+VOL. 4,
+NO. 1,
+JANUARY-MARCH 2019
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:49 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

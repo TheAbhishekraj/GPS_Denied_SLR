@@ -1,0 +1,2733 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1107.pdf
+sha256: 99BAE1D00DDF528C564DCA1E36FE5025B1B25E524D0B96672C4EAA7085096ADC
+library: pymupdf (fitz) v1.28.2
+pages: 25
+=== BEGIN ===
+[p.1]
+Academic Editors: Kamil Maciuk,
+Paulina Lewi´nska and Artur
+Krawczyk
+Received: 12 May 2026
+Revised: 3 June 2026
+Accepted: 10 June 2026
+Published: 12 June 2026
+Copyright: © 2026 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license.
+Article
+Multi-UAV Cooperative Localization in Pseudolite-Augmented
+GNSS-Denied Regions: An Anomaly-Resilient Adaptive Kalman
+Filter with Group Covariance Compensation
+Chengyan Ji 1,2, Xiye Guo 1,2,*, Yuqiu Tang 1,2, Xiaohe Han 1,2 and Yuhang Song 1,2
+1
+College of Intelligence Science and Technology, National University of Defense Technology,
+Changsha 410073, China; jichengyan24@nudt.edu.cn (C.J.); tang123yu123qiu123@163.com (Y.T.);
+xiaohe_han123@nudt.edu.cn (X.H.); syhnudt@nudt.edu.cn (Y.S.)
+2
+National Key Laboratory of Equipment State Sensing and Smart Support, National University of Defense
+Technology, Changsha 410073, China
+*
+Correspondence: nudtgxy@nudt.edu.cn
+Highlights
+What are the main findings?
+• We propose DGCC-AKF, a distributed adaptive Kalman filter that decouples hetero-
+geneous UAV-to-base-station (U-B) and UAV-to-UAV (U-U) innovation channels into
+independent adaptive groups, with a bounded factor that alleviates the noise underesti-
+mation caused by Covariance Intersection (CI)-induced covariance conservatism.
+• Under observation fault periods, DGCC-AKF achieves up to about 75% accuracy im-
+provement over single-UAV EKF and about 56% over distributed AKF while compress-
+ing the worst-case (95th-percentile) error by up to about 3.7× and remaining the only
+scheme that stays both accurate and stable across all UAVs and fault types.
+What are the implications of the main findings?
+• The framework is validated on a 2800 km2 semi-physical testbed using measured fixed-
+wing trajectories exceeding 300 km/h, providing a strong baseline toward field deploy-
+ment for resilient multi-UAV navigation in pseudolite-augmented GNSS-denied regions
+such as remote sensing corridors and disaster-response zones.
+• The grouped channel decoupling mechanism generalizes to other distributed coopera-
+tive localization scenarios with heterogeneous observation types, providing a transfer-
+able design pattern for adaptive multi-source filtering under anomalies.
+Abstract
+In complex low-altitude environments, unmanned aerial vehicles (UAVs) require reliable
+positioning, yet Global Navigation Satellite System (GNSS) signals are vulnerable to oc-
+clusion and interference. Pseudolite-augmented cooperative localization, which combines
+ground base-station signals with inter-UAV relative observations, can complement GNSS
+in such environments. However, two practical issues remain in real-world deployment:
+UAV-to-base-station (U-B) and UAV-to-UAV (U-U) observations have markedly differ-
+ent error statistics that a unified noise adjustment cannot handle, and the conservative
+covariance estimates produced by Covariance Intersection (CI) fusion bias the innovation-
+based adaptive noise estimation in distributed architectures. To address these issues, this
+paper proposes a Distributed Group Covariance Compensation Adaptive Kalman Filter
+(DGCC-AKF) for collaborative enhancement of UAV regional localization. DGCC-AKF
+establishes a group adaptive mechanism that independently adjusts the noise covariance
+matrices of U-B and U-U observations, enabling observation-type-level adaptive weighting
+that suppresses anomalous U-B or U-U measurements at the group level. In addition, a
+Drones 2026, 10, 460
+https://doi.org/10.3390/drones10060460
+[p.2]
+Drones 2026, 10, 460
+2 of 25
+bounded covariance compensation factor is incorporated to alleviate the CI-induced conser-
+vatism in the adaptive noise estimation. The proposed method is evaluated on a 2800 km2
+semi-physical testbed based on the Ground-based High-precision Local Positioning Sys-
+tem (GH-LPS) pseudolite network using measured U-B observations and high-dynamic
+(>300 km/h) flight trajectories collected from a fixed-wing platform across three indepen-
+dent flight sessions. Results demonstrate that under observation fault periods, the proposed
+method improves 3D positioning accuracy by up to about 75% over single-UAV extended
+Kalman filter (EKF). Compared with two advanced algorithms in this field, variational
+Bayesian adaptive Kalman filter (VBAKF) and maximum correntropy criterion Kalman
+filter (MCC-EKF), it is the only scheme that remains accurate and stable across all UAVs and
+fault types. The framework provides a practical step toward field deployment for resilient
+multi-UAV cooperative navigation in pseudolite-augmented GNSS-denied regions.
+Keywords:
+distributed collaborative localization; pseudolite-augmented navigation;
+adaptive Kalman filtering; covariance intersection; GNSS-denied
+1. Introduction
+Unmanned aerial vehicles (UAVs) have become indispensable platforms for low-
+altitude applications such as environmental monitoring, emergency disaster response,
+infrastructure inspection, and cooperative surveillance [1]. With the progressive deregula-
+tion of low-altitude airspace and the continuous development of the low-altitude economy,
+UAV operations are expanding from single-platform missions to multi-UAV cooperative
+tasks over large operational areas [2–4]. This trend imposes higher requirements on UAV
+navigation and positioning systems, which must simultaneously achieve high accuracy,
+robust reliability, and stringent real-time performance [5].
+However, for complex low-altitude application scenarios, existing positioning tech-
+nologies still struggle to meet all of these requirements simultaneously. Although the
+Global Navigation Satellite System (GNSS) is currently the most mature and widely used
+positioning technology, it is susceptible to occlusion, interference, and spoofing in low-
+altitude environments. In urban canyons, tunnels, and mining areas, GNSS suffers from
+significant service outages, making it insufficient to independently meet UAV positioning
+demands [6]. Pseudolite-based regional navigation systems serve as an important comple-
+ment to GNSS by transmitting radio positioning signals through ground base stations. They
+can provide continuous, stable, and high-frequency positioning services in GNSS-limited
+environments, demonstrating good applicability for low-altitude UAV operations [7,8].
+However, such systems rely heavily on the spatial deployment and observation quality of
+ground base stations. Issues such as degraded geometric configurations, short-term base
+station failures, and multipath and non-line-of-sight (NLOS) errors can still significantly
+degrade positioning performance [9,10].
+As the scale and complexity of UAV remote sensing missions continue to grow, multi-
+UAV collaborative operation has emerged as a promising paradigm for improving spatial
+coverage. In this context, UAV cooperative localization technology offers an effective
+solution to the above-mentioned technical challenges [11,12]. Specifically, UAV swarms can
+acquire additional observation constraints via inter-UAV ranging measurement and inter-
+node information interaction. When integrated with cooperative localization algorithms,
+this framework enables efficient information fusion and state consistency maintenance.
+Consequently, the overall positioning performance of the UAV swarm remains stable even
+under unfavorable geometric configurations of ground base stations or degraded mea-
+https://doi.org/10.3390/drones10060460
+[p.3]
+Drones 2026, 10, 460
+3 of 25
+surement quality. Ruan et al. [13] proposed a UAV cooperative localization scheme based
+on coalition formation games, effectively addressing observation data loss. In simulation
+experiments, the horizontal positioning accuracy reached up to 8 m with a success rate
+exceeding 99%. Ouyang et al. [14] designed an extended colored Kalman filter based on
+the Allan variance, improving UAV cooperative localization accuracy by 36.67% compared
+to the conventional extended Kalman filter (EKF). Qiu et al. [15] derived an efficient closed-
+form solution for angle-of-arrival (AOA)-based cooperative localization and proposed an
+iterative constrained least squares method. Simulation results showed that the positioning
+accuracy reached 0.78 m, and increasing the number of cooperating agents significantly
+improved localization accuracy. Xu et al. [16] designed an improved bat algorithm for the
+non-convex optimization problem in cooperative localization. Simulation results demon-
+strated that the positioning accuracy can converge to the Cramér–Rao lower bound. Guo
+et al. [17] proposed a block Kalman filter to address the high complexity of multi-UAV
+cooperative localization. Simulation experiments showed that incorporating cooperative
+observations significantly improved positioning accuracy under poor geometric configura-
+tions of ground base stations. More recently, Li et al. [18] integrated inertial navigation with
+data link ranging through a sliding-window factor graph to enable distributed relative pose
+estimation for UAV formations in GNSS-denied environments. Wu et al. [19] further devel-
+oped ST-DCL, a cooperative localization framework that combines a dynamic-weighted
+multidimensional scaling optimizer with a spatio-temporal graph neural network to model
+dynamic network topologies in drone swarms.
+Existing studies have preliminarily verified the capability of cooperative localization
+to improve regional navigation system performance. However, the majority of these works
+rely on simulation validation, where observation error characteristics are known and stable.
+Among the few studies that include real-flight validation, the largest reported outdoor
+evaluation, to the best of our knowledge, covers approximately 1.6 km2 (Xu et al. [20]), with
+UAV dynamics also remaining limited. In typical regional UAV missions, operational sce-
+narios span hundreds of square kilometers and involve fixed-wing platforms operating at
+speeds exceeding 300 km/h. Under such conditions, the quality of observations often fluc-
+tuates rapidly with environmental changes and is susceptible to occlusion, multipath, and
+NLOS propagation [21–23]. Moreover, such high-dynamic operation imposes stringent real-
+time demands on the per-epoch positioning update. While graph-optimization-based [24]
+and learning-based [25] cooperative-localization methods offer strong accuracy potential,
+their elevated computational complexity and latency constrain their use in this regime.
+In summary, Adaptive Kalman filtering (AKF) within the filter-based family preserves
+high computational efficiency while offering an effective mechanism for dynamically ad-
+justing observation weights in response to such strongly time-varying observation quality.
+Wang et al. [26] proposed an adaptive optimal selection-robust hybrid AKF to suppress
+observation outliers in BeiDou Navigation Satellite System (BDS)/ground-based com-
+bined positioning. Experimental results showed that this method improved positioning
+accuracy by 60% in complex urban environments. Juston et al. [27] proposed a robust
+error-state Sage–Husa AKF framework, which handles unknown measurement noise by
+introducing quaternion dynamics and an improved fuzzy logic system, achieving a 30%
+improvement in positioning accuracy over conventional methods. Wang et al. [28] de-
+signed an AKF by incorporating dynamic motion model switching and distance-based
+noise covariance adaptation, achieving a positioning accuracy of 0.31 m in complex urban
+environments. Hadjiloizou et al. [29] designed a Maximum Correntropy Criterion Kalman
+Filter (MCC-EKF) for indoor quadrotor multi-sensor fusion, achieving robust pose estima-
+tion in the inertial measurement unit (IMU)/ultra-wideband (UWB)/vision observations.
+Xue et al. [30] developed an adaptive variational Bayesian Kalman filter (VBAKF) for UAV
+https://doi.org/10.3390/drones10060460
+[p.4]
+Drones 2026, 10, 460
+4 of 25
+BDS/5G hybrid positioning, jointly estimating the UAV state and the measurement noise
+distribution to maintain high-precision performance during urban shuttle flights.
+However, the above AKF studies all target single-UAV positioning, and directly ex-
+tending AKF to multi-UAV cooperative localization scenarios faces two critical challenges.
+First, UAV-to-base-station (U-B) and UAV-to-UAV (U-U) observations differ significantly in
+their link conditions and error characteristics [31,32]; applying a unified noise adjustment
+to both observation types would noticeably degrade positioning accuracy. Second, AKF
+estimates the observation noise by subtracting the state covariance propagated into the
+observation space from the innovation covariance. The Covariance Intersection (CI) fusion
+algorithm commonly used in distributed cooperative localization [33], however, produces
+overly conservative (inflated) covariance estimates [34]. When these inflated covariance val-
+ues are used as a priori information, the AKF systematically underestimates the observation
+noise, thereby losing its ability to properly detect and respond to anomalous observations.
+To the best of our knowledge, no existing AKF or cooperative localization study has jointly
+addressed both the U-B/U-U observation heterogeneity and the CI-induced covariance
+conservatism within a distributed cooperative architecture, motivating the development of
+the present work.
+To bridge the gap in existing multi-UAV cooperative localization research regarding the
+strongly time-varying nature of observation quality in real scenarios, this paper introduces
+an adaptive filtering mechanism and focuses on resolving the challenges in cooperative
+localization. The main contributions are summarized as follows:
+1.
+To address the markedly different error statistics of U-B and U-U observations in dis-
+tributed cooperative localization, we propose a block innovation channel decoupling
+mechanism that independently regulates the noise covariance matrices of heteroge-
+neous observation groups, enabling observation-type-level adaptive weighting and
+suppressing cross-contamination between observation types at the group level.
+2.
+To alleviate the underestimation of observation noise caused by CI-induced covari-
+ance conservatism in distributed cooperative architectures, we introduce a bounded
+covariance compensation factor into the innovation-based noise estimation. The
+decoupling mechanism and the compensation factor together form DGCC-AKF, a
+Distributed Group Covariance Compensation Adaptive Kalman Filter for cooperative
+enhancement of UAV regional localization.
+3.
+We construct a large-scale semi-physical cooperative localization evaluation frame-
+work based on the Ground-based High-precision Local Positioning System (GH-LPS)
+regional pseudolite navigation system independently developed by our team [35], cov-
+ering approximately 2800 km2 with measured fixed-wing flight trajectories at speeds
+exceeding 300 km/h across three independent flight sessions. Error characteristic anal-
+ysis and anomalous observation pattern mining are performed on the measured data,
+substantially extending the experimental basis of existing studies that predominantly
+rely on simulation with limited scenario scales and weak UAV dynamics.
+The remainder of this paper is organized as follows. Section 2 presents the distributed
+cooperative localization model based on AKF, followed by the group adaptive mechanism
+and CI compensation principle. Section 3 introduces the hardware and site information of
+the physical experiments, analyzes the quality and error characteristics of the measured
+data, and verifies the effectiveness of the proposed method through both trajectory-based
+simulation and semi-physical experiments. Section 4 concludes the paper.
+https://doi.org/10.3390/drones10060460
+[p.5]
+Drones 2026, 10, 460
+5 of 25
+2. Methodology
+This section presents the mathematical formulation of DGCC-AKF. We first establish
+the AKF-based distributed cooperative localization framework, and then introduce two key
+improvements: the group adaptive noise adjustment mechanism and the CI covariance
+compensation strategy. The complete algorithm flow is illustrated in Figure 1.
+Local Measurement Update
+Local State Prediction
+Observation Grouping
+U-U Adaptive Weight
+CI Compensation
+Innovation Covariance 
+Estimation
+Weight Estimation                      
+U-B Adaptive Weight
+CI Compensation
+Innovation Covariance 
+Estimation
+Weight Estimation                      
+Fast Covariance Intersection
+State Consensus Fusion
+i
+i
+k / k 1
+k / k 1
+,
+
+
+P
+x
+ub
+i
+i
+i
+i
+k|k 1,ub
+k ,ub
+k ,ub
+k ,
+,
+,
+,
+
+P
+H
+z
+R
+uu
+i
+i
+i
+i
+k|k 1,uu
+k ,uu
+k ,uu
+k ,
+,
+,
+,
+
+P
+H
+z
+R
+i
+k ,ub
+ˆS
+i
+k ,uu
+ˆS
+ub
+i
+k ,
+
+uu
+i
+k ,
+
+i
+k ,uu
+ˆR
+i
+k ,ub
+ˆR
+i
+k / k 1
+i
+k / k 1
+
+
+P
+x
+i
+i
+k / k
+k / k
+,
+P
+x
+i
+i
+k / k ,CI
+k / k
+,
+P
+x
+Output
+i
+i
+k / k ,CI
+k / k ,CI
+,
+P
+x
+Local Measurement Update
+Local State Prediction
+Observation Grouping
+U-U Adaptive Weight
+CI Compensation
+Innovation Covariance 
+Estimation
+Weight Estimation                      
+U-B Adaptive Weight
+CI Compensation
+Innovation Covariance 
+Estimation
+Weight Estimation                      
+Fast Covariance Intersection
+State Consensus Fusion
+j
+j
+k / k 1
+k / k 1
+,
+
+
+P
+x
+ub
+k|k 1,ub
+k ,ub
+j
+k ,ub
+,
+j
+j
+j
+k
+,
+,
+,
+
+P
+H
+z
+R
+uu
+k|k 1,uu
+k ,uu
+j
+k ,uu
+,
+j
+j
+j
+k
+,
+,
+,
+
+P
+H
+z
+R
+b
+j
+k ,u
+ˆS
+u
+j
+k ,u
+ˆS
+ub
+j
+k ,
+
+uu
+j
+k ,
+
+u
+j
+k ,u
+ˆR
+b
+j
+k ,u
+ˆR
+j
+j
+k / k
+k / k
+,
+P
+x
+j
+j
+k / k ,CI
+k / k
+,
+P
+x
+Output
+j
+j
+k / k ,CI
+k / k ,CI
+,
+P
+x
+i
+k / k 1
+i
+k / k 1
+
+
+P
+x
+j
+j
+k / k
+k / k
+,
+P
+x
+i
+i
+k / k
+k / k
+,
+P
+x
+UU Obs
+UAV i
+UAV j
+Base Stations
+UB Obs
+GCC
+GCC
+i,k
+j,k
+Figure 1. Complete framework of the Distributed Group Covariance Compensation Adaptive Kalman
+Filter (DGCC-AKF).
+2.1. AKF-Based Distributed Cooperative Localization
+Cooperative localization architectures are mainly classified into centralized and dis-
+tributed types. Distributed cooperative localization has received widespread attention due
+to its decentralized nature, high scalability, and high robustness [36]. Depending on the
+state maintenance approach, distributed cooperative localization methods can be further
+divided into local state estimation and global state estimation. The latter maintains joint
+state information in a unified state space, preserving cooperative observation constraints
+more completely [37]. When the UAV swarm is small, it offers higher accuracy. As the
+swarm grows, strategies such as coalition grouping [38] and consensus variable construc-
+tion [39,40] can be employed to suppress computational complexity growth. Therefore, this
+paper adopts a global state distributed cooperative localization scheme.
+Each UAV obtains ranging observations from ground base stations and cooperating
+UAVs. Taking UAV i as an example, the U-B and U-U observation equations at time k are:
+ρij
+k = rij
+k + c(δti
+k −δtj
+k) + Tij
+trop,k + εij
+k
+(1)
+ρibi
+k = ribi
+k + c(δti
+k −δtbi
+k ) + Tibi
+trop,k + εibi
+k
+(2)
+where ρij
+k and ρibi
+k are the range observations between UAV i and UAV j, and between UAV i
+and base station bi, respectively. rij
+k and ribi
+k are the corresponding true geometric distances;
+c is the speed of light. δti
+k and δtj
+k are the receiver clock biases of UAV i and UAV j. δtbi
+k is
+the clock bias of base station bi; Tij
+trop,k and Tibi
+trop,k are the tropospheric delay errors. εij
+k, εibi
+k
+include multipath/NLOS errors, hardware delay residuals, and observation noise.
+https://doi.org/10.3390/drones10060460
+[p.6]
+Drones 2026, 10, 460
+6 of 25
+Among the above observation errors, the base station clock bias can be eliminated
+through the precise time synchronization technique proposed by our team [9]. Tropospheric
+delay errors can be accurately modeled. The clock bias between the UAV and ground base
+stations is removed through inter-station single differencing, while the clock bias between
+UAVs can be estimated via bidirectional measurements:
+∆ρibi
+k = ρibref
+k
+−ρibi
+k = (ribref
+k
+−ribi
+k ) + (εibref
+k
+−εibi
+k )
+(3)
+δtij
+k = ρij
+k −ρji
+k
+2c
+−εij
+k −εji
+k
+2c
+(4)
+where ∆ρibi
+k is the single-difference observation of UAV i (all subsequent U-B observations
+refer to this single-difference observation). bref is the reference base station index. δtij
+k
+is the clock bias between UAV i and UAV j. Equation (4) assumes that the bidirectional
+measurements ρij
+k and ρji
+k are approximately time-aligned within one ranging exchange, so
+that the true geometric range terms cancel.
+Therefore, only the UAV motion state information needs to be estimated. The state
+vector of UAV i is modeled as:
+xi
+k =
+h
+δp1
+k, · · · , δpL
+k , δv1
+k, · · · , δvL
+k
+iT
+6L×1
+(5)
+where the state vector is formulated in the error-state domain. δpi
+k ∈R3 and δvi
+k ∈R3
+denote the position error and velocity error of UAV i at time k. L is the number of UAVs
+participating in cooperative computation.
+In the distributed cooperative localization architecture, each UAV maintains an inde-
+pendent local filter. It performs state prediction independently, updates the state using
+its own observations, and then broadcasts its estimated state and covariance matrix to
+neighboring UAVs through communication, achieving global information integration via a
+fusion algorithm. The state prediction method is identical for all UAVs. Taking UAV i as
+an example:
+ˆxi
+k/k−1 = Φk ˆxi
+k−1/k−1
+(6)
+Pi
+k/k−1 = ΦkPi
+k−1/k−1ΦT
+k + Qk
+(7)
+where ˆxi
+k/k−1 and Pi
+k/k−1 denote the predicted state vector and covariance matrix of UAV i at
+time k, respectively. ˆxi
+k−1/k−1 and Pi
+k−1/k−1 are the posterior state estimate and covariance
+matrix of UAV i at time k −1. Qk is the process noise matrix. Φk is the state transition matrix.
+The observation matrix is obtained by linearizing the error-corrected observation
+equations. The observation matrix Hi
+k of UAV i at time k is:
+Hi
+k =
+h
+Hi1
+k,row; · · · ; HiL
+k,row; Hib1
+k,row; · · · ; Hibn
+k,row
+i
+mi
+k×6L
+(8)
+Hij
+k,row =
+
+01×3(i−1),
+pi
+k,0 −pj
+k,0
+ρij
+k,0
+, 01×3(j−i−1), −
+pi
+k,0 −pj
+k,0
+ρij
+k,0
+, 01×(6L−3j)
+
+
+1×6L
+(9)
+Hibi
+k,row =
+
+01×3(i−1),
+pi
+k,0 −pbref
+ρibref
+k,0
+−
+pi
+k,0 −pbi
+ρibi
+k,0
+, 01×(6L−3i)
+
+
+1×6L
+(10)
+where Hij
+k,row and Hibi
+k,row are the observation row vectors for U-U and U-B links, respectively
+(assuming j > i). pi
+k,0 and pj
+k,0 are the a priori positions of UAV i and UAV j. pbi and pbref
+are the true positions of base station bi and the reference base station bref. ρij
+k,0, ρibi
+k,0, and
+https://doi.org/10.3390/drones10060460
+[p.7]
+Drones 2026, 10, 460
+7 of 25
+ρi,bref
+k,0
+are the a priori ranges between the corresponding nodes. mi
+k is the total number of
+observations available to UAV i at time k. bn is the number of observable base stations.
+The observation vector zi
+k of UAV i at time k is:
+zi
+k =
+h
+zi1
+k , · · · , ziL
+k , zib1
+k , · · · , zibn
+k
+iT
+mi
+k×1
+(11)
+zij
+k = ρij
+k −ρij
+k,0
+(12)
+zibi
+k = (ρibref
+k
+−ρibi
+k ) −(ρibref
+k,0 −ρibi
+k,0)
+(13)
+where zij
+k is the U-U observation residual between UAV i and UAV j. zibi
+k is the U-B single-
+difference observation residual between UAV i and base station bi.
+Using the observation vector zi
+k and the a priori covariance matrix Pi
+k/k−1, the in-
+novation covariance is estimated via an exponential moving average (EMA) to improve
+statistical robustness over single-epoch sample estimation:
+ˆSi
+k = (1 −α)ˆSi
+k−1 + α vi
+k(vi
+k)T
+(14)
+where vi
+k = zi
+k −Hi
+k ˆxi
+k/k−1 is the innovation vector and α ∈(0, 1] is the EMA coefficient
+that controls the sensitivity to new observations.
+ˆRi
+k = ˆSi
+k −Hi
+kPi
+k/k−1(Hi
+k)T
+(15)
+Ri
+k = tr( ˆRi
+k)
+mi
+k
+· Imi
+k×mi
+k
+(16)
+where ˆSi
+k is the innovation covariance matrix estimated via exponential moving average; ˆRi
+k
+is the observation noise matrix estimate obtained through innovation covariance matching;
+Ri
+k is the observation noise matrix used for measurement update.
+Each UAV independently performs local measurement updates in the same manner:
+Ki
+k = Pi
+k/k−1(Hi
+k)T
+Hi
+kPi
+k/k−1(Hi
+k)T + Ri
+k
+−1
+(17)
+ˆxi
+k/k = ˆxi
+k/k−1 + Ki
+k
+
+zi
+k −Hi
+k ˆxi
+k/k−1
+
+(18)
+Pi
+k/k =
+
+I −Ki
+kHi
+k
+
+Pi
+k/k−1
+
+I −Ki
+kHi
+k
+T
++ Ki
+kRi
+k(Ki
+k)T
+(19)
+where Ki
+k is the Kalman gain matrix; ˆxi
+k/k, Pi
+k/k denote the updated local state vector and
+covariance matrix of UAV i at time k.
+After all UAVs complete their local measurement updates, they broadcast their current
+localization results to neighboring UAV nodes. To reduce communication overhead, the
+position and velocity corrections along with the covariance matrix are transmitted. The
+fusion message Mi
+k can be expressed as:
+Mi
+k =
+n
+i, k, Pi
+k/k, ˆxi
+k/k
+o
+(20)
+When UAV i receives the estimation results from neighboring UAVs, information
+fusion is required to refine its current state. Since multiple UAVs inevitably share common
+information sources, the state estimates from their local filters are correlated, which poses a
+risk of filter divergence. To address this issue, we employ the CI method, which performs
+https://doi.org/10.3390/drones10060460
+[p.8]
+Drones 2026, 10, 460
+8 of 25
+multi-node information fusion by constructing a convex combination in the information
+domain as follows:
+(Pi
+k/k,CI)−1 =
+∑
+j∈Ni(k)∪{i}
+ωj
+k(Pj
+k/k)−1
+(21)
+ˆxi
+k/k,CI = Pi
+k/k,CI
+∑
+j∈Ni(k)∪{i}
+ωj
+k(Pj
+k/k)−1 ˆxj
+k/k
+(22)
+∑
+j∈Ni(k)∪{i}
+ωj
+k = 1,
+ωj
+k ≥0
+(23)
+where Pi
+k/k,CI is the global posterior covariance of UAV i after fusion; ˆxi
+k/k,CI is the global
+error-state estimate after fusion; ωj
+k is the weight of UAV j’s information in this fusion step;
+and Ni(k) denotes the set of neighboring UAVs that can communicate with UAV i at time k.
+To balance consistency and real-time performance, we replace the grid search method
+used in traditional CI approaches with Fast Covariance Intersection [41]:
+ωj
+k =
+
+tr
+
+Pj
+k/k
+−1
+∑r∈Ni(k)∪{i}
+
+tr
+
+Pr
+k/k
+−1
+(24)
+2.2. Group Covariance Compensation Adaptive Kalman Filter
+The AKF-based distributed cooperative localization scheme described above requires
+two assumptions: (1) the observation error characteristics from all sources are statistically
+consistent and the corresponding noise components are uncorrelated; (2) the a priori state
+covariance matrix is sufficiently accurate without significant anomalies.
+However, in real-world applications, neither assumption holds. First, the state covari-
+ance matrix after CI fusion inherently exhibits conservatism relative to the true value. Using
+it directly in AKF computation significantly degrades the algorithm’s adaptive adjustment
+capability. Second, as shown in Figure 2, U-B and U-U observations differ fundamentally
+in their link construction and propagation environments. U-B observations are inter-station
+single-difference observations, while U-U observations are direct ranging measurements.
+Whereas the baseline AKF in Equation (16) approximates Ri
+k as a trace-uniform scaled
+identity for simplicity, the proposed scheme retains the full block structure dictated by the
+heterogeneous observation sources, which can be expressed as:
+Ri
+k =
+"
+σ2
+uu,i I(L−1)
+0
+0
+σ2
+ub,i
+ Ibn + 1bn1T
+bn
+
+#
+mi
+k×mi
+k
+(25)
+where σ2
+ub,i and σ2
+uu,i denote the per-link ranging noise variances of UAV i with any base
+station and any neighboring UAV, respectively. The structured term I + 11T in the U-B
+block captures the cross-correlations introduced by inter-station single differencing in
+Equation (3), since all U-B single-differences share the same reference-base-station noise,
+whereas U-U observations are independent bidirectional rangings and remain diagonal.
+To address these issues, this section proposes a group adaptive noise adjustment
+mechanism and a CI compensation strategy. The core objective of the group adaptive noise
+adjustment is to achieve independent regulation of noise weights for the two heterogeneous
+observation types and group-level suppression of anomalous observations through block
+decoupling of U-B and U-U observations. At time k, the observation vector, observation
+matrix, and observation noise matrix of UAV i can be partitioned by observation source
+as follows:
+https://doi.org/10.3390/drones10060460
+[p.9]
+Drones 2026, 10, 460
+9 of 25
+zi
+k =
+"
+zi
+k,uu
+zi
+k,ub
+#
+mi
+k×1
+,
+Hi
+k =
+"
+Hi
+k,uu
+Hi
+k,ub
+#
+mi
+k×6L
+,
+Ri
+k =
+"
+Ri
+k,uu
+0
+0
+Ri
+k,ub
+#
+mi
+k×mi
+k
+(26)
+where zi
+k,ub, Hi
+k,ub, and Ri
+k,ub denote the U-B observation vector, observation matrix, and
+noise matrix, respectively. zi
+k,uu, Hi
+k,uu, and Ri
+k,uu denote the corresponding U-U quantities.
+Following the EMA-based estimation in Equation (14), the AKF separately adjusts the
+observations from different sources:
+
+
+
+ˆSi
+k,ub = (1 −α)ˆSi
+k−1,ub + α vi
+k,ub(vi
+k,ub)T
+ˆSi
+k,uu = (1 −α)ˆSi
+k−1,uu + α vi
+k,uu(vi
+k,uu)T
+(27)
+To alleviate the conservatism injected by CI fusion into Pi
+k/k−1, a bounded compensa-
+tion coefficient is applied to the propagated covariance term when subtracting it from the
+innovation covariance, yielding the per-group observation noise estimate:
+
+
+
+ˆRi
+k,ub = ˆSi
+k,ub −λi
+k,ub · Hi
+k,ubPi
+k/k−1(Hi
+k,ub)T
+ˆRi
+k,uu = ˆSi
+k,uu −λi
+k,uu · Hi
+k,uuPi
+k/k−1(Hi
+k,uu)T
+(28)
+where ˆSi
+k,ub and ˆSi
+k,uu are the innovation covariance matrices for U-B and U-U observations
+estimated via EMA, vi
+k,ub and vi
+k,uu are the corresponding innovation sub-vectors, and λi
+k,ub,
+λi
+k,uu ∈[λmin, λmax] are bounded covariance compensation coefficients. When U-B or U-U
+observations exhibit anomalies, the system selectively inflates only the corresponding ˆR.
+The prior compensation values λi
+k,ub0 and λi
+k,uu0 are computed as:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+λi
+k,ub0 =
+tr
+
+ˆSi
+k,ub −ˆRi
+k−1,ub
+
+tr
+
+Hi
+k,ubPi
+k/k−1(Hi
+k,ub)T
+
+λi
+k,uu0 =
+tr
+
+ˆSi
+k,uu −ˆRi
+k−1,uu
+
+tr
+
+Hi
+k,uuPi
+k/k−1(Hi
+k,uu)T
+
+(29)
+where ˆRi
+k−1,ub and ˆRi
+k−1,uu are the estimated observation noise covariance matrices for U-B
+and U-U observations from the previous epoch.
+Figure 2. Comparison of UAV-to-UAV (U-U) and UAV-to-base-station (U-B) observation quality.
+https://doi.org/10.3390/drones10060460
+[p.10]
+Drones 2026, 10, 460
+10 of 25
+Considering that Pi
+k/k−1 may also be affected by process noise matrix mismatch,
+anomalous observation geometry, and unreasonable motion model settings, the prior
+compensation coefficients require additional smoothing. The compensation parameters are
+increased only when the covariance matrix remains persistently large:
+
+
+
+
+
+λi
+k,ub = min
+
+λmax, max
+
+λmin, γλi
+k,ub0 + (1−γ)λi
+k−1,ub
+
+λi
+k,uu = min
+
+λmax, max
+
+λmin, γλi
+k,uu0 + (1−γ)λi
+k−1,uu
+
+(30)
+where γ ∈(0, 1] is the compensation coefficient smoothing factor. λi
+k−1,ub and λi
+k−1,uu are
+the compensation coefficients from the previous epoch, initialized to 1. λmin and λmax
+define the adjustment range of the compensation factor to prevent numerical instability
+caused by excessive adjustment. In the experiments, the parameters were set to γ = 0.3,
+λmin = 0.5, and λmax = 1.0. The small smoothing factor γ suppresses transient fluctuations
+in the prior compensation coefficient, while the bounded range [λmin, λmax] ensures that the
+propagated covariance term is neither over-suppressed nor entirely re-introduced, keeping
+the innovation matching within a physically meaningful regime.
+Using the grouped noise matrix estimates from Equation (28), the observation noise
+matrix at time k is constructed as:
+
+
+
+
+
+
+
+
+
+
+
+
+
+ˆσ2,i
+k,ub = max
+ 
+η σ2
+0,ub, tr
+  ˆRi
+k,ub
+
+2 mi
+k,ub
+!
+ˆσ2,i
+k,uu = max
+ 
+η σ2
+0,uu, tr
+  ˆRi
+k,uu
+
+mi
+k,uu
+!
+(31)
+
+
+
+Ri
+k,ub = ˆσ2,i
+k,ub
+ Ibn + 1bn1T
+bn
+
+Ri
+k,uu = ˆσ2,i
+k,uu IL−1
+(32)
+Ri
+k =
+"
+Ri
+k,uu
+0(L−1)×bn
+0bn×(L−1)
+Ri
+k,ub
+#
+mi
+k×mi
+k
+(33)
+where ˆσ2,i
+k,ub and ˆσ2,i
+k,uu are the adaptively estimated per-link noise variances at epoch k, and
+Ri
+k,ub, Ri
+k,uu are the resulting measurement-update noise matrices following the structure
+of Equation (25). σ2
+0,ub and σ2
+0,uu denote the per-link initial variances, and η = 0.5 lower-
+bounds the adapted variance to prevent collapse below half of its initial level. mi
+k,ub and
+mi
+k,uu denote the numbers of U-B and U-U observations of UAV i at epoch k. The factor 2 in
+the U-B denominator of Equation (31) reflects the doubled diagonal trace of the structured
+covariance I + 11T, in which each diagonal element equals 2.
+3. Experiments
+This section validates the effectiveness of the DGCC-AKF method through two sets
+of experiments. The evaluation is conducted in a semi-physical manner: the UAV flight
+trajectories and U-B observations are directly measured from a GH-LPS-based fixed-wing
+platform across three independent flight sessions. The U-U observations are generated
+from the measured trajectories using noise statistics derived from the analyzed U-B error
+characteristics. This design enables a controlled comparison of multiple cooperative algo-
+rithms under identical real-world flight dynamics and U-B noise conditions; hardware-level
+inter-UAV ranging effects such as timing synchronization and antenna directionality are
+not modeled at this stage.
+https://doi.org/10.3390/drones10060460
+[p.11]
+Drones 2026, 10, 460
+11 of 25
+3.1. Experimental Setup and Hardware Equipment
+The experimental data were collected in Zhoukou City, Henan Province, China, cover-
+ing an area of approximately 2800 km2. The experiment was designed with the scenario
+of regional detection and emergency disaster relief, in which three UAVs were planned
+to accomplish a search mission over the target area under GNSS-denied conditions. A
+total of six GH-LPS ground base stations were deployed within the experimental area,
+comprising one master station and five slave stations. The master station was equipped
+with an omnidirectional antenna for precise time synchronization with the slave stations
+and a transmitting antenna for broadcasting navigation signals. Each slave station was
+equipped with a panel antenna for time synchronization with the master station and a
+transmitting antenna for signal transmission. The inter-station distances ranged from
+10 km to 56 km. The coordinates of all base stations were precisely calibrated using a
+Qianxun SRmini receiver (Qianxun Spatial Intelligence Inc., Shanghai, China), achieving
+centimeter-level accuracy. The experimental scenario, ground base station deployment,
+and UAV flight trajectory design are shown in Figure 3.
+Figure 3. Schematic diagram of the experimental setup and base station deployment (the red
+five-pointed star denotes the reference base station, and the dashed lines denote the aircraft flight
+trajectories).
+A fixed-wing aircraft was employed as the carrier platform, equipped with a GH-
+LPS receiver and a POLA-V12E integrated navigation system (Beijing Ocean Strategy
+Technology Co., Ltd., Beijing, China) (including a GNSS receiver). The aircraft operated at
+a flight speed exceeding 300 km/h and a flight altitude of 4500 m. The reference trajectory
+was provided by the integrated navigation system at an observation frequency of 10 Hz.
+The hardware assembly is shown in Figure 4.
+Limited by experimental conditions, only a single UAV was available for the test. To
+verify the cooperative localization performance, we designed a semi-physical simulation
+scheme: the same UAV was flown along three pre-planned routes in separate flight sessions,
+and observation data from each flight were assigned unique UAV identifiers to construct
+multi-UAV flight datasets. The U-B observation quality is analyzed first, with the results
+presented in Figure 5.
+https://doi.org/10.3390/drones10060460
+[p.12]
+Drones 2026, 10, 460
+12 of 25
+Figure 4. Hardware equipment installation diagram.
+Figure 5. U-B observation quality analysis.
+In terms of observation accuracy, the mean root mean square (RMS) of the U-B single-
+difference observation errors across the three flights was 2.3 m. Notably, UAV1 exhibited
+an observation anomaly lasting approximately 10 s within the epoch range [1200, 1300],
+during which the error increased to over 25 m. Regarding the number of observations, since
+the UAVs flew from the periphery of the experimental field inward, the U-B observation
+count during the first 200 s of each flight was low and unstable, and at certain epochs
+the number of available observations was insufficient to meet the minimum requirements
+for positioning.
+3.2. Algorithm Evaluation Scheme
+We compare DGCC-AKF against two recent adaptive Kalman filter paradigms most
+frequently reported in UAV and integrated navigation literature over the past three years.
+The first is the Variational Bayesian Adaptive Kalman Filter (VBAKF) [30,42], which infers
+https://doi.org/10.3390/drones10060460
+[p.13]
+Drones 2026, 10, 460
+13 of 25
+the unknown observation noise covariance jointly with the state through variational Bayes.
+The second is the Maximum Correntropy Criterion Kalman Filter (MCC-EKF) [29,43],
+which replaces the quadratic measurement cost with a maximum-correntropy cost to down-
+weight heavy-tailed residuals. Both baselines preserve their published mechanisms and are
+integrated into our distributed cooperative architecture for fair comparison. All algorithms
+and statistical analyses in this study were implemented in Python (version 3.13.5).
+To isolate the contribution of each algorithmic component, we design a factorial
+ablation across four mechanisms: distributed cooperation, AKF noise adjustment, CI
+compensation, and group decoupling. Table 1 lists the six resulting variants and their
+factor settings.
+Table 1. Factorial ablation design of six algorithm variants (“✓”/“×” indicates whether the corre-
+sponding mechanism is enabled).
+Variant
+Full Name
+Coop.
+AKF
+CI Comp.
+Group
+S-EKF
+Single-UAV EKF
+×
+×
+×
+×
+D-EKF
+Distributed EKF
+✓
+×
+×
+×
+D-AKF
+Distributed AKF
+✓
+✓
+×
+×
+DCC-AKF
+Distributed CI-compensated AKF
+✓
+✓
+✓
+×
+DG-AKF
+Distributed grouped AKF
+✓
+✓
+×
+✓
+DGCC-AKF
+Distributed grouped
+CI-compensated AKF
+✓
+✓
+✓
+✓
+Performance is evaluated under NMC = 100 independent Monte Carlo runs sharing
+the same random seed across schemes. The following metrics are reported.
+3D positioning RMSat each epoch t across the NMC runs:
+RMS3D(t) =
+v
+u
+u
+t
+1
+NMC
+NMC
+∑
+k=1
+
+
+ ˆp(k)
+t
+−pt
+
+
+2
+2,
+(34)
+where ˆp(k)
+t
+and pt are the estimated and reference 3D positions at epoch t in Monte Carlo
+run k.
+Mean and 95th-percentile (P95) reported in tables and figures denote the mean and
+95% quantile of RMS3D(t) over the epochs in the evaluation period.
+Bootstrap CI, Wilcoxon signed-rank test, and Cohen’s dz are computed on NMC paired
+samples per algorithm–condition pair, where each sample is the RMS of one Monte Carlo
+run aggregated over the epochs in the evaluation period.
+95% confidence interval (CI95) of the mean is obtained by bias-corrected and acceler-
+ated (BCa) bootstrap with B = 2000 resamples [44].
+Cohen’s dz for the paired RMS difference between two schemes: dz = ¯d/sd, where ¯d
+and sd are the mean and standard deviation of paired differences [45]. The magnitude of dz
+is categorized by the conventional thresholds as n.s. (|dz| < 0.2), small (0.2 ≤|dz| < 0.5),
+medium (0.5 ≤|dz| < 0.8), or large (|dz| ≥0.8). Throughout this paper, dz is reported as
+the effect of a baseline relative to DGCC-AKF, so a positive value indicates that DGCC-AKF
+attains the lower error. In all result tables, an asterisk (∗) marks a statistically significant
+difference from DGCC-AKF (pHolm < 0.01); a dagger (†) marks the cases where a baseline
+outperforms DGCC-AKF; and the em dash (—) marks the reference method DGCC-AKF
+itself, against which all baselines are compared, so that no effect size is defined for it.
+Pairwise statistical significance is assessed by the paired Wilcoxon signed-rank test,
+with the resulting p-values corrected by the Holm–Bonferroni procedure [46] to control the
+https://doi.org/10.3390/drones10060460
+[p.14]
+Drones 2026, 10, 460
+14 of 25
+family-wise error rate within each evaluation period. A difference is regarded as statistically
+significant when the corrected p-value satisfies pHolm < 0.01.
+3.3. Simulation of Typical Observation Degradation Scenarios Based on Measured Trajectories
+Analysis of the measured data reveals that observation count reduction and quality
+degradation can occur simultaneously, making it difficult to isolate their individual effects
+on positioning. To address this, controlled-variable simulations were first conducted to
+separately evaluate the DGCC-AKF scheme under two conditions: observation loss and
+observation quality degradation. In the simulations, the flight trajectory and motion state of
+each UAV were derived from real measured data, while the U-B and U-U observations were
+synthetically generated with parameters configured based on the statistical characteristics
+of real observations analyzed in the previous subsection.
+We fixed the U-B and U-U observation accuracy, and simulated three typical obser-
+vation count loss scenarios in practical applications by adjusting the number of available
+observations per epoch: (1) insufficient ground base stations limited by environmental
+and cost constraints; (2) random observation loss from airframe occlusion, base station
+or receiver malfunctions, or packet loss on the inter-UAV data link; (3) unavailable low-
+elevation satellite/base station observations due to occlusion by buildings, trees and other
+obstacles. The experimental scenarios are detailed in Table 2.
+Table 2. Unmanned aerial vehicle (UAV) observation quality configuration schemes.
+Scenario
+Base
+Station Count
+Random
+Loss Ratio
+Elevation
+Mask
+U-B/U-U
+Error (m)
+Experiment 1
+6
+0%
+0◦
+2.0/1.5
+Experiment 2
+4
+0%
+0◦
+2.0/1.5
+Experiment 3
+6
+20%
+0◦
+2.0/1.5
+Experiment 4
+6
+0%
+10◦
+2.0/1.5
+The DGCC-AKF filter is initialized with the settings summarized in Table 3.
+Table 3. DGCC-AKF filter initial settings.
+Parameter
+Symbol
+Value
+Initial position uncertainty (std, per axis)
+σp,0
+10 m
+Initial velocity uncertainty (std, per axis)
+σv,0
+5 m/s
+Position process noise (std, per axis)
+σq,p
+10 m
+Velocity process noise (std, per axis)
+σq,v
+0.5 m/s
+Initial U-B observation noise (std)
+σ0,ub
+2 m
+Initial U-U observation noise (std)
+σ0,uu
+1.5 m
+All values in Table 3 are reported as one-axis standard deviations, with the correspond-
+ing covariance matrices constructed as σ2 · I. The filter prior σp,0 and σv,0 are kept fixed
+across all Monte Carlo runs, reflecting a realistic deployment in which the true initial-error
+magnitude is unknown to the filter.
+The four experiments primarily test the dependence of each algorithm on the number
+of available base stations; the observation noise statistics remain stable across them. The
+ablation variants of DGCC-AKF are therefore expected to perform identically. To keep
+the comparison focused, we evaluate the positioning performance of five representative
+schemes: S-EKF, D-EKF, DGCC-AKF, VBAKF, and MCC-EKF. Figure 6 reports the 3D
+positioning RMS over the post-convergence epochs. Subplots in the same row correspond
+to the same observation condition listed in Table 4.
+https://doi.org/10.3390/drones10060460
+[p.15]
+Drones 2026, 10, 460
+15 of 25
+Table 4. Statistical comparison of the 3D positioning accuracy of the three UAVs across the four
+observation scenarios.
+Scenario
+Metric
+S-EKF
+D-EKF
+VBAKF
+MCC-EKF
+DGCC-AKF
+Exp. 1
+P95 (m)
+2.95
+2.52
+2.94
+2.88
+2.45
+CI95 (m)
+[2.26, 2.30]
+[1.95, 2.01]
+[2.20, 2.26]
+[2.47, 3.04]
+[1.89, 1.95]
+Cohen’s dz
+large ∗
+large ∗
+large ∗
+large ∗
+—
+Exp. 2
+P95 (m)
+5.91
+4.81
+5.56
+8.67
+4.74
+CI95 (m)
+[3.92, 4.06]
+[3.27, 3.41]
+[3.67, 3.82]
+[4.08, 4.92]
+[3.23, 3.36]
+Cohen’s dz
+large ∗
+large ∗
+large ∗
+large ∗
+—
+Exp. 3
+P95 (m)
+4.84
+3.93
+3.84
+9.06
+3.76
+CI95 (m)
+[3.51, 3.62]
+[2.92, 3.00]
+[2.97, 3.09]
+[4.09, 5.38]
+[2.84, 2.93]
+Cohen’s dz
+large ∗
+large ∗
+large ∗
+large ∗
+—
+Exp. 4
+P95 (m)
+40.11
+7.87
+7.53
+15.45
+8.34
+CI95 (m)
+[12.41, 17.07]
+[3.96, 4.45]
+[4.24, 4.64]
+[5.80, 7.08]
+[3.96, 4.44]
+Cohen’s dz
+large ∗
+n.s.†
+large ∗
+large ∗
+—
+Figure 6. Comparison of 3D positioning error root mean square (RMS) among different schemes
+under four scenarios (Legend values are mean 3D RMS errors).
+As shown in Figure 6 and Table 4, the single-UAV S-EKF is the most sensitive to the
+degradation of base-station observations. Since it relies only on U-B ranges, its accuracy
+drops sharply when fewer stations are available. The degradation is most severe in Ex-
+periment 4, where its P95 error rises to 40.11 m and its CI95 widens to [12.41, 17.07] m.
+In contrast, the four cooperative schemes all resist this degradation well, because the
+inter-UAV ranges provide additional constraints that compensate for the missing base-
+station observations.
+Among all the compared schemes, DGCC-AKF delivers the best overall positioning
+accuracy. D-EKF is only slightly worse than DGCC-AKF. In Experiment 1, for example,
+their CI95 intervals are [1.95, 2.01] m and [1.89, 1.95] m, respectively. This indicates that
+cooperation is the dominant factor in mitigating the shortage of base stations for regional
+navigation, whereas the CI compensation and the grouped adaptive filtering embedded
+https://doi.org/10.3390/drones10060460
+[p.16]
+Drones 2026, 10, 460
+16 of 25
+in DGCC-AKF act as auxiliary refinements that further improve accuracy on top of the
+cooperative baseline. VBAKF is slightly worse than both in every scenario; its CI95 in
+Experiment 1 is [2.20, 2.26] m. This is because VBAKF re-estimates the noise covariance
+at every epoch through variational inference. When no anomaly is present, this constant
+re-estimation brings no benefit. Instead, it adds estimation noise to the covariance and
+causes a small loss of accuracy.
+MCC-EKF is clearly affected in its convergence speed when the base-station geometry
+weakens. Its P95 reaches 8.67 m, 9.06 m, and 15.45 m in Experiments 2–4, with corre-
+spondingly wider CI95 intervals. The cause is that, at the start of positioning, the large but
+legitimate innovations produced by the initial position error are mistaken for outliers and
+down-weighted by the correntropy criterion, which slows convergence. As the number
+of stations decreases, the innovations during this phase grow larger, and the convergence
+becomes even slower.
+To verify the effectiveness of the grouped adaptive mechanism and CI compensation
+under observation anomalies, we inject additional ranging errors in Experiment 1. During
+epochs [1000, 1500] the error is added to the U-U observations of UAV3, and during epochs
+[2000, 2500] to the U-B observation between UAV3 and BS1. During epochs [3000, 3500],
+both are injected at the same time. The same composite error is used in all three windows.
+It superimposes three terms on the affected range. The first is a bias that ramps from 0 to
+2 m over the first half of the window and then stays at 2 m. The second is zero-mean
+Gaussian noise with a standard deviation of 8 m. The third is a 20 m outlier that occurs with
+a probability of 5%. This experiment compares the two state-of-the-art (SOTA) baselines
+against the six DGCC-AKF ablation variants. The global positioning error RMS of UAV3 is
+shown in Figure 7, and the mean RMS over the normal, U-U fault, U-B fault, and concurrent
+fault periods is shown in Figure 8. The corresponding statistical comparison across the four
+fault periods is summarized in Table 5.
+Figure 7. Global 3D positioning error RMS of UAV3 for the eight methods, with the U-U, U-B, and
+concurrent fault windows shaded (the three panels below schematically illustrate the corresponding
+fault-injection configurations on UAV3: U-U anomalies on the inter-UAV observations, a U-B anomaly
+on the UAV3–BS1 observation, and the two injected concurrently).
+https://doi.org/10.3390/drones10060460
+[p.17]
+Drones 2026, 10, 460
+17 of 25
+Table 5. Statistical comparison of the 3D positioning accuracy of UAV3 (the fault-injected UAV) across
+the four fault periods.
+Period
+Metric
+S-EKF
+D-EKF
+D-AKF
+DCC-AKF
+DG-AKF
+VBAKF
+MCC-EKF DGCC-AKF
+Normal
+P95 (m)
+4.33
+3.62
+3.98
+3.89
+3.87
+5.30
+12.44
+3.84
+CI95 (m)
+[3.26, 3.35]
+[2.75, 2.84] [2.92, 3.01] [2.82, 2.92] [2.88, 2.97] [3.60, 3.69] [4.25, 5.22]
+[2.80, 2.89]
+Cohen’s dz
+large ∗
+large ∗†
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗
+—
+U-U fault
+P95 (m)
+2.90
+5.58
+5.66
+5.46
+2.95
+3.55
+2.77
+3.03
+CI95 (m)
+[2.48, 2.57]
+[4.66, 4.87] [4.59, 4.86] [4.45, 4.72] [2.55, 2.65] [2.94, 3.04] [2.21, 2.41]
+[2.59, 2.70]
+Cohen’s dz medium ∗†
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗†
+—
+U-B fault
+P95 (m)
+6.27
+4.02
+3.03
+2.96
+3.01
+5.19
+3.26
+2.92
+CI95 (m)
+[5.20, 5.39]
+[3.28, 3.38] [2.54, 2.65] [2.45, 2.56] [2.52, 2.65] [4.35, 4.46] [2.59, 2.89]
+[2.43, 2.55]
+Cohen’s dz
+large ∗
+large ∗
+large ∗
+n.s.
+large ∗
+large ∗
+n.s.
+—
+Concurrent
+P95 (m)
+7.55
+7.94
+11.06
+10.56
+7.95
+7.58
+8.51
+8.02
+CI95 (m)
+[6.44, 6.71]
+[6.34, 6.72] [7.30, 7.91] [6.95, 7.55] [5.39, 5.87] [6.44, 6.74] [5.46, 6.22]
+[5.40, 5.87]
+Cohen’s dz
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗
+n.s.
+—
+Figure 8. Mean 3D positioning error RMS of the eight methods for UAV3 across the normal, U-U
+fault, U-B fault, and concurrent fault periods.
+During the normal period, the five cooperative ablation schemes are all clearly more
+accurate than the single-UAV S-EKF (3.17 m), keeping the mean 3D RMS of UAV3 between
+2.58 and 2.76 m. DGCC-AKF reaches 2.63 m, essentially the same as D-EKF. The other four
+ablation variants and the two SOTA baselines are all worse than DGCC-AKF. VBAKF is the
+worst at 3.43 m. MCC-EKF (3.23 m) is limited by slow convergence; its error does not settle
+until about the 25th second, which raises its P95 to 12.44 m, the largest of all methods.
+During the U-U fault period, D-EKF, D-AKF, and DCC-AKF degrade sharply, with
+mean errors of 4.71 m, 4.66 m, and 4.52 m, about 85% higher than S-EKF (2.50 m), and
+CI95 intervals all above 4.4 m. In contrast, DG-AKF, DGCC-AKF, VBAKF, and MCC-EKF
+all suppress the fault and keep the mean error within 2.3–2.9 m. DGCC-AKF reaches
+2.60 m with a P95 of 3.03 m. VBAKF is slightly worse than DGCC-AKF (2.93 m), while
+MCC-EKF is slightly better (2.30 m), the latter benefiting from the large number of base
+stations in this experiment. The grouped adaptation is decisive here: by isolating the U-U
+channel, DG-AKF and DGCC-AKF adjust only the affected weights and leave the healthy
+U-B observations untouched.
+During the U-B fault period, DGCC-AKF is the best of all methods, with a mean error
+of 2.49 m and the lowest P95 (2.92 m) and CI95 ([2.43, 2.55] m). It improves on S-EKF
+(5.23 m) by 52% and on D-EKF (3.31 m) by 25%. VBAKF is again notable, as its accuracy
+deteriorates to 4.39 m, only slightly better than S-EKF. Together with its degradation in the
+normal period, this shows that the repeated online re-estimation of the state covariance P
+https://doi.org/10.3390/drones10060460
+[p.18]
+Drones 2026, 10, 460
+18 of 25
+and the noise covariance R in VBAKF not only introduces extra estimation noise but can
+also destroy the inherent conservativeness of CI fusion, which in turn harms accuracy.
+During the concurrent fault period, where U-U and U-B errors are injected at the same
+time, DGCC-AKF still gives the lowest mean error (5.60 m). The most notable change is
+that the two scalar adaptive schemes, D-AKF and DCC-AKF, degrade markedly to 7.46 m
+and 7.11 m, falling behind even S-EKF (6.63 m) and D-EKF (6.51 m). This reflects the risk of
+applying a single unified adjustment to the U-U and U-B observations: neither channel can
+be down-weighted correctly, which clearly lowers accuracy. The grouped schemes avoid
+this by estimating each channel separately; relative to D-AKF and DCC-AKF, DGCC-AKF
+reduces the error by about 25% and 21%, respectively.
+In terms of overall performance across all periods, DGCC-AKF attains the lowest
+mean 3D RMS of all methods, 2.94 m, improving on S-EKF, VBAKF, D-AKF, D-EKF, DCC-
+AKF, MCC-EKF, and DG-AKF. To evaluate the parameter sensitivity and generalization
+capability of DGCC-AKF, we performed a parameter sweep over its key hyperparameters:
+Figure 9 presents the 3D positioning RMS of UAV3 when each of the four parameters
+(α, γ, λmin, η) is swept over [0.1, 0.7] with the others fixed at their defaults. DGCC-AKF
+shows low sensitivity to all four parameters. Under the normal, U-U fault, and U-B
+fault conditions, the RMS variation caused by sweeping any single parameter stays at the
+centimeter level. Under the concurrent U-U and U-B fault condition, α has the strongest
+effect on accuracy, yet this effect remains within 5% of the overall positioning error. These
+results indicate that DGCC-AKF is robust to parameter variation, so default settings can be
+retained across the tested conditions without per-scenario retuning.
+0.1
+0.2
+0.3
+0.5
+0.7
+Parameter value
+2.82
+2.84
+2.86
+2.88
+2.9
+2.92
+3D RMS (m)
+(a)
+0.1
+0.2
+0.3
+0.5
+0.7
+Parameter value
+2.6
+2.65
+2.7
+2.75
+2.8
+3D  RMS (m)
+(b)
+0.2
+0.3
+0.5
+0.7
+Parameter value
+2.4
+2.45
+2.5
+2.55
+3D  RMS (m)
+(c)
+0.1
+0.2
+0.3
+0.5
+0.7
+Parameter value
+5.2
+5.3
+5.4
+5.5
+3D positioning RMS (m)
+(d)
+Figure 9. Parameter sensitivity of DGCC-AKF on UAV3 (each curve = 5 swept values × 50 MC;
+other parameters held at defaults): (a) Normal, (b) U-U fault only, (c) U-B fault only, (d) U-U + U-B
+concurrent fault.
+3.4. Semi-Physical Simulation Verification Using Multi-Group Measured U-B Observations
+This subsection further employs measured U-B observation data for experimental
+verification. The inter-UAV observations were still generated through simulation with
+error characteristics consistent with the settings in the previous subsection, and a U-U
+https://doi.org/10.3390/drones10060460
+[p.19]
+Drones 2026, 10, 460
+19 of 25
+observation anomaly was injected into the UAV3 observations during epochs [2500, 3000],
+configured in the same way as in the simulation experiment. The initial position was
+obtained using the first-epoch observations and a least-squares algorithm. The average 3D
+positioning errors of the three UAVs are as follows.
+As shown in Figure 10 and Table 6, over all epochs DGCC-AKF achieves the lowest
+mean 3D error of the eight methods on UAV2 and UAV3 (10.91 m and 3.87 m, respec-
+tively). On UAV1 the two baselines are slightly more accurate, but the gap is small, and
+the difference between VBAKF and DGCC-AKF is not significant, since their CI95 intervals
+([6.87, 6.90] m and [6.86, 6.88] m) overlap. Because the base-station observation quality in
+this experiment remains generally stable, the overall improvement in positioning perfor-
+mance across the full time period comes mainly from cooperative localization rather than
+from the adaptive mechanism, so the five cooperative schemes perform similarly. Even so,
+the advantage of DGCC-AKF over the two SOTA baselines is consistent: on UAV2 its P95
+(57.60 m) is 21.7% and 34.6% lower than VBAKF (73.60 m) and MCC-EKF (88.12 m), and on
+UAV3 it is 10.2% and 8.9% lower.
+0
+1000
+2000
+3000
+4000
+Epoch
+0
+10
+20
+30
+40
+50
+60
+3D RMS / m
+S-EKF (9.927m)
+D-EKF (6.514m)
+D-AKF (6.326m)
+DCC-AKF (6.338m)
+DG-AKF (6.308m)
+DGCC-AKF (6.251m)
+VBAKF (6.161m)
+MCC-EKF (6.044m)
+(a)
+0
+1000
+2000
+3000
+4000
+Epoch
+0
+20
+40
+60
+80
+100
+120
+140
+3D RMS / m
+S-EKF (14.560m)
+D-EKF (11.430m)
+D-AKF (11.129m)
+DCC-AKF (11.165m)
+DG-AKF (11.041m)
+DGCC-AKF (10.916m)
+VBAKF (13.189m)
+MCC-EKF (13.788m)
+(b)
+0
+1000
+2000
+3000
+4000
+Epoch
+0
+10
+20
+30
+40
+50
+3D RMS / m
+S-EKF (4.174m)
+D-EKF (4.159m)
+D-AKF (4.251m)
+DCC-AKF (4.209m)
+DG-AKF (3.938m)
+DGCC-AKF (3.875m)
+VBAKF (4.971m)
+MCC-EKF (4.417m)
+(c)
+Figure 10. Comparison of 3D positioning error RMS among eight algorithms under measured
+conditions: (a) UAV1, (b) UAV2, (c) UAV3.
+Table 6. Statistical comparison of the 3D positioning accuracy of the three UAVs over all epochs and
+the first 200 s.
+UAV
+Period
+Metric
+S-EKF
+D-EKF
+D-AKF
+DCC-AKF
+DG-AKF
+VBAKF
+MCC-EKF
+DGCC-AKF
+UAV1
+All epochs
+P95 (m)
+20.01
+13.39
+12.68
+12.86
+12.63
+13.28
+12.19
+12.34
+CI95 (m)
+[11.44, 11.48]
+[7.31, 7.33]
+[6.96, 6.98]
+[6.97, 7.00]
+[6.93, 6.96]
+[6.86, 6.88]
+[6.61, 6.63]
+[6.87, 6.90]
+dz
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗
+n.s.
+large ∗†
+—
+First 200 s
+P95 (m)
+23.21
+10.44
+10.05
+10.12
+10.07
+9.44
+9.71
+10.01
+CI95 (m)
+[13.95, 14.02]
+[8.04, 8.08]
+[7.27, 7.31]
+[7.31, 7.35]
+[7.21, 7.25]
+[6.60, 6.63]
+[6.54, 6.56]
+[7.12, 7.16]
+dz
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗†
+large ∗†
+—
+UAV2
+All epochs
+P95 (m)
+71.43
+62.97
+58.56
+58.44
+58.65
+73.60
+88.12
+57.60
+CI95 (m)
+[28.45, 28.67]
+[21.12, 21.48]
+[20.43, 20.75]
+[20.49, 20.82]
+[20.36, 20.69]
+[24.43, 24.67]
+[29.98, 30.34]
+[20.21, 20.61]
+dz
+large ∗
+large ∗
+medium ∗
+medium ∗
+large ∗
+large ∗
+large ∗
+—
+First 200 s
+P95 (m)
+103.25
+69.75
+67.68
+67.71
+67.64
+83.45
+111.33
+67.57
+CI95 (m)
+[41.23, 41.53]
+[30.62, 31.13]
+[29.58, 30.05]
+[29.70, 30.19]
+[29.50, 30.00]
+[35.34, 35.67]
+[43.45, 43.95]
+[29.54, 30.02]
+dz
+large ∗
+large ∗
+medium ∗
+medium ∗
+large ∗†
+large ∗
+large ∗
+—
+UAV3
+All epochs
+P95 (m)
+11.92
+11.33
+11.32
+11.31
+11.20
+12.41
+12.24
+11.15
+CI95 (m)
+[5.97, 5.98]
+[5.10, 5.14]
+[5.17, 5.21]
+[5.13, 5.17]
+[4.96, 4.99]
+[6.21, 6.24]
+[5.65, 5.69]
+[4.89, 4.93]
+dz
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗
+large∗
+—
+First 200 s
+P95 (m)
+17.46
+13.44
+13.72
+13.65
+13.52
+13.71
+16.18
+13.44
+CI95 (m)
+[8.51, 8.54]
+[6.85, 6.90]
+[6.83, 6.88]
+[6.82, 6.87]
+[6.81, 6.86]
+[7.19, 7.23]
+[7.35, 7.39]
+[6.76, 6.81]
+dz
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗
+—
+During the first 200 s the UAVs fly far from the base-station area, so the number of
+visible stations is small and fluctuates frequently. S-EKF therefore performs poorly, while
+cooperative localization improves the accuracy markedly. This phase also exposes the
+weakness of the two SOTA baselines on UAV2, where the geometry is worst: MCC-EKF
+yields the largest error of all methods (P95 111.33 m, even above the 103.25 m of S-EKF),
+and VBAKF (P95 83.45 m) lags clearly behind DGCC-AKF. DGCC-AKF holds the UAV2
+P95 at 67.57 m, which is 19.0% and 39.3% lower than VBAKF and MCC-EKF and 34.5%
+lower than S-EKF.
+https://doi.org/10.3390/drones10060460
+[p.20]
+Drones 2026, 10, 460
+20 of 25
+Two localized observation anomaly conditions exist in this experiment: a naturally-
+occurring U-B observation anomaly on UAV1 (epochs [1200, 1300], observation error >
+20 m) and the injected U-U observation anomaly on UAV3 (epochs [2500, 3000]) described
+above. The positioning accuracy during these two anomaly periods was further analyzed.
+As shown in Figure 11 and Table 7, when the U-B observations of UAV1 are severely
+corrupted, S-EKF and D-EKF are the most affected: on the faulted UAV1 their median
+3D errors reach 13.68 m and 11.62 m, and the S-EKF P95 rises to 47.26 m. On UAV1 the
+six adaptive schemes rank, from best to worst by median 3D error, as MCC-EKF (6.02 m)
+< DGCC-AKF (7.01 m) < DG-AKF (7.62 m) < VBAKF (7.92 m) < D-AKF (8.05 m) <
+DCC-AKF (8.61 m). Notably, on UAV2, although no anomaly is injected in this window,
+S-EKF, VBAKF, and MCC-EKF still degrade markedly—the P95 of VBAKF reaches 22.56 m
+and that of MCC-EKF 10.84 m—because the visible base stations here barely meet the
+minimum positioning requirement and leave no redundancy. By contrast, DGCC-AKF
+attains the highest accuracy on UAV2, with a median error 75.8% below that of S-EKF
+and 73.8% below that of VBAKF. Across the three UAVs, DGCC-AKF is the only method
+that combines accuracy and stability, remaining best or second-best under almost every
+condition with a narrow confidence interval.
+As shown in Figure 12 and Table 7, when the U-U observations of UAV3 are severely
+corrupted, the cooperative schemes without grouping degrade the most on the faulted
+UAV3: the median errors of D-AKF, DCC-AKF, and D-EKF rise to 4.60 m, 4.29 m, and
+4.01 m—more than twice the 1.90 m of S-EKF—and their P95 reaches 5.41 m, 5.11 m, and
+4.81 m. The grouped schemes DG-AKF and DGCC-AKF, together with the two baselines,
+stay near 2 m. DGCC-AKF reaches a median of 2.04 m and a CI95 of [2.16, 2.21] m, about
+56% and 52% below D-AKF and DCC-AKF. Its median is only marginally above MCC-EKF
+(2.02 m), but its P95 (3.18 m) is clearly below that of MCC-EKF (3.70 m), so DGCC-AKF
+bounds the worst-case error more tightly.
+Table 7. Statistical comparison of the 3D positioning accuracy of the three UAVs during the U-U and
+U-B observation fault periods.
+UAV
+Fault
+Metric
+S-EKF
+D-EKF
+D-AKF
+DCC-AKF
+DG-AKF
+VBAKF
+MCC-EKF
+DGCC-AKF
+UAV1
+U-B fault
+P95 (m)
+47.26
+30.88
+13.59
+13.95
+13.05
+9.39
+6.77
+12.90
+CI95 (m)
+[22.89, 22.89]
+[16.84, 17.08]
+[8.68, 9.06]
+[9.25, 9.64]
+[8.34, 8.70]
+[7.73, 7.94]
+[5.52, 5.66]
+[8.31, 8.61]
+dz
+large ∗
+large ∗
+large ∗
+large ∗
+n.s.
+medium ∗†
+large ∗†
+—
+U-U fault
+P95 (m)
+4.88
+4.73
+4.42
+4.38
+4.26
+4.28
+4.00
+4.23
+CI95 (m)
+[3.94, 3.94]
+[4.03, 4.10]
+[3.61, 3.65]
+[3.60, 3.64]
+[3.62, 3.65]
+[3.44, 3.45]
+[3.34, 3.37]
+[3.57, 3.60]
+dz
+large ∗
+large ∗
+medium ∗
+medium ∗
+large ∗
+large ∗†
+large ∗†
+—
+UAV2
+U-B fault
+P95 (m)
+24.59
+16.90
+10.94
+11.29
+10.30
+22.56
+10.84
+10.17
+CI95 (m)
+[22.08, 22.08]
+[9.05, 9.53]
+[6.26, 6.58]
+[6.53, 6.86]
+[6.16, 6.47]
+[19.64, 20.31]
+[9.34, 9.83]
+[6.03, 6.35]
+dz
+large ∗
+large ∗
+n.s.
+large ∗
+large ∗
+large ∗
+large ∗
+—
+U-U fault
+P95 (m)
+3.85
+4.09
+3.76
+3.68
+3.81
+3.79
+3.21
+3.75
+CI95 (m)
+[2.54, 2.54]
+[3.01, 3.09]
+[2.63, 2.68]
+[2.59, 2.64]
+[2.48, 2.52]
+[2.37, 2.41]
+[2.16, 2.18]
+[2.43, 2.46]
+dz
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗
+medium ∗†
+large ∗†
+—
+UAV3
+U-B fault
+P95 (m)
+5.16
+9.42
+5.74
+5.82
+5.74
+6.78
+6.48
+5.70
+CI95 (m)
+[4.27, 4.27]
+[6.00, 6.07]
+[4.66, 4.73]
+[4.74, 4.81]
+[4.65, 4.71]
+[5.53, 5.55]
+[5.30, 5.32]
+[4.61, 4.67]
+dz
+large ∗†
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗
+large ∗
+—
+U-U fault
+P95 (m)
+3.53
+4.81
+5.41
+5.11
+3.23
+3.20
+3.70
+3.18
+CI95 (m)
+[2.15, 2.15]
+[3.98, 4.11]
+[4.52, 4.72]
+[4.25, 4.44]
+[2.22, 2.27]
+[2.22, 2.26]
+[2.26, 2.38]
+[2.16, 2.21]
+dz
+n.s.
+large ∗
+large ∗
+large ∗
+large ∗
+medium ∗
+medium ∗
+—
+In summary, the simulation and semi-physical experiments show that DGCC-AKF
+combines high accuracy with high stability and copes well with changes in the number of
+base stations and with degraded observation quality. When base stations are sufficient and
+observations are stable, the cooperative schemes perform similarly and DGCC-AKF is on
+par with the best. Under observation loss or anomalies, it still maintains a superior overall
+accuracy. The two SOTA baselines are far less stable: MCC-EKF surpasses DGCC-AKF only
+when base-station observations are abundant, while VBAKF becomes unreliable whenever
+the visible-station set changes frequently or the U-B fault is correlated.
+https://doi.org/10.3390/drones10060460
+[p.21]
+Drones 2026, 10, 460
+21 of 25
+S-EKFD-EKFD-AKF
+DCC-AKF
+DG-AKF
+DGCC-AKFVBAKF
+MCC-EKF
+0
+10
+20
+30
+40
+50
+3D RMS / m
+ 13.68
+ 11.62
+ 8.05
+ 8.61
+ 7.62
+ 7.01
+ 7.92
+ 6.02
+(a)
+S-EKFD-EKFD-AKF
+DCC-AKF
+DG-AKF
+DGCC-AKFVBAKF
+MCC-EKF
+5
+10
+15
+20
+25
+3D RMS / m
+ 22.40
+ 5.79
+ 5.59
+ 5.49
+ 5.60
+ 5.43
+ 20.72
+ 9.72
+(b)
+S-EKFD-EKFD-AKF
+DCC-AKF
+DG-AKF
+DGCC-AKFVBAKF
+MCC-EKF
+3
+4
+5
+6
+7
+8
+9
+10
+3D RMS / m
+ 4.09
+ 5.03
+ 4.51
+ 4.65
+ 4.48
+ 4.40
+ 5.75
+ 5.67
+(c)
+Figure 11. Comparison of 3D positioning error RMS among eight algorithms during the U-B ob-
+servation fault period: (a) UAV1, (b) UAV2, (c) UAV3. In each box, the central red line denotes the
+median, the box edges mark the 25th and 75th percentiles, and the dashed whiskers extend to the
+most extreme non-outlier values.
+S-EKFD-EKFD-AKF
+DCC-AKF
+DG-AKF
+DGCC-AKFVBAKF
+MCC-EKF
+2
+2.5
+3
+3.5
+4
+4.5
+5
+5.5
+3D RMS / m
+ 3.89
+ 4.01
+ 3.62
+ 3.61
+ 3.67
+ 3.62
+ 3.48
+ 3.39
+(a)
+S-EKFD-EKFD-AKF
+DCC-AKF
+DG-AKF
+DGCC-AKFVBAKF
+MCC-EKF
+0.5
+1
+1.5
+2
+2.5
+3
+3.5
+4
+4.5
+5
+3D RMS / m
+ 2.20
+ 2.89
+ 2.46
+ 2.45
+ 2.21
+ 2.15
+ 2.08
+ 2.00
+(b)
+S-EKFD-EKFD-AKF
+DCC-AKF
+DG-AKF
+DGCC-AKFVBAKF
+MCC-EKF
+0
+1
+2
+3
+4
+5
+6
+3D RMS / m
+ 1.90
+ 4.01
+ 4.60
+ 4.29
+ 2.10
+ 2.04
+ 2.16
+ 2.02
+(c)
+Figure 12. Comparison of 3D positioning error RMS among eight algorithms during the U-U
+observation fault period: (a) UAV1, (b) UAV2, (c) UAV3. In each box, the central red line denotes the
+median, the box edges mark the 25th and 75th percentiles, and the dashed whiskers extend to the
+most extreme non-outlier values.
+4. Conclusions
+This paper proposed a Distributed Group Covariance Compensation Adaptive Kalman
+Filter (DGCC-AKF) to enhance UAV positioning accuracy in GNSS-denied regional nav-
+igation scenarios. DGCC-AKF integrates three complementary strategies: distributed
+cooperative localization for observation redundancy, a grouped adaptive mechanism for
+independent noise adjustment of heterogeneous U-B and U-U observations, and a CI
+compensation strategy for alleviating the conservative covariance estimation inherent in
+distributed fusion.
+Experimental validation was conducted on a large-scale testbed covering over
+2800 km2 in Zhoukou City, China, using fixed-wing aircraft at speeds exceeding 300 km/h.
+Two sets of experiments—simulation based on measured trajectories and semi-physical
+verification using real U-B observations—yield the following key findings. First, under
+observation loss conditions, cooperative localization is the dominant factor mitigating
+performance degradation, while the grouped adaptive mechanism and CI compensation
+provide supplementary optimization. Second, under observation anomaly conditions,
+the grouped adaptive mechanism is essential for preventing cooperative contamination;
+without it, cooperative schemes can perform worse than single-UAV positioning, yielding
+more than double the error of the affected UAV under U-U anomalies in the semi-physical
+experiment. Third, the CI compensation strategy is critical for maintaining AKF effective-
+ness in distributed architectures, as AKF without CI compensation yields higher errors
+than schemes with CI compensation even during normal observation periods. Fourth,
+benchmarked against two recent state-of-the-art adaptive filters, VBAKF and MCC-EKF,
+https://doi.org/10.3390/drones10060460
+[p.22]
+Drones 2026, 10, 460
+22 of 25
+DGCC-AKF is the only scheme that stays both accurate and stable across all UAVs and
+fault types; the two baselines are inconsistent, each degrading severely under at least
+one condition—VBAKF under correlated U-B faults and frequent base-station switching,
+and MCC-EKF when base-station observations are sparse. Overall, DGCC-AKF combines
+distributed collaboration, group-based adaptation, and CI compensation to deliver both
+high accuracy and high stability; under observation faults, it improves the 3D positioning
+accuracy by up to about 75% over single-UAV EKF while bounding the worst-case error
+more tightly than the competing schemes.
+These contributions carry several practical implications for low-altitude UAV posi-
+tioning. First, the underlying GH-LPS regional navigation system extends the operating
+envelope of GNSS-based positioning. It provides continuous service in areas where GNSS
+coverage is unstable or denied, complementing satellite navigation in low-altitude and
+remote scenarios. Second, the introduction of inter-UAV cooperation substantially re-
+duces dependence on dense ground base-station deployment. As shown by Scenario 2
+in Section 3.3, four base stations are sufficient to support cooperative UAV positioning
+across an operational area exceeding 2000 km2. This translates into significantly lower
+infrastructure cost compared with denser pseudolite networks. Third, the DGCC-AKF
+algorithm delivers metre-level 3D positioning accuracy on fixed-wing platforms operating
+above 300 km/h, even under observation anomalies. This accuracy level is compatible with
+the operational requirements of regional remote sensing, emergency response, and similar
+high-dynamic UAV missions.
+Some limitations should be acknowledged. From a deployment standpoint, our
+evaluation is only partially physical: the U-B observations and flight trajectories come from
+a real GH-LPS testbed, but the U-U ranges are still generated from the measured trajectories
+due to flight-test constraints. As a result, the simulated U-U observations may not fully
+capture every characteristic of real inter-UAV ranging. In particular, synchronization
+residuals, communication latency, packet loss, and antenna directivity could introduce
+additional biases or intermittency on the inter-UAV link. Among these, packet loss is partly
+reflected through the random observation-loss scenario, while the others are not explicitly
+modeled. These factors are expected to have a limited effect in the present scenario, and
+a more complete treatment is left for future work. In addition, owing to cost constraints,
+the cooperative dataset was constructed from only three flight sessions of a single UAV
+platform, and the applicability of the proposed method to larger UAV swarms remains to be
+validated. Accordingly, future work will target fully physical multi-UAV cooperative flight
+validation on larger swarms, together with more detailed modeling of these inter-UAV
+link factors.
+From a methodological standpoint, the proposed group adaptive mechanism currently
+regulates noise weights at the observation-type level, rather than at the individual-link
+level. We plan to extend it to link-level adaptive covariance estimation for finer-grained
+anomaly handling. Beyond filter-based methods, graph-optimization-based and learning-
+based cooperative-localization paradigms also hold strong potential. The former enables
+batch refinement and re-linearization under highly non-linear measurement models. The
+latter captures complex non-parametric dependencies in dense swarm topologies. We
+will further investigate the integration of these paradigms with the proposed grouped
+adaptive mechanism. The goal is to combine their accuracy potential with the real-time
+and deterministic profile of recursive filtering.
+Author Contributions: This paper is a collaborative work by all of the authors. Conceptualization,
+C.J. and X.G.; Data curation, Y.T., Y.S. and X.H.; Formal analysis, C.J.; Investigation, C.J., X.H. and Y.S.;
+Methodology, C.J. and X.G.; Project administration, C.J.; Software, C.J.; Supervision, X.G.; Validation,
+https://doi.org/10.3390/drones10060460
+[p.23]
+Drones 2026, 10, 460
+23 of 25
+C.J.; Writing (original draft), C.J.; Writing (review and editing), X.G. All authors have read and agreed
+to the published version of the manuscript.
+Funding: This research received no external funding.
+Data Availability Statement: The raw GH-LPS pseudolite observation data and measured UAV
+flight trajectories are subject to project restrictions and available from the corresponding author
+upon reasonable request. To facilitate reproducibility, the complete experimental configuration—
+including filter parameters (Table 3), the U-U observation generation procedure, anomaly injection
+time windows, and the six-algorithm comparison protocol—is provided in this manuscript.
+Conflicts of Interest: The authors declare no conflicts of interest.
+Abbreviations
+The following abbreviations are used in this manuscript:
+DGCC-AKF
+Distributed Group Covariance Compensation Adaptive Kalman Filter
+DCC-AKF
+Distributed CI-Compensated Adaptive Kalman Filter
+DG-AKF
+Distributed Grouped Adaptive Kalman Filter
+UAV
+Unmanned Aerial Vehicle
+EKF
+Extended Kalman Filter
+AKF
+Adaptive Kalman Filter
+GNSS
+Global Navigation Satellite System
+CI
+Covariance Intersection
+U-B
+UAV-to-Base Station
+U-U
+UAV-to-UAV
+GH-LPS
+Ground-based High-precision Local Positioning System
+RMS
+Root Mean Square
+NLOS
+Non-Line-of-Sight
+S-EKF
+Single-UAV Extended Kalman Filter
+D-EKF
+Distributed Cooperative Extended Kalman Filter
+D-AKF
+Distributed Cooperative Adaptive Kalman Filter
+VBAKF
+Variational Bayesian Adaptive Kalman Filter
+MCC-EKF
+Maximum Correntropy Criterion Kalman Filter
+EMA
+Exponential Moving Average
+AOA
+Angle of Arrival
+BDS
+BeiDou Navigation Satellite System
+IMU
+Inertial Measurement Unit
+UWB
+Ultra-Wideband
+SOTA
+State-of-the-Art
+References
+1.
+Yang, J. A Case Study on the Development and Application of Low-altitude Economy in Agriculture in China: Based on
+Demand-Supply-Environment Perspective. Acad. J. Bus. Manag. 2024, 6, 168–176. [CrossRef]
+2.
+Sun, X.; Wang, S.; Zhang, X.; Wandelt, S. LAERACE: Taking the Policy Fast-Track towards Low-Altitude Economy. J. Air Transp.
+Res. Soc. 2025, 4, 100058. [CrossRef]
+3.
+Huang, C.; Fang, S.; Wu, H.; Wang, Y.; Yang, Y. Low-Altitude Intelligent Transportation: System Architecture, Infrastructure, and
+Key Technologies. J. Ind. Inf. Integr. 2024, 42, 100694. [CrossRef]
+4.
+Zhou, Y. Unmanned Aerial Vehicles Based Low-Altitude Economy with Lifecycle Techno-Economic-Environmental Analysis for
+Sustainable and Smart Cities. J. Clean. Prod. 2025, 499, 145050. [CrossRef]
+5.
+Lu, M.; Yao, Z.; Shen, Y.; Li, X.; Wang, Z. Space-Air-Ground Collaborative Positioning, Navigation and Timing Architecture and
+Key Technologies for Low-Altitude Economy. China Commun. 2025, 22, 48–80. [CrossRef]
+6.
+Yang, Y.; Yao, Z.; Mao, Y.; Xu, T.; Wang, D. Resilient Satellite-Based PNT System Design and Key Technologies. Sci. China Earth
+Sci. 2025, 68, 669–682. [CrossRef]
+https://doi.org/10.3390/drones10060460
+[p.24]
+Drones 2026, 10, 460
+24 of 25
+7.
+Abdallah, A.A.; Kassas, Z.M. UAV Navigation With 5G Carrier Phase Measurements. In Proceedings of the 34th International
+Technical Meeting of the Satellite Division of The Institute of Navigation (ION GNSS+ 2021), St. Louis, MO, USA, 20–24 September
+2021; pp. 3294–3306. [CrossRef]
+8.
+Jin, Y.; Deng, Z.; Zhang, H.; Ding, Z.; Tang, X.; Wang, Z. A Review of UAV Positioning in LAIN: Toward a 5G-Core ‘Space-Air-
+Ground’ Integrated and Cooperative Architecture. Eng. Inf. Technol. Electron. Eng. 2026, 27, 1–16. [CrossRef]
+9.
+Guo, X.; Liu, K.; Meng, Z.; Li, X.; Yang, J. Pseudolite-Based Lane-Level Vehicle Positioning in Highway Tunnel. IEEE Trans. Intell.
+Transp. Syst. 2024, 25, 1612–1624. [CrossRef]
+10.
+Li, C.; Zhang, Y.; Liu, C. Enconv1D Model Based on Pseudolite System for Long-Tunnel Positioning. Remote Sens. 2025, 17, 858.
+[CrossRef]
+11.
+Lü, J.; Ze, K.; Fan, J.; Sun, G.; Liu, K.; Wang, W. Research Status and Prospects of Cooperative Localization in Unmanned Swarm
+Systems. Sci. Sin. Inf. 2025, 55, 2096–2119. [CrossRef]
+12.
+Zhang, Z.; Li, N.; Yan, G.; Li, W. The Development of Distributed Cooperative Localization Algorithms for Multi-UAV Systems in
+the Past Decade. Measurement 2025, 256, 118040. [CrossRef]
+13.
+Ruan, L.; Li, G.; Dai, W.; Tian, S.; Fan, G.; Wang, J.; Dai, X. Cooperative Relative Localization for UAV Swarm in GNSS-Denied
+Environment: A Coalition Formation Game Approach. IEEE Internet Things J. 2022, 9, 11560–11577. [CrossRef]
+14.
+Ouyang, X.; Zeng, F.; Lv, D.; Dong, T.; Wang, H. Cooperative Navigation of UAVs in GNSS-Denied Area with Colored RSSI
+Measurement. IEEE Sens. J. 2021, 21, 2194–2210. [CrossRef]
+15.
+Qiu, F.; Zhang, W. Efficient Cooperative Localization Method with Node Selection Based on Position Error Bound. Signal Process.
+2023, 209, 109037. [CrossRef]
+16.
+Xu, S.; Zhang, L.; Wang, X.; Chen, J.; Wei, F.; Wu, Y. Indoor Cooperative Localization for a Swarm of Micro UAVs Based on Visible
+Light Communication. IEEE Syst. J. 2023, 17, 6504–6515. [CrossRef]
+17.
+Guo, J.; Yang, S.; Li, T. UWB and IMU Based Positioning with Multi-UAVs in GPS-Denied Environments. In Proceedings of the
+2025 5th International Conference on Computer Science and Blockchain (CCSB), Shenzhen, China, 1–3 August 2025; pp. 231–235.
+[CrossRef]
+18.
+Li, K.; Bu, S.; Li, J.; Xia, Z.; Wang, J.; Li, X. Distributed Relative Pose Estimation for Multi-UAV Systems Based on Inertial
+Navigation and Data Link Fusion. Drones 2025, 9, 405. [CrossRef]
+19.
+Wu, H.; Shi, Z.; Wu, Z.; Xu, H.; Tu, Z. ST-DCL: A Spatio-Temporally Decoupled Cooperative Localization Method for Dynamic
+Drone Swarms. Drones 2026, 10, 69. [CrossRef]
+20.
+Xu, H.; Zhao, G.; Bo, Y. UAV–UGV Collaborative Localization in GNSS-Denied Large-Scale Environments: An Anchor-Free
+VIO–UWB Fusion with Adaptive Weighting and Outlier Suppression. Drones 2026, 10, 175. [CrossRef]
+21.
+Zhu, H.; Rodríguez-Piñeiro, J.; Domínguez-Bolaño, T.; Cai, X.; Yin, X. Affordable Quality of Service Assessment for Cellular-
+Connected UAV Communications. In Proceedings of the ICWMC 2021: The Seventeenth International Conference on Wireless
+and Mobile Communications, Nice, France, 18–22 July 2021.
+22.
+Chen, L.; Zhang, W.; Kishk, M.A.; Alouini, M.S. Correlation of Line-of-Sight Probabilities in Aerial-Terrestrial Communications:
+Modeling, Analysis, and Application. IEEE Trans. Veh. Technol. 2024, 73, 7049–7065. [CrossRef]
+23.
+Bai, S.; Li, S.; Yin, C.; Qu, W.; Hsu, L.T.; Liu, Y.; Chen, W.H. MIMO OFDM-Enabled ISAC for Low-Altitude Non-Cooperative UAV
+Surveillance: A Survey. arXiv 2026, arXiv:2604.02680. [CrossRef]
+24.
+Taylor, C.; Gross, J.N. Factor Graphs for Navigation Applications: A Tutorial. NAVIGATION J. Inst. Navig. 2024, 71, navi.653.
+[CrossRef]
+25.
+Couturier, A.; Akhloufi, M.A. A Review on Deep Learning for UAV Absolute Visual Localization. Drones 2024, 8, 622. [CrossRef]
+26.
+Wang, B.; Song, B.; Wang, T.; Deng, Z.; Fu, M. A BDS/5G Combined Positioning Method Based on Adaptive Optimal Selection-
+Robust Hybrid Adaptive Kalman Filter Algorithm. IEEE Internet Things J. 2024, 11, 22376–22384. [CrossRef]
+27.
+Juston, M.; Gupta, S.; Mathur, S.; Norris, W.R.; Nottage, D.; Soylemezoglu, A. Robust Error State Sage-Husa Adaptive Kalman
+Filter for UWB Localization. IEEE Sens. J. 2025, 25, 16034–16049. [CrossRef]
+28.
+Wang, J.; Deng, Z.; Qiu, F.; Ma, M.; Xu, S. FCI-AEKF: A Robust GNSS/5G Hybrid Positioning Framework with Dynamic
+Motion and Noise Adaptation.
+In Proceedings of the Workshop for Computing and Advanced Localization at the 15th
+International Conference on Indoor Positioning and Indoor Navigation (IPIN-WCAL 2025), Tampere, Finland, 15–18 September
+2025; Volume 4047 .
+29.
+Hadjiloizou, L.; Makridis, E.; Charalambous, T.; Deliparaschos, K.M. Maximum Correntropy Criterion Kalman Filter for Indoor
+Quadrotor Navigation under Intermittent Measurements. In Proceedings of the 2023 31st Mediterranean Conference on Control
+and Automation (MED), Limassol, Cyprus, 26–29 June 2023; pp. 1–6. [CrossRef]
+30.
+Xue, R.; Liu, H.; Liang, Z. A BDS/5G Hybrid Localization Algorithm Based on Adaptive Variational Bayesian for UAV Positioning.
+Phys. Commun. 2024, 67, 102505. [CrossRef]
+31.
+Wu, Y.; Zhang, B.; Ren, X.; Wang, Y.; Yi, X. Research on Multi-UAV Communication Connectivity Maintenance Based on Dynamic
+Programming. Sci. Sin. Technol. 2020, 50, 538–550. [CrossRef]
+https://doi.org/10.3390/drones10060460
+[p.25]
+Drones 2026, 10, 460
+25 of 25
+32.
+Zeng, Y.; Zhang, R.; Lim, T.J. Wireless Communications with Unmanned Aerial Vehicles: Opportunities and Challenges. IEEE
+Commun. Mag. 2016, 54, 36–42. [CrossRef]
+33.
+Luo, X.; Du, X.; Yue, S.; Lv, Y.; Zhang, L.; He, X.; Wu, W.; Mao, J. DTVIRM-Swarm: A Distributed and Tightly Integrated
+Visual-Inertial-UWB-Magnetic System for Anchor Free Swarm Cooperative Localization. Drones 2026, 10, 49. [CrossRef]
+34.
+Tu, C.; Cui, X.; Liu, G.; Lu, M. Weighted Covariance Intersection for Range-Based Distributed Cooperative Localization of
+Multi-Agent Systems. arXiv 2025, arXiv:2508.12207. [CrossRef]
+35.
+Meng, Z.; Guo, X.; Yang, J.; Liu, C. A New Ground-Based High-Precision Local Positioning System for Indoor and Outdoor
+Positioning. In Proceedings of the 2019 International Conference on Indoor Positioning and Indoor Navigation (IPIN), Pisa, Italy,
+30 September–3 October 2019; pp. 1–8. [CrossRef]
+36.
+Coluccia, A.; Fascista, A. A Review of Advanced Localization Techniques for Crowdsensing Wireless Sensor Networks. Sensors
+2019, 19, 988. [CrossRef]
+37.
+Bassolillo, S.R.; D’Amato, E.; Mattei, M.; Notaro, I. Distributed Navigation in Emergency Scenarios: A Case Study on Post-
+Avalanche Search and Rescue Using Drones. Appl. Sci. 2023, 13, 11186. [CrossRef]
+38.
+Lei, G.; Ping, Y.; Liang, T.; Ding, H.; Zhang, T. Relative Localization of UAV Swarms in GNSS-Denied Conditions. arXiv 2025,
+arXiv:2509.04412. [CrossRef]
+39.
+Xu, H.; Liu, P.; Chen, X.; Shen, S. D2SLAM: Decentralized and Distributed Collaborative Visual-Inertial SLAM System for Aerial
+Swarm. IEEE Trans. Robot. 2024, 40, 3445–3464. [CrossRef]
+40.
+McGann, D.; Kaess, M. riMESA: Consensus ADMM for Real-World Collaborative SLAM. arXiv 2026, arXiv:2603.01178. [CrossRef]
+41.
+Niehsen, W. Information Fusion Based on Fast Covariance Intersection Filtering. In Proceedings of the Fifth International
+Conference on Information Fusion (FUSION 2002), Annapolis, MD, USA, 8–11 July 2002; Volume 2, pp. 1340–1344. [CrossRef]
+42.
+Yan, Y.; Yang, J. An Improved Variational Bayesian-Based Adaptive Federated Kalman Filter for Multi-Sensor Integrated
+Navigation Systems. Sensors 2025, 25, 7173. [CrossRef]
+43.
+Singh, R.K.; Saha, J.; Bhaumik, S. Maximum Correntropy Polynomial Chaos Kalman Filter for Underwater Navigation. Digit.
+Signal Process. 2024, 155, 104774. [CrossRef]
+44.
+Efron, B.; Tibshirani, R.J. An Introduction to the Bootstrap; Chapman and Hall/CRC: New York, NY, USA , 1993.
+45.
+Lakens, D. Calculating and Reporting Effect Sizes to Facilitate Cumulative Science: A Practical Primer for t-Tests and ANOVAs.
+Front. Psychol. 2013, 4, 863. [CrossRef] [PubMed]
+46.
+Holm, S. A Simple Sequentially Rejective Multiple Test Procedure. Scand. J. Stat. 1979, 6, 65–70.
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+https://doi.org/10.3390/drones10060460
+=== END ===

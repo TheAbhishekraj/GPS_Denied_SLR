@@ -1,0 +1,854 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1438.pdf
+sha256: AC50DF7214E977F893FB16F0F7EBCAB3031D6F61013A97E13D54CBA876B4DF12
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+3D Motion Planning for UAVs in GPS-Denied Unknown Forest
+Environment
+Fang Liao1, Shupeng Lai2, Yuchao Hu1, Jinqiang Cui1, Jian Liang Wang3, Rodney Teo1 and Feng Lin1
+Abstract— In this paper, a decomposition hierarchic on-line
+motion planning approach consisting of path planning and
+trajectory generation is proposed for VTOL UAVs to ﬂy in a
+GPS-denied unknown obstacle-rich environment such as forest
+and urban canyon. A closed-loop 3D path planning based on A∗
+search algorithm is used to generate collision-free path and a
+3D on-line trajectory generation based on maneuver automaton
+methods is used to generate a collision-free reference trajectory.
+The simulation and experiment on a VTOL UAV demonstrate
+the effectiveness of the proposed motion planning approach.
+I. INTRODUCTION
+Autonomous navigation of UAVs in complex environments
+has been an active research topic for a decade. The motion
+planning problem for UAVs is difﬁcult since these vehicles
+have fast, complicated and uncertain dynamics [1] and strict
+payload limitations [2], they are compounded by the issues
+of real-time navigation in 3D space and involve continual
+interaction with the environment.
+The
+goal
+of
+motion
+planning
+of
+UAVs
+is
+to
+generate
+a
+collision-free
+trajectory
+in
+real-time
+for
+kinematics/dynamics-constrained vehicles to go through a
+three-dimensional environment with obstacles. Currently,
+there
+does
+not
+exist
+an
+algorithm
+that
+provides
+an
+exact analytic solution to such a problem. Indeed, even
+state-of-the-art
+approximation
+algorithms
+operating
+on
+a three-dimensional subspace of this problem space are
+difﬁcult to compute in real time. Many of the algorithms
+designed to solve this problem rely on a decomposition
+hierarchic method, ﬁrst solving a path planning problem,
+applying smoothing constraints, forming a trajectory that
+conforms to the path, and using a control loop to follow
+this trajectory [3]. The advantage of this method is that
+any of the traditional kinematics/dynamics-unconstrained
+algorithms found in the ﬁeld of robotics may be used for
+the path planning stage, and it is easy to integrate the
+motion planning algorithm with existing low level dynamic
+controller.
+The algorithms for path planning are evaluated in terms
+of optimality, completeness and computational complexity.
+As it is difﬁcult to optimize all these elements in the
+1 Temasek Laboratories, National University of Singapore, Singapore
+117411,
+tsllf@nus.edu.sg, tsltshr@nus.edu.sg,
+tslhuyu@nus.edu.sg, cuijinqiang@nus.edu.sg,
+linfeng@nus.edu.sg.
+2 Department of Electrical and Computing Engineering, National Uni-
+versity of Singapore, Singapore 117583, shupenglai@u.nus.edu.
+3 School of Electrical and Electronic Engineering, Nanyang Technolog-
+ical University, Singapore 639798, ejlwang@ntu.edu.sg.
+development of path planning algorithm, there is always a
+trade-off between these elements. The existing path planning
+algorithms include roadmap approaches that consist of map
+discretization and search algorthm [4], [5], [6], [7], [8],
+heuristic approaches [9], [10], rapidly exploring random tree
+[11], [12] and artiﬁcial potential ﬁeld approaches [13], [14].
+Trajectory generation problems are often considered as
+constrained optimization problems. It solves the trajectory
+that is physically possible to be tracked by an UAV from
+one node to another subjected to dynamic constraints. An
+exact solution is generally not possible in three-dimensional
+space. As a result, approximation solutions are usually used
+to ﬁnd a feasible or sub-optimal trajectory subject to dy-
+namic constraints. The existing methods can be classiﬁed as
+smoothing methods [15], mathematical programming meth-
+ods [16], [17], [18], [19], potential-based methods [20], [21]
+and maneuver automaton methods [22], [23], [24], etc. The
+general idea of maneuver automaton methods [22], [23], [24]
+is to reduce the optimization or search problem from an
+inﬁnite-dimensional space to a ﬁnite one. It helps to signif-
+icantly reduce the computational complexity of a trajectory
+optimization. The commercial trajectory generation software
+Reﬂexxes is based on this type of methods.
+Since the computational time of deterministic and com-
+plete algorithms grows exponentially with the dimension of
+the conﬁguration space, most of the existing algorithms do
+not provide an adequate solution for on-line (real-time) UAV
+motion planning in unknown natural environments. Majority
+of the existing motion planning methods only provide sim-
+ulation results based on idealized vehicles and operational
+conditions and do not discuss practical implementation.
+In this paper, a 3D motion planning method for VTOL
+UAVs to ﬂy in a GPS-denied unknown obstacle-rich environ-
+ment such as forest and urban canyon is proposed. A closed-
+loop on-line path planning based on A∗search algorithm is
+used to generate collision free path with the shortest distance
+from any current position to a given destination in the local
+map of the UAV. Then an on-line trajectory generation based
+on maneuver automaton methods generates a collision-free
+reference trajectory and output to the lower level of control
+system to control the VTOL UAV. This proposed motion
+planning method has some inherent, implicit robustness to
+uncertainties due to its closed-loop implementation.
+Since we utilize existing techniques for sensing, map
+building, path planning and trajectory generation, our contri-
+bution is not so much to these individual ﬁelds, but rather one
+of combining these techniques in a novel way to facilitate 3D
+navigation of a UAV in GPS-denied unknown environments.
+2016 IEEE Intelligent Vehicles Symposium (IV)
+Gothenburg, Sweden, June 19-22, 2016
+978-1-5090-1821-5/16/$31.00 ©2016 IEEE
+246
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:40:37 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+This paper describes how we integrate these techniques, and
+presents insights learned in the process. Both simulation and
+ﬂight test results are presented in this paper.
+The rest of this paper is organized as follows. Section II
+presents the development of 3D motion planning algorithm.
+Section III gives the simulation results of the proposed
+algorithm. The experimental results are presented in Section
+IV, followed by a brief conclusion in Section V.
+II. 3D MOTION PLANNING OF UAV IN UNKNOWN
+ENVIRONMENT
+Motion planning of UAVs in unknown environment is
+faced with a large amount of uncertainties such as environ-
+ment uncertainty, measurement noise, sensor limitation and
+wind disturbance, etc. Moreover, collision with obstacles is
+catastrophic for UAVs. Hence, soundness is a very crucial
+property for motion planning of UAVs. A sound motion
+planner is one that always guarantees the vehicle will enter
+the goal region and stop there without hitting any obstacle
+despite uncertainty in sensing and control.
+As the majority of UAVs currently in production already
+have a low-level tracking control system and the decom-
+position hierarchic motion planning method is the easiest
+one to integrate with the existing control scheme. In this
+paper, the decomposition hierarchic method is adopted to
+implement motion planning of UAVs in unknown obstacle-
+rich environment. This method consists of an on-line path
+planning that generates a collision-free path and an on-line
+trajectory generation that generates a collision-free trajectory.
+Both of them work together to achieve the soundness of the
+proposed motion planning. The diagram of motion planning
+of a single UAV is shown in Figure 1.
+Fig. 1: Diagram of motion planning of single UAV
+A. Environment Representation
+In this research, the environment is detected by LIDAR
+sensors. The point clouds generated by the LIDAR sensors
+are used to build the 3D occupancy grid map surrounding the
+UAV. 3D occupancy grid map represents the 3D environment
+by dividing the environment into evenly cubes and labelling
+each cube as free (w/o obstacle) or occupied (with obstacle).
+The resolution of the occupancy grid map is a trade-off
+result after considering the accuracy of the environment
+representation, the physical size of the UAV and on-line
+implementation.
+As the environment is unknown and the computational
+time of motion planning algorithms grows with the size of
+the environment, to implement on-line motion planning, a
+local but not global occupancy grid map is built based on
+the sensed data. In the local occupancy grid map, a ﬁxed
+area surrounding the UAV is represented by its corresponding
+occupancy grid map and the rest area is represented by free
+spaces. The size of the ﬁxed area depends on the sensing
+range of LIDAR and the ﬁxed area moves with the UAV.
+Figure 2 shows the local occupancy grid map on which the
+3D A∗algorithm works.
+Fig. 2: Local occupancy grid map.
+To make the UAV keep a safe distance with the obstacles,
+each occupied cube in the local map is expanded, i.e., the
+neighbors of the occupied cube are all set as ”occupied”.
+B. 3D Path Planning
+Path planning is referred to the generation of a feasible
+ﬂight path from a start position to a destination without
+consideration of dynamic feasibility.
+As A∗algorithm is a simple, fast, complete and optimal
+algorithm, we use A* to search the shortest path from the
+start node to the destination node in the 3D local occupancy
+grid map. While A∗traverses the map, it builds up a tree
+of partial paths. The leaves of this tree (called the open set)
+are stored in a priority queue that orders the leaf nodes by
+a cost function. The cost function f(n) is described by
+f(n) = g(n) + h(n)
+(1)
+where g(n) is the distance travelled from the initial node
+to node n and its value is tracked by the algorithm, h(n)
+is a heuristic estimate of the cost to reach the goal node
+from node n. For the algorithm to ﬁnd the actual shortest
+path, the heuristic function must be admissible, namely, it
+never overestimates the actual cost to get to the destination
+node. One candidate for h(n) is the Euclidean distance from
+node n to the destination node as it is physically the smallest
+possible distance between any two points. In the following,
+the 3D A∗algorithm developed in this research is given:
+Step 1: Initialization: Deﬁne the start node as node s. Let
+g(s) = 0 and the cost function f(s) = g(s)+h(s) with h(s)
+the Euclidean distance from the start node s to the destination
+247
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:40:37 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+node t. Set the closed set consisting of all occupied nodes
+(obstacles) in the occupancy grid map and node s. And set
+node s as its parent node.
+Step 2: Node Expansion: Find free neighbour nodes of
+the node n (n = s at the start node) from its 26 neighbour
+nodes. Save the cost and corresponding parent of these free
+neighbour nodes. Keep these free neighbour nodes in an open
+set in the order of cost value.
+Step 3: Node Selection: If there is no node in the open set,
+display ”No Path” and exit from this algorithm; otherwise,
+identify the node n + 1 with minimum cost in the open set.
+Delete this node from the open set and put it into the closed
+set, and save its parent node.
+Step 4: Stopping Criteria: If the node n + 1 is the
+destination, go to step 5; otherwise, let n = n + 1 and go to
+step 2.
+Step 5: Short Cut: If there is no obstacle on the straight
+line between a node i (start from the destination node t) and
+its parent’s parent, replace its parent with its parent’s parent.
+Otherwise, let i = i+1 and repeat Step 5 until the start node
+is reached.
+Step 6: Path Finding: From destination node and its
+parent and its parent’s parent, and so on, by using backward
+induction, the shortest path from start node s to destination
+node t can be found.
+It is noted that the path generated by the A∗algorithm
+may not be the shortest path on the global map since the A∗
+algorithm works on the local occupancy grid map. However,
+the computational time will be reduced and the completeness
+of the A∗algorithm will not be affected.
+C. 3D Trajectory Generation
+As the path generated by the on-line path planning does
+not consider kinematic/dynamic feasibility, it is difﬁcult for
+a UAV to follow it without stopping. As a result, on-line
+trajectory generation is required to connect the high-level
+path planning with the low-level motion control of the UAV
+such as the low-level motion control can control the UAV
+with kinematic/dynamic constraints ﬂying along the path
+generated by the high-level path planning.
+In this paper, Reﬂexxes Type IV Motion Library [25]
+based on maneuver automaton methods is adopted to gen-
+erate 3D trajectory for UAVs. This trajectory generator is
+capable of computing an entire time-optimal trajectory from
+an arbitrary initial state of motion to a given target within one
+servo control cycle (typically one millisecond or less) subject
+to velocity, acceleration and jerk limitations. Figure 3 shows
+the inputs and outputs of the position-based Reﬂexxes tra-
+jectory generator. As Reﬂexxes trajectory generator directly
+uses its outputs as its inputs of current state of motion for
+the following control cycle, it is considered as an open-loop
+control.
+Since only kinetic time-optimality is regarded in this
+on-line trajectory generation algorithm, all DOFs can be
+considered as linearly independent, that is, decoupled. For
+multiple DOF systems, one more step is to synchronize all
+Fig. 3: Inputs and outputs of the on-line trajectory generator [25].
+DOFs to the synchronization time and calculate all trajectory
+parameters based on the synchronization time.
+The main reason to apply this algorithm to the research
+is that it generates 3D time optimization trajectory with
+consideration of kinetic constraints and can be implemented
+in real time. However, its drawbacks are 1) only symmetrical
+velocity, acceleration and jerk constraints are considered
+in this algorithm and UAV dynamic constraints are not
+addressed. 2) obstacle avoidance is not considered.
+As VTOL UAVs but not ﬁxed-wing UAVs are used in this
+research, the ﬁrst drawback is not so signiﬁcant. However,
+the second drawback must be solved here.
+Since Reﬂexxes trajectory generator is open-loop and does
+not consider obstacle avoidance, the generated trajectory may
+cause the UAV colliding with obstacles. Hence, a collision
+check on the trajectory is necessary to ensure soundness. As
+a result, an intermediate element between the path planning
+and Reﬂexxes trajectory generator, called local target gen-
+erator, is introduced to carry out the collision check of the
+trajectory.
+The aim of local target generator is to generate a local tar-
+get for Reﬂexxes trajectory generator such that the trajectory
+generated by Reﬂexxes trajectory generator from the current
+position to the local target is collision-free.
+Since the path generated by the 3D path planning algo-
+rithm consists of a serial waypoints arranged in a pre-deﬁned
+order, the local target generation algorithm selects the way
+points one by one as the local target input to Reﬂexxes
+trajectory generator. To switch the local target from one
+waypoint to the next one, collision check of the trajectory
+from current position to the next waypoint generated by
+Relexxes is carried out. If it is obstacle-free, the local
+target switches to the next waypoint; otherwise, the local
+target keeps unchanged. The ﬂow chart of the local target
+generation is given in Figure 4. In the local target generation,
+collision checking of trajectory is the most important task.
+The following steps are used to carry it out:
+Step 1: Reconstruct the reference trajectory using the
+variables provided by Reﬂexxes. The reference trajectory
+248
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:40:37 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+is a 3-order polynomial function of time in each degree of
+freedom.
+Step 2: Discrete the reference trajectory to obtain a serial
+of discrete-time points.
+Step 3: Check if the cubes where these discrete points
+lie are obstacle-free in the local occupancy grid map. If all
+the cubes are obstacle-free, it indicates that the reference
+trajectory is collision-free; otherwise, it indicates that there
+is obstacle on the reference trajectory.
+Fig. 4: Flow chart of the local target generation algorithm.
+As the update rate of the 3D on-line path planner relies on
+the update rate of the 3D occupancy grid map which requires
+long processing time and the 3D Reﬂexxes trajectory genera-
+tor has to provide commands for low-level motion control of
+UAVs in real-time, different time scales are required for the
+path planning and trajectory generator. In this research, the
+update rate of the path planning and local target generator are
+set as 10Hz and that of Reﬂexxes trajectory generator is set
+as 50Hz. All the software development including building of
+occupancy grid map, SLAM, 3D path planning and 3D on-
+line trajectory generation is under Robot Operating System
+(ROS).
+III. SIMULATION OF MOTION PLANNING
+In this section, a VTOL UAV is used to demonstrate the
+proposed motion planning algorithm in MatLab.
+The simulated environment is a forest. The constraints
+of the VTOL UAV are as follows: the maximum velocity
+vxmax = vymax = vzmax = 1m/s, the maximum accel-
+eration axmax = aymax = azmax = 0.5m/s2 and the
+maximum jerk jxmax = jymax = jzmax = 1m/s3. The
+start position is set at (25,5,1) and the target position is set
+at (45,57,2.5).
+Figures 5 and 6 show the reference trajectory (in green
+line) and the real trajectory (in black line) of the UAV from
+3D view and X-Y view, respectively, where the red cubes
+represent the obstacles. The path generated by the 3D on-line
+path planner is shown in blue line where the blue circles are
+the way points that construct the path. It is observed from
+Figures 5 and 6 that the path generated by the 3D on-line
+path planner is an obstacle-free path. However, it is difﬁcult
+for UAV to follow without stop at the way points as the
+path consists of a serial of straight lines. It is also observed
+that the reference trajectory (in green line) generated by the
+3D trajectory generation subject to the kinetic constraints is
+along the path (in blue line) and is collision-free. Moreover,
+the real trajectory (in black line) of the UAV tracks the
+reference trajectory well. Moreover, the reference velocity
+and acceleration generated by the proposed algorithm and
+the real velocity and acceleration of the UAV are shown in
+Figure 7. This simulation demonstrates that the 3D motion
+planning works well in the obstacle-rich 3D environment.
+0
+20
+40
+60
+0
+20
+40
+60
+0.5
+1
+1.5
+2
+2.5
+3
+Y (m)
+Target
+X (m)
+Start
+Z (m)
+Fig. 5: 3D view of trajectory of 3D motion planning
+0
+10
+20
+30
+40
+50
+60
+70
+0
+10
+20
+30
+40
+50
+60
+70
+Target
+X (m)
+Start
+Y (m)
+Fig. 6: X-Y view of trajectory of 3D motion planning
+249
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:40:37 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+0
+10
+20
+30
+40
+0
+0.5
+1
+time (s)
+X−axis velocity (m/s)
+ 
+ 
+vxr
+vx
+0
+10
+20
+30
+40
+0
+0.5
+1
+time (s)
+Y−axis velocity (m/s)
+ 
+ 
+vyr
+vy
+0
+10
+20
+30
+40
+0
+0.2
+0.4
+time (s)
+Z−axis velocity (m/s)
+ 
+ 
+vzr
+vz
+0
+10
+20
+30
+40
+−0.5
+0
+0.5
+1
+time (s)
+X−axis acceleration (m/s2)
+ 
+ 
+axr
+ax
+0
+10
+20
+30
+40
+−0.5
+0
+0.5
+1
+time (s)
+Y−axis acceleration (m/s2)
+ 
+ 
+ayr
+ay
+0
+10
+20
+30
+40
+−0.5
+0
+0.5
+1
+time (s)
+Z−axis acceleration (m/s2)
+ 
+ 
+azr
+az
+Fig. 7: Velocity and acceleration of 3D motion planning
+Fig. 8: UAV for ﬂight test.
+IV. FLIGHT TEST OF MOTION PLANNING
+The VTOL UAV used for ﬂight test is shown in Figure 8.
+It is with the three dimension size of 1.2m × 1.2m × 0.5m.
+This quadrotor UAV is equipped with two LIDAR scanners
+to detect obstacles in horizontal and vertical direction, one
+ranger ﬁnder to measure the relative altitude, IMU to measure
+Euler angles, angular rates and acceleration on the body
+axis, Pixhawk to perform the low-level control, and on-board
+processor Mastermind to perform high level control such as
+path planning, trajectory generation and logic algorithms, etc.
+The ﬂight test was carried out in a forest. Part of the
+occupancy grid map representing the forest is shown in
+Figure 9 where obstacle-occupied space is represented by
+colourful pixels and free space by transparent pixels.
+Fig. 9: Occupancy grid map of the forest environment
+In the ﬂight test, the UAV ﬂied a loop from the start
+position (0,0,1.2) to the destination at the same position
+(0,0,1.2) via a serial given middle points. The reference tra-
+jectory generated by the motion planning and the trajectory
+estimated by SLAM are shown in Figure 10 where the red
+squares represent the obstacles, the blue stars represent the
+given middle points, the black line represents the trajectory
+estimated by SLAM and the green line represents the trajec-
+tory generated by the proposed motion planning algorithm.
+It is observed from Figure 10 that the reference trajectory
+generated by the proposed approach is collision-free and the
+UAV tracks the reference trajectory very well in the ﬂight
+test.
+−20
+−10
+0
+10
+20
+30
+40
+50
+−20
+−10
+0
+10
+20
+30
+40
+50
+X (m)
+Y (m)
+Fig. 10: XY-view of trajectory in ﬂight test where the red squares
+represent the obstacles, the blue ∗represent the middle points,
+the black line represents the trajectory estimated by SLAM and
+the green line represents the reference trajectory generated by the
+proposed approach.
+Figures 11 shows that the reference velocities generated by
+the motion planning is tracked by the UAV well. In addition,
+the acceleration of the UAV is shown in Figure 12 and the
+Euler angles and angular rates are shown in Figure 13.
+The ﬂight tests demonstrate that the proposed motion
+planning algorithm works effectively in the obstacle-rich
+forest environment.
+V. CONCLUSIONS
+In this paper, a decomposition hierarchic on-line motion
+planning method is proposed for 3D motion planning of
+UAVs in obstacle-rich forest environment. Since the pro-
+posed motion planning forms a closed-loop with low level
+control system by introducing the UAV position feedback, it
+has some inherent, implicit robustness to uncertainties. The
+simulation and experiment on a single UAV demonstrate the
+effectiveness of the proposed on-line 3D motion planning
+algorithm.
+ACKNOWLEDGMENT
+The authors would like to thank former student Zhichao
+Liu for his valuable work on this project.
+250
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:40:37 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+40
+60
+80
+100
+120
+140
+160
+−1.5
+−1
+−0.5
+0
+0.5
+1
+1.5
+time (s)
+x−axis velocity (m/s)
+ 
+ 
+vx
+vxref
+40
+60
+80
+100
+120
+140
+160
+−1.5
+−1
+−0.5
+0
+0.5
+1
+1.5
+time (s)
+y−axis velocity (m/s)
+ 
+ 
+vy
+vyref
+40
+60
+80
+100
+120
+140
+160
+−1.5
+−1
+−0.5
+0
+0.5
+1
+1.5
+time (s)
+z−axis velocity (m/s)
+ 
+ 
+vz
+vzref
+Fig. 11: Velocities in ﬂight test.
+40
+60
+80
+100
+120
+140
+160
+−2
+−1
+0
+1
+2
+time (s)
+x−axis acceleration (m/s2)
+40
+60
+80
+100
+120
+140
+160
+−2
+−1
+0
+1
+2
+time (s)
+y−axis acceleration (m/s2)
+40
+60
+80
+100
+120
+140
+160
+−2
+−1
+0
+1
+2
+time (s)
+z−axis acceleration (m/s2)
+Fig. 12: Accelerations in ﬂight test.
+REFERENCES
+[1] S. LaValle and R. Sharma, “A framework for motion planning in
+stochastic environments: modeling and analysis,” In Proc. IEEE In-
+ternational Conference on Robotics and Automation, Nagoya, Japan,
+May 1995, pp. 3057-3062.
+[2] N. Dadkhah and B. Mettler, “Survey of motion planning literature in
+the presence of uncertainty: considerations for UAV guidance,” Journal
+of Intelligent & Robotic Systems, vol. 65, pp. 233-246, 2012.
+[3] S. LaValle, Planning Algorithms, Cambridge University Press, Cam-
+bridge, 2006.
+[4] F. Andert and F. Adolf, “Online world modeling and path planning for
+an unmanned helicopter,” Auton Robots, vol. 27, no. 3, pp. 147-164,
+2009.
+[5] J. Davis and S. Chakravorty, “Motion planning under uncertainty:
+application to an unmanned helicopter,” Journal of Guidance, Control,
+and Dynamics, vol. 30, no. 5, pp. 1268-1276, 2007.
+[6] S. Hrabar, “3D path planning and stereo-based obstacle avoidance for
+rotorcraft UAVs,” In Proc. IEEE Conference on Intelligent Robots and
+Systems (IROS), Nice, France, 2008, pp. 807-814.
+[7] D. Shim, H. Chung and S. Sastry, “Conﬂict-free navigation in un-
+known urban environments,” IEEE Robot. Autom. Mag., vol. 13, no.
+3, pp. 27-33, 2006.
+[8] B. Sinopoli, M. Micheli, G. Donato and T. Koo, “Vision based
+navigation for an unmanned aerial vehicle,” In Proc. IEEE Conference
+on Robotics and Automation (ICRA), Seoul, Korea, 2001, pp. 1757-
+1764.
+[9] Eva Besada-Portas, Luis de la Torre, Alejandro Moreno and Jose
+L. Risco-Martin, “On the performance comparison of multi-objective
+evolutionary UAV path planners,” Information Sciences, vol. 238, pp.
+111-125, July 2013.
+40
+60
+80
+100
+120
+140
+160
+−5
+0
+5
+time (s)
+φ (deg)
+40
+60
+80
+100
+120
+140
+160
+−5
+0
+5
+time (s)
+θ (deg)
+40
+60
+80
+100
+120
+140
+160
+−100
+0
+100
+200
+time (s)
+ψ (deg)
+ 
+ 
+ψ
+ψref
+40
+60
+80
+100
+120
+140
+160
+−20
+−10
+0
+10
+20
+time (s)
+p (deg/s)
+40
+60
+80
+100
+120
+140
+160
+−20
+−10
+0
+10
+20
+time (s)
+q (deg/s)
+40
+60
+80
+100
+120
+140
+160
+−20
+−10
+0
+10
+20
+time (s)
+r (deg/s)
+Fig. 13: Euler angles and angular rates in ﬂight test.
+[10] Y. Fu, M. Ding, C. Zhou and H. Hu, “Route Planning for Unmanned
+Aerial Vehicle (UAV) on the Sea Using Hybrid Differential Evolution
+and Quantum-Behaved Particle Swarm Optimization,” IEEE Transac-
+tions on Systems, Man, and Cybernetics Systems, vol. 43, no. 6, pp.
+1451-1465, November 2013.
+[11] S. Karaman and E. Frazzoli, “Sampling-based algorithms for optimal
+motion planning,” The International Journal of Robotics Research,
+vol. 30, no. 7, pp. 846-894, June 2011.
+[12] S. LaValle and J. Jr. Kuffner, “Randomized kinodynamic planning,”
+International Journal of Robotics Research, vol. 20, no. 5, pp. 378-
+400, 2001.
+[13] R. Daily and D. Bevly, “Harmonic potential ﬁeld path planning for
+high speed vehicles,” In Proc. 2008 American Control Conference,
+Seattle, WA, pp. 4609-4614, June 2008.
+[14] Z. Li and T. Bui, “Robot path planning using ﬂuid model,” J. Intell.
+Robot. Syst, vol. 21, no. 1, pp. 29-50, 1998.
+[15] P. Jacobs and J. Canny, “Planning smooth paths for mobile robots,”
+In Proc. 1989 International Conference on Robotics and Automation,
+Scottsdale, AZ, pp. 2-7, 1989.
+[16] L. Blackmore, H. Li and B. Williams, “A Probabilistic Approach to
+Optimal Robust Path Planning with Obstacles,” In Proc. American
+Control Conference, Minneapolis, MN, 2006.
+[17] E. Kahale, P. Castillo and Y. Bestaoui, “Minimum time reference
+trajectory generation for an autonomous quadrotor,” In Proc. 2014
+International Conference on Unmanned Aircraft Systems (ICUAS),
+Orlando, FL, May 2014, pp. 126-133.
+[18] A. Bemporad and M. Morari, “Robust model predictive control: a
+survey,” Lecture Notes in Control and Information Sciences, pp. 207-
+226, 1999.
+[19] Y. I. Lee and B. Kouvaritakis, “A linear programming approach to
+constrained robust predictive control,” IEEE Trans. Automat. Contr.,
+vol 45, no. 9, pp. 1765-1770, 2000.
+[20] K. Motonaka, K. Watanabe and S. Maeyama, “Motion planning of
+a UAV using a kinodynamic motion planning method,” In Proc. 39th
+Annual Conference of the IEEE Industrial Electronics Society, Vienna,
+November 2013, pp. 6383-6387.
+[21] S. Scherer, S. Singh, L. Chamberlain and S. Saripalli, “Flying fast
+and low among obstacles,” In Proc. IEEE Conference on Robotics
+and Automation (ICRA), Roma, Italy, 2007, pp. 2023-2029.
+[22] B. Mettler, M. Valenti, T. Schouwenaars, E. Frazzoli and E. Feron,
+“Rotorcraft motion planning for agile maneuvering,” In Proc. 58th
+Forum of the American Helicopter Society, Montreal, Canada, 2002.
+[23] T. Schouwenaars, B. Mettler, J. How and E. Feron, “Robust Motion
+Planning Using a Maneuver Automaton with Built-in Uncertainties,”
+In Proc. American Control Conference, Denver, CO, 2003.
+[24] E. Frazzoli, “Robust Hybrid Control for Autonomous Vehicle Motion
+Planning,” PhD Thesis, MIT, Cambridge, MA, 2001.
+[25] T. Kroeger, “On-Line Trajectory Generation in Robotic Systems,”
+Springer Tracts in Advanced Robotics, vol. 58, Springer, January 2010.
+http://www.springer.com/978-3-642-05174-6.
+251
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:40:37 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

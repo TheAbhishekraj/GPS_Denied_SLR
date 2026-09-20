@@ -1,0 +1,919 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1399.pdf
+sha256: 4CA2C308AC96AC985F481BA88AFF0E69CB50500CE82D2CE4A4A7E77800C313C4
+library: pymupdf (fitz) v1.28.2
+pages: 8
+=== BEGIN ===
+[p.1]
+Adaptive Texture-Aware Pixel Selection
+for Robust Direct Visual Odometry in UAV Navigation
+Jeremias Gaia1, Leonardo Fagundes-Junior2, Carlos Soria1, and Alexandre Brand˜ao2
+Fig. 1: Illustration of the proposed visual odometry in scenarios with different texture levels.
+Abstract— Direct visual odometry (DVO) is becoming widely
+used to estimate camera ego-motion and simultaneously recon-
+struct/map the environment from image sequences, particularly
+due to its efficient use of photometric information and strong
+performance in weak-texture scenarios. However, since DVO
+relies directly on pixel intensity patterns for frame-to-frame
+alignment, it is inherently sensitive to brightness inconsistencies
+and illumination changes, which can degrade pose estimation,
+particularly in aerial robotics scenarios involving motion blur,
+illumination variations, and texture-poor environments. This
+paper proposes an adaptive pixel selection mechanism for DVO
+systems. The proposed approach prioritizes regions with strong
+structural content, ensuring that the pose estimate remains
+constrained by meaningful image gradients, even in low-
+texture or highly homogeneous scenarios. By integrating image
+texture descriptors, the system dynamically adjusts selection
+parameters, according to the scene complexity. This enables the
+operation across structured, semi-structured, and unstructured
+environments without introducing significant computational
+overhead. Experimental validation in both indoor and outdoor
+scenarios demonstrates that the proposed method preserves
+uniform spatial coverage while suppressing low-gradient and
+photometrically unstable regions. The results demonstrate en-
+hanced trajectory consistency and greater robustness under
+challenging visual conditions, confirming the algorithm effec-
+tiveness for UAV navigation in GPS-denied environments.
+Index Terms— Mobile Vehicle Visual Odometry, Pose Esti-
+mation, Texture Analysis.
+*This work was supported by FAPEMIG, CNPq and CONICET.
+1Ing. Gaia and Dr. Soria are with the Instituto de Autom´atica,
+at Facultad de Ingenier´ıa, Universidad Nacional de San Juan (UNSJ-
+CONICET), Av. Libertador Gral San Mart´ın 1109 (O), San Juan -
+SJ, Argentina.
+2M.Sc. Fagundes-Junior and Dr. Brand˜ao are with the
+N´ucleo de Especializac¸˜ao em Rob´otica (NERo), Department of Elec-
+trical Engineering and Department of Informatics, and Graduate Pro-
+gram on Computer Science, Universidade Federal de Vic¸osa, Vic¸osa -
+MG, Brazil. E-mails: {jgaia, soria}@inaut.unsj.edu.ar and
+{leonardo.fagundes, alexandre.brandao}@ufv.br.
+I. INTRODUCTION
+Autonomous aerial robotics has experienced significant
+growth in recent years, driven by applications such as infras-
+tructure inspection [1], search and rescue [2], environmental
+monitoring [3], and warehouse automation [4]. In many of
+these scenarios, unmanned aerial vehicles (UAVs) must op-
+erate in GPS-denied or degraded environments, requiring on-
+board perception systems capable of reliable state estimation.
+Simultaneous Localization and Mapping (SLAM) provides
+a principle-based framework for jointly estimating vehicle
+pose and reconstructing the surrounding environment [5],
+[6]. These systems typically rely on the fusion of data
+from various sensors, such as monocular and stereo cameras,
+LiDAR, and inertial measurement units (IMUs) [7], [8].
+Among the various SLAM modalities, visual SLAM (V-
+SLAM) is particularly attractive for aerial platforms due to
+the favorable weight, cost, and energy characteristics of cam-
+eras compared to LiDAR systems. When relying exclusively
+on camera input, pose estimation is performed through visual
+odometry (VO), which refers to the process of estimating
+an agent’s egomotion (robot, human, vehicle, etc.) using
+input from one or more cameras [9], [10]. Visual methods
+are typically categorized into indirect (feature-based) and
+direct approaches. Indirect methods rely on sparse feature
+extraction and matching, estimate motion by using pixel
+intensities and positions, whereas direct methods estimate
+motion by minimizing photometric error over selected pixel
+intensities, first construct a scene representation prior to
+motion estimation.
+Direct visual odometry methods such as LSD-SLAM [11],
+Stereo LSD-SLAM [12], and Direct Sparse Odometry
+2026 International Conference on Unmanned Aircraft Systems (ICUAS)
+June 15-18, 2026. Corfu, Greece
+979-8-3315-9316-2/26/$31.00 ©2026 IEEE
+199
+2026 International Conference on Unmanned Aircraft Systems (ICUAS) | 979-8-3315-9316-2/26/$31.00 ©2026 IEEE | DOI: 10.1109/ICUAS69441.2026.11598726
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:27:31 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+(DSO) [13] have demonstrated strong performance in
+texture-rich environments taking advantage of photometric
+consistency and semi-dense or sparse pixel selection based
+on gradient. These approaches directly optimize camera pose
+by aligning pixel intensities across frames, avoiding explicit
+feature extraction and descriptor matching.
+However, UAV deployment introduces additional chal-
+lenges: i) high-speed motion causing motion blur; ii) large
+viewpoint changes; iii) exposure variations due to illumina-
+tion dynamics iv) and frequent operation in low-texture envi-
+ronments (e.g., corridors, walls, or agricultural fields). Under
+such conditions, conventional gradient-based pixel selection
+strategies may either oversample high-gradient clusters or
+include poorly conditioned pixels that degrade photometric
+optimization. Since evaluating all image pixels is compu-
+tationally infeasible in real-time systems, pixel selection
+becomes a critical component of direct methods [14]–[17].
+In contrast to prior approaches that rely solely on gradient
+magnitude or learned priors, this work address this limitation
+by proposing a lightweight adaptive pixel selection strategy
+designed to improve structural observability in aerial direct
+visual odometry, while explicitly measures local texture
+richness and dynamically adjusts pixel selection parameters.
+Our method identifies pixels that are well-suited for recov-
+ering a robot’s trajectory, with potential extensions to di-
+rect odometry-based SLAM systems. Our strategy improves
+structural conditioning of the photometric optimization while
+preserving real-time feasibility for UAV deployment.
+The main contributions of this paper are: i) an adaptive
+texture-aware pixel selection mechanism for direct visual
+odometry; ii) a strategy to preserve spatial uniformity while
+prioritizing structurally informative regions; iii) experimental
+validation in indoor and outdoor scenarios demonstrating
+improved robustness in low-texture and high homogeneous
+environments.
+The remainder of this article is organized as follows:
+Section II introduces the theoretical concepts used to develop
+the proposed algorithm, which is described in detail in Sec-
+tion III. Section IV presents the results of field experiments,
+and Section V provides concluding remarks and directions
+for future works.
+II. MATERIALS AND METHODS
+A. Theoretical Background
+This section outlines the statistical computations applied
+to input images, which support the design of the proposed
+system.
+1) Gray Level Co-occurrence Matrix (GLCM): In the
+early 1970s, Robert Haralick introduced the Gray Level
+Co-occurrence Matrix (GLCM) as a method for extracting
+textural features from images [18]. According to this method,
+the spatial relationship between gray levels in an image I
+encodes its texture information. The GLCM quantifies the
+frequency of gray-level transitions in a specified direction.
+Typically, it is computed across multiple orientations (e.g.,
+0°, 45°, 90°, and 135°) to capture texture features in different
+directions.
+In this work, we focus on one of the fourteen statistical
+measures proposed by Haralick: image Homogeneity, also
+known as the inverse difference moment. As the name
+suggests, this metric provides an estimate of the uniformity
+of gray levels, offering insight into the amount of texture in
+an image. It is defined as:
+H =
+Ng
+X
+i=1
+Ng
+X
+j=1
+1
+1 + (i −j)2 p(i, j)
+(1)
+where p(i, j) denotes the (i, j)th element of the normalized
+gray-level co-occurrence matrix P, and Ng is the number of
+gray levels in the image.
+A high homogeneity value indicates that the image con-
+tains large regions with similar gray-level intensities, imply-
+ing low texture content.
+2) Gray Level Run Length Matrix: One year after Haral-
+ick’s study, Galloway introduced the Gray Level Run Length
+Matrix (GLRLM) to analyze image texture [19]. Unlike
+the Gray Level Co-occurrence Matrix (GLCM), this method
+quantifies the extent of consecutive runs of pixels that share
+the same gray level along a specific direction in the image.
+The resulting matrix, denoted as v(i, j), records the fre-
+quency of runs of length j for pixels with gray level i. Similar
+to the GLCM, the GLRLM is computed across multiple
+orientations. From this matrix, various statistical features can
+be derived to describe the image texture, including short run
+emphasis (SRE) and long run emphasis (LRE).
+Given a GLRLM V , the element v(i, j) represents the
+number of occurrences of a run of length j at gray level i.
+Let Ng be the number of gray levels, and Nr the number
+of run lengths considered. The total number of runs in the
+image, Nruns, is defined as:
+Nruns =
+Ng
+X
+i=1
+Nr
+X
+j=1
+v(i, j)
+(2)
+Based on this, the short run emphasis (SRE) and long run
+emphasis (LRE) are computed as follows:
+SRE =
+PNg
+i=1
+PNr
+j=1
+v(i,j)
+j2
+Nruns
+(3)
+LRE =
+PNg
+i=1
+PNr
+j=1 v(i, j) · j2
+Nruns
+(4)
+The Short Run Emphasis (SRE) metric, defined in Eq. (3),
+assigns an inverse quadratic weight to each run length via the
+term 1/j2. As a result, shorter runs exert a stronger influence
+on the final SRE value. This behavior allows SRE to capture
+fine-grained variations in image texture. Specifically:
+• High SRE values correspond to a predominance of short
+gray-level runs, which are indicative of fine textures
+with frequent intensity transitions.
+• Low SRE values reflect a higher occurrence of longer
+runs, suggesting a coarser texture with less frequent
+intensity changes.
+200
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:27:31 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+(a)
+(b)
+(c)
+(d)
+(e)
+(f)
+Fig. 3: Comparison between the gradients extracted using
+different techniques. (a)-(d): Grayscale versions of the input
+images. (b)-(e): Gradient images obtained using the Sobel
+operator. (c)-(f): Gmax images.
+In contrast, the Long Run Emphasis (LRE) metric is de-
+signed to measure the presence of extended uniform regions
+within an image. It applies a direct quadratic weight to
+each run length using the term j2, thereby assigning greater
+importance to longer runs:
+• High LRE values signify a predominance of long gray-
+level runs, typical of coarse textures with large homo-
+geneous areas or gradual transitions in intensity.
+• Low LRE values indicate a larger proportion of short
+runs, which is characteristic of finer textures.
+Together, SRE and LRE serve as complementary de-
+scriptors that quantify different aspects of image texture.
+While SRE emphasizes fine textural details and rapid local
+variations, LRE highlights the presence of coarse structures
+and broader homogeneity. The combined analysis of both
+metrics offers a robust and comprehensive characterization
+of the textural properties of an image.
+B. Maximum Gradients Image
+Edges in an image correspond to locations where abrupt
+intensity transitions occur, typically indicating structural
+boundaries of objects within the scene. These edges are
+commonly detected by computing spatial derivatives, which
+highlight changes in gray levels. However, since differ-
+entiation inherently amplifies high-frequency components,
+it can also enhance image noise, leading to spurious or
+fragmented edges. Therefore, applying noise suppression
+techniques prior to edge detection is essential to preserve
+the integrity of meaningful features.
+In the context of pose estimation, edges play a critical
+role as they denote regions of high structural significance.
+Accurately identifying such features enables robust tracking
+of camera motion. To this end, we employ a filtering ap-
+proach known as the maximum gradients image, designed
+to emphasize prominent edges while suppressing weak and
+noisy responses. The process begins with the computation
+of the gradient magnitude G from the input image. This is
+defined as:
+G =
+q
+G2x + G2y,
+where Gx and Gy are the gradients in the horizontal and
+vertical directions, respectively. The resulting magnitude
+image is normalized to the range [0, 255], and a threshold
+Thf is applied to retain only regions exhibiting sufficiently
+high gradient intensity. This step effectively filters low-
+contrast areas that do not contribute meaningful structural
+information.
+To further refine the edge representation, we apply non-
+maximum suppression in two stages: first along the vertical
+direction and then along the horizontal. This technique
+ensures that only local maxima in the gradient field are
+preserved, enhancing the sharpness and spatial accuracy of
+the detected edges. Subsequently, morphological erosion is
+used to eliminate residual noise and to thin the edge contours,
+producing a binary image that highlights only the most
+salient edge points.
+This entire process is independently applied to each chan-
+nel of the input RGB image. Once the maximum gradient
+response is computed for each channel, the results are
+combined to generate the final maximum gradient image
+Gmax. This fusion ensures that edges prominent in any of
+the color channels are captured in the final output.
+Figures 3(c) and (g) show the limitations of using raw im-
+age derivatives without preprocessing, where minor intensity
+fluctuations can be incorrectly interpreted as valid edges. In
+contrast, Figures 3(d) and (h) demonstrate the effectiveness
+of the proposed maximum gradient extraction method in pro-
+ducing a cleaner and more structurally meaningful edge map.
+III. ADAPTIVE KEYPOINT SELECTION ALGORITHM
+An overview of the keypoint extraction algorithm for pose
+estimation is presented in Figure 4. The algorithm takes as
+input the RGB image and its grayscale counterpart. The RGB
+version is used to compute Gmax, while the grayscale image
+undergoes Gaussian blur filtering and Canny edge detection
+to produce a binary edge image.
+A Patch Extractor module divides each image into patches
+of size SROI (initially set to Spatch = 16), which are sub-
+sequently evaluated by the Patch Selector. At the end of
+the process, the number of extracted keypoints is evaluated.
+If this number, denoted Npoints, does not meet a predefined
+minimum, the algorithm automatically adjusts either SROI or
+Thf accordingly.
+A. Adaptive Threshold Adjustment (Thf)
+The threshold variable Thf directly influences the number
+of high-gradient points in Gmax that are eligible for selection
+as keypoints. High values of Thf reduce the appearance
+of gradients in Gmax, while low values allow low-gradient
+regions to emerge. An excessively high threshold can lead to
+significant information loss, reducing the number of potential
+keypoints. Conversely, an overly low threshold may result in
+the selection of low-gradient points, which negatively impact
+pose estimation. These trade-offs highlight the need for an
+adaptive thresholding mechanism.
+201
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:27:31 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+Fig. 4: Overview of the system.
+At system initialization, Thf is set to a default value,
+an initial keypoint extraction is performed using a fixed
+window size SROI, and the resulting number of points is
+evaluated. If Npoints is insufficient, the threshold is decreased.
+The reduction percentage rperc is computed based on the
+homogeneity measures defined in Equation (1), as follows:
+rperc =
+1
+rows · cols
+rows
+X
+i=1
+cols
+X
+j=1
+g(i, j) +
+ 
+H0◦+ H90◦
+2
+!
+(5)
+where g(i, j) denotes the gradient magnitude at pixel (i, j)
+in Gmax. High homogeneity values indicate that the threshold
+applied to generate Gmax has been too restrictive and must be
+relaxed. Thus, rperc increases proportionally with the average
+homogeneity in the horizontal (H0◦) and vertical (H90◦)
+directions. The threshold is then updated as:
+Thnew = Thf · rperc
+(6)
+A lower bound is defined for Thf, below which the
+threshold is no longer reduced; instead, the search window
+size SROI is modified.
+B. Adaptive Search Window Adjustment (SROI)
+The value of SROI determines the size of the search
+window for keypoint extraction. A fixed window size may
+lead to several issues:
+• An excessively large window may result in too few
+extracted keypoints, failing to meet the minimum re-
+quirement.
+• A window that is too small increases computational cost
+and may cause significant delays.
+• In regions rich in texture or structure, a large window
+may underutilize the information, yielding few key-
+points.
+• Conversely, very small windows may lead to excessive
+keypoint extraction, slowing down subsequent pose es-
+timation steps.
+To address these issues, the window size is adaptively
+adjusted based on image characteristics. As illustrated in the
+Patch Extractor block of Figure 4, the algorithm processes
+the Gmax, Canny edges, and grayscale versions of the input
+image, dividing them into patches of size SROI. Each patch
+is further subdivided into four sub-patches of size Spatch/2
+to ensure spatial distribution of keypoints. The system is
+configured to extract a maximum of two keypoints per patch.
+(a)
+(b)
+Fig. 5: Extreme case in which the system extracts keypoints
+uniformly across the image after exhausting all adjustments
+to Thf and SROI, and increasing to three keypoints per patch.
+(a): Gmax image. (b): Extracted keypoints.
+If the desired number of keypoints is not obtained and
+Thf has already reached its lower bound, SROI is halved. If
+this is still insufficient, the system attempts to extract three
+keypoints per patch to increase the likelihood of reaching the
+target.
+In extreme cases, illustrated in Figure 5, where neither
+reducing the window size nor lowering Thf suffices, the
+system resorts to extracting keypoints in a spatially uniform
+manner across the entire image. This ensures sufficient
+spatial coverage to capture camera motion.
+C. Keypoint Extraction
+The keypoint extraction module receives corresponding
+patches from the Gmax, the Canny edges, and the grayscale
+images. Each patch is individually evaluated to determine
+whether it meets the criteria for reliable keypoint selection.
+First, the grayscale patch is assessed using the SRE metric
+defined in Equation (3). If SRE ≥SREmax, the patch
+is discarded, as this indicates the presence of excessive
+gray-level variations, often corresponding to small or distant
+textures, which are unreliable for pose estimation.
+Next, the binary patch derived from the Canny edge
+detector is analyzed using the LRE metric from Equation (4).
+The Canny image is used due to its binarized nature, which
+facilitates efficient computation of long edge sequences. If
+LRE ≤LREmin, the patch is also discarded.
+Only patches satisfying that SRE
+<
+SREmax and
+LREmin < LRE are deemed suitable for keypoint ex-
+traction. These conditions ensure the presence of nearby
+objects or structured elements that contribute to accurate pose
+estimation.
+202
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:27:31 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+The reference thresholds of SREmax
+=
+0.9 and
+LREmin = 30 were empirically determined through ex-
+perimentation, representing a trade-off between performance
+and computational efficiency that yields robust results in
+both indoor and outdoor environments. The Canny edge
+detector also needs a threshold (canny thr) to filter out weak
+edges. This value was set to 100. Section IV-B shows an
+ablation study to assess the impact of these parameters on
+the performance of the system.
+IV. EXPERIMENTS AND RESULTS
+This section presents qualitative and quantitative results
+obtained from evaluating our method in real-world field
+experiments using proprietary datasets, as well as on bench-
+mark datasets.
+To evaluate the proposed method under diverse conditions,
+three datasets were collected during field experiments on
+the campus of the Facultad de Ingenier´ıa at the Universidad
+Nacional de San Juan, covering indoor, outdoor, and mixed
+scenarios. As these datasets lack ground-truth measurements,
+they are used exclusively for qualitative evaluation. Quantita-
+tive evaluation and comparison with a state-of-the-art method
+are conducted using the TUM RGB-D benchmark dataset.
+An operating range was defined for the number of points
+generated by the selection system and used for pose es-
+timation. In the experiments, the number of points was
+constrained to lie between 2000 and 3600. The lower bound
+reflects the minimum required for proper operation of the
+pose estimation system, while the upper bound enforces a
+relaxation of the adaptive threshold.
+A. Qualitative Results
+Indoor Experiments were conducted in an office environ-
+ment, characterized by hallways with extensive low-gradient
+and homogeneous areas. Figures 6 and 7 illustrate dataset
+frames corresponding to two representative scenarios.
+Figure 6 illustrates an instance from the dataset in which,
+as the system moves along the corridor, it transitions from
+extracting two points per patch to extracting three. This adap-
+tive behavior is visually reflected in a higher concentration of
+selected points around structured regions (Figures 6(c), 6(f)),
+effectively avoiding low-gradient areas.
+Figure 7 illustrates a scenario where the camera moves
+toward a wall. As the distance decreases, homogeneous
+regions increasingly dominate the frame; however, the system
+concentrates point extraction around structural elements,
+including window frames and baseboards.
+Outdoor environments pose several challenges for visual
+systems, including varying lighting conditions, shadowed
+areas, foliage, streets, and dynamic objects.
+Figure 8 demonstrates how the pixel selection strategy per-
+forms under such conditions. Even in high-gradient regions,
+such as the contrast between bright sky and dark foliage, the
+system reduces the number of extracted points and prioritizes
+structured elements such as window frames, tree trunks, and
+lampposts.
+This behavior results from the Point Extraction module.
+Regions dominated by rapid gray-level transitions (i.e., high
+SRE and low LRE), such as foliage, are largely avoided
+by the algorithm. Nevertheless, due to the trade-off between
+performance and computational efficiency, the system may
+still select points in suboptimal regions during outdoor
+scenarios. Importantly, it consistently maintains a spatially
+uniform point distribution and largely avoids low-gradient
+homogeneous areas (e.g., sky, walls, grass).
+B. Ablation study
+To thoroughly evaluate the individual contribution of each
+component within the proposed adaptive pixel selection
+mechanism, a comprehensive ablation study was conducted.
+The primary objective of this analysis is to quantify how
+(a)
+(b)
+(c)
+(d)
+(e)
+(f)
+Fig. 6: Instance in which the system must extract three
+keypoints per patch after minimizing both Thf and SROI.
+(a)-(d): Grayscale input images. (b)-(e): Gmax images. (c)-
+(f): Extracted keypoints.
+(a)
+(b)
+Fig. 7: Close-up of a wall in an office environment. As ho-
+mogeneous regions increase, the algorithm intensifies point
+extraction along edges.
+(a)
+(b)
+(c)
+Fig. 8: Results for outdoor tests.
+203
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:27:31 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+TABLE I: Ablation Study Results.
+The selected system parameters appear in boldface.
+Parameter
+Value
+N° Extracted
+Points (Mean)
+Frames outside
+Op.Band [%]
+Point Retrieval
+Time [s]
+Pose Estimation
+Time [s]
+ATE RMSE
+[m]
+canny thr
+25
+2803
+10.00
+0.0876
+0.0828
+0.2137
+canny thr
+50
+2858
+11.52
+0.0789
+0.0862
+0.2234
+canny thr
+100
+3514
+31.6928
+0.0737
+0.0985
+0.2089
+canny thr
+125
+3986
+43.32
+0.0778
+0.0948
+0.2073
+canny thr
+150
+4392
+51.87
+0.0771
+0.1062
+0.1990
+LREmin
+30
+3514
+31.69
+0.0737
+0.0985
+0.2089
+LREmin
+50
+4510
+54.89
+0.0801
+0.1076
+0.1944
+LREmin
+100
+5019
+63.17
+0.0844
+0.1119
+0.1925
+SREmax
+0.1
+5019
+63.17
+0.0771
+0.1121
+0.1926
+SREmax
+0.25
+5019
+63.17
+0.0766
+0.1162
+0.1925
+SREmax
+0.5
+5018
+63.17
+0.0772
+0.1222
+0.1923
+SREmax
+0.75
+5013
+63.00
+0.0779
+0.1206
+0.1922
+SREmax
+0.9
+3514
+31.69
+0.0737
+0.0985
+0.2089
+SREmax
+1
+2949
+13.95
+0.0727
+0.0917
+0.1987
+the specific bounds of the texture descriptors impact the
+performance of the proposed pipeline.
+Specifically, we examine the influence of the Short Run
+Emphasis maximum limit (SREmax), the Long Run Em-
+phasis minimum threshold (LREmin), and the threshold
+used to obtain the Canny edge map (canny thr). These
+parameters govern the system’s ability to discern between
+structured surfaces and unstable or homogeneous regions.
+Concurrently, in each part of the ablation study, the effect of
+parameter variations on the execution times associated with
+point extraction and odometry estimation was examined.
+This study utilizes a dataset featuring a trajectory that
+alternates between outdoor and indoor corridors, including
+laboratory entry and exit. The trajectory starts at an outdoor
+corridor, followed by an indoor laboratory entry, traversing
+through an indoor hallway, followed by a return to the initial
+outdoor location. The sequence is characterized by severe
+illumination changes at indoor–outdoor transitions, which
+challenge the robustness of system parameter calibration and
+make it well suited for the ablation analysis presented in this
+work. Since ground-truth measurements are unavailable, loop
+closure is enforced during post-processing by exploiting the
+known initial and final pose. The resulting trajectory is then
+used as a reference to quantify pose estimation deviations,
+expressed in terms of Absolute Trajectory Error (ATE), under
+different parameter configurations.
+Table I summarizes the results of the ablation study.
+Each configuration is assessed based on the mean number
+of extracted points per frame, the percentage of frames
+outside the desired operating range, point retrieval and pose
+estimation runtimes, and the ATE RMSE with respect to
+ground truth. The analysis starts from a nominal configu-
+ration (SREmax = 0.9, LREmin = 30, cannythr = 100),
+and explores the system behavior as individual parameters
+are varied.
+Variations in the cannythr parameter directly affect the
+number of available points. Lower (more permissive) thresh-
+old values allow finer image details to be preserved, resulting
+in a larger number of extracted points. Under these condi-
+tions, the system does not need to aggressively adjust the
+Fig. 9: Evolution of the number of extracted points for
+different values of the canny thr parameter.
+window size to meet the target point count. As shown in
+Table I, both the average number of extracted points and the
+percentage of frames outside the operating range increase as
+the parameter value increases.
+This effect is further illustrated in Figure 9. As the
+Canny threshold increases and edge detail diminishes, the
+system increasingly narrows its search, often resulting in an
+excessive number of extracted points over extended intervals.
+Additionally, higher values of LREmin lead to improved
+pose estimation performance, suggesting that stricter con-
+straints on the minimum patch response enhance the selection
+of informative image regions.
+Increasing the value of LREmin leads to improved pose
+estimation accuracy, as reflected by the reduction in ATE
+RMSE. This indicates that enforcing a stricter lower bound
+on the patch response helps suppress weakly informative
+regions and promotes the selection of patches that contribute
+more reliably to direct pose estimation.
+In contrast, decreasing SREmax to very low values causes
+most patches to be discarded. For thresholds below 0.75, the
+system exhibits the highest mean point counts and operating-
+band violations, as it becomes unable to distinguish between
+structurally meaningful regions and visually uninformative
+areas such as distant texture or foliage.
+204
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:27:31 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+Overall, increasing the number of points supplied to the
+odometry backend tends to reduce estimation error at the
+expense of higher computational cost. This trade-off under-
+lines the importance of parameter fine-tuning. The results
+indicate the absence of a single optimum for all parameters;
+instead, a balanced configuration yields competitive accuracy
+while maintaining operational stability and computational
+efficiency.
+C.
+Comparison with DSO
+Direct odometry methods select a subset of pixels through
+a pixel selection strategy and apply a direct image alignment
+process to estimate camera motion. One of the most influ-
+ential contributions on the field was made by Engel et al.
+in [13], where a Direct Sparse Odometry (DSO) method
+is proposed to estimate camera motion by minimizing a
+photometric error function derived from the observed pixel
+intensities. DSO relies exclusively on image gradient infor-
+mation for pixel selection. Initially, the image is partitioned
+into 32 × 32 blocks to compute a gradient threshold given
+by the median absolute gradient magnitude within each
+block. This partition is subsequently discarded, and a new
+partition of the image into d × d blocks is performed. The
+pixel exhibiting the maximum gradient magnitude above the
+previously determined threshold is then selected from each
+block.
+This section presents a comparative evaluation of DSO
+and the proposed system on several sequences from the
+TUM RGB-D dataset. Performance is assessed using the
+Absolute Trajectory Error (ATE), a metric that quantifies
+global trajectory consistency by measuring the absolute dis-
+tances between estimated and ground-truth trajectory points
+[20]. Table II shows the results obtained for the fr1/plant,
+fr2/desk, fr3/structure-texture, fr3/structure-no texture, fr3/no
+structure-texture, and fr3/no structure-no texture sequences
+of the TUM-RGBD dataset.
+While sequences such as fr1/plant and fr2/desk offer rich
+visual information, they also involve perspective changes
+that challenge visual odometry algorithms. On the fr1/plant
+sequence, the proposed approach yields results comparable
+to DSO; in contrast, on the fr2/desk sequence, our method
+lowers the error from 1.7119 to 0.4344, achieving a 74.6%
+reduction in ATE.
+The structure-texture family of sequences presents in-
+creasingly difficult visual challenges forx the pose esti-
+mation system. The conditions for visual pose estimation
+degrade progressively from the most favorable scenario
+(fr3/structure-texture) to the most challenging environment
+(fr3/no structure-no texture).
+The fr3/structure-texture sequence contains images char-
+acterized by abundant structural and textural cues. The pro-
+posed approach shows its best performance on this sequence,
+achieving an ATE RMSE of 0.0296 m, which indicates that,
+in the presence of rich visual structure and texture, the system
+can reliably select informative points for direct odometry
+estimation.
+TABLE II: Absolute Trajectory Error (ATE) in meters on
+TUM-RGBD sequences.
+Method
+Sequence
+F1–Plant
+F2–Desk
+F3–sT
+F3–sNt
+F3–NsT
+F3–NsNt
+DSO
+0.4840
+1.7119
+0.8068
+0.9605
+0.7751
+0.3892
+Ours
+0.5567
+0.4344
+0.0296
+0.1933
+0.0574
+0.3361
+Abbreviations: F1/F2/F3: Freiburg 1/2/3; sT: structure–texture;
+sNt: structure–no texture; NsT: no structure–texture; NsNt: no structure–
+no texture.
+During the fr3/structure–no texture sequence, the cam-
+era follows a trajectory around a folding screen covered
+with white fabric. In this setting, the images contain few
+visual cues beyond the structural elements of the screen
+itself. Moreover, in several frames, the distinction between
+the structure and the background becomes ambiguous in
+grayscale images. Under these conditions, the proposed
+system outperforms DSO.
+In the fr3/no structure–texture sequence, the camera ex-
+ecutes a straight trajectory while pointing toward a set of
+posters placed on the floor, with the structural elements
+removed. Compared to the previous sequence, both the
+proposed system and DSO exhibit improved performance due
+to the presence of distinctive visual features that facilitate
+point extraction.
+Finally, the fr3/no structure–no texture sequence presents
+a highly challenging visual scenario. A similar trajectory
+is performed; however, the posters are removed, leaving a
+smooth laboratory floor. In this case, the proposed system
+achieves performance comparable to DSO, as it is forced to
+operate in an extreme fallback mode (similar to the case in
+Figure 5), where points are extracted uniformly across the
+image. Although suboptimal, this strategy enables the system
+to maintain tracking at the cost of increased estimation error.
+V. CONCLUSIONS
+This paper proposes a pixel selection system for pose esti-
+mation in direct visual odometry applications. The developed
+algorithm automatically identifies regions with prominent
+structural information—features highly desirable for recon-
+struction and SLAM tasks. By incorporating texture mea-
+surements, such as Haralick features, the system dynamically
+adapts window sizes and filtering thresholds to the navigated
+environment. This enhances its robustness and adaptability
+across structured, semi-structured, and unstructured settings.
+In highly homogeneous environments where structural fea-
+tures are scarce or absent, a fallback mechanism is activated.
+This operational mode prioritizes pose-tracking stability over
+maximum accuracy, thereby preventing catastrophic failures
+in feature-deprived scenarios.
+Comparative results against a standard state-of-the-art
+method indicate that gradient-based pixel selection should
+be complemented with additional image characteristics to
+enhance point extraction on structural elements. Computa-
+tional timing studies confirm that the proposed processing
+does not introduce a significant overhead, thereby ensuring
+its suitability for real-time deployment on UAV platforms.
+205
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:27:31 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+Although the proposed method demonstrates near real-
+time behavior under the current experimental setup, strict
+real-time performance is conditioned on hardware acceler-
+ation or implementation in a lower-level, high-performance
+programming language. Specifically, reimplementation in a
+compiled language (e.g., C/C++) rather than Python can
+be the most important improvement to reduce execution
+overhead and improve computational efficiency. The present
+Python-based implementation introduces additional compu-
+tational overhead that may limit execution speed on resource-
+constrained platforms.
+ACKNOWLEDGMENT
+The authors would like to thank FAPEMIG (Fundac¸˜ao
+de Amparo `a Pesquisa do Estado de Minas Gerais) for the
+financial support that made this project possible, under pro-
+cesses FAPEMIG APQ-02573-21 and APQ-06109-24. Prof.
+Dr. Brand˜ao additionally acknowledges continued research
+support from CNPq under process no. 309884/2022-5.
+REFERENCES
+[1] R. Zhang, G. Hao, K. Zhang, and Z. Li, “Unmanned aerial vehicle
+navigation in underground structure inspection: A review,” Geological
+Journal, vol. 58, no. 6, pp. 2454–2472, 2023.
+[2] M. Lyu, Y. Zhao, C. Huang, and H. Huang, “Unmanned aerial vehicles
+for search and rescue: A survey,” Remote Sensing, vol. 15, no. 13, p.
+3266, 2023.
+[3] S. Asadzadeh, W. J. de Oliveira, and C. R. de Souza Filho, “Uav-
+based remote sensing for the petroleum industry and environmental
+monitoring: State-of-the-art and perspectives,” Journal of Petroleum
+Science and Engineering, vol. 208, p. 109633, 2022.
+[4] C. Malang, P. Charoenkwan, and R. Wudhikarn, “Implementation
+and critical factors of unmanned aerial vehicle (uav) in warehouse
+management: A systematic literature review,” Drones, vol. 7, no. 2,
+p. 80, 2023.
+[5] K. Yang, Y. Cheng, Z. Chen, and J. Wang, “Slam meets nerf: A survey
+of implicit slam methods,” World Electric Vehicle Journal, vol. 15,
+no. 3, p. 85, 2024.
+[6] I. Lluvia, E. Lazkano, and A. Ansuategi, “Active mapping and robot
+exploration: A survey,” Sensors, vol. 21, no. 7, p. 2445, 2021.
+[7] J. A. Placed, J. Strader, H. Carrillo, N. Atanasov, V. Indelman,
+L. Carlone, and J. A. Castellanos, “A survey on active simultaneous
+localization and mapping: State of the art and new frontiers,” IEEE
+Transactions on Robotics, vol. 39, no. 3, pp. 1686–1705, 2023.
+[8] J. Gaia, E. Orosco, F. Rossomando, and C. Soria, “Mapping the land-
+scape of slam research: A review,” IEEE Latin America Transactions,
+vol. 21, no. 12, pp. 1313–1336, 2023.
+[9] D. Scaramuzza and F. Fraundorfer, “Visual odometry [tutorial],” IEEE
+robotics & automation magazine, vol. 18, no. 4, pp. 80–92, 2011.
+[10] J.-P. Tardif, Y. Pavlidis, and K. Daniilidis, “Monocular visual odom-
+etry in urban environments using an omnidirectional camera,” 2008
+IEEE/RSJ International Conference on Intelligent Robots and Systems,
+pp. 2531–2538, 2008.
+[11] J. Engel, T. Sch¨ops, and D. Cremers, “Lsd-slam: Large-scale direct
+monocular slam,” European conference on computer vision, pp. 834–
+849, 2014.
+[12] J. Engel, J. St¨uckler, and D. Cremers, “Large-scale direct slam
+with stereo cameras,” 2015 IEEE/RSJ International Conference on
+Intelligent Robots and Systems (IROS), pp. 1935–1942, 2015.
+[13] J. Engel, V. Koltun, and D. Cremers, “Direct sparse odometry,” IEEE
+transactions on pattern analysis and machine intelligence, vol. 40,
+no. 3, pp. 611–625, 2017.
+[14] Z. Zhu, S. Peng, V. Larsson, W. Xu, H. Bao, Z. Cui, M. R. Oswald, and
+M. Pollefeys, “Nice-slam: Neural implicit scalable encoding for slam,”
+in Proceedings of the IEEE/CVF Conference on Computer Vision and
+Pattern Recognition, 2022, pp. 12 786–12 796.
+[15] X. Gao, R. Wang, N. Demmel, and D. Cremers, “Ldso: Direct sparse
+odometry with loop closure,” 2018 IEEE/RSJ International Conference
+on Intelligent Robots and Systems (IROS), pp. 2198–2204, 2018.
+[16] N. Yang, L. v. Stumberg, R. Wang, and D. Cremers, “D3vo: Deep
+depth, deep pose and deep uncertainty for monocular visual odometry,”
+Proceedings of the IEEE/CVF Conference on Computer Vision and
+Pattern Recognition, pp. 1281–1292, 2020.
+[17] H. Matsuki, R. Murai, P. H. Kelly, and A. J. Davison, “Gaussian
+splatting slam,” in Proceedings of the IEEE/CVF Conference on
+Computer Vision and Pattern Recognition, 2024, pp. 18 039–18 048.
+[18] R. M. Haralick, K. Shanmugam, and I. H. Dinstein, “Textural features
+for image classification,” IEEE Transactions on systems, man, and
+cybernetics, 1973.
+[19] M. M. Galloway, “Texture analysis using grey level run lengths,” Nasa
+Sti/recon Technical Report N, vol. 75, p. 18555, 1974.
+[20] J. Gaia, J. Gimenez, E. Orosco, F. Rossomando, C. Soria, and F. Ulloa-
+V´asquez, “Fusing direct and indirect visual odometry for slam: An
+icm-based framework,” World Electric Vehicle Journal, vol. 16, no. 9,
+p. 510, 2025.
+206
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 02:27:31 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

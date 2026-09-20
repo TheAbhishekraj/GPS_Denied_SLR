@@ -1,0 +1,776 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0994.pdf
+sha256: CB7456072E7CA77FF041005BD8957471EE371D2A87BBB0DB64C689C5BAEECC77
+library: pymupdf (fitz) v1.28.2
+pages: 7
+=== BEGIN ===
+[p.1]
+35th International Symposium on Automation and Robotics in Construction (ISARC 2018) 
+Automated Localization of UAVs in GPS-Denied Indoor 
+Construction Environments Using Fiducial Markers 
+Mohammad Nahangi a,b, Adam Heins b, Brenda McCabe a, Angela Schoellig b 
+a Department of Civil Engineering, University of Toronto  
+b University of Toronto Institute for Aerospace Studies (UTIAS) 
+E-mail: m.nahangi@utoronto.ca, adam.heins@mail.utoronto.ca, brenda.mccabe@utoronto.ca, 
+schoellig@utias.utoronto.ca 
+ 
+ 
+ 
+Abstract  
+Unmanned Aerial Vehicles (UAVs) have opened a 
+wide range of opportunities and applications in 
+different 
+sectors 
+including 
+construction. 
+Such 
+applications include: 3D mapping from 2D images 
+and video footage, automated site inspection, and 
+performance monitoring. All of the above-mentioned 
+applications perform well outdoors where GPS is 
+quite reliable for localization and navigation of 
+UAV’s. Indoor localization and consequently indoor 
+navigation have remained relatively untapped, 
+because GPS is not sufficiently reliable and accurate 
+in indoor environments. This paper presents a 
+method for localization of aerial vehicles in GPS-
+denied indoor construction environments. The 
+proposed method employs AprilTags that are linked 
+to previously known coordinates in the 3D building 
+information model (BIM). Using cameras on-board 
+the UAV and extracting the transformation from the 
+tag to the camera’s frame, the UAV can be localized 
+on the site. It can then use the previously computed 
+information for navigation between critical locations 
+on construction sites. We use an experimental setup 
+to verify and validate the proposed method by 
+comparing with an indoor localization system as the 
+ground truth. Results show that the proposed method 
+is sufficiently accurate to perform indoor navigation. 
+Moreover, the method does not intensify the 
+complexity of the construction execution as the tags 
+are simply printed and placed on available surfaces at 
+the construction site. 
+ 
+Keywords – 
+Indoor localization; construction performance 
+monitoring; Building Information Model (BIM); 
+AprilTags; 
+Automated 
+monitoring; 
+Facility 
+Management;  
+1 
+Introduction 
+Unmanned aerial vehicles (UAVs), also known as 
+drones, have recently attracted attention from various 
+industries including construction. Employing UAVs 
+equipped with visual sensors for construction site 
+monitoring 
+is 
+beneficial 
+due 
+to 
+the 
+vehicles’ 
+maneuverability and rotary features. UAVs can access 
+points that are inaccessible or unsafe to be reached by 
+humans.  UAVs may also be equipped with other devices 
+such as a laser scanner, thermal sensors, or 
+hyperspectral/multispectral sensors that can be used for 
+acquiring further insights and then generating very 
+informative analytics about the status of the construction 
+component being monitored. Specific applications in the 
+construction 
+industry 
+include 
+3D 
+mapping 
+for 
+dimensional measurement of construction components 
+[1], visual progress monitoring, and visual inspection [2]. 
+The key capability of UAVs that makes them useful 
+in so many industries is their ability to be programmed to 
+perform tasks autonomously. One critical module of such 
+autonomous robots for automated task performance is the 
+localization 
+system. 
+For 
+outdoor 
+environments, 
+autonomous flight planning is less challenging, because 
+the localization module is based on global positioning 
+systems (GPS), which is accurate and reliable. 
+Localization results are then fed to the control systems as 
+the state sensing component (feedback loop). Navigation 
+and path planning can then be performed based on the 
+accurate and reliable localization results obtained in 
+outdoor environments. However, indoor localization 
+using GPS is not sufficiently reliable because of the weak 
+signal and other interferences present in indoor 
+environments such as walls and other interior 
+components under-construction.  
+Using reliable indoor localization systems that 
+already exist commercially, such as wireless networks, 
+UWB, or vision-based positioning cameras (e.g. Vicon 
+[p.2]
+35th International Symposium on Automation and Robotics in Construction (ISARC 2018) 
+ 
+system) intensifies the complexity of construction sites 
+and, indeed, requires additional costs for deployment. 
+This paper investigates the use and employment of 
+fiducial markers (AprilTags, in particular) for potential 
+deployment 
+in 
+GPS-denied 
+indoor 
+construction 
+environments. The 3D coordinates of fiducial markers 
+are hardcoded into 3D CAD drawings integrated with the 
+building information models (BIM). Camera-equipped 
+UAVs can identify their relative pose to the tags and then 
+calculate their location in the global coordinate frame 
+give the tag’s location. 
+2 
+Background 
+The related background information is investigated from 
+three different perspectives: (1) indoor localization state-
+of-the-art, (2) fiducial markers for indoor localization, 
+and (3) localization of construction equipment and 
+materials. These areas are extensively discussed in the 
+following sections. 
+2.1 
+Indoor localization state-of-the-art 
+Indoor localization and the related research area is 
+used when objects are to be detected in a location where 
+a global localization signal such as GPS is not reliable 
+[3,4]. According to Ibrahim and Moselhi (2016) [5], 
+indoor localization techniques can be divided into three 
+major categories: 
+ 
+Wave characteristics and propagation: various 
+ultrasonic and sound waves and receivers such as 
+radio frequency (RF), ultra-wideband (UWB), and 
+wireless local area network (WLAN) are used for 
+indoor localization [3,6,7]. Indoor localization 
+using ultrasound waves may result in 9 cm accuracy, 
+however, it requires direct and interference-free 
+access to the objects. Other techniques such as 
+UWB and RFID have reported accuracy of 5-9 m, 
+which is insufficient for high accuracy applications 
+and analyses. Localization systems with such low 
+accuracies are used for sensing and roughly locating 
+materials 
+in 
+warehouses 
+and 
+other 
+indoor 
+environments. 
+ 
+Image-based/vision-based 
+localization: 
+image-
+based localization uses computer vison to identify 
+the location of objects in the global coordinate 
+system. 
+Image-based 
+localization 
+has 
+been 
+categorized in two major groups: (1) global feature 
+detection, identification and localization such as 
+edge and corner detection, and (2) local feature 
+detection such as fiducial tag and marker detection 
+and localization. Image-based localization requires 
+line-of-sight to extract features; therefore, it is 
+significantly impacted in dynamically changing 
+environments and also by markers’ deterioration 
+throughout 
+the 
+project 
+lifecycle. 
+Recently, 
+simultaneous localization and mapping (SLAM) 
+has been found to be capable and reliable for indoor 
+localization and mapping [8]. The method proposed 
+in this paper belongs to this category and aims to 
+investigate and overcome some of the existing 
+challenges using fiducial markers. 
+ 
+ 
+Inertial navigation systems: indoor localization can 
+be performed, given an initial location and 
+navigating using on-board accelerometers, inertia 
+measurement units (IMU’s), and other motion 
+sensors. Inertial navigation and IMU-based indoor 
+localization drifts from actual measurements as 
+movement progresses, if motion components are 
+not appropriately updated. Ibrahim and Moselhi [5] 
+developed an IMU-based localization technique 
+combined with a Kalman filter, which was found to 
+be more accurate compared to the wave-based 
+method. However, relying on IMU for UAV 
+navigation is very risky and may lead to serious 
+hazards such as loss of control and subsequent 
+collision with objects in the environment. SLAM [8] 
+may also be used with inertia measurement units 
+(IMU’s) or some other motion sensors for 
+facilitating the localization. In such cases, 
+processing is less computationally demanding and 
+therefore closer to real-time. 
+2.2 
+Fiducial markers for indoor localization 
+Visual tags are designed to be easily detectable by 
+camera systems. If a camera system is well calibrated, the 
+relative pose of the camera with respect to a tag can be 
+calculated, and therefore the camera system can be 
+localized with respect to the tag’s coordinate frame. 
+Challenges for employing and implementing fiducial 
+markers include: (1) the processing cost for decoding the 
+tags, and (2) the difficulty of generating template tags 
+that are orthogonal with each other [9].  
+Among fiducial markers, AR Tags were found to be 
+very easily detectable and quickly decodable. AprilTag 
+Tags were then introduced to overcome the inadequacies 
+of AR Tags, which included the accumulated error when 
+distancing from the target [10]. AprilTag Tags were 
+proved to be more robust for indoor localization, and, 
+since then, they have been used for many applications 
+such as robot localization and navigation. AprilTag Tags 
+are used in this study to investigate the localization of 
+UAVs using their on-board camera systems [11]. 
+2.3 
+Localization of construction equipment 
+and materials 
+The 
+previously 
+explained 
+techniques 
+and 
+technologies have been used for locating construction 
+[p.3]
+35th International Symposium on Automation and Robotics in Construction (ISARC 2018) 
+equipment and materials on site. Razavi and Haas [12] 
+presented a method for localizing construction equipment 
+and materials using RFID tags. In another study, indoor 
+localization was tested using passive RFID tags for 
+sensing. Song et al [13] used RFID tags for automating 
+the task of tracking the delivery of materials on 
+construction sites. As reviewed in the literature, 
+localization frameworks are either performed outdoors or 
+only for the purpose of sensing if performed indoors. This 
+study aims to test and assess the performance of 
+AprilTags for indoor localization of UAVs. 
+3 
+Methodology 
+For the purpose of localizing UAVs used for indoor 
+task performance, on-board cameras are employed to 
+detect AprilTag Tags with known locations in the world 
+coordinate frame, and therefore linked to the building 
+information model. On-board cameras are first calibrated 
+to identify the physical and intrinsic parameters required 
+for pose identification. An overview of the proposed 
+framework is illustrated in Figure 1. 
+ 
+Figure 1: Overview of the proposed framework 
+for indoor localization  
+3.1 
+Camera Calibration 
+Camera calibration is required to estimate the 
+parameters of a lens and image sensor of an imaging 
+system. Camera calibration parameters are thus required 
+for accurately measuring distances to perceived objects. 
+The Robotics operating System (ROS) package for 
+camera calibration is used to estimate the camera 
+parameters using a large checkerboard (8×6) with known 
+dimensions (108 mm) for camera calibration. 
+3.2 
+Tags location 
+UAVs are going to be employed for indoor 
+monitoring of construction elements. To identify the 
+critical elements to be monitored, different filters can be 
+applied on the building information model to extract the 
+world coordinates and assign them to the tags used for 
+localization. For example, a filter can be applied on 
+object types, in case a specific type of object, such as 
+drywalls or electrical outlets, is to be monitored. The 
+construction of some objects may become behind 
+schedule; they are the purpose of task monitoring using 
+UAVs. In that case, a filter on object status can be applied 
+to the BIM objects to extract the critical locations in the 
+world coordinate system. Moreover, project managers 
+might be interested in tracking and monitoring the tasks 
+performed by specific subcontractors or vendors.  
+In summary, filters can be applied based on the search 
+criteria in order to extract critical locations to be 
+monitored 
+by 
+the 
+UAVs 
+employed 
+in 
+indoor 
+environments. Extracted coordinates are assigned to tags, 
+which are then employed for the localization of UAVs. 
+Tags link the UAV’s location to the world coordinate 
+system as explained in the following section. 
+3.3 
+Relative pose identification 
+Once the on-board camera on the UAV is calibrated 
+and tags locations are identified, UAVs can be localized 
+with respect to the tags placed on construction sites. The 
+relative pose is reported as a relative translational vector 
+(𝑥, 𝑦, 𝑧) and a rotational vector (𝑟𝑜𝑙𝑙, 𝑝𝑖𝑡𝑐ℎ, 𝑦𝑎𝑤). These 
+two vectors are reported as a relative transformation 
+denoted as 𝑇𝑡
+𝑙, which relates the position of the UAV 
+measured locally and in the tag’s local coordinate system. 
+Given the transformation that relates the position of the 
+tags in the global coordinate system 𝑇𝑔
+𝑡, the UAV can 
+then be localized globally. The required transformation 
+for localizing the UAV in the global coordinate system 
+𝑇𝑔
+𝑙  is calculated as: 𝑇𝑔
+𝑙= 𝑇𝑡
+𝑙 × 𝑇𝑔
+𝑡.  
+4 
+Design of experiments and results 
+An experimental setup is designed to collect the 
+required data for verifying the accuracy of UAVs under 
+various circumstances. A Parrot Bebop 2 equipped with 
+a camera and on-board accelerometers is used as the 
+UAVin this study. Detailed specification of the vehicle is 
+provided in Table 1. AprilTags of type 36h11 printed at 
+two different sizes are used to identify the impact of the 
+tag’s size on the accuracy of detection and pose 
+identification. For integrating the on-board sensors of the 
+UAV used in this set of experiments, a ROS driver for 
+the Bebop device is used [14]. 
+Table 1: Parrot Bebop 2 technical specifications 
+Feature 
+Specifications  
+Video resolution 
+14 MP 
+Image resolution 
+1920×1080 pixels, 30 frames/sec 
+Flight time 
+~ 25 min 
+Networking 
+Wi-Fi Dual Band 2.4 & 5GHz 
+Weight 
+500 g 
+Operation range 
+Up to 2km (Wi-Fi controller) 
+Camera 
+calibration 
+Relative pose 
+identification
+Global 
+localization
+Tags location
+[p.4]
+35th International Symposium on Automation and Robotics in Construction (ISARC 2018) 
+ 
+4.1 
+Effective variants  
+Four parameters are investigated to identify the accuracy 
+of the proposed indoor localization framework: 
+1. 
+Tags’ placement orientation: construction sites and 
+environments are dynamically changing during the 
+projects’ lifecycle. If the tags are planned to be 
+placed on vertical walls, there might be a delay on 
+the deployment of tags when a new floor is being 
+inspected. On the other hand, tags placed on floors 
+may be covered by building materials and elements. 
+Both situations are tested to better understand the 
+limitations. 
+2. 
+Tags’ size: the accuracy of the detection and pose 
+identification with respect to the size of the tags is 
+investigated. Larger sizes are more visible and 
+therefore their detection accuracy is expected to be 
+higher; however, smaller sizes are more practical to 
+implement and deploy on construction sites. 
+3. 
+Distance from tags: the UAV must see at least one 
+tag at all times during the flight. This is crucial 
+because if no tag is, the navigation control switches 
+to on-board odometry which is neither reliable nor 
+safe. The reason is that the UAV may lose its pose 
+and location in the world coordinate system. In 
+order to identify the threshold distance at which the 
+UAV has a sufficiently accurate level of pose 
+identification with respect to the tags, the impact of 
+distance on localization should be investigated. The 
+results can then be considered as a constraint in 
+optimizing the tag placement plan on a building 
+map. 
+4. 
+Angle of view: similar to the previous variant, the 
+angle of view is also of crucial importance in pose 
+identification. The threshold angle value for which 
+UAVs are localized with sufficient accuracy should 
+be identified and considered in the tag placement 
+optimization plan. 
+4.2 
+Experimental setup 
+An experimental setup is designed to measure the 
+accuracy of the tag-based localization system. Tags are 
+placed at previously known locations linked to the world 
+coordinate system in the BIM. Figure 2 illustrates how 
+world coordinates are calculated using the tag locations 
+and how they are measured with the ground truth indoor 
+localization system (Vicon cameras). 
+ 
+Figure 2: Tag-based indoor localization. For 
+verification and validation of the calculated 
+location, the results are compared with ground 
+truth indoor positioning system. Tag-based 
+localization results are compared with the Vicon 
+system used as the ground truth (Section 4.3). 
+4.3 
+Ground truth indoor positioning system 
+An overhead camera system is used to assess the 
+accuracy of the proposed tag-based localization 
+framework. The overhead camera system detects markers 
+that uniquely identify various objects. Once markers are 
+detected, the position of the object is estimated as the 
+ground truth. In the laboratory setup, the Vicon system is 
+integrated with the ROS and the localization results are 
+reported in a rostopic recorded for further result analyses. 
+ 
+Figure 3: Experimental setup for testing the 
+accuracy of the proposed indoor localization 
+framework. (a) Ground truth system (Vicon 
+cameras) are shown within the laboratory. 
+AprilTags are also placed at various locations. (b) 
+Take-off position where the UAV is faced to Tag-
+id=0 to be initially localized. (c) Markers are put 
+in a specific pattern on the UAV, so as to be 
+recognizable by the ground truth indoor 
+localization system. 
+Relative pose
+ 
+Tag location is 
+known
+UAV location
+Indoor positioning 
+system as ground 
+truth
+Tag-based 
+localization 
+framework
+(a)
+(b)
+(c)
+Vicon Cameras
+April Tags
+[p.5]
+35th International Symposium on Automation and Robotics in Construction (ISARC 2018) 
+5 
+Results 
+In order to investigate the impact of the effective 
+variants, the localization results are compared with the 
+ground truth system under various scenarios. Each 
+scenario is designed to capture the effective variant being 
+investigated.  
+First, the effect of the orientation of the tags is 
+investigated. For this purpose, localization results for 
+vertical tags placed on walls and horizontal tags placed 
+on the floor are compared with the ground truth system 
+(see Figure 4). Figure 5 illustrates the accuracy of the 
+localization system as the angle from the tag chages for 
+horizontal tags. 
+ 
+ 
+Figure 4: Side view of the experimental setup. (a) 
+Auto-flight plan for calculating the localization 
+accuracy when tags are placed horizontally on the 
+ground. (b) Configuration of the on-board camera 
+of the UAV used in this study. Figure is from 
+Bebop forum [15]. 
+ 
+Figure 5: Localization error for horizontal tags 
+placed on the ground. The UAV flight height is 
+fixed at 2 m. Camera angle (𝜃) with respect to the 
+tag is variable. 
+ 
+As seen in Figure 5, the accuracy of the localization 
+increases as the angle increases. Moreover, the standard 
+deviations (error bars) decrease as the angle increases, 
+which implies more stability in the localization system as 
+the angle increases. This is due to the orientation of the 
+on-board camera used in the experiments. As shown, the 
+camera is angled between forward and downward 
+directions, as shown schematically in Figure 4-(b). 
+ 
+To understand the effect of distance from tags, the 
+UAV is programmed to fly at different distances 
+perpendicular to the tag's plane. Figure 6 schematically 
+shows the automated flight plan programmed to 
+investigate the effect of distance on the localization 
+results. Figure 7 shows how accuracy changes while the 
+UAV is flying at various distances with respect to an 
+AprilTag. 
+ 
+Figure 6: Automated flight plan for investigating 
+the effect of distance to an AprilTag on the 
+localization results 
+ 
+ 
+Figure 7: Localization error at different distances 
+from tags. The on-board UAV’s camera is facing 
+perpendicular to tag’s plane. 
+ 
+As seen in Figure 7, localization accuracy decreases 
+as the UAV gets further from the AprilTag. The 
+discrepancy at 3 m distance is due to the take-off position. 
+Although, a tag is visible even before taking off, the 
+localization is not sufficiently accurate and robust while 
+the UAV is moving. It is expected that the graph 
+monotonically increases if the data associated with take-
+off is filtered out from the results. Another observation is 
+that the standard deviation increases as the UAV gets 
+Forward
+Downward
+𝜃
+Flying 
+direction
+Ground
+April Tag 
+(a)
+(b)
+0
+0.1
+0.2
+0.3
+0.4
+0.5
+0
+10
+20
+30
+40
+50
+60
+70
+80
+Error (m)
+𝜃(deg)
+Flying 
+direction
+Wall
+April Tag 
+Distance to April Tag 
+is variable
+0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+1
+1.5
+2
+2.5
+3
+3.5
+4
+4.5
+5
+5.5
+Error (m)
+Distance from Tags (m)
+[p.6]
+35th International Symposium on Automation and Robotics in Construction (ISARC 2018) 
+ 
+further from the AprilTag. This implies that the 
+localization is more robust at closer distances. 
+Finally, the yaw angle of the UAV at a fixed distance 
+(2 m) from an AprilTag is investigated to quantify the 
+localization accuracy at various view angles. An 
+automated flight plan (depicted in Figure 8) is 
+implemented and the localization error is reported (in 
+Figure 9) at various yaw angles (𝜓).  
+ 
+Figure 8: Automated flight plan to quantify the 
+effect of yaw angle ( 𝜓) on the localization 
+accuracy 
+ 
+Figure 9: Localization error at different yaw 
+angles. The UAV is flying 2 m away from the tag 
+and the yaw is variable. 
+ 
+As seen in Figure 9, the localization is robust and the 
+accuracy is very stable for the yaw angles investigated. 
+The large discrepancy at 𝜓= 0 is due to the take-off 
+position, and if the data associated with the take-off is 
+eliminated, the graph becomes even more stable and 
+robust. Comparatively, the standard deviation is expected 
+to be as low as the same values reported for 𝜓=
+(5, 7.5, 10) ; 
+however, 
+the 
+take-off 
+localization 
+inaccuracy is affecting the standard deviations as well. It 
+should be noted, that the further the UAV is from an 
+AprilTag, the lower the expected maximum yaw angle 
+because of the line of sight and angle of view. 
+6 
+Conclusions 
+An indoor localization system using fiducial markers was 
+developed in this study. AprilTags were used to globally 
+localize 
+flying 
+UAVs 
+in 
+indoor 
+construction 
+environments. UAVs will then be used to capture some 
+critical information about building components under-
+construction. Such information is then linked with a 
+global system like BIM in order to measure the actual 
+construction performance metrics with designed values 
+to update plans accordingly. Progress of construction 
+components can, for example, be measured at different 
+locations in order to update the schedule accordingly. A 
+robust indoor localization framework will provide an 
+opportunity to fly autonomously and perform the whole 
+process automatically. In order to verify and validate the 
+performance 
+of 
+the 
+proposed 
+framework, 
+an 
+experimental study was designed. Some key findings are 
+summarized as follows: 
+ 
+Localization error decreases as the angle of view to 
+horizontally placed tags on the grounds aligns with 
+the on-board camera orientation. As the angle of 
+view becomes steeper with respect to the camera 
+orientation, the error increases. 
+ 
+As expected, localization error increases as flying 
+vehicles 
+get 
+further 
+from 
+AprilTags. 
+The 
+localization error will be higher than 30 cm if the 
+UAV is flying further than 3.5 m from an AprilTag. 
+ 
+Localization accuracy is very robust and stable for 
+the yaw angles at which an AprilTag is visible by 
+the UAV’s camera. 
+For all cases, localization during take-off and landing 
+is not sufficiently accurate to be reliable. Hence, the data 
+associated with those situations must be filtered out for 
+more 
+accurate 
+analyses. 
+Future 
+work 
+includes 
+incorporating the findings with automated flight plans on 
+real construction sites. Threshold values are going to be 
+extracted as constraints for distance and view angles to 
+optimally place the tags on a construction site to be 
+monitored. 
+References 
+[1] S. Siebert, J. Teizer, Mobile 3D mapping for 
+surveying earthwork projects using an Unmanned 
+Aerial Vehicle (UAV) system, Automation in 
+Construction. 1-14, 41, 2014. 
+[2] H. Hamledari, B. McCabe, S. Davari, A. Shahi, E. 
+Rezazadeh Azar, F. Flager, Evaluation of computer 
+vision-and 4D BIM-based construction progress 
+tracking on a UAV platform, 2017. 
+[3] C.H. Caldas, D.G. Torrent, C.T. Haas, Using global 
+positioning system to improve materials-locating 
+processes on industrial projects, J. Constr. Eng. 
+Wall
+April Tag 
+Z-axis
+𝜓: angle of rotation
+0
+0.05
+0.1
+0.15
+0.2
+0.25
+0
+2.5
+5
+7.5
+10
+12.5
+15
+Error (m)
+Yaw angle with respect to tag (deg)
+[p.7]
+35th International Symposium on Automation and Robotics in Construction (ISARC 2018) 
+Manage. 741-749 , 132, 2006. 
+[4] S.N. Razavi, O. Moselhi, GPS-less indoor 
+construction location sensing, Automation in 
+Construction. 128-136, 28, 2012. 
+[5] M. Ibrahim, O. Moselhi, Inertial measurement unit 
+based 
+indoor 
+localization 
+for 
+construction 
+applications, Automation in Construction. 13-20, 
+71, 2016. 
+[6] P.M. Goodrum, M.A. McLaren, A. Durfee, The 
+application of active radio frequency identification 
+technology for tool tracking on construction job 
+sites, Autom. Constr. 292-302 , 15, 2006. 
+[7] W. Jang, M.J. Skibniewski, A wireless network 
+system for automated tracking of construction 
+materials on project sites, Journal of civil 
+engineering and management. 11-19 , 14, 2008. 
+[8] M. W. M. G. Dissanayake, P. Newman, S. Clark, H. 
+F. Durrant-Whyte, M. Csorba, A solution to the 
+simultaneous localization and map building (SLAM) 
+problem, IEEE Transactions on Robotics and 
+Automation. 229-241 , 17, 2001. 
+[9] H. Kato, M. Billinghurst, Marker tracking and hmd 
+calibration for a video-based augmented reality 
+conferencing system, 85-94, 1999. 
+[10] M. Fiala, ARTag, a fiducial marker system using 
+digital techniques, 590-596, 2, 2005. 
+[11] E. Olson, AprilTag: A robust and flexible visual 
+fiducial 
+system, 
+2011 
+IEEE 
+International 
+Conference on Robotics and Automation. 3400-
+3407, 2011. 
+[12] S.N. Razavi, C.T. Haas, Using reference RFID tags 
+for 
+calibrating 
+the 
+estimated 
+locations 
+of 
+construction materials, Automation in Construction. 
+677-685, 20, 2011. 
+[13] J. Song, C.T. Haas, C. Caldas, E. Ergen, B. Akinci, 
+Automating the task of tracking the delivery and 
+receipt of fabricated pipe spools in industrial 
+projects, Autom. Constr. 166-177 , 15, 2006. 
+[14] Autonomy Lab, Bebop_Autonomy, 2017. 
+[15] Parrot Forum, Introducing Parrot Bebop 2: Your 
+Flying Companion, 2015.  
+=== END ===

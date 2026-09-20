@@ -1,0 +1,875 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0701.pdf
+sha256: 042438B5681FE79D39EEDA61E3D60436E5E91E940045CA05B382902CCEF4AD7F
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+Vision-Based Autonomous Drone Navigation Using 
+Deep Reinforcement Learning 
+ 
+Narendra Narole,  
+Department of Electronics &  
+Telecommunication, 
+ Suryodaya College of Engineering and 
+Technology, 
+ Nagpur, Maharashtra, India. 
+drnarendranarole@gmail.com 
+Durga Prasad,  
+School of Engineering & Technology,  
+Noida international University, 
+ Uttar Pradesh, India.  
+durga.prasad@niu.edu.in 
+ 
+ 
+Shubhangi Rahul Gaikwad,  
+Department of Artificial Intelligence 
+and  Data science,  
+Vishwakarma Institute of Technology, 
+ Bibwewadi, Pune 411037,  
+Maharashtra, India.  
+shubhangi.gaikwad@vit.edu 
+ 
+Sagarkumar S. Badhiye,  
+Department of Computer Science and  
+Engineering, Symbiosis  
+Institute of Technology, 
+ Nagpur Campus, Symbiosis  
+International (Deemed University),  
+Pune, India.  
+sagarbadhiye@gmail.com" 
+ 
+Dr. Bhuvaneshwari Jolad,  
+ Assistant Professor,  
+Department of Electronics and 
+Telecommunication Engineering,  
+Dr. D. Y. Patil Institute of Technology, 
+ Pimpri, Pune, Maharashtra, India 
+bjolad.76@gmail.com" 
+ 
+ 
+Jubber Salim Nadaf* 
+Assistant Professor, Department of 
+Computer Engineering 
+Zeal College of Engineering, 
+ Narhe, Pune, Maharashtra 411041   
+nadafjubber@gmail.com" 
+ 
+Abstract—Vision-guided autonomous drone navigation has 
+been a high-priority field of research with the rise of the need of 
+intelligent unmanned aerial vehicles that can be used in complex, 
+dynamic, and GPS-denied settings. The classical and rule-based 
+methods of control do not tend to be generalizable to different 
+visual conditions, obstacles, and environmental versions because 
+of uncertainties. With this, this paper introduces a deep 
+reinforcement 
+learning 
+(DRL)-based 
+autonomous drone 
+navigation framework based on vision, which combines 
+perception, decision-making and control in one learning 
+framework. The system that is proposed would develop 
+autonomous navigation as a sequential decision-making 
+problem, in which the drone would learn the best navigation 
+policies by observing the visual data itself using an on-board 
+camera. The representation of states, actions and rewards are 
+developed to provide stable learning without violating 
+operational limits, e.g. collision avoidance, flight stability and 
+constrained onboard computation. Various DRA algorithms, 
+such as Deep Q-Networks (DQN), Proximal Policy Optimization 
+(PPO), Asynchronous Advantage Actor-Critic (A3C) and Soft 
+Actor-Critic (SAC) are compared to determine whether each 
+can be used in real-time aerial navigation tasks. The perception 
+module is based on convolutional neural network (CNN) that is 
+used to derive compact and informative visual features on the 
+raw image streams, and thus effective environment perception 
+without depending on handcrafted features. This includes 
+reward shaping and exploration techniques that will hasten 
+convergence and improve policy resilience. 
+Keywords—Vision-based navigation; Autonomous drones; 
+Deep reinforcement learning; Convolutional neural networks; 
+Policy optimization; Obstacle avoidance 
+I. 
+ INTRODUCTION 
+The Unmanned aerial vehicle (UAV), also known as a 
+drone has experienced massive attention over the past few 
+years, as a result of their application in diverse fields of 
+observation 
+and 
+investigation 
+such 
+as 
+surveillance, 
+environmental studies, infrastructure inspection, agriculture 
+and search and rescue operations. Since the applications are 
+progressively requiring autonomous operation in complex and 
+unstructured environments, dependable navigation without 
+periodic and direct human control is now an emergency of 
+study issue. Traditional navigation systems are usually based 
+on GPS, pre-charted areas, or manually constructed control 
+regulations that do not perform well in dynamic environments, 
+visual uncertainty, and GPS-denied locations, including 
+indoor areas, dense urban ones, and cluttered natural 
+environments. Cameras have become a promising substitute 
+as vision-based navigation offers both abundant semantic and 
+geometric data and is not as expensive, bulky or energy-
+intensive as LiDAR or radar sensors. Through visual 
+information, drones are able to sense barriers, conclude on the 
+presence of open space and adapt to environmental variations 
+in real time [1]. Nevertheless, there is difficulty in deriving 
+actionable navigational outcomes of high dimensional visual 
+information. Conventional computer vision pipelines are 
+relying on manual features and designs that are modular and 
+as such, they lack adaptability and resilience to environmental 
+changes [2]. 
+Deep reinforcement learning (DRL) provides a useful 
+paradigm to deal with such problems due to its ability to allow 
+agents to learn the best control policies during their 
+interactions with the environment. Rather than explicitly 
+defining navigation rules, DRL enables a drone to learn on its 
+own to map visual measurements in order to control actions to 
+maximize cumulative rewards. This end-to-end learning 
+property is especially appealing to vision based navigation 
+since it achieves a smooth coordination of perception, 
+decision-making and control in one coherent framework [3]. 
+The recent developments in convolutional neural networks 
+(CNNs) have also contributed to more effective DRL-based 
+methods, since it is now possible to extract features out of raw 
+image inputs. Regardless of these strengths, the application of 
+DRL in autonomous drone navigation presents a number of 
+practical issues, such as sample inefficiency, unstable training, 
+safety issues, and the lack of onboard computing capabilities 
+[4]. In addition, the various DRA algorithms have diverse 
+strengths regarding their convergence speed, stability and 
+generalization particularly in the case of continuous control 
+and real time decision-making.  
+II. 
+RELATED WORK 
+Autonomous drone navigation (AD) based on vision has 
+been a highly studied topic within the last ten years, where 
+classical vision-based control methods, learning-based 
+2026 International Conference on Emerging Smart Computing and Informatics (ESCI) 
+Pune, India. Mar 11-13, 2026
+979-8-3315-8949-3/26/$31.00 ©2026 IEEE
+1
+2026 International Conference on Emerging Smart Computing and Informatics (ESCI) | 979-8-3315-8949-3/26/$31.00 ©2026 IEEE | DOI: 10.1109/ESCI68015.2026.11493377
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:50 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+perception, and deep reinforcement learning methods have 
+been investigated. The first efforts were based mostly on 
+geometric computer vision algorithms like optical flow, visual 
+odometry, and simultaneous localization and mapping (SLAM) 
+to allow it to avoid obstacles and plan paths [5]. Although 
+these techniques showed to be highly reliable within a 
+structured setting, they tended to demand fine-tuning of the 
+camera, hand-crafted attributes, and exact motion models 
+hence were not as robust as in dynamic or unstructured scenes. 
+The convolutional neural networks (CNNs) grew in use as the 
+deep learning progressed, with applications in UAVs, such as 
+obstacle detection, depth estimation, and scene perception. 
+The approaches based on supervised learning trained CNN to 
+map images on control commands or intermediate 
+representations like depth maps and traversability scores [6]. 
+Despite the fact that these methods enhanced the accuracy of 
+perception they were limited in terms of flexibility to novel 
+environments and lighting conditions because they relied on 
+labeled datasets and pre-determined training distributions. The 
+learning paradigm in reinforcement learning brought a novel 
+breakthrough in that it allowed drones to acquire navigation 
+policies via interaction as opposed to direct oversight [7]. In 
+Table 1, there is a comparative check of learning-based 
+autonomous drone navigation that is vision-based. The early 
+reinforcement learning models used either tabular or shallow 
+network, which could not support high-dimensional visual 
+input.  
+TABLE I.  
+RELATED WORK ON VISION-BASED AUTONOMOUS DRONE 
+NAVIGATION USING LEARNING-BASED METHODS 
+Navigation 
+Type 
+Visual 
+Sensor 
+Learning 
+Method 
+DRL 
+Algorith
+m 
+Limitation 
+Reactive 
+UAV 
+Navigation 
+Monocula
+r RGB 
+Deep 
+Learning 
+DQN 
+Discrete 
+actions only 
+Obstacle 
+Avoidance 
+RGB 
+Camera 
+Supervise
+d CNN 
+– 
+Requires 
+labeled data 
+Autonomou
+s Flight [8] 
+Monocula
+r 
+DRL 
+A3C 
+Limited real-
+world 
+validation 
+Target-
+Driven 
+Navigation 
+RGB-D 
+DRL 
+DDPG 
+Sensitive to 
+hyperparameter
+s 
+Indoor 
+UAV 
+Navigation 
+Monocula
+r RGB 
+DRL + 
+CNN 
+PPO 
+High training 
+cost 
+Collision 
+Avoidance 
+Stereo 
+Vision 
+Learning-
+Based 
+SAC 
+Computationall
+y expensive 
+End-to-End 
+Navigation 
+Monocula
+r RGB 
+DRL 
+PPO 
+Limited 
+generalization 
+Vision-
+Based 
+Control [9] 
+RGB 
+Camera 
+Hybrid 
+CNN–RL 
+A3C 
+Stability issues 
+Urban 
+Drone 
+Navigation 
+RGB 
+Camera 
+DRL 
+SAC 
+No energy 
+analysis 
+Autonomou
+s 
+Exploration 
+Monocula
+r 
+DRL 
+PPO 
+Sparse reward 
+sensitivity 
+UAV 
+Obstacle 
+Avoidance 
+Event 
+Camera 
+DRL 
+DQN 
+Limited 
+hardware 
+availability 
+Vision-
+Based 
+UAV 
+Control 
+[10] 
+RGB 
+Camera 
+DRL + 
+Attention 
+PPO 
+Model 
+complexity 
+Goal-
+Oriented 
+Navigation 
+Monocula
+r RGB 
+CNN + 
+DRL 
+DQN, 
+A3C, 
+Future real-
+world 
+deployment 
+PPO, 
+SAC 
+III. 
+PROBLEM FORMULATION AND SYSTEM OVERVIEW 
+A.  Autonomous navigation problem definition 
+The Autonomous drone navigation is designed as a 
+decision-making sequence where the unmanned aerial vehicle 
+starts at a given position and has to navigate to the desired 
+target position without any accidents in the partially 
+observable environment, which is changing dynamically [11]. 
+The main aim is to perform goal-oriented navigation by just 
+relying on in-board visual perception, without grounding 
+technology, or pre-defined maps. In every step of the time, the 
+drone is provided with an overview of the immediate 
+surroundings by a forward-facing camera and has to make 
+suitable control decisions, which are the cause of collision-
+free, smooth, and efficient flight. The high-dimensional visual 
+inputs, dynamic obstacles, sensor noise, and uncertainties in 
+drone movement make the navigation task challenging in 
+nature [12]. The proposed formulation focuses on reactive and 
+adaptive behavior learned directly on the experience in 
+contrast to the classical path-planning methods, which assume 
+known environment or accuracy of localization. The drone is 
+required to continuously process visual information about the 
+environment in the form of obstructions, free maneuvers, and 
+the arrangement of corridors to decide the maneuvers to take 
+that will be safe.  
+B. State, Action, and Reward Formulation  
+The state representation is such that it can obtain enough 
+environmental and motion related data needed to successfully 
+navigate and at the same time computationally efficient. The 
+state in the proposed model mainly represents visual 
+observations through the onboard monocular camera in the 
+form of processed image frame or learned features 
+embeddings obtained via a convolutional neural network. 
+Stacked frames can be used to encode temporal context to 
+provide motion cues [13]. On top of the visual feedback, low-
+dimensional proprioceptive information, like the present 
+velocity, altitude and the yaw angle, could be added in order 
+to provide more stable control. Figure 1 presents an 
+autonomous navigation that has discrete and continuous 
+action space representation. 
+ 
+Fig. 1. Action Space Representation for Vision-Based Autonomous Drone 
+Navigation 
+The action space identifies the control commands that can 
+be used by the drone during each decision step. Actions can be 
+discrete (e.g. move forward, turn left/right, hover) or 
+2
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:50 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+continuous, which are the linear velocity, angular velocity and 
+vertical thrust changes, depending on the reinforcement 
+learning algorithm chosen. The continuity of action 
+formulations are especially appropriate in smooth and 
+accurate aerial control in the real world [14]. The reward 
+mechanism is important in the direction of controlling the 
+learning process. It has a high degree of design to trade off 
+several goals, such as approaching the target, avoiding 
+collisions, smoothness of the flight, and energy usage.  
+C.  Assumptions and Operational Constraints  
+A number of assumptions and operational constraints are 
+established in the navigation framework to make sure that 
+learning is tractable and deploying the architectures is realistic. 
+There is an assumption that the drone will be fitted with a 
+forward-facing RGB camera that will have adequate visual 
+coverage of the surrounding area. The camera is strictly fixed 
+and calibrated and visual data can be accessed at a fixed frame 
+rate that can be used in making real time decisions. The fixed 
+altitude navigation of the drone enables the problem to be a 
+planar motion with the complexity of control simplified. The 
+environmental assumptions are an obstacle of a single 
+navigation episode that can be either stationary or moving 
+slowly, but appearance on the screen and layout can be quite 
+different depending on the environment. The target destination 
+is considered to be in relative or implicit form (as goal-
+directed rewards as opposed to absolute coordinates). 
+Connecting to external infrastructure is not necessary 
+allowing onboard and self-contained operation. The 
+limitations of operational constraints are due to minimal 
+onboard processing, battery size and safety demands. Neural 
+network structures are thus made to be light and inference 
+efficient. The control measures are limited to the actuator 
+limits and flight stability.  
+IV. 
+DEEP REINFORCEMENT LEARNING FRAMEWORK 
+A. Selection of DRL algorithm  
+1)  DQN 
+Deep Q-Networks (DQN) are based on an extension of 
+classical Q-learning, and they learn by using deep neural 
+networks to approximate the action-value function so that they 
+can learn on high-dimensional visual inputs. In drone 
+navigation with the help of vision, DQN transforms camera 
+observations into discrete navigation actions, e.g. forward 
+motion, directional turns. The training is stabilized and 
+correlation among the samples is decreased using experience 
+replay and target networks. DQN is computationally efficient, 
+and is relatively easy to implement, which makes it 
+appropriate to use in simulation-based studies.  
+x 
+Step 1: State Observation and Action Selection 
+At time step t, the agent observes state s_t (visual features) 
+and selects action a_t using İ-greedy policy: 
+a_t = random action,              with probability İ 
+a_t = argmax_a Q(s_t, a; șZLWKSUREDELOLW\íİ 
+x 
+Step 2: Environment Interaction 
+The selected action a_t is executed. 
+The agent receives reward r_t and next state s_{t+1}. 
+The experience tuple ൫ݏ௧,ܽ
+௧, ݎ௧, ݏ{௧ାଵ}൯ is stored in replay 
+buffer D. 
+x 
+Step 3: Target Q-Value Computation 
+Target value is computed using target network șí 
+ݕ௧= ݎ௧+ ߛ כ max
+{௔ᇲ}ொ൫ݏ{௧ାଵ},ܽ
+ᇱ; ߠെ൯ 
+2)  Proximal Policy Optimization (PPO)  
+PPO is a policy-gradient algorithm that is popular due to 
+training stability and simplicity of use. PPO achieves 
+optimization of the navigation policy in the sense that, policy 
+changes are limited inside a trust region, thus avoiding any 
+drastic changes to the policy that may destabilize the learning 
+process. The drone navigation is the area where this property 
+is particularly useful, as unsafe actions may result in collisions. 
+PPP encourages continuous action spaces and thus velocity 
+and steering can be continuously controlled based on visual 
+measurements. It is on-policy by nature, which guarantees a 
+good convergence, and has simplified hyperparameter 
+optimization by the use of clipping. PPO can be generalized 
+well across environments, and thus it is a popular option in 
+tasks of autonomous aerial navigation via vision-based 
+navigation. 
+x 
+Step 1: Trajectory Collection 
+ܥ݋݈݈݁ܿ
+ݐ ݐݎ݆ܽ݁ܿ
+ݐ݋ݎ݅݁
+ݏ ߬ 
+= (ݏ௧,ܽ
+௧, ݎ௧)ݑݏ݅݊݃
+ ܿݑݎݎ݁݊
+ݐ ݌݋݈݅ܿ
+ݕ ߨఏ(ܽ
+|ݏ). 
+x 
+Step 2: Advantage Estimation 
+Temporal difference error: 
+ߜ௧= ݎ௧+ ߛ כ ܸ൫ݏ{௧ାଵ}൯െ ܸ(ݏ௧) 
+Generalized Advantage Estimation: 
+ܣ௧= ߑ{௟ୀ଴}
+Ğ
+(ߛߣ)௟ߜ{௧ା௟} 
+3)  Asynchronous Advantage Actor-Critic (A3C)  
+Asynchronous Advantage Actor-Critic (A3C) utilizes 
+several parallel agents, which interact with independent 
+instances of the environment, and jointly update a common 
+global model. It is an asynchronous training strategy that 
+enhances exploration diversity and rapid convergence. A3C 
+takes advantage of having an independent actor and critic 
+network, which allows the effective estimation of the policy 
+and value functions. A3C is capable of dealing with stochastic 
+environments well and minimizing the variation in training in 
+the case of vision-based drone navigation. It has the capability 
+of learning raw visual stimuli without replaying experiences, 
+which makes its memory system less demanding.  
+x 
+Step 1: Parallel Environment Interaction 
+Multiple agents interact asynchronously with independent 
+environments, ܿ
+݋݈݈݁ܿ
+ݐ݅݊݃
+ (ݏ௧,ܽ
+௧, ݎ௧). 
+x 
+Step 2: Return and Advantage Calculation 
+n-step return: ܴ
+௧= ߑ
+{௞ୀ଴}{೟శೖ}
+{೙షభ}ംೖೝ+ ߛ௡ܸ൫ݏ{௧ା௡}൯ 
+Advantage: 
+ܣ௧= ܴ
+௧െ ܸ(ݏ௧) 
+4)  Soft Actor-Critic (SAC)  
+3
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:50 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+Soft Actor-Critic (SAC) is an off-policy actor critic 
+algorithm that works to maximize the expected reward and 
+policy entropy, which encourages effective exploration. SAC 
+can be applied in vision-based drone navigation because it is 
+capable of operating in continuous action spaces and better 
+sample efficiency. SAC is more efficient in managing 
+environmental uncertainty, as well as dynamic obstacles, than 
+deterministic techniques, by promoting stochastic policies. It 
+has off-policy learning, which enables it to reuse past 
+experiences, which saves on training time. Despite the 
+increased complexity in computation, SAC has better stability, 
+smooth control behavior and high generalization, thus making 
+it very useful in real-life autonomous drone navigation 
+problems. 
+x 
+Step 1: Stochastic Action Sampling 
+Sample action from policy: ܽ
+_ݐ ~ ߨ_ߠ(ܽ_ݐ | ݏ_ݐ) 
+x 
+Step 2: Soft Q-Target Computation 
+Entropy-augmented target: 
+ݕ_ݐ = ݎ_ݐ + ߛ [ ܳ ǉ(ݏ_{ݐ+ 1},ܽ_{ݐ+ 1}) 
+                െ ߙ log ߨ(ܽ_{ݐ+ 1}|ݏ_{ݐ+ 1}) ] 
+x 
+Step 3: Critic Network Update 
+Critic loss: 
+ܮொ= ܧ[(ܳ(ݏ௧,ܽ
+௧) െ ݕ௧)ଶ] 
+B. Network architecture and policy design 
+The network architecture is built to be efficient in the 
+integration of both the visual perception and the decision-
+making process and is computationally efficient in onboard 
+deployment of drones. The perception layer is based on the 
+convolutional neural network (CNN) that takes the raw image 
+frames of the onboard camera in the form of RGB and 
+processes them. In this CNN, hierarchical spatial features of 
+obstacles, free space, and navigational features are obtained. 
+Figure 2 represents UAV navigation architecture based on RL 
+and built-in safety controller. Lightweight architectures that 
+share convolutional layers are desired to decrease the 
+complexity of the model, which is then followed by fully 
+connected layers that yield small feature embedding.  
+ 
+Fig. 2. System Architecture of Vision-Based UAV Navigation with 
+Reinforcement Learning and Safety Controller 
+In policy design, the visual features extracted are then 
+represented with optional low-dimensional state variables, e.g. 
+velocity, or yaw angle. In value-based approaches, the 
+network provides Q-values of each discrete action. Actor-
+critic networks and policy-gradient networks separate into 
+actor and critic heads. The actor network generates a 
+probability distribution of discrete action or continuous 
+control commands whereas the critic approximates the state-
+value or action-value function. In sharing of parameters 
+between the perception and policy components, samples 
+become more efficient and converge faster. Designing policy 
+focuses on stability and safety, including constrained outputs 
+of action and control that is smooth.  
+C.  Reward Shaping and Exploration Strategies  
+The process of reward shaping is important in achieving 
+the drone to efficient and safe navigation behavior as well as 
+enhancing the convergence of learning. The reward 
+functionality is a weighted sum of various goals which include 
+goal progression, collision avoidance, smoothness of motion 
+and energy efficiency. Favorable reinforcements are given in 
+the case of forward movement, decrease in distance to the 
+target, and ability to keep the flight paths constant. On the 
+other hand, powerful negative rewards reward collisions, 
+closeness to obstacles, sudden changes in control, and over-
+oscillations. This staggered design forms off the unsafe habits 
+and supports the preferred navigation habits. In order to 
+prevent sparse reward problems, intermediate rewards are 
+added which are determined by visual cues like clear path 
+detection or obstacle clearance. The use of potential-based 
+reward shaping helps in maintaining optimal policy invariance 
+and also enhancing the rate of learning. An application of the 
+reward normalization is meant to stabilize training in various 
+environments. High-dimensional visual spaces require the use 
+of effective exploration.  
+V. 
+VISION-BASED PERCEPTION MODULE 
+A. On-board camera configuration and data acquisition 
+The vision-based perception module is based on the use of 
+the onboard camera as the main sensor of understanding the 
+environment and navigation. The drone has a forward-facing 
+monocular RGB camera that is firmly attached to the drone, 
+to see the visuals according to the direction the drone is flying. 
+Such a design offers ample field-of-view to sense obstacles, 
+corridors and navigable free space with minimal weight and 
+power requirements. The camera is fixed with the resolution 
+and frame rate values that have been chosen to trade-off visual 
+detail against the capability of processing real-time. Common 
+systems use moderate resolutions to guarantee low latency 
+when inference is done in embedded processors. The control 
+loop of the drone is synchronized with the data acquisition 
+system so that every frame captured in this process is matched 
+with a navigation decision step. Visual information is gathered 
+in a wide range of settings such as with changing lighting and 
+texture and obstacle configurations during training to 
+encourage the generalization of policies.  
+B. Image Preprocessing and Feature Extraction  
+The raw image frames that are provided by the onboard 
+camera are also processed in a set of preprocessing steps to 
+enhance efficiency and robustness of learning. The first step is 
+to resize images to a constant resolution size, which fits within 
+the neural network input specifications, without introducing 
+computational complexity, but still important spatial 
+information is relevant. The color normalization and intensity 
+scaling are used to reduce the impact of different lighting 
+conditions. RGB images can be converted into grayscale in 
+4
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:50 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+certain settings to further generate a much reduced 
+dimensionality without losing a substantial amount of 
+navigational information. Implicitly encoding dynamics of 
+motion in the state representation can be done by temporal 
+preprocessing, such as frame stacking or optical flow 
+approximation. Information augmentation techniques like 
+random cropping, brightness changes, and horizontal flipping 
+are used during training so that the models become robust and 
+they do not overfit. 
+C. CNN-Based Visual Representation Learning 
+The visual representation learning module is based on 
+convolutional neural networks (CNNs) or the ability of the 
+drone to process complex environments using the input of 
+images. The CNN system is developed to learn geometric 
+hierarchies of visual representations to identify obstacle 
+geometry, navigable areas and the surrounding environment 
+information that is pertinent to navigation behaviour. The 
+input images are processed through shared convolutional 
+layers that abstracted successively lower-level raw pixel 
+images into high-level feature embeddings. Lightweight CNN 
+models are preferred to achieve real-time inference on an 
+onboard hardware that has resource constraints. The input of 
+the reinforcement learning policy is the learned visual 
+representations. These properties in the actor critic models are 
+shared among the actor and critic networks, which enhance 
+consistency and efficiency in the samples. 
+VI.
+RESULT AND DISCUSSION 
+Experimental assessments show that deep reinforcement 
+learning provides efficient vision-based autonomous drone 
+control in a wide variety of settings. Policy-gradient and actor-
+critic algorithms are more stable on navigation, more 
+challenged on collision avoidance and convergence, 
+compared to value based algorithms. PPO and SAC have 
+enhanced control trajectories and success rates especially on 
+cluttered scenes. CNN-based perception is able to extract task-
+relevant visual feature which can be used to detect obstacles 
+robustly without map-based information. 
+TABLE II. 
+COMPARATIVE NAVIGATION PERFORMANCE ACROSS DRL
+ALGORITHMS
+DRL 
+Algorithm
+Success 
+Rate (%)
+Collision 
+Rate (%)
+Avg. 
+Navigation 
+Time (s)
+Path 
+Efficiency 
+(%)
+DQN
+78.6
+21.4
+42.8
+71.2
+A3C
+84.9
+15.1
+38.6
+78.5
+PPO
+91.7
+8.3
+33.2
+86.9
+SAC
+93.4
+6.6
+31.8
+89.4
+Table 2 shows the comparative analysis of the 
+performance of the four deep reinforcement learning 
+algorithms and it is evident that there is considerable 
+difference in the effectiveness and reliability. 
+Fig. 3. Performance Comparison of UAV Navigation Methods
+Figure 3 indicates better navigation results of the proposed 
+learning-based UAV systems. Deep Q-Network (DQN) has a 
+success rate of 78.6% yet, the highest collision rate of 21.4, 
+which implies its weaknesses to deal with the complex visual 
+world and continuous control. Its reduced path performance 
+and longer average time to navigate 42.8 seconds also imply 
+poorer decision-making and high rates of corrective actions. 
+Figure 4 indicates that there are some temporal changes in 
+along-wind, cross-wind, and vertical velocities.
+Fig. 4.
+Comparison of DRL Navigation Performance Across Algorithms
+A3C proves to be better than DQN with a success rate of 
+84.9 percent and a lower collision rate of 15.1 percent. A3C 
+has a parallel training mechanism that promotes the 
+exploration and learning in an efficient manner that result in 
+faster navigation and path efficiency.
+TABLE III. 
+VISION-BASED CONTROL AND STABILITY METRICS
+Method
+Mean 
+Control 
+Smoothness 
+(%)
+Avg. Yaw 
+Deviation 
+(°)
+Obstacle 
+Avoidance 
+Accuracy 
+(%)
+Energy 
+Consumption 
+(Wh)
+DQN
+68
+14.7
+79.3
+21.6
+A3C
+74
+12.3
+84.6
+20.1
+PPO
+86
+8.5
+91.2
+18.4
+SAC
+89
+7.2
+93.8
+17.9
+Table 3 is a comparison on the quality of vision-based 
+control, stability, and energy efficiency of the various deep 
+reinforcement learning methods. Deep Q-Network (DQN) has 
+the lowest mean control smoothness at 68% which means that 
+oscillation and sudden movements during navigation are 
+common. 
+5
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:50 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+Fig. 5.
+RMSE Comparison of Roll, Pitch, and Yaw Across Reinforcement 
+Learning Algorithms
+This is indicated by its high average yaw deviation of 14.7, 
+indicating decreased directional stability which is directly 
+related to decreased obstacle avoidance accuracy and 
+increased energy consumption. These findings demonstrate 
+the drawbacks of discrete action-based learning to realize 
+smooth aerial control. Figure 6 demonstrates optimization of 
+altitude control which minimizes energy consumption by UAV. 
+A3C experiences some improvements, with the smoothness of 
+control noticeability at 74% and lower deviation of yaw of 
+12.3. 
+Fig. 6. Analysis of Control Smoothness, Yaw Stability, Obstacle Accuracy, 
+and Energy Use Across DRL Methods
+The exploration and the stability of learning facilitated by 
+the asynchronous training mechanism result in the 
+improvement of obstacle avoidance precision and moderate 
+energy savings. Nevertheless, the control behavior remains to 
+be varied in the situations with visual complexity. PPO has 
+good control stability, and the control smoothness is 86 
+percent and the yaw deviation is cut down to 8.5 degrees. 
+These advances are in the form of increased obstacle 
+avoidance accuracy and reduced energy consumption, which 
+are an indicator of efficient and stable flight patterns. 
+VII.
+CONCLUSION
+This work proposed an extensive architecture of vision-
+guided autonomous drone navigation with deep reinforcement 
+learning and it overcomes the shortcomings of the traditional 
+rule-based and map-dependent controllers. The presented 
+approach allows drones to learn optimal control policies using 
+visual observations, thus making them able to operate in 
+challenging and GPS-denied conditions by addressing it as a 
+sequence of decisions to make, thereby formulating the 
+problem of navigation as the challenge of learning optimal 
+control policies. By means of integrating a CNN-based 
+perception module with a reinforcement learning, it is possible 
+to learn navigation behaviors end-to-end without beforehand 
+defining handcrafted features or modeling the environment. 
+The strengths and weaknesses of value-based and policy-
+gradient algorithms were revealed through comparative 
+analysis of various DRA algorithms. Although Deep Q-
+Networks are easier and less resource-intensive to implement, 
+policy-based approaches to continuous navigation, including 
+PPO and SAC, showed better stability, control smoothness, 
+and generalization. The role of reward shaping and facilitated 
+exploration strategies in hastening convergence and safe 
+learning, especially in visually rich and obstacle-filled 
+environments is important. The results of the experiment 
+confirm the efficacy of the suggested framework, and there 
+were steady increases in the success rate of navigation, 
+collision avoidance, and the smoothness of the control. 
+Notably, the vision-based design is more adaptive to the 
+unknown environments and allows a scalable implementation 
+into a wide range of operational cases including inspection, 
+surveillance, and search-and-rescue operations. 
+REFERENCES
+[1]
+Lyu, M.; Zhao, Y.; Huang, C.; Huang, H. Unmanned Aerial Vehicles 
+for Search and Rescue: A Survey. Remote Sens. 2023, 15, 3266. 
+[2]
+Su, J.; Zhu, X.; Li, S.; Chen, W.-H. AI meets UAVs: A survey on AI 
+empowered UAV perception systems for precision agriculture. 
+Neurocomputing 2023, 518, 242–270. 
+[3]
+Diao, Q.; Zhang, J.; Liu, M.; Yang, J. A Disaster Relief UAV Path 
+Planning Based on APF-IRRT* Fusion Algorithm. Drones 2023, 7, 323. 
+[4]
+Li, X.; Tupayachi, J.; Sharmin, A.; Martinez Ferguson, M. Drone-
+Aided Delivery Methods, Challenge, and the Future: A Methodological 
+Review. Drones 2023, 7, 191. 
+[5]
+Yin, Y.; Wang, Z.; Zheng, L.; Su, Q.; Guo, Y. Autonomous UAV 
+navigation with adaptive control based on deep reinforcement learning. 
+Electronics 2024, 13, 2432. 
+[6]
+Yue, P.; Xin, J.; Zhang, Y.; Lu, Y.; Shan, M. Semantic-Driven 
+Autonomous Visual Navigation for Unmanned Aerial Vehicles. IEEE 
+Trans. Ind. Electron. 2024, 71, 14853–14863. 
+[7]
+Boiteau, S.; Vanegas, F.; Gonzalez, F. Framework for Autonomous 
+UAV Navigation and Target Detection in Global-Navigation-Satellite-
+System-Denied and Visually Degraded Environments. Remote Sens. 
+2024, 16, 471. 
+[8]
+Arafat, M.Y.; Alam, M.M.; Moh, S. Vision-based navigation 
+techniques for unmanned aerial vehicles: Review and challenges. 
+Drones 2023, 7, 89. 
+[9]
+Wang, F.; Zhu, X.; Zhou, Z.; Tang, Y. Deep-reinforcement-learning-
+based UAV autonomous navigation and collision avoidance in 
+unknown environments. Chin. J. Aeronaut. 2024, 37, 237–257. 
+[10] Duan, R.; Paudel, D.P.; Fu, C.; Lu, P. Stereo Orientation Prior for UAV 
+Robust and Accurate Visual Odometry. IEEE/ASME Trans. Mechatron. 
+2022, 27, 3440–3450. 
+[11] Teed, Z.; Lipson, L.; Deng, J. Deep Patch Visual Odometry. Adv. 
+Neural Inf. Process. Syst. 2023, 36, 39033–39051. 
+[12] Sumikura, S.; Shibuya, M.; Sakurada, K. OpenVSLAM: A Versatile 
+Visual SLAM Framework. In Proceedings of the 27th ACM 
+International Conference on Multimedia, Nice, France, 21–25 October 
+2019; pp. 2292–2295. 
+[13] Teed, Z.; Deng, J. DROID-SLAM: Deep Visual SLAM for Monocular, 
+Stereo, and RGB-D Cameras. Adv. Neural Inf. Process. Syst. 2021, 34, 
+16558–16569. 
+[14] Lu, J.; Tian, B.; Shen, H.; Zhang, X.; Hui, Y. LPNet: A reaction-based 
+local planner for autonomous collision avoidance using imitation 
+learning. IEEE Robot. Autom. Lett. 2023, 8, 7058–7065. 
+6
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:50 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

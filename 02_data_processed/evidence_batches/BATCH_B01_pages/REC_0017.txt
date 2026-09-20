@@ -1,0 +1,817 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0017.pdf
+sha256: 4DC030AA99C64B14C8A7961BEDE63B68058A8650BA25A841C5A77AB2F8FABF61
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+Development of Nano UAV Platform for Navigation
+in GPS-Denied Environment Using Snapdragon
+Yu Zhou
+Temasek Laboratories
+National University of Singapore
+Singapore
+tslzyu@nus.edu.sg
+Geng Qin
+Temasek Laboratories
+National University of Singapore
+Singapore
+qingeng@nus.edu.sg
+Feng Lin
+Temasek Laboratories
+National University of Singapore
+Singapore
+linfeng@nus.edu.sg
+Abstract—In order to develop a nano UAV in a GPS-denied
+environment, a visual-inertial system (VINS) consisting of a
+monocular camera and a low-cost inertial measurement unit
+(IMU) should be integrated, as they make a minimum, ultra
+lightweight sensor suite that enables both autonomous ﬂight and
+sufﬁcient environment awareness. Although there are numerous
+potential applications, getting to understand the structure of the
+ﬂight platform can be cumbersome and confusing. Packages and
+resources provided on the Qualcomm developer network (QCN)
+and their ofﬁcial GitHub group ATLFlight contain un-uniﬁed
+and disorderly chunks of information. In this paper, we present
+an organized documentation that presents in detail, the platform
+structure as a whole, from hardware to software architecture,
+including installation and API related applications.
+Index Terms—Snapdragon Flight, visual inertial odometry,
+UAV, tutorial
+I. INTRODUCTION
+Localization and navigation in an indoor environment using
+nano Unmanned Aerial Vehicles (UAV) always pose great
+challenges. Since Global Navigation Satellite System (GNSS)
+reference is unavailable, the UAV has to rely on its own
+onboard or external sensors to navigate. There are different
+types of sensor modules such as sonar, laser range ﬁnders,
+Ultra Wide Band (UWB) and vision. Sonar is fast and cheap
+but usually very crude, whereas a laser scanning system is
+active, accurate, however, a typical 3D Lidar sensor is not
+suitable to be mounted on a nano UAV due to its large size
+[1][2]. UWB radios can provide a GNSS-like localization
+method in an indoor environment [3], but it requires some
+external setup to be done prior to the real ﬂight, thus making it
+unsuitable for exploration of an unknown indoor environment.
+A vision-based localization is feasible for low-cost and energy-
+constrained UAV, especially when it is combined with a low-
+cost IMU, which makes it a powerful VINS, and a minimum
+ultra lightweight sensor suite that allows robust autonomous
+ﬂight. Moreover, Visual-Inertial Odometry (VIO) technique
+has been extensively studied and proven by many researchers
+as in [4][6].
+Therefore, in order to develop a nano UAV to work in
+a GPS-denied environment, we focus on the platform with
+VINS integration, as well as high computation power and
+low power consumption. With the great demand in both
+academic research and commercial applications along with
+rapid development of industrial manufacturing techniques ,
+tons of off-the-shelf ﬂight controller board are available in
+the market, and as the core part of a UAV, it is the key to
+realize fully autonomous and intelligent.
+Typical ﬂight controller board, such as Pixhawk, Octago-
+nal Pilot on Chip system (OcPoC), AscTec Trinity, NAVI02
+and Qualcomm Snapdragon Flight are popular for their high
+performance [7]. Features of each platform are summarized
+as follows: Pixhawk is one of the most powerful and popular
+autopilots in the market due to its open software and hardware
+design sources and combined func tionality of the PX4FMU,
+PX4IO and GCS, making it suitable for secondary develop-
+ment. However, it has limited computa tion capability and high
+level vision algorithms are impossible to be executed on it.
+OcPoC has a dual ARMa9 core processor and al FPGA, which
+enables ﬂexibility in hardware and parallel computing abilities.
+Trinity provides triple redundant sub-autopilot systems, which
+maximizes the redundancy of the autopilot. Navio2 integrates
+a Raspberry Pi board, which brings it more processing power
+and makes it possible to implement some basic high level
+algorithm on-board. Snapdragon Flight is the only one in all of
+the platforms that integrates an optical ﬂow camera and one 4K
+resolution video camera along with high level Machine Vision
+(MV) SDK and Snapdragon Navigator (SNAV) SDK, making
+it so much easier for people who wants to develop their own
+utilization with a UAV under GPS-denied environment. Based
+on the analysis above, we have decided to use the highly-
+integrated Snapdragon Flight controller board as our autopilot.
+The related algorithms implemented on the ﬂight board are
+introduced in [8] [9]. Some applications implemented on a
+nano UAV with Snapdragon Flight such as an autonomous
+swarm of UAV test is shown in [10].
+The paper will be organized as follows: we will ﬁrst intro-
+duce the hardware structure of the Snapdragon Flight, followed
+by the development environment setup. Then the applications
+on both development SDK and ATLFlight repository are intro-
+duced, after which we will test the reliability and robustness of
+the ﬂight platform by implementing trajectory following and
+aggressive ﬂying missions and present the experiment results.
+A conclusion is given at last.
+l-)))
+
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:59 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+II. HARDWARE OVERVIEW
+A. Snapdragon Flight board
+The Snapdragon Flight board is based on the Qualcomm
+Snapdragon 801 processor, which features three units: Quad-
+core CPU, 4x Qualcomm Krait 400 CPU (Up to 2.5 GHz);
+Qualcomm Adreno 330 GPU; Qualcomm Hexagon DSP. Ap-
+plications can be built using different processing units based on
+their intended purpose. It also integrates most of the necessary
+sensors, which includes a barometric pressure sensor, GNSS,
+9-Axis IMU Sensor, downward optical ﬂow camera with
+resolution of 640480 and a 4K high resolution front camera.
+The board can either be wired accessed via serial port and
+USB, or remotely accessed via Bluetooth 4.0 and 2.4G/5.8G
+WIFI connection.
+B. Assembly instruction
+To build a UAV with Snapdragon Flight, the Qualcomm
+Flight Kit, Qualcomm Electronic Speed Control (ESC) board,
+Dragon Drone Development Kit (DragonDDK) are needed.
+The DragonDDK is an almost ready to ﬂy UAV kit that
+includes a pre-assembled frame with motors, propellers, an
+indicator LED, a Wi-Fi antenna. The assembly instructions
+are given in [11] [12]. A Spektrum DX-8 is chosen as
+the remote controller. Moreover, the Stereovision Kit can be
+assembled as an add-on option for the Snapdragon Flight Kit.
+It provides two additional forward-facing cameras for stereo
+vision applications. The hardware structure is shown in Fig.
+1.
+III. DEVELOPMENT ENVIRONMENT SETUP
+A. Communication with Snapdragon Flight
+Communication between the snapdragon ﬂight and a work-
+station need to be set ﬁrst. It can be facilitated with serial or
+ADB cable or over Wi-Fi. The speciﬁc details are listed in
+the ﬂight user guide [13]. The recommended method is Wi-
+Fi, which can be conﬁgured as Station (STA) mode, making
+Fig. 1. Hardware structure
+it convenient for future experiments, such as ﬂying multiple
+UAVs together or downloading ﬁles. The ﬁle exchange be-
+tween the UAV and a workstation can be done by adb or scp.
+B. Installation of development packages
+To make the UAV ﬂy, a few softwares need to be installed on
+the snapdragon ﬂight board. The installation sequence should
+follow Table I. First is the platform BSP update, then the Flight
+controller add-on ﬁle for updating the DSP ﬁrmware and cer-
+tain device drivers. The license ﬁle from Qualcomm developer
+network needs to be placed in the license locations. Next are
+the SDKs: MV SDK provides highly runtime optimized and
+state of the art computer vision algorithms; and SNAV SDK,
+an autonomous, vision-supported ﬂight controller, providing a
+stable and aggressive ﬂight for applications.
+TABLE I
+INSTALLATION LIST ON SNAPDRAGON FLIGHT
+Package type
+Package name
+Installation methods
+Platform BSP
+Flight X.Y.Z JFlash.zip
+/jﬂash.sh
+Flight
+controller
+add-on
+Flight X.Y.Z.a qcom ﬂigh
+t controller hexagon sdk
+add on.zip
+./installfcaddon.sh
+License
+snapdragon-ﬂight-
+license.bin
+Move
+license
+to
+/opt/qcom-licenses/
+and /usr/lib folder
+Machine
+Vision
+SDK
+mv 1.1.8 8x74.deb
+dpkg
+-i
+mv 1.1.8 8x74.deb
+Snapdragon Nav-
+igator SDK
+snav 1.2.58 8x74.deb
+dpkg
+-i
+snav 1.2.58 8x74.deb
+ESC ﬁrmware
+snav-esc 1.2.0.deb
+dpkg
+-i
+snav-
+esc 1.2.0.deb
+ROS
+Ubuntu ARM install of
+ROS Indigo
+See
+installation
+in-
+structions
+The qrlSDK (see Table II) can be used to compile and
+link applications meant for the ARM processor or CPU of
+snapdragon board on the workstation, and then to run them
+on board. The Hexagon SDK and Hexagon tools are used to
+create applications on workstations that run on the Hexagon
+DSP. See ﬂight developer guide [14] for details.
+TABLE II
+INSTALLATION LIST ON WORKSTATION
+Package type
+Package name
+Installation methods
+SDK for CPU ap-
+plications
+qrlSDK
+./installsdk.sh
+–
+APQ8074
+–arm-gcc
+–qrlSDK
+SDK for DSP ap-
+plications
+Hexagon™SDK and tools
+./qualcomm hexagon
+sdk lnx 3 0 eval.bin
+C. Vehicle conﬁgurations
+There are some conﬁgurations need to be set after the
+installation procedure.
+The ESC params need to be set to update the installed
+Electronic Speed Control (ESC) ﬁrmware. It can be obtained
+from the snav vehicles repo on GitHub. Likewise for the ﬂight
+
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:59 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+parameters, runtime parameters for SNAV, by changing the
+snav params.xml ﬁle. Further details about how to set up the
+parameters are on the navigator user guide [15]. Moreover, set
+the vehicle to use VIO for ﬂight control. After all these steps,
+the ﬂight board is ready to ﬂy.
+IV. APPLICATIONS
+The vision and control API as well as applications that
+run in both Snapdragon Flight and workstation obtained from
+the MV SDK, SNAV SDK and the ofﬁcial GitHub group
+ATLFlight, are abundant but disordered and confusing. In this
+section, the architecture and features are given for those APIs
+and applications.
+A brief structure is shown in Fig. 2. The ﬂight controller is
+running on the DSP of Qualcomm Snapdragon 801 processor,
+which can make sure the real-time property. The CPU and
+GPU are used to run Linaro system, robot operating system
+(ROS) and high level algorithms. Both the ROS-based and non
+ROS-based applications makes use of the Machine Vision and
+Snapdragon Navigator API. The qrlSDK, Hexagon SDK and
+tools are needed if one wants to develop applications to run
+on the Snapdragon Flight platform with their workstation. An
+android tablet controller application is provided as well.
+	
+
+
+
+
+
+	
+
+
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ !
+"# !
+	
+$%&'	$%
+ 
+()&(
+ *
++,'
+-
+
+
+*.$)
+	
+
+./01/2
+
+
+
+
+34 
+'
+&
+ /5(+&%
+'
+&675+
+*
+Fig. 2. Software architecture
+A. Non ROS-based applications
+1) Machine Vision SDK: The MV SDK supports the fol-
+lowing functions: VISLAM for 6-DOF localization and pose
+estimation, dense depth mapping with stereo, downward facing
+tracker for relative localization, voxel map for 3D depth fusion
+and mapping, online monocular camera calibration for both
+stereo and monocular camera, camera auto gain and exposure
+control. After installation, one can have access to many online
+and ofﬂine (i.e., playback) applications provided in this SDK.
+• Online applications
+The online applications, running real-time, demonstrate
+various functionalities. The mvCameraView is used for live
+camera stream given by the camera ID. The IDs of the four
+onboard cameras are shown in Table III.
+The mvCapture is used for capturing sensor data sequences.
+The mvCPA is for getting good exposure/gain for tracking
+features. The mvVISLAM can display the 6-DOF poses. The
+mvDFS is for dense depth mapping.
+TABLE III
+CAMERA ID
+Camera name
+Hires
+(Forward)
+Downward
+Stereo
+(Right)
+Stereo
+(Left)
+Camera ID
+0
+1
+2
+3
+• Playback applications
+There are playback applications on how to exercise the
+algorithms performance by using ofﬂine data which has
+been captured by mvCapture, SNAV or a developers own
+application. See more details on the machine vision quick
+start guide [15].
+2) Snapdragon Navigator SDK: SNAV SDK is comprised
+of multiple libraries, applications, and conﬁguration ﬁles.
+Applications in SDK include snav for running Snapdragon
+Navigator, snav calibration manager for sensor calibration, as
+well as automatic ﬂight real-time viewing tool snav inspector.
+• Snapdragon Navigator
+SNAV is a vision-supported ﬂight controller application
+which can be started with the command: $ start snav. It will
+also autostart some other process, such as the DFT and Qual-
+comm UAV Controller companion processes by default. And
+multiple vision-related applications including snav dft app,
+snav dft vio app, and snav voa app can be conﬁgured as
+autostart functions by changing the corresponding parameter
+ﬁles associated with each application located in /etc/snav
+folder. See Navigator user guide [16] for further information.
+When running the SNAV, the core ﬂight controller runs
+on the DSP and supports various ﬂight modes from manual
+to assisted modes. Other components, such as vision-based
+algorithms run on the applications processor, i.e. CPU and
+GPU. Furthermore, data logging is started automatically when
+SNAV is started and all the onboard data, including UAV
+status, sensors data and estimated results are logged to a binary
+dump in the /var/log/snav/ﬂight/ folder.
+• SNAV Inspector
+SNAV Inspector is a console application that enables live
+data viewing from the UAV, such as the status of the UAV
+and sensors as well as the estimation result of VIO. It works
+by continuously reading log ﬁles. The post-processing log
+parsing capability is also a feature of this application, which
+can be useful for system tuning and discovering the cause of
+an unexpected behavior.
+• SNAV calibration manager
+The
+snav calibration manager
+contains
+several
+sensor
+calibration procedures triggered via a RC or through the
+SNAV. Although there are many calibration procedures,
+the following two are the most important and have to
+be done before ﬂight, which are the static accelerometer
+offset estimation and the dynamic accelerometer offset and
+trim estimation. See Navigator user guide [16] for further
+information.
+
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:59 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+3) Camera test: The camera-test application, based on
+libcamera API, is used to capture image streams provided by
+the HiRes and downward looking optical ﬂow cameras. See
+ﬂight user guide [13] for further details.
+4) Flight Control Interface (FCI): The Qualcomm Naviga-
+tor Flight Control Interface (FCI) is a high-level abstraction
+layer that isolates application developers from low-level details
+of the SNAV API, which can be used to allow applications
+to interact with the ﬂight controller. Supported interactions
+include accessing vehicles data, sending RC-style or velocity-
+style commands to the ﬂight controller and sending RPM or
+PWM commands directly to the ESC. Several examples are
+provided to demonstrate how to use the FCI, including an
+example of a waypoint-following mission, circling around a
+point and trajectory-following.
+B. ROS-based applications
+There
+are
+many
+repositories
+on
+the
+ofﬁcial
+GitHub
+organization ATLFlight, such as the packages with the blue
+name in Fig. 4. Applications in green are obtained from
+QCN. The most important API and applications are in bold
+font. The structure and relation between them are summarized
+(see Fig. 4). The three major ROS-based applications are
+trajectory generation and tracking, visual-Inertial odometry
+and depth from stereo.
+1) Trajectory generation and tracking: This application
+generates trajectory with waypoints and then execute a
+trajectory-following mission. Waypoints, the blue points in
+Fig. 3, are written in a yaml ﬁle and published by snav ros
+for smooth trajectory indicated as the green line in Fig.
+3. Characteristics of the path such as maximum velocity,
+acceleration or total trajectory execution time can be set before
+executing the trajectory. Moreover, the trajectory generation
+method
+including
+shortest
+path,
+minimum
+acceleration,
+minimum jerk and minimum snap can be set as well. The
+snav gui is a GUI application used to trigger actions via the
+action server. Actions are deﬁned in snav msgs, including
+take-off, execute mission, recompute trajectory, go to a
+waypoint and land.
+2) Visual-Inertial Odmometry:
+Visual-Inertial Odometry
+estimates the 3D pose which includes translation and ori-
+entation of a moving target relative to the inertial frame,
+using accelerometers, gyroscopes and the download-looking
+camera. A multi-state constraint Kalman ﬁlter for optimal
+fusion of IMU and monocular camera measurements are used
+to calculate the odometry [8].
+The snap vio wraps mvVISLAM from the machine vision
+library into a ROS application. The image of the down-
+ward looking camera is published by snap cam ros. The
+snap cap provides the exposure time and gain for image
+frames. IMU messages are published by snap imu and the
+transform between IMU and camera frame is provided by
+qﬂight descriptions. The coordinate frame deﬁnition is shown
+Fig. 3. Trajectory generation
+in Fig. 5. Pose from VIO and feature point image (see Fig. 6)
+can be obtained through this application.
+3) Depth From Stereo (DFS): Depth information can be
+obtained from a disparity image of stereo, which encodes the
+difference in horizontal coordinates of corresponding image
+points. The differences are inversely proportional to the scene
+depth at the corresponding pixel location.
+The DFS application dfs-ros-example wraps mvDFS from
+the machine vision library into a ROS application. It subscribes
+to the stereo image given by snap cam ros and publishes the
+disparity image (see Fig. 7), point cloud and tf.
+V. SIMULATION RESULTS
+The experiment has been performed at the TLAB at the
+National University of Singapore. We have tested a trajectory-
+following mission, a human tracking mission and aggressive-
+ﬂying test with multiple UAV, where the UAV reaches an
+average maximum speed of 4 m/s in a circular path.
+Fig. 4. Coordinate frame conventions
+
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:59 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+	
+
+
+
+	
+
+
+
+
+
+
+	
+
+
+	
+ !
+"#$
+	
+
+
+
+
+
+
+
+%"
+
+&
+	
+'
+&
+("!
+
+
+ 
+
+
+
+!
+
+
+	
+	
+'
+	
+
+"
+
+ 	
+
+
+
+
+#	
+#
+
+!
+"	
+
+
+!"
+
+
+
+
+#	
+#
+
+
+$ 
+	%
+	
+
+
+
+
+#!
+
+
+#
+
+'#!
+)
+"
+*
+
+!+
+)*$
+
+
+#
+!
+
+
+	
+
+$
+
+
+#
+
+
+#
+
+
+#	
+
+
+
+
+&'
+
+()!*#&
+	
+
++
+
+
+
+#
+!
+
+
+
+
+
+
+
+&
+!
+",	
+
+#)
+
+
+)
+
+
+
+
+
+
+ 
+*
+
+
+	
+
+
+)
+
+$
+
+ 
+*
+&)
+"
+"-
+
+&
+
+
+$
+!
+)
+ 
+*
+
+!
+
+Fig. 5. Structure of applications
+Fig. 6. Feature detection
+Fig. 7. Disparity image
+A. Simulation setup
+A simulation setup is required to ensure that a new appli-
+cation works as intended during simulation before the doing a
+real ﬂight test. The procedure to setup a network for multiple
+UAVs is provided below as well. Simulation mode is a feature
+of SNAV, which uses a simulation engine that models physics
+and sensors as sensor inputs. To start a simulation, the SNAV
+needs to be shut down ﬁrst, and then launched in simulation
+mode by ‘$ snav -w sim time’. The sim time is the minimum
+simulation seconds.
+With SNAV running in simulation mode, the live simulated
+results can be observed using snav inspector. The UAV status
+can be checked on rviz in ROS. Perform a real ﬂight test after
+the new application works ﬁne in simulation mode. For real
+tests, before running any of the programs, the UAV should be
+placed on a ﬂat ground with plenty of visual texture.
+B. Network setup for multiple UAVs
+When multiple UAVs need to exchange information, a
+network must be set up ﬁrst. Two main solutions are provided
+when using ROSsee Fig. 8: run one ROS master across
+multiple machines; establish and manage a multiple master
+network).
+• Running one ROS master across multiple machines
+In this mode, A single large ROS network is created
+and managed by a single roscore node. All machines
+must be conﬁgured to use the same master, via setting
+ROS MASTER URI environment variable, and each machine
+must advertise itself by setting ROS IP.
+• Each machine running its own ROS master
+A solution for multi-master systems called multimaster fkie
+is provided by ROS. It includes a master discovery package
+that is used for discovering master on the network, and a
+
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:59 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+Fig. 8. Network setup for multiple UAVs
+master synchronization package, which can synchronize local
+ROS master to remote ROS ones.
+C. Trajectory following
+We evaluated two aggressive trajectory paths, ﬁgure 8 and
+spiral, in simulation mode. The trajectories were generated by
+our own safe corridor navigation with jerk limited trajectory
+generation algorithm [19].
+• Figure “8”: The traversing path has a length of 8 m along
+the y Cartesian axis. The results are shown in Fig 9.
+• Spiral path: The traversing path has a length of 2 m along
+both the x and z Cartesian axes. The results are shown
+in Fig 10.
+Despite the trajectories having different velocities and ac-
+celerations, the error results are in the same range of values.
+The maximum error in x and y direction are at around ±0.1 m.
+Error in z axis could be larger. It is caused by the initialization
+of VIO or the estimation drift due to the lack of feature
+numbers and bad light conditions in the test room.
+VI. CONCLUSION
+This paper has uniﬁed several ofﬁcial documents into one
+clear and organized tutorial on developing a nano UAV us-
+ing the Snapdragon Flight platform. Simulation results of
+trajectory-following and aggressive-ﬂying missions have been
+given to show the reliability and robustness of this ﬂight
+controller platform. Future works will include experimental
+veriﬁcation of our own high level algorithms such as trajectory
+generation, human tracking and an autonomous swarm of
+UAVs with the presented Snapdragon Flight platform.
+REFERENCES
+[1] U. Weiss and P. Biber, “Plant detection and mapping for agricultural
+robots using a 3D LIDAR sensor”, Robotics and Autonomous Systems,
+vol. 59, no. 5, pp. 265-273, 2011.
+[2] R. Chisholm, J. Cui, S. Lum and B. Chen, “UAV LiDAR for below-
+canopy forest surveys”, Journal of Unmanned Vehicle Systems, vol. 01,
+no. 01, pp. 61-68, 2013.
+[3] Krishnan S, Sharma P, Zhang G, et al. A UWB based Localization
+System for Indoor Robot Navigation[C]// IEEE International Conference
+on Ultra-Wideband. IEEE, 2007:77-82.
+[4] S. Leutenegger, S. Lynen, M. Bosse, R. Siegwart and P. Furgale,
+“Keyframe-based visualinertial odometry using nonlinear optimization”,
+The International Journal of Robotics Research, vol. 34, no. 3, pp. 314-
+334, 2014.
+[5] M. Li and A. Mourikis, “High-precision, consistent EKF-based visual-
+inertial odometry”, The International Journal of Robotics Research, vol.
+32, no. 6, pp. 690-711, 2013.
+x (m)
+−2
+−1
+0
+1
+2
+y (m)
+−4 −2 0
+2
+4
+z (m)
+0
+1
+2
+Reference
+Simulation
+Fig. 9. Figure “8” path
+x (m)
+−1.5
+−0.5
+0.5
+1.5
+y (m)
+−1
+0
+1
+z (m)
+0
+1
+2
+Reference
+Simulation
+Fig. 10. Spiral path
+[6] Shen S, Michael N, Kumar V. Tightly-coupled monocular visual-inertial
+fusion for autonomous ﬂight of rotorcraft MAVs[C]// IEEE International
+Conference on Robotics and Automation. IEEE, 2015:5303-5310.
+[7] Yang Z, Lin F, Chen B M. Survey of autopilot for multi-rotor unmanned
+aerial vehicles[C]// Industrial Electronics Society, IECON 2016 -, Con-
+ference of the IEEE. IEEE, 2016:6122-6127.
+[8] G. Loianno, C. Brunner, G. McGrath and V. Kumar, “Estimation,
+Control, and Planning for Aggressive Flight With a Small Quadrotor
+With a Single Camera and IMU”, IEEE Robotics and Automation
+Letters, vol. 2, no. 2, pp. 404-411, 2017.
+[9] J. Thomas, J. Welde, G. Loianno, K. Daniilidis and V. Kumar, “Au-
+tonomous Flight for Detection, Localization, and Tracking of Moving
+Targets With a Small Quadrotor”, IEEE Robotics and Automation
+Letters, vol. 2, no. 3, pp. 1762-1769, 2017.
+[10] A. Weinstein, A. Cho, G. Loianno and V. Kumar, “Visual Inertial Odom-
+etry Swarm: An Autonomous Swarm of Vision-Based Quadrotors”,
+IEEE Robotics and Automation Letters, vol. 3, no. 3, pp. 1801-1807,
+2018.
+[11] S. Leutenegger, S. Lynen, M. Bosse, R. Siegwart and P. Furgale,
+“Keyframe-based visualinertial odometry using nonlinear optimization”,
+The International Journal of Robotics Research, vol. 34, no. 3, pp. 314-
+334, 2014.
+[12] DragonDDK-End-User-Assembly-Instructions V3. INTRINSYC, 2017.
+[13] Qualcomm Snapdragon Flight User Guide (80-P8822-1 Rev. A). Qual-
+comm Technologies, Inc, 2016.
+[14] Qualcomm Snapdragon Flight Developer Guide (80-P8822-2 Rev. A).
+Qualcomm Technologies, Inc, 2016.
+[15] Machine Vision Quick Start Guide (80-H9220-3 Rev. A). Qualcomm
+Technologies, Inc, 2018.
+[16] Qualcomm Snapdragon Navigator User Guide (80-P4698-18 D). Qual-
+comm Technologies, Inc, 2017.
+[17] Qualcomm Snapdragon Navigator Developer Guide (80-P4698-20 E).
+Qualcomm Technologies, Inc, 2017.
+[18] Machine Vision Application Programming Interface (80-H9220-2 Rev.
+B). Qualcomm Technologies, Inc, 2018.
+[19] Shupeng Lai, Menglu Lan, Ben M. Chen, “Efﬁcient safe corridor
+navigation with jerk limited trajectory for quadrotors, unpublished
+
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:10:59 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

@@ -1,0 +1,1517 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1007.pdf
+sha256: D0117E8CB949B1BD9FE44B290114D896D304909F04CB96C0E1FB71F4A89E36C1
+library: pymupdf (fitz) v1.28.2
+pages: 21
+=== BEGIN ===
+[p.1]
+RESEARCH
+Applied Geomatics (2026) 18:41
+https://doi.org/10.1007/s12518-026-00694-2
+Introduction
+Over the past two decades, unmanned aerial vehicles (UAVs) 
+have rapidly evolved due to their cost efficiency, autonomous 
+	
+ Farshid Farnood Ahmadi
+farnood@tabrizu.ac.ir
+Rana Naanjam
+r.naanjam97@gmail.com
+Hamid Ebadi
+ebadi@kntu.ac.ir
+1	
+ Faculty of Geodesy and Geomatics Engineering, K.N. Toosi 
+University of Technology, Tehran, Iran
+2	
+Department of Geomatics Engineering, University of Tabriz, 
+Tabriz, Iran
+Abstract
+The use of Unmanned Aerial Vehicles (UAVs) is rapidly increasing, making accurate localization essential for safe and reli­
+able navigation. However, GPS signals can become unreliable or entirely unavailable in urban canyons, mountainous terrain, 
+or environments with intentional interference. While many vision-based navigation methods rely on optical imagery, the 
+potential of UAV-borne Synthetic Aperture Radar (UAVSAR) which performs reliably in all-weather and day–night condi­
+tions has received relatively little attention.This study presents a new three-stage geo-localization framework specifically 
+designed for UAVSAR imagery: (1) coarse region retrieval by matching each UAVSAR image against low-resolution satellite 
+tiles, (2) fine image alignment within the selected region using high-resolution reference imagery, and(3) final localization 
+based on affine transformation estimation with compensation for the side-looking geometry of SAR. The feature extrac­
+tion and matching process is driven by a Convolutional Multi-Scale Network with a ResNet-50 backbone, trained to learn 
+robust, invariant features from image pairs captured under varying illumination, viewpoint, and sensor modality. Keypoints 
+are extracted from intermediate feature maps, and mismatches are removed using adaptive distance filtering and RANSAC-
+based geometric verification. Experiments on a UAVSAR dataset covering more than 46,000 km² and 12 diverse flight paths 
+demonstrate that the proposed method achieves RMSE values between 1.83 and 2.86 m (average 2.23 m) and yields a high 
+Recall@1 in the coarse-retrieval stage.Compared with existing cross-modality matching approaches, the proposed framework 
+consistently achieves higher retrieval accuracy and demonstrates more reliable operational performance.Training and testing 
+across geographically distinct regions further confirm the strong generalization capability of the method.Overall, the results 
+show that SAR-based visual navigation is a practical and robust alternative for GPS-limited or GPS-denied environments, 
+offering a structured multi-stage pipeline and a cross-modality matching strategy that clearly distinguish it from prior work.
+Keywords  UAVSAR · Deep learning · Geo-localization · Image matching · GPS-denied environments · SAR-based 
+navigation
+Received: 22 April 2025 / Accepted: 24 January 2026 / Published online: 9 February 2026
+© The Author(s), under exclusive licence to Società Italiana di Fotogrammetria e Topografia (SIFET) 2026
+Robust geo-localization of UAVSAR in GPS-Denied environments using 
+deep cross-modality matching with google Earth imagery
+Rana Naanjam1 · Hamid Ebadi1 · Farshid Farnood Ahmadi2
+operation, and capability to capture real-time data in inacces­
+sible areas, making them valuable for remote sensing and 
+disaster response applications (Nonami et al. 2010; Erdelj 
+2016; Liu et al. 2014). However, low-cost UAVs are lim­
+ited by payload capacity, restricting the use of high-precision 
+sensors and reducing navigation accuracy. Most rely on the 
+integration of the Global Positioning System (GPS) and the 
+Inertial Navigation System (INS), along with sensors such 
+as cameras, accelerometers, altimeters, and gyroscopes, yet 
+under low-accuracy configurations, positioning depends pri­
+marily on inertial methods (Braga 2016).
+Obstacles or disruptions in the communication link 
+between the transmitter and receiver can significantly 
+reduce the efficiency of UAV operations. These challenges 
+are particularly evident in dense forests, urban canyons, and 
+1 3
+[p.2]
+Applied Geomatics (2026) 18:41
+border or security-sensitive areas, where access to online 
+mapping services is often unavailable, making UAV navi­
+gation and geo-localization more difficult. In recent years, 
+extensive research has been conducted to enhance the 
+autonomy of UAV navigation systems without relying on 
+GPS. These efforts have led to remarkable improvements in 
+both accuracy and operational efficiency, paving the way for 
+the development of more intelligent navigation frameworks.
+Furthermore, advancements in digital imaging systems and 
+image processing algorithms have significantly improved 
+image accuracy and quality, enabling the use of visual data 
+as a valuable source of information within integrated navi­
+gation systems (Avola 2024). Common approaches involve 
+matching georeferenced images with UAV images without 
+location tags to calculate the necessary adjustments for tra­
+jectory correction (Tian et al. 2021). The UAV’s current 
+position is determined almost independently of its previ­
+ous states, minimizing cumulative errors typical of inertial 
+navigation systems. Moreover, the widespread availability 
+of vision-based navigation systems makes them a viable 
+alternative to radio navigation, owing to their independence 
+from external signals (Ahn 2021).
+Modern UAV visual localization methods rely on image 
+registration, categorized into traditional (Castaldo 2015; Lin 
+2013; Senlet 2011; Bansal 2011) and convolutional neural 
+network (CNN)-based approaches (Khurshid 2024; Nas­
+sar 2018). Traditional techniques use handcrafted features 
+(e.g., blobs, corners) to match images at pixel or subpixel 
+levels (Rublee 2011; Szeliski 2010), but their performance 
+degrades under varying conditions, especially between SAR 
+and optical imagery. In contrast, deep learning methods 
+learn robust, invariant features from large datasets, enhanc­
+ing matching accuracy. Thus, recent research trends show a 
+shift from handcrafted to learning-based scene matching (Yi 
+2016; Noh 2017). Image-based geo-localization primarily 
+relies on image matching, which is a key process for esti­
+mating UAV position and orientation by correlating aerial 
+imagery with georeferenced satellite data. Depending on the 
+sensing modality, matching can be performed between opti­
+cal–optical image pairs or across different modalities such 
+as SAR–optical.For optical–optical matching, deep learning 
+has substantially advanced feature correspondence and geo­
+metric consistency under wide viewpoint variations. Repre­
+sentative approaches include HMSM-Net (He et al. 2022)
+and Deep3D (Ada-MVS) (Liu et al. 2023), together with 
+registration frameworks such as CNN-based Deep Regis­
+tration (Wang et al. 2018), Region-based CNN Registration 
+(Zeng et al. 2020), and Deep Residual Network Registration 
+(Zhao et al. 2021). In SAR–optical matching, significant 
+radiometric and geometric disparities between modalities 
+make the task more complex. Recent research focuses on 
+cross-modality representation learning through models such 
+as Deep Fully Convolutional Network (FCN) (Zhang et al. 
+2019), Deep Dense Feature Network (DDFN) (Zhang et al. 
+2020), MAP-Net (Cui et al. 2021), CIRSM-Net (Wang et 
+al. 2025), OS-CycleGAN (Liaghat et al. 2025), and RMSO-
+ConvNeXt (Yang et al. 2025).
+Overall, these developments demonstrate that deep learning 
+based feature matching, both intra-modality and cross-modal­
+ity, provides a robust foundation for UAV geo-localization in 
+GPS-denied or visually degraded environments.
+Recent research has increasingly focused on leveraging 
+deep learning with satellite imagery to enhance UAV pose 
+estimation across various and challenging environments. 
+Hou et al. 2020, proposed a UAV localization method that 
+extracts deep learning-based features from satellite imag­
+ery to improve pose estimation accuracy in GNSS-denied 
+environments. Their approach integrates a top-view opti­
+cal camera on UAVs and utilizes CNNs for image feature 
+extraction, combined with a bundle adjustment-based local 
+optimization to minimize localization errors. The study 
+emphasizes the challenges posed by inconsistent viewing 
+angles and environmental variations, which complicate 
+accurate UAV geo-localization.
+Building on this, Cui et al. 2023 developed a cross-view 
+geo-localization approach between UAV and satellite imag­
+ery using a Vision Transformer architecture. Their method 
+effectively resolves inconsistencies in view angles through a 
+single-stage training strategy and introduces a novel piece­
+wise soft-margin triplet loss function, improving image 
+retrieval accuracy. Zhuang et al. 2022 proposed a trans­
+former-based network incorporating a Semantic Guidance 
+Module (SGM) that aligns semantic regions between UAV 
+and satellite images, enhancing contextual understand­
+ing and achieving an 8% increase in localization accuracy 
+compared to CNN-based approaches. Similarly, Dai et al. 
+2021 introduced a transformer-based Feature Segmentation 
+and Region Alignment (FSRA) framework to address chal­
+lenges such as position shifts and scale uncertainty in cross-
+view localization. FSRA segments and aligns image regions 
+automatically through the transformer’s heat distribution, 
+improving feature robustness and contextual consistency 
+without extra supervision.
+Sui et al. 2022 presented a novel two-stage, detector-
+free matching method designed for low-altitude UAV 
+visual geo-localization. By incorporating a perspective 
+transformation module and utilizing the DSNT transform, 
+their method effectively mitigates illumination and view­
+point differences. Using a combination of coarse matching 
+based on minimum Euclidean distance and fine matching 
+through DSNT, it achieves an average localization preci­
+sion of 2.24 m. This method demonstrates strong robustness 
+and computational efficiency, particularly when deployed 
+on Jetson Xavier NX hardware. Wang 2024 introduced a 
+1 3
+41 
+Page 2 of 21
+[p.3]
+Applied Geomatics (2026) 18:41
+coarse-to-fine sequence-matching framework that combines 
+deep learning with traditional machine learning. Instead of 
+comparing all reference images, it focuses on relevant satel­
+lite image patches aligned with UAV trajectories through a 
+feature-based and manifold learning sorting algorithm. This 
+integration of sequence constraints with hybrid matching 
+techniques significantly improves efficiency and accuracy 
+on challenging UAV-to-satellite datasets.
+However, despite these advancements, pose estima­
+tion for UAV autonomous navigation still faces numer­
+ous challenges and limitations (Wang 2024). A key issue 
+lies in the large disparity of scale and resolution between 
+high-detail UAV imagery and the broader, lower-resolution 
+satellite imagery, which complicates direct image match­
+ing (Sui 2023). Adverse weather conditions, illumination 
+changes, and temporal discrepancies due to outdated sat­
+ellite data further degrade localization accuracy (Cui et 
+al. 2022). Complex urban environments also increase dif­
+ficulty because of occlusions, shadows, and dense infra­
+structure (Hou et al., 2022; Wang et al. 2023). Despite the 
+rapid progress in vision-based UAV navigation, a significant 
+research gap remains. Most prior studies have focused on 
+optical imagery or simulated scenarios, with limited atten­
+tion to real UAVSAR data. Existing methods that employ 
+synthetic or satellite-derived SAR images often overlook 
+the unique challenges of real airborne UAVSAR imagery, 
+including side-looking geometry and substantial radio­
+metric and structural differences between SAR and optical 
+data. Furthermore, the lack of evaluation on large-scale and 
+diverse datasets raises concerns about the generalizability 
+and robustness of these approaches.
+To address these limitations, this study presents a novel 
+deep learning-based framework for autonomous UAV local­
+ization using real airborne UAVSAR imagery matched with 
+high-resolution optical reference images. The proposed sys­
+tem introduces a cross-modality image-matching strategy 
+built on a multi-scale convolutional network (CMN-Net) 
+with a ResNet-50 backbone. This architecture is trained 
+to extract robust, modality-invariant features and enables 
+accurate alignment of heterogeneous imagery across differ­
+ent viewpoints and temporal gaps.
+The key contributions of this work are as follows:
+(1)	 A unified geolocation framework specifically tailored 
+for UAVSAR data, enabling fully autonomous naviga­
+tion without reliance on GPS;
+(2)	 A robust feature extraction and matching pipeline for 
+cross-modality image registration using deep semantic 
+representations;
+(3)	 Extensive validation across 12 flight paths over diverse 
+terrain types, confirming both accuracy and adaptability 
+of the proposed method.
+To the best of our knowledge, this is the first study that uti­
+lizes real UAVSAR imagery acquired from airborne plat­
+forms for fully autonomous UAV geo-localization. This 
+work bridges a critical research gap and opens a new path­
+way for SAR-based navigation solutions applicable to GPS-
+denied scenarios.
+Methodology
+In this study, a deep learning-based framework is proposed 
+for UAVSAR localization. As illustrated in Fig. 1, the overall 
+methodology consists of three key stages: (1) determining 
+the initial target area, (2) accurate image matching focused 
+on selected approximate tiles, and (3) SAR image registra­
+tion with the georeferenced reference image to geolocalize 
+the UAV. Initially, SAR imagery is coarsely matched with 
+Google Earth satellite tiles at a low zoom level to identify 
+the target area. Once the target area is defined, the SAR 
+image within the selected region is matched with a higher-
+resolution reference image containing a greater number of 
+key points. In the subsequent stage, with a sufficient num­
+ber of matching points (a minimum of three points), an 
+affine transformation matrix is computed to align the SAR 
+image with the reference image. This enables registration 
+of the SAR image with the reference image to achieve 
+georeferencing.
+The registration stage, which constitutes the core of this 
+research, specifically addresses the challenge of robust 
+feature matching in heterogeneous images. To this end, 
+we propose a CNN architecture designed to mitigate the 
+effects of radiometric and geometric discrepancies and 
+extract invariant feature representations. The network is 
+tailored for accurate keypoint detection and description by 
+leveraging high-level semantic information from deeper 
+feature maps, which are more resilient to variations in 
+radiation and imaging geometry. Moreover, the model is 
+trained using image pairs with significant differences in 
+illumination and viewpoint, enabling it to learn features 
+that remain consistent across diverse visual and sensor 
+conditions. Further technical details are provided in the 
+following sections.
+Determining the initial target area
+To initially set the approximate target area for the UAV, a 
+matching process is performed using low-resolution Google 
+Earth images. In this stage, the study area undergoes a 
+matching phase across multiple Google Earth tiles. The tile 
+with the highest number of matches across different layers is 
+selected as the target tile. The specific steps in the matching 
+phase are detailed below.
+1 3
+Page 3 of 21 
+41
+[p.4]
+Applied Geomatics (2026) 18:41
+general image classification tasks. This pre-training phase 
+laid the foundation for the model’s feature extraction capa­
+bilities, with ResNet-50 selected as the primary backbone. 
+ResNet-50’s architecture, with its residual blocks, facilitates 
+the retention of both low- and high-level features, enabling 
+robust feature representation across diverse images.
+Matching phase
+Pre-training on a large dataset
+Initially, this network was pre-trained on a large dataset, such 
+as ImageNet, to learn a wide range of visual features through 
+Fig. 1  Flowchart of the proposed method
+ 
+1 3
+41 
+Page 4 of 21
+[p.5]
+Applied Geomatics (2026) 18:41
+second residual block of Stage 3. The stride was adjusted 
+from 2 to 1, and the pooling strategy within the block was 
+shifted to average pooling. Additionally, the convolutions 
+within the third stage (Conv3_1 to Conv3_3) were adapted 
+to employ dilated convolutions with a dilation rate of 2. This 
+modification effectively broadened the receptive field and 
+bolstered the feature representation’s generalization capac­
+ity. Such enhancements proved advantageous for achiev­
+ing consistent feature representation across heterogeneous 
+images. Through these comprehensive modifications, the 
+output feature map’s resolution was significantly increased, 
+doubling the localization accuracy when compared to the 
+resolution improvement seen in the classic ResNet-50 
+network.
+Keypoint extraction and feature descriptor
+Using the network structure designed in the previous sec­
+tion, directly employing all pixels from the res3c output 
+feature map as features would result in an overly dense fea­
+ture set, with most features lacking distinctiveness. Thus, 
+it is essential to select specific, significantly distinctive 
+key points from the feature map for heterogeneous image 
+matching, a process known as feature selection. Assuming 
+the input original image is I, with dimensions w×h, repre­
+sented by a 3D tensor F(I), where F∈Rw×h×n and its channel 
+number n = 1024. The selection of feature key points and the 
+extraction of descriptors are then performed within F.
+To filter out more prominent feature points in the Rw×h×n 
+feature space, a selection strategy that seeks the maximum 
+across the channel direction and within the local plane of the 
+high-dimensional feature map simultaneously was adopted, 
+as described by the Eq. 1.
+k = arg maxt Dt
+ij
+(
+where Dt
+ij is the local maximum in Dk)
+(1)
+where, Dk represents the feature values of the k-th layer, 
+with Dk∈Rw×h; Dk
+ij​ denotes the feature value at the point 
+(i, j) on the feature map. For a candidate point P(i, j), channel 
+selection is initially performed, i.e., selecting the channel k 
+with the highest response value among n channel feature 
+maps, resulting in the corresponding feature map Dk. Sub­
+sequently, it is verified whether Dt
+ij ​is a local maximum. If 
+both conditions are satisfied, indicating that the candidate 
+point P is significant, it is then selected as a feature point. 
+To ensure enough feature points, planar extrema are chosen 
+within a 3 × 3 neighborhood.Moreover, the 1024-dimen­
+sional channel vector at the point (i, j) on the feature map F 
+is extracted and normalized using the L2 norm, resulting in 
+the feature descriptor d^ij (Eq. 2).
+dij = dij/∥dij∥2
+(2)
+Training
+The training phase of the system relies on pairs of images 
+depicting the same scene but captured under different con­
+ditions, such as varying viewpoints, lighting, or sensor 
+modalities (e.g., UAVSAR and optical images from Google 
+Earth). The training process leverages these image pairs to 
+teach the network how to identify and describe features that 
+are invariant to these changes. Specifically, the network is 
+trained to maximize the similarity of descriptors at corre­
+sponding locations in the paired images while minimizing 
+the similarity of descriptors at non-corresponding locations. 
+This encourages the network to learn robust and discrimi­
+native features that can be reliably matched across images 
+with significant radiometric and geometric differences. For 
+each pair of corresponding image points, random image 
+regions measuring 256 × 256 pixels, centered around these 
+points, were selected and input into the network for training. 
+The network was trained using the Adam optimizer with an 
+initial learning rate of 1 × 10⁻³, a batch size of 8, and for 20 
+epochs. A contrastive loss function was employed to enforce 
+descriptor similarity between positive and negative pairs. 
+The learning rate was reduced by a factor of 0.1 every 10 
+epochs to ensure stable convergence.
+Network model
+The overall matching architecture is based on the Convo­
+lutional Multi-Scale Network (CMN-Net) (Chaozhen et al. 
+2021), enhanced by employing ResNet-50 as the feature 
+extraction module. Originally designed for classification 
+tasks, ResNet-50 consists of multiple residual blocks that 
+preserve detailed information across layers. The initial 
+layers of ResNet-50, with their smaller receptive fields, 
+effectively capture basic features such as edges and cor­
+ners, providing high localization precision. As the network 
+progresses, it abstracts features further, integrating more 
+global information that is robust to variations across differ­
+ent images. However, this increased abstraction can lead to 
+reduced localization precision. To strike a balance between 
+abstraction and precise localization, the output from the 
+second convolution layer in the third stage (Conv3_2) was 
+chosen as the feature map. This output represents a com­
+bination of multiple convolution operations and residual 
+processes applied to the input image, with its dimensions 
+corresponding to the number of convolution filters in that 
+layer.
+In convolutional neural networks, layer resolution typi­
+cally diminishes following pooling or downsampling opera­
+tions. To preserve the feature map resolution, modifications 
+were implemented in the study’s methodology, specifically 
+targeting the stride of the down-sampling operation in the 
+1 3
+Page 5 of 21 
+41
+[p.6]
+Applied Geomatics (2026) 18:41
+where θ is the look angle of the UAV and h is the flight 
+height. the coordinates of the UAV ( XUAV , YUAV )can be 
+calculated using the following formulas(Eq. 4). 
+XUAV = Xc ± f. cos (α)
+(4)
+YUAV = Yc ± f. sin (α)
+(5)
+Where f represents the total distance from the image center 
+to the UAV, α is the angle in the 2D plane between the line 
+from the image center to the UAV.
+Testing and evaluation
+To evaluate the accuracy and performance of the proposed 
+method in UAVSAR geolocalization, the model is tested 
+using UAVSAR–optical image pairs that are not included in 
+the development process. After applying the proposed geo­
+localization method, the resulting matches, geometric align­
+ment, and localization outputs are evaluated. Quantitative 
+indicators, including matching reliability and localization 
+error, are calculated to provide an objective assessment of 
+the method.
+Experiments and results
+Training datasets
+The training dataset utilized in this study for training the 
+matching component of the proposed system pertains to the 
+California region and corresponds to flight number 20,030. 
+The UAVSAR images associated with the Gulfstream-III 
+aircraft, along with their georeferenced reference images, 
+are sourced from Google Earth imagery. The specifics of 
+the training dataset are meticulously outlined in Table 1. It’s 
+noteworthy that the network was trained using UAV imagery 
+from the year 2020, characterized by a resolution of 1.8 m. 
+The corresponding Google Earth images span from level 16 
+to level 19 and encompass the temporal range from 2018 to 
+2023. In Table 1, the number of images utilized for training 
+is presented, assuming that the patch size of the images was 
+standardized to 500 × 500 pixels.
+Study area and evaluation dataset
+The efficacy of the proposed methodology was assessed 
+through an analysis of a dataset encompassing various sce­
+narios across 12 flight paths spanning over 3000 km. These 
+flight trajectories, designated under flight ID 17,089, were 
+conducted over the Texas region, with a total flight duration 
+of 6 h and 16 min. The dataset particulars are delineated 
+Eliminating mismatched points
+Given the pronounced differences between heterogeneous 
+images and the large number of extracted candidate feature 
+points, mismatches are common and can significantly affect 
+the accuracy of image matching. To effectively address this, 
+a combined approach is employed, integrating a dynamic 
+adaptive distance constraint with Random Sample Con­
+sensus (RANSAC) for robust mismatch elimination. First, 
+an adaptive distance threshold is determined based on the 
+average distance differences between matched pairs. This 
+threshold serves to filter out pairs that do not meet the rela­
+tive distance criterion, preserving only the closer and more 
+likely correct matches. Subsequently, RANSAC is applied 
+to perform a geometric verification using an affine trans­
+formation model, ensuring only geometrically consistent 
+matches remain. This two-tiered method significantly 
+enhances match quality by reducing erroneous points and 
+preserving reliable correspondences for accurate alignment.
+Refined image matching within targeted 
+approximate tiles
+After the selection of initial tiles, the process focuses on 
+achieving a more precise match by concentrating on these 
+identified areas. Feature extraction and descriptor cal­
+culation are carried out once again within these specified 
+regions, using high-resolution reference images. In this 
+refined stage, after mismatches are eliminated by adaptive 
+thresholding and RANSAC filtering, the final correspond­
+ing keypoints are determined in both the reference and UAV 
+images.
+Registration and UAVSAR geolocalization
+After performing the second matching operation based on 
+the extracted key points and determining the transformation 
+matrix, which was considered affine (Sommervold et al. 
+2023), the co-registration process was carried out. Given the 
+side-looking geometry of SAR imaging, the position of the 
+UAV is outside the coverage area of the image. Therefore, 
+after determining the center location of the image, the loca­
+tion of the UAV needs to be determined. As shown in Fig. 
+2a, the red points represent the centers of the images, which 
+should be used to achieve the green positions. To calculate 
+the UAV’s location, we first need to determine the distance 
+f, as illustrated in Fig. 2. This distance is expressed as f = 
+c+d, where c represents half of the swath width. The value 
+of d can be derived using a trigonometric relationship (Eq. 
+3), which is based on the information presented in Fig. 2b.
+d = tan (θ ) .h
+(3)
+1 3
+41 
+Page 6 of 21
+[p.7]
+Applied Geomatics (2026) 18:41
+the UAV’s internal database. In the first phase, the trained 
+deep learning model executed a matching process across the 
+entire study area, using these image segments. The aim of 
+this step was to roughly determine the UAV’s approximate 
+location.Initially, the target region was identified based on 
+Google Earth images at lower zoom levels, which allowed 
+for a swift and efficient process without relying on high-
+resolution imagery. By utilizing lower zoom levels, large 
+portions of irrelevant areas were quickly ruled out, focusing 
+attention on the regions where the UAV was likely located.
+The study area was divided into 80 tiles, each measur­
+ing 45 × 35 km, as illustrated in Fig. 4. This figure shows 
+examples of the reference image tiles and demonstrates how 
+the area was segmented. In the initial phase, the UAVSAR 
+image was matched with these reference tiles using the 
+proposed method, and the tiles that yielded the best match, 
+in Table 2, while the flight path specifics are illustrated in 
+Fig. 3. According to Fig. 3 the coverage area and trajec­
+tory of each flight line have been outlined. Each flight line 
+is composed of a series of Single Look Complex (SLC) 
+images featuring a resolution of 1.8 m and full polarization. 
+An example of SLC images for FlightLine 4 is shown in 
+Fig. 3, consisting of four distinct segments. Furthermore, 
+to delve deeper into the performance and capabilities of the 
+proposed method, reference images were intentionally cho­
+sen to exhibit substantial changes compared to the corre­
+sponding UAV images. This deliberate selection was aimed 
+at facilitating a more precise assessment of the method’s 
+effectiveness and adaptability under different conditions.
+Implementation details
+Determining the initial target area
+To define the initial target area, it was crucial to divide 
+the extensive reference satellite imagery into smaller sec­
+tions. These segmented images, sourced from satellite data, 
+functioned as both reference images and components of 
+Table 1  Overview of training dataset characteristics
+Dataset
+Image Type
+Resolution
+Date
+Num­
+ber of 
+Images
+UAV image
+SAR/Gulfstream 
+Aircraft images
+1.8 m
+2020/10/16
+1752
+Reference 
+images
+Optic/Google 
+earth images
+Zoom 
+Level 
+16–19
+2018–2023
+3235
+Table 2  Data description
+Flight Plan ID/
+Flight Line
+Altitude(m)
+Heading(deg)
+STA–STO 
+Length(km)
+17,089/1
+12,497
+149
+180
+17,089/2
+12,497
+329
+180
+17,089/3
+12,497
+149
+180
+17,089/4
+12,497
+329
+180
+17,089/5
+12,497
+149
+180
+17,089/6
+12,497
+329
+180
+17,089/7
+12,497
+149
+180
+17,089/8
+12,497
+345
+165
+17,089/9
+12,497
+165
+165
+17,089/10
+12,497
+12
+185
+17,089/11
+12,497
+165
+165
+17,089/12
+12,497
+239
+263.2
+Fig. 2  Geometry of SAR imaging 
+and the UAV Position Relative to 
+the image center
+ 
+1 3
+Page 7 of 21 
+41
+[p.8]
+Applied Geomatics (2026) 18:41
+also vary, which demonstrates that the model was robustly 
+trained and performed effectively even under seasonal 
+changes.
+Refined image matching within targeted approximate tiles
+After establishing the approximate area for each UAV 
+image, the matching operation is re-executed on the selected 
+regions using higher-resolution images from Google Earth. 
+This two-step matching process enables faster initial match­
+ing at lower zoom levels, which have less detail, across the 
+entire area. Following the identification of the approximate 
+regions, the matching is then conducted with greater detail, 
+specifically focusing on these selected areas. Figure 7 illus­
+trates the results of the matching with reference images. 
+In this figure, column (a) shows the results of the initial 
+matching, which determines the approximate region of the 
+SAR image using lower-resolution reference images. Col­
+umn (b) shows the matching results using high-resolution 
+Google Earth images, specifically focusing on the deter­
+mined region from the previous stage. Column (c) presents 
+the raw keypoints extracted from both the UAVSAR and the 
+reference images. Table 3 summarizes the matching results, 
+including the tile index, number of matches, keypoints in 
+the UAVSAR images, keypoints in the reference images, 
+and the reference image date. At higher zoom levels, the 
+selected area for matching encompasses multiple acquisition 
+known as candidate tiles, were selected for further analy­
+sis.After determining the approximate UAV location, these 
+candidate areas underwent further matching with Google 
+Earth imagery at higher zoom levels. This step allowed for a 
+more precise identification by focusing on a greater number 
+of features within the refined region of interest.
+In Fig. 5, an example of UAVSAR image matching with 
+the 80 tiles of the study area is presented. This figure indi­
+cates the number of matches and the index for each tile. As 
+shown, the selected region exhibits a significantly higher 
+number of matches, which is identified as the approxi­
+mate location of the UAVSAR image. Additionally, Fig. 6 
+presents the best-matching tile among the 80 tiles for five 
+700 × 600 SAR images, indicating the approximate UAV 
+location within the study area. The graphs in Fig. 6 illustrate 
+that the number of matches for the selected tile shows a sig­
+nificant difference compared to other tiles. If this difference 
+is not substantial, multiple tiles will be considered as can­
+didate tiles for the next stage. As illustrated, Google Earth 
+images vary in acquisition dates across different regions and 
+zoom levels. At the lower zoom level used in Fig. 6 (level 
+16), each tile typically comprises multiple images captured 
+on different dates and during different seasons. To provide 
+a consistent temporal reference, the date corresponding to 
+the image with the largest spatial coverage within each tile 
+has been designated as the reference image date. As can 
+be observed, the seasons represented within different tiles 
+Fig. 3  UAVSAR flight path over the study area
+ 
+1 3
+41 
+Page 8 of 21
+[p.9]
+Applied Geomatics (2026) 18:41
+Fig. 5  UAVSAR image matching with Google Earth tiles, illustrating the number of matches and corresponding tile indices. The tile with the high­
+est number of inliers is identified as the UAV’s approximate location
+ 
+Fig. 4  Examples of reference image tiles and area segmentation
+ 
+1 3
+Page 9 of 21 
+41
+[p.10]
+Applied Geomatics (2026) 18:41
+points. The affine transformation was applied to warp the 
+UAVSAR image to align it with the reference image. The 
+results of the registration are illustrated in Fig. 8. The reg­
+istered image was overlaid on the reference image, show­
+casing a clear alignment of key features. Considering the 
+large extent of the study area, which includes urban, non-
+urban, and mountainous regions, examples from each tile 
+with different characteristics are presented in Fig. 8. The 
+results clearly indicate that the boundaries between these 
+areas are well-integrated, and the registration outcomes 
+demonstrate precise and successful alignment across the 
+two images.
+times and seasons, reflecting the availability of images for 
+the region. In some cases, older images were deliberately 
+chosen to evaluate the robustness and performance of the 
+proposed method under varying temporal conditions. For 
+each keypoint, 1024 descriptors have been extracted, which 
+encompass information related to color, texture, and the 
+structure of the points.
+Transformation and registration
+With a sufficient number of inliers (minimum of three), 
+the transformation matrix was estimated using the inlier 
+Fig. 6  Approximate UAV location derived from the best-matching tile among the reference image tiles
+ 
+1 3
+41 
+Page 10 of 21
+[p.11]
+Applied Geomatics (2026) 18:41
+parameters such as flight altitude, look angle, and swath 
+width, as detailed in the methodology section, the position of 
+the UAVSAR and its corresponding flight path were deter­
+mined by a line passing through both the center of the image 
+and the UAV’s position, with a distance of (f) between them, 
+as illustrated in Fig. 2.For this research, it was assumed that 
+each SAR image covers an area of 5 by 22 km. Therefore, 
+based on the total flight length, each flight line was divided 
+into multiple segments, with individual images processed 
+for registration, center point calculation, and UAV position 
+determination to predict the flight path. Figure 9 presents 
+the results of the predicted flight path using the proposed 
+method, compared to the actual flight path. In this figure, the 
+green path represents areas tracked using GPS, indicating 
+regions without image acquisition. The blue path denotes 
+areas where GPS data has been denied, with the correspond­
+ing ground truth illustrated in the figure. The red points 
+indicate estimated positions determined by the proposed 
+method for the UAV.
+UAVSAR geolocalization
+After registering the SAR images with georeferenced ref­
+erence images, the center points of each SAR image were 
+calculated within the coordinate system of the reference 
+system. Given the oblique imaging geometry of SAR, the 
+UAV’s flight path, or the SAR platform’s position, lies out­
+side the image coverage area. Based on the imaging geom­
+etry of the UAV employed in this study, as well as key flight 
+Table 3  Details of the matching information
+Tile Index Number of 
+Matches
+Keypoints 
+(UAVSAR 
+Image)
+Keypoints 
+(Reference 
+Image)
+Reference 
+image date
+27
+280
+2637
+2825
+2024/07/01
+45
+230
+2436
+2614
+2023/11/28
+46
+304
+2489
+2271
+2024/05/16
+52
+234
+2780
+2362
+2023/01/05
+58
+211
+2276
+2396
+2024/01/25
+Fig. 7  Multi-stage matching results for UAVSAR and reference 
+images. (a) Outcomes of the initial matching phase; (b) Results of the 
+subsequent matching phase utilizing high-resolution imagery, con­
+centrating on the specified region; (c) Raw keypoints extracted from 
+UAVSAR and reference images
+ 
+1 3
+Page 11 of 21 
+41
+[p.12]
+Applied Geomatics (2026) 18:41
+RMSE =
+√
+1
+N
+∑N
+i=1((xi −m′
+i )2 + (yi −n′
+i )2)
+
+(6)
+For the selected flight path, which includes 12 flight lines, 
+5 images were evaluated for each flight line. Each image 
+covered an area of 22 × 5 km. The evaluation results for each 
+flight line are presented in Table 4.
+Assessment of estimated UAV flight path accuracy
+In this study, it is assumed that when the UAV is in GPS-
+denied conditions, its position is determined using an 
+image-matching-based method. The autopilot system or 
+onboard navigation system then checks whether the UAV 
+is aligned with the pre-defined flight path. If a deviation is 
+detected, the system adjusts the course to bring the UAV 
+back to the correct path. Essentially, the flight path consists 
+of a series of predefined coordinates that the UAV must fol­
+low. After each new position is estimated via the proposed 
+method, the system calculates how the UAV should move 
+toward the next coordinate. If GPS disruption persists, the 
+UAV continues to capture new images and matches them 
+with reference images. This allows continuous updates of 
+the UAV’s position, ensuring the flight path is followed. 
+Accuracy assessments of results
+To evaluate the accuracy and performance of the proposed 
+method in UAVSAR geolocalization, a comprehensive 
+assessment has been conducted. This includes:
+	
+●
+Evaluation of matching and registration operations.
+	
+●
+Evaluation of the accuracy of the predicted flight path.
+Evaluation of registration results
+The Root Mean Square Error (RMSE) was used to evaluate 
+the registration accuracy, as expressed in Eq. 6. In this equa­
+tion, the elements are defined as follows:
+	
+●
+N: The total number of corresponding tie points.
+	
+●
+( xi, yi): The coordinates of the i-th point on the refer­
+ence image.
+	
+●
+( m′
+i ​, n′
+i ): The transformed coordinates of the iii-th 
+point on the sensed image after registration.
+	
+●
+RMSE: A measure of the average error between the 
+reference points and the registered points, providing in­
+sight into the accuracy of the registration process.
+Fig. 8  Sample titles for checkerboard registration results
+ 
+1 3
+41 
+Page 12 of 21
+[p.13]
+Applied Geomatics (2026) 18:41
+characteristics, and regional texture diversity, which signifi­
+cantly affect the accuracy of the matching process, leading 
+to variations in error throughout each flight path.
+Additionally, the RMSE values fluctuate within each 
+path, indicating that the UAV’s geolocalization accuracy 
+varies at different points. This variability is likely a result 
+of differences in terrain texture and features in the studied 
+area.The highest recorded error values were observed in 
+lines 6 and 9, with RMSE values of 3.80 m at point 8 and 
+3.71 m at point 29, respectively. In contrast, lower RMSE 
+values were noted in lines such as 3, 8, and 9, with values of 
+1.49 m at point 13 in line 3, 1.16 m at point 29 in line 8, and 
+point 4 in line 9. Additionally, the minimum RMSE value 
+recorded is 0.96 m, observed in line 5 at Point Index number 
+4.The improved accuracy of point matching in these cases 
+can be attributed to better clarity of reference features, more 
+favorable flight conditions, and a greater number of features 
+available for matching, leading to enhanced geolocalization 
+accuracy.
+To examine further details, the results of two flight lines 
+are presented in Figs. 12 and 13.These figures illustrate both 
+the ground truth flight path and the path determined by the 
+proposed method. To facilitate better visual comparison 
+of the paths, a scale of 1:1000 has been utilized, given the 
+extensive area covered. To analyze the discrepancy between 
+the actual location and the calculated location, the x and y 
+errors for each UAV trajectory point have been calculated 
+The UAV can repeatedly acquire more images to update its 
+position based on the proposed method and navigate toward 
+the next coordinate. To evaluate the performance and accu­
+racy of the proposed method, it is assumed that an image 
+is captured by the UAV every 5 km along its flight path, 
+although this distance can be adjusted to a shorter interval if 
+necessary. The flight path comprises 12 flight lines, with the 
+RMSE results for all lines presented in Table 5. Notably, the 
+highest error recorded is 2.86 m for line 12, while the low­
+est error is 1.83 m for line 3. Each flight line estimates the 
+UAV’s location based on the image coverage area, and each 
+line contains several UAV location points. Figures 10 and 11 
+illustrate the RMSE results for all UAV locations across the 
+12 flight lines, with the highest RMSE values highlighted in 
+red and the lowest in green.
+Based on Figs. 10 and 11, the differences in error values 
+across various flight paths are illustrated. These differences 
+are influenced by factors such as incidence angle, terrain 
+Table 4  Evaluation results of image registration in different flight paths
+Flight Line
+RMSE (pix)
+Flight Line
+RMSE (pix)
+Line 1
+1.62
+Line7
+1.68
+Line 2
+1.78
+Line 8
+1.28
+Line 3
+1.02
+Line 9
+2.06
+Line 4
+0.82
+Line 10
+1.75
+Line5
+1.55
+Line 11
+1.92
+Line6
+2.25
+Line 12
+2.36
+Fig. 9  Comparison of estimated 
+and Ground Truth UAV flight 
+paths
+ 
+1 3
+Page 13 of 21 
+41
+[p.14]
+Applied Geomatics (2026) 18:41
+this flight line, the maximum RMSE was observed at point 
+7, where the differences were − 1.97 in the y-direction and 
+− 0.7 in the x-direction. Figure 13 corresponds to flight line 
+5. For this flight line, the maximum displacement occurred 
+at point 6, with a y-direction difference of 2.59 and an 
+x-direction difference of −0.91.
+Based on the obtained results, it was observed that each 
+flight path exhibits different error values, with varying 
+ranges across the paths. Additionally, the maximum and 
+minimum errors for each flight path differ, which is attrib­
+uted to the coverage area of each image. Table 6 presents 
+the maximum and minimum error values and the number 
+separately. Figure 12 corresponds to flight line 1, displaying 
+a diverse range of RMSE values along the trajectory, which 
+correlates with the terrain features of the covered area. For 
+Table 5  Quantitative comparison of the proposed method’s perfor­
+mance in calculating different flight path lines
+Flight path
+RMSE(m)
+Flight path
+RMSE(m)
+Line 1
+2.00
+Line 7
+2.18
+Line 2
+2.26
+Line 8
+1.98
+Line 3
+1.83
+Line 9
+2.44
+Line 4
+2.15
+Line 10
+2.16
+Line 5
+1.92
+Line 11
+2.36
+Line 6
+2.61
+Line 12
+2.86
+Fig. 10  Error Graphs for each UAV Position in flight pathLines 1 − 6. The red points indicate the maximum error, while the green points represent 
+the minimum error for each line path
+ 
+1 3
+41 
+Page 14 of 21
+[p.15]
+Applied Geomatics (2026) 18:41
+Table 6 presents the maximum and minimum (RMSE) 
+values for various flight path lines highlighting the differ­
+ence between the UAV’s actual position (ground truth) and 
+its estimated position. For each flight path the number of 
+matches at points of maximum and minimum errors is docu­
+mented. The analysis of maximum and minimum RMSE val­
+ues shows that maximum errors range from 2.03 (Line 3) to 
+3.80 (Line 6) indicating that certain flight paths experienced 
+higher geolocalization errors. In contrast minimum RMSE 
+values ranging from 0.96 (Line 5) to 2.81 (Line 12) reflect 
+areas with improved positioning accuracy. The relationship 
+of matches for each pair of images for each flight path. The 
+proposed method demonstrated extremely high Recall@1 
+across almost all flight lines (90–100%) indicating that the 
+correct tile was consistently ranked first during the initial 
+coarse localization stage. Slightly reduced recall inLines 
+6 and 9 corresponds to low-texture or homogeneous agri­
+cultural regions, where multiple adjacent tiles may exhibit 
+similar matching responses. Nevertheless, even in these 
+challenging cases, the top-ranked tile remained among 
+the top candidates, enabling successful progression to the 
+refined matching stage.
+Fig. 11  Error Graphs for each UAV Position in flight pathLines 7–12. The red points indicate the maximum error, while the green points represent 
+the minimum error for each line path
+ 
+1 3
+Page 15 of 21 
+41
+[p.16]
+Applied Geomatics (2026) 18:41
+ 
+1 3
+41 
+Page 16 of 21
+[p.17]
+Applied Geomatics (2026) 18:41
+small deviations, which ultimately results in higher local­
+ization errors.
+In contrast, urban areas or textured regions contain 
+numerous edges, well-defined geometric structures, inten­
+sity variations, and abundant local details. These charac­
+teristics produce clearer and more distinctive keypoints, 
+leading to more stable and accurate matching performance. 
+Therefore, the difference in localization accuracy between 
+uniform and textured areas mainly arises from the funda­
+mental disparity in the amount of informative visual con­
+tent available for feature extraction and correspondence.
+Comparative evaluation
+To further validate the effectiveness of the proposed UAVSAR 
+geo-localization framework a comparative experiment was 
+conducted against several representative feature-matching 
+methods including RIFT D2-Net HIM-Net LoFTR and Hy-
+Net. Since the primary objective of this study is accurate UAV 
+trajectory recovery in GPS-denied conditions the comparison 
+focuses on a practical scenario using FlightLine 4 which con­
+tains multiple UAVSAR segments with diverse land-cover 
+characteristics. For each method the matching accuracy the 
+Recall@1 and the final trajectory error alongLine 4 were 
+computed. The results are summarized in Table 7.
+The comparison demonstrates that conventional cross-
+modal methods such as RIFT provide limited matching 
+accuracy (72.4%) and low Recall@1 (59.4%). Deep learn­
+ing–based models including D2-Net and HIM-Net improve 
+performance, while transformer-based architectures such as 
+LoFTR and Hy-Net achieve even higher matching accuracy 
+and tile-ranking reliability.However, the Proposed Method 
+substantially outperforms all baselines, achieving the high­
+est matching accuracy (94.8%), the best Recall@1 (97.0%), 
+and the lowest average RMSE (1.90 m).
+The proposed approach achieves 97% Recall@1 indicat­
+ing that in almost all UAVSAR segments within FlightLine 
+4 the correct tile was identified as the top-ranked candidate. 
+This demonstrates strong robustness to radiometric dis­
+crepancies and significant appearance variations between 
+SAR and optical imagery.Overall, these findings confirm 
+that the proposed cross-modality matching framework pro­
+vides significantly higher reliability and localization accu­
+racy than existing state-of-the-art methods, making it highly 
+suitable for real-time UAV navigation in GPS-denied envi­
+ronments. In addition, the high Recall@1 achieved by the 
+proposed method demonstrates that the approach is practi­
+cally reliable and operationally feasible. Beyond its accu­
+racy, our evaluation also shows that the matching time per 
+tile is highly efficient: on a system equipped with 64 GB 
+RAM and an NVIDIA GPU, the average matching runtime 
+between the number of matches and RMSE indicates that in 
+most flight paths the number of matches is higher at points 
+with lower error (MIN RMSE) than at points with higher 
+error (MAX RMSE). For instance in Line5 where the min­
+imum RMSE is 0.96 the number of matches at the point 
+with the lowest error is 471 the highest among all paths sug­
+gesting that increased matches improve positioning accu­
+racy. Line6 on the other hand shows the highest maximum 
+RMSE (3.80) and the lowest number of matches (118) at 
+the maximum error point indicating that fewer matches lead 
+to higher geolocalization error. Overall the RMSE values 
+across most paths for both maximum and minimum values 
+fall within a stable range of 1.16 to 2.91 indicating relatively 
+consistent performance of the estimation method. However 
+paths with fewer matches such asLine 6 exhibit higher error 
+rates. To investigate the reasons for the lower number of 
+matches, areas with elevated errors have been examined, as 
+shown in Fig. 14. These regions correspond to areas with 
+uniform imagery, characterized by a lack of distinctive fea­
+tures and minimal texture. In Fig. 14a, the matching results 
+are shown, while Fig. 14b presents the displacement error 
+values along the X and Y axes for the calculated location. 
+The image highlights three UAV positions in lines 6 and 9 
+where errors exceed 3.5 m. These higher error values occur 
+in areas with uniform characteristics. Despite the increased 
+error in these regions compared to others, the overall results 
+remain acceptable.
+Uniform regions inherently lack texture, distinctive pat­
+terns, and clear structural edges, which makes the extrac­
+tion of stable keypoints extremely challenging. The absence 
+of meaningful visual variation causes different parts of the 
+image to appear similar, preventing the network from iden­
+tifying sufficiently discriminative features. As shown in 
+Fig. 14, in this case a considerable portion of the image 
+is occupied by open water surfaces. Such areas are highly 
+homogeneous and contain no reliable structures or details 
+from which keypoints can be extracted. As a result, the 
+number of valid matches decreases substantially, and this 
+scarcity of usable features directly leads to increased local­
+ization errors in these regions. Moreover, in these areas 
+where most of the image is dominated by uniform water 
+surfaces, the matching process becomes concentrated only 
+within the limited portions of the scene that provide dis­
+tinguishable features. This uneven spatial distribution of 
+correspondences reduces the geometric stability of the esti­
+mated transformation, because the keypoints are clustered 
+in a small and restricted region instead of being spread 
+across the image. This imbalance weakens the robustness 
+of the geometric alignment and increases its sensitivity to 
+Fig. 12  Evaluation results of the flight path determined by the pro­
+posed method for flight line1/17,089
+1 3
+Page 17 of 21 
+41
+[p.18]
+Applied Geomatics (2026) 18:41
+ 
+1 3
+41 
+Page 18 of 21
+[p.19]
+Applied Geomatics (2026) 18:41
+is approximately 0.68 s per tile. This confirms that the pro­
+posed framework is not only accurate but also computation­
+ally suitable for real-world applications.
+Conclusion
+The rapid growth in the use of UAVs across scientific, envi­
+ronmental, and advanced technological applications has cre­
+ated a critical demand for accurate localization particularly 
+Fig. 13  Evaluation results of the flight path determined by the pro­
+posed method for flight line 5/17,089
+Table 7  Comparison of different Matching-Based methods for 
+UAVSAR localization (flight line 4)
+Method
+Matching 
+Accuracy (%)
+Recall@1 
+(%)
+Average 
+RMSE 
+(m)
+RIFT (Li et al. 2019)
+72.4
+59.4
+4.52
+D2-Net (Dusmanu 2019)
+81.6
+61.6
+3.48
+HIM-Net (Xu 2021)
+84.3
+64.3
+3.23
+LoFTR (Sun 2021)
+81.8
+68.8
+3.32
+Hy-Net (Tian et al. 2020)
+88.7
+82.7
+2.98
+Proposed
+94.8
+97.0
+1.90
+Fig. 14  Matching results and 
+displacement error analysis in 
+UAV Positions
+ 
+Flight path
+MAX(RMSE)
+MIN(RMSE)
+Number of 
+Matches at Maxi­
+mum Error Point
+Number of 
+Matches at Min­
+nimum Error 
+Point
+Recall@1
+Line1
+2.09
+1.90
+280
+345
+0.98
+Line2
+2.46
+1.16
+221
+397
+0.96
+Line3
+2.03
+1.45
+220
+285
+1.00
+Line4
+2.15
+1.80
+215
+304
+0.97
+Line5
+2.74
+0.96
+269
+471
+1.00
+Line6
+3.80
+2.06
+118
+325
+0.92
+Line 7
+2.27
+2.00
+230
+258
+0.97
+Line8
+2.46
+1.16
+270
+302
+0.99
+Line9
+3.71
+1.16
+61
+298
+0.90
+Line10
+2.50
+1.80
+289
+323
+0.98
+Line11
+2.86
+1.87
+198
+350
+0.96
+Line12
+2.91
+2.81
+220
+236
+0.95
+Table 6  Maximum and minimum 
+RMSE and corresponding num­
+ber of matches at error extremes 
+for each flight path line
+ 
+1 3
+Page 19 of 21 
+41
+[p.20]
+Applied Geomatics (2026) 18:41
+References
+Ahn S, Kang H and Jangmyung Lee. Aerial-Satellite Image Matching 
+Framework for UAV Absolute Visual Localization using Contras­
+tive Learning. In (2021) 21st International Conference On Con­
+trol, Automation And Systems (ICCAS), pp. 143–146. IEEE, 2021
+Avola D, Cinque L, Emam E, Fontana F, Foresti GL, Marini MR, 
+Mecca A, Pannone, D (2024) UAV Geo-localization for naviga­
+tion: A survey. IEEE Access, 12, 125332–125357. ​h​t​t​p​s​:​/​/​d​o​i​.​o​r​g​/​
+1​0​.​1​1​0​9​/​A​C​C​E​S​S​.​2​0​2​4​.​3​4​5​5​0​9​6
+Bansal M, Sawhney H, Cheng H, Daniilidis K (2011) Geo-localization 
+of street views with aerial image databases. In Proceedings of the 
+ACM International Conference on Multimedia, New York, NY, 
+USA, 28 November ; pp. 1125–1128
+Braga JoséRG, Haroldo FC, Velho G, Conte P, Doherty, Élcio H, 
+Shiguemori An image matching system for autonomous UAV 
+navigation based on neural network. In (2016) 14th Interna­
+tional Conference on Control, Automation, Robotics and Vision 
+(ICARCV), pp. 1–6. IEEE, 2016
+Castaldo F, Zamir A, Angst R, Palmieri F, Savarese S (2015) Seman­
+tic cross-view matching. In Proceedings of the Workshops of the 
+IEEE International Conference on Computer Vision, Santiago, 
+Chile, 7–13 December ; pp. 1044–1052
+Chaozhen LAN, Luw LUW, Yu YUJ, Xu XUQ (2021) Deep learning 
+algorithm for feature matching of cross modality remote sensing 
+images. Acta Geod Cartogr Sin 50(2):189
+Cui S, Ma A, Zhang L, Xu M, Zhong Y (2021) MAP-Net: SAR and 
+optical image matching via image-based convolutional network 
+with attention mechanism and spatial pyramid aggregated pool­
+ing. IEEE Trans Geosci Remote Sens 60:1–13
+Cui W, Liu J, Qiu H et al (2022) A novel Geo-Localization method 
+for UAV and satellite images based on image transformation and 
+vision transformer. Remote Sens 15:19. ​h​t​t​p​s​:​/​/​d​o​i​.​o​r​g​/​1​0​.​3​3​9​0​/​r​
+s​1​5​1​9​4​6​6​7
+Cui Z, Zhou P, Wang X, Zhang Z, Li Y, Li H, Zhang Y (2023) A novel 
+geo-localization method for UAV and satellite images using 
+cross-view consistent attention. Remote Sens 15(19):4667
+Dai M, Zhuang JHJ, Zheng E (2021) A transformer-based feature seg­
+mentation and region alignment method for UAV-view geo-local­
+ization. IEEE Trans Circuits Syst Video Technol 32(7):4376–4389
+Dusmanu M, Rocco I, Pajdla T, Pollefeys M, Sivic J, Torii A, Sattler T 
+(2019) D2-net: A trainable cnn for joint description and detection 
+of local features. In Proceedings of the ieee/cvf conference on 
+computer vision and pattern recognition (pp. 8092–8101)
+Erdelj M, Natalizio E (2016) UAV-assisted disaster management: 
+Applications and open issues. In 2016 international conference 
+on computing, networking and communications (ICNC), pp. 1–5. 
+IEEE
+He S, Li S, Jiang S, Jiang W (2022) HMSM-Net: hierarchical multi-
+scale matching network for disparity estimation of high-resolu­
+tion satellite stereo images. ISPRS J Photogramm Remote Sens 
+188:314–330
+Hou H, Xu Q, Lan C, Lu W, Zhang Y, Cui Z, Qin J (2020) UAV pose 
+estimation in GNSS-denied environment assisted by satellite 
+imagery deep learning features. IEEE Access 9:6358–6367
+Hou, Hou J, Zhang Y, Li S et al (2022). UAV Localization in Urban 
+Area Mobility Environment Based on Monocular ORB-SLAM3 
+and Optical Flow. Drones, 9(3), 171. ​h​t​t​p​s​:​/​/​d​o​i​.​o​r​g​/​1​0​.​3​3​9​0​/​d​r​o​
+n​e​s​9​0​3​0​1​7​1​M​D​P​I
+Khurshid M, Shahzad M, Khattak HA, Malik MI, Fraz MM (2024) 
+Vision-based 3-D localization of UAV using deep image matching. 
+IEEE J Sel Top Appl Earth Obs Remote Sens. 17:12020–12030.
+Li J, Hu Q, Ai M (2019) RIFT: Multi-modal image matching based 
+on radiation-variation insensitive feature transform. IEEE Trans 
+Image Process 29:3296–3310
+in GPS-denied environments where conventional position­
+ing systems face serious limitations due to signal loss or 
+interference.While most existing geolocation approaches 
+have focused on optical imagery, their vulnerability to light­
+ing and weather conditions limits their operational reliabil­
+ity. In contrast, the potential of UAVSAR-based localization 
+remains largely underexplored, despite SAR’s robustness in 
+complex visual environments.This study presents a novel 
+deep learning-driven framework for the autonomous geo­
+location of UAVSAR imagery through coarse-to-fine image 
+matching. The approach integrates cross-modality matching 
+between UAVSAR data and high-resolution optical imagery 
+from Google Earth and proceeds through three core phases: 
+initial localization, refined feature matching, and precise reg­
+istration via affine transformation. Experimental validation 
+was conducted using real UAVSAR flight data covering over 
+46,000 km² across 12 diverse flight paths in Texas. The results 
+demonstrated a strong localization accuracy with an average 
+RMSE of 2.23 m, with the best performance in urban areas 
+(1.83 m) and the worst in uniform agricultural zones (2.86 m). 
+Moreover, training and testing were performed on geographi­
+cally separate regions (California and Texas), underscoring 
+the framework’s generalizability across distinct terrains.
+Despite promising outcomes, current methods primarily 
+focus on either optical-based UAV guidance or SAR-based 
+techniques trained on synthetic data. The real-world vali­
+dation of SAR-based localization frameworks, as demon­
+strated in this study, reveals their operational feasibility and 
+robustness in heterogeneous conditions.
+Future research could explore hybrid onboard sensing 
+systems that combine both SAR and optical modalities. By 
+leveraging the complementary characteristics of each sen­
+sor, future deep learning models could perform multimodal 
+feature fusion to achieve more robust and adaptable geo­
+location especially in visually complex or degraded envi­
+ronments. This direction could further enhance autonomous 
+UAV navigation and bridge the gap between vision-based 
+and radar-based localization in GPS-denied scenarios.
+Author contributions  Rana Naanjam: Writing – review & editing, 
+Writing – original draft, Visualization, Validation, Software, Method­
+ology, Investigation, Formal analysis, Data curation, Conceptualiza­
+tion. Hamid Ebadi: Writing – review & editing, Conceptualization, Su­
+pervision, Formal analysis. Farshid Farnood Ahmadi: Writing – review 
+& editing, Conceptualization, Supervision, Formal analysis.
+Funding  This research received no funding.
+Data availability  Upon request, the corresponding author is willing to 
+share the datasets analyzed in this research.
+Declarations
+Competing interests  The authors declare no competing interests.
+1 3
+41 
+Page 20 of 21
+[p.21]
+Applied Geomatics (2026) 18:41
+Tian Y, Barroso Laguna A, Ng T, Balntas V, Mikolajczyk K (2020) 
+HyNet: Learning local descriptor with hybrid similarity measure 
+and triplet loss. Adv Neural Inf Process Syst 33:7401–7412
+Wang P, Liu Y, Liang X, Zhu D, Gong X, Ye Y, Huang B (2025) 
+CIRSM-Net: a cyclic registration network for SAR and optical 
+images. IEEE Trans Geosci Remote Sens. ​h​t​t​p​s​:​/​/​d​o​i​.​o​r​g​/​1​0​.​1​1​0​
+9​/​t​g​r​s​.​2​0​2​5​.​3​5​4​0​2​5​8
+Wang S, Quan D, Liang X, Ning M, Guo Y, Jiao L (2018) A deep learn­
+ing framework for remote sensing image registration. ISPRS J 
+Photogramm Remote Sens 145:148–164
+Wang Y, Zhang L, Li J (2023) Vision-based UAV detection under 
+adverse weather conditions. J Aerosp Inf Syst 20(3):123–135. ​h​t​t​
+p​s​:​/​/​d​o​i​.​o​r​g​/​1​0​.​2​5​1​4​/​1​.​I​0​1​0​9​8​2
+Wang Z, Shi D, Qiu C, Jin S, Li T, Shi Y, Qiao Z (2024) Sequence 
+matching for image-based uav-to-satellite geolocalization. IEEE 
+Trans Geosci Remote Sens 62:1-15
+Xu H, He M, Rao Z, Li W (2021), September Him-net: A new neural 
+network approach for sar and optical image template matching. In 
+2021 IEEE International Conference on Image Processing (ICIP) 
+(pp. 3827–3831). IEEE
+Yang C, Gong G, Liu C, Deng J, Ye Y (2025) RMSO-ConvNeXt: a 
+lightweight CNN network for robust SAR and optical image 
+matching under strong noise interference. IEEE Trans Geosci 
+Remote Sens. ​h​t​t​p​s​:​/​/​d​o​i​.​o​r​g​/​1​0​.​1​1​0​9​/​t​g​r​s​.​2​0​2​5​.​3​5​5​0​9​3​6
+Yi KM, Trulls E, Lepetit V, Fua P, Lift (2016) Learned invariant fea­
+ture transform. In European Conference on Computer Vision; 
+Springer: Berlin/Heidelberg, Germany, ; pp. 467–483
+Zeng L, Du Y, Lin H, Wang J, Yin J, Yang J (2020) A novel region-
+based image registration method for multisource remote sensing 
+images via CNN. IEEE J Sel Top Appl Earth Observ Remote Sens 
+14:1821–1831
+Zhang H, Lei L, Ni W, Tang T, Wu J, Xiang D, Kuang G (2020) Optical 
+and SAR image matching using pixelwise deep dense features. 
+IEEE Geosci Remote Sens Lett 19:1–5
+Zhang H, Ni W, Yan W, Xiang D, Wu J, Yang X, Bian H (2019) Reg­
+istration of multimodal remote sensing image based on deep fully 
+convolutional neural network. IEEE J Sel Top Appl Earth Obser­
+vations Remote Sens 12(8):3028–3042
+Zhao X, Li H, Wang P, Jing L (2021) An image registration method 
+using deep residual network features for multisource high-resolu­
+tion remote sensing images. Remote Sens 13(17):3425
+Zhuang J, Chen X, Dai M, Lan W, Cai Y, Zheng E (2022) A seman­
+tic guidance and Transformer-Based matching method for UAVs 
+and satellite images for UAV geo-localization. IEEE Access 
+10:34277–34287
+Publisher’s note  Springer Nature remains neutral with regard to juris­
+dictional claims in published maps and institutional affiliations.
+Springer Nature or its licensor (e.g. a society or other partner) holds 
+exclusive rights to this article under a publishing agreement with the 
+author(s) or other rightsholder(s); author self-archiving of the accepted 
+manuscript version of this article is solely governed by the terms of 
+such publishing agreement and applicable law.
+Liaghat A, Helfroush MS, Norouzi J, Danyali H, Guerrero JM (2025) 
+OS-CycleGAN: modified CycleGAN-based descriptors for opti­
+cal and SAR image matching. IEEE Trans Geosci Remote Sens. ​
+h​t​t​p​s​:​/​/​d​o​i​.​o​r​g​/​1​0​.​1​1​0​9​/​t​g​r​s​.​2​0​2​5​.​3​5​7​5​1​9​3
+Lin T, Belongie S, Hays J (2013) Cross-view image geolocalization. 
+In Proceedings of the IEEE Conference on Computer Vision 
+and Pattern Recognition, Portland, OR, USA, 23–28 June ; pp. 
+891–898
+Liu J, Gao J, Ji S, Zeng C, Zhang S, Gong J (2023) Deep learning 
+based multi-view stereo matching and 3D scene reconstruction 
+from oblique aerial images. ISPRS J Photogramm Remote Sens 
+204:42–60
+Liu P, Chen AY, Huang Y-N, Han J-Y, Lai J-S, Kang S-C, Wu T-H, 
+Wen M-C, Tsai M-H (2014) A review of rotorcraft unmanned 
+aerial vehicle (UAV) developments and applications in civil engi­
+neering. Smart Struct Syst 13(6):1065–1094
+Nassar A, Amer K, ElHakim R, ElHelw M (2018) A deep CNN-based 
+framework for enhanced aerial imagery registration with applica­
+tions to UAV geolocalization. In Proceedings of the IEEE confer­
+ence on computer vision and pattern recognition workshops, pp. 
+1513–1523
+Noh H, Araujo A, Sim J, Weyand T, Han B (2017) Large-scale image 
+retrieval with attentive deep local features. In Proceedings of 
+the IEEE International Conference on Computer Vision, Venice, 
+Italy, 22–29 October ; pp. 3456–3465
+Nonami K, Kendoul F, Suzuki S, Wang W, Nakazawa D (2010) Auton­
+omous flying robots: unmanned aerial vehicles and micro aerial 
+vehicles. Springer Science & Business Media
+Rublee E, Rabaud V, Konolige K, Bradski GORB (2011) An efficient 
+alternative to SIFT or SURF. In Proceedings of the IEEE 2011 
+International Conference on Computer Vision, Barcelona, Spain, 
+6–13 November ; pp. 2564–2571
+Senlet T, Elgammal A (2011) A framework for global vehicle local­
+ization using stereo images and satellite and road maps. In Pro­
+ceedings of the Workshops of the IEEE International Conference 
+on Computer Vision, Barcelona, Spain, 6–13 November ; pp. 
+2034–2041
+Sommervold O, Gazzea M, Arghandeh R (2023) A survey on SAR and 
+optical satellite image registration. Remote Sens 15(3):850
+Sui C, Li J, Lei J et al (2023) A review on deep learning for UAV 
+absolute visual Localization. Drones 8. 11622. ​h​t​t​p​s​:​/​/​d​o​i​.​o​r​g​/​1​0​
+.​3​3​9​0​/​d​r​o​n​e​s​8​1​1​0​6​2​2
+Sui H, Li J, Lei J, Liu C, Gou G (2022) A fast and robust heterologous 
+image matching method for visual geo-localization of low-alti­
+tude UAVs. Remote Sens 14(22):5879
+Sun J, Shen Z, Wang Y, Bao H, Zhou X (2021) LoFTR: Detector-free 
+local feature matching with transformers. In Proceedings of the 
+IEEE/CVF conference on computer vision and pattern recogni­
+tion (pp. 8922–8931)
+Szeliski R (2010) Computer Vision: Algorithms and Applications. 
+Springer Science & Business Media, Berlin/Heidelberg, Germany
+Tian X, Shao J, Ouyang D, Shen HT (2021) UAV-satellite view syn­
+thesis for cross-view geo-localization. IEEE Trans Circuits Syst 
+Video Technol 32(7):4804–4815
+1 3
+Page 21 of 21 
+41
+=== END ===

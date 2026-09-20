@@ -1,0 +1,1097 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1130.pdf
+sha256: 8DC499098CFB0D348E430D290585078A6658CD98BE9702C0F69456EBFE7C405D
+library: pymupdf (fitz) v1.28.2
+pages: 10
+=== BEGIN ===
+[p.1]
+Noname manuscript No.
+(will be inserted by the editor)
+Robust GNSS Denied Localization for UAV Using Particle Filter and
+Visual Odometry
+Rokas Jureviˇcius · Virginijus Marcinkeviˇcius · Justinas ˇSeibokas
+the date of receipt and acceptance should be inserted later
+Abstract Conventional autonomous Unmanned Air Vehi-
+cle (abbr. UAV) autopilot systems use Global Navigation
+Satellite System (abbr. GNSS) signal for navigation. How-
+ever, autopilot systems fail to navigate due to lost or jammed
+GNSS signal. To solve this problem, information from other
+sensors such as optical sensors are used. Monocular Simul-
+taneous Localization and Mapping algorithms have been de-
+veloped over the last few years and achieved state-of-the-
+art accuracy. Also, map matching localization approaches
+are used for UAV localization relatively to imagery from
+static maps such as Google Maps. Unfortunately, the accu-
+racy and robustness of these algorithms are very dependent
+on up-to-date maps. The purpose of this research is to im-
+prove the accuracy and robustness of map relative Particle
+Filter based localization using a downward-facing optical
+camera mounted on an autonomous aircraft. This research
+shows how image similarity to likelihood conversion func-
+tion impacts the results of Particle Filter localization algo-
+rithm. Two parametric image similarity to likelihood con-
+version functions (logistic and rectifying) are proposed. A
+dataset of simulated aerial imagery is used for experiments.
+The experiment results are shown, that the Particle Filter lo-
+calization algorithm using the logistic function was able to
+surpass the accuracy of state-of-the-art ORB-SLAM2 algo-
+R. Jureviˇcius
+Vilnius University Institute Of Data Science And Digital Technologies
+Akademijos str. 4, Vilnius LT-08663, Lithuania
+E-mail: rokas.jurevicius@mii.vu.lt
+V. Marcinkeviˇcius
+Vilnius University Institute Of Data Science And Digital Technologies
+Akademijos str. 4, Vilnius LT-08663, Lithuania
+E-mail: virginijus.marcinkeviˇcius@mii.vu.lt
+J. ˇSeibokas
+Vilnius University Faculty of Mathematics and Informatics
+Didlaukio g. 47, LT-08303 Vilnius
+E-mail: justinas.seibokas@mif.stud.vu.lt
+rithm by 2.6 times. The algorithm is shown to be able to
+navigate using up-to-date maps more accurately and with
+an average decrease of precision by 30% using out-of-date
+maps.
+Keywords Particle ﬁlter · Localization · Aerial Imagery ·
+SLAM · UAV
+1 INTRODUCTION
+Autopilot systems fail to navigate due to lost or jammed
+GNSS signal. This is an important issue in the military ﬁeld,
+where any kind of radio communications could be jammed
+and space missions where GNSS signal is not available. Ter-
+rain Contour Matching (abbr. TERCOM) system was devel-
+oped for cruise missile navigation before the GNSS system
+was widely available [1]. TERCOM navigation systems are
+still in use, but they are dependent on the latest height maps,
+which are not universally available. Digital Scene Mapping
+and Area Correlation (abbr. DSMAC) was an improved sys-
+tem with the same idea of TERCOM, but instead of heights,
+it uses aerial imagery obtained using optical camera sensor,
+but it is also very dependent on up-to-date maps [2]. DS-
+MAC systems are very sensitive to shadows, so the maps
+must be made at the same time of the day as the navigation
+is performed. DSMAC systems were proven to be useful and
+used for lunar module landing in the Apollo missions.
+Recent developments of Visual SLAM algorithms have achieved
+high precision localization in real-time. Visual SLAM al-
+gorithm developed in [3] was shown to achieve centimeter-
+level precision in an in-doors environment. ORB-SLAM2
+and LSD-SLAM achieved accurate results on TUM-RGBD
+and KITTI datasets [4] [5], however, these datasets provide
+forward-facing camera images only. SLAM techniques suf-
+fer from increasing localization error due to the lack of a
+arXiv:1910.12121v1  [cs.RO]  26 Oct 2019
+[p.2]
+global localization. It would be important to evaluate ORB-
+SLAM2 and LSD-SLAM localization accuracy using downward-
+facing camera images. Visual odometry algorithms are also
+proposed to solve this problem, although they achieved very
+high performance and precision, they also suffer from in-
+creasing error over long-distance ﬂights.
+A map matching localization approach is presented in [6],
+where a UAV is localized relatively to imagery from Google
+maps. During a test ﬂight, algorithms achieved root mean
+square error of around 6 meters; unfortunately, the authors
+do not provide absolute mean error, which could be used for
+an actual comparison against other methods. This paper ana-
+lyzes the effects of using different mathematical functions to
+convert image similarity to particle likelihood value. Image
+similarity is calculated using the Pearson Correlation Coef-
+ﬁcient [7] between map and an aerial image obtained from
+the UAV camera. Pearson Correlation Coefﬁcient provides
+an arbitrary similarity value that is proportional to image
+similarity in range of [−1;1], where one means that images
+are identical and -1 means that one image is completely anti-
+correlated. The similarity cannot be used to sample a Parti-
+cle set, which is the basic idea of the Particle Filtering algo-
+rithm. The similarity value must be recalculated to a proba-
+bility distribution, which can be sampled. The conversion is
+done in two steps: at ﬁrst image similarity value using like-
+lihood conversion function (see section 2.5) is converted to
+a positive value and secondly using normalization of these
+values is converted to probability mass (a discrete probabil-
+ity distribution). To calculate probability from image sim-
+ilarity, two parametric conversion functions are proposed,
+and their impact on accuracy and robustness is measured.
+Source code used in these experiments is open-sourced
+and is available at 1. Section 2 provides an overview of the
+Particle Filter localization algorithm, proposed conversion
+functions, and dataset that is used in the experiments. Sec-
+tion 3 describes research methodology and provides exper-
+imental results. Final section 5 summarizes conclusions of
+the research.
+2 Optical Terrain Relative Localization
+The main objective of this research is to calculate map rel-
+ative location of the UAV, using a downward-facing camera
+mounted on the aircraft body. Imagery from the camera is
+matched to an orthophoto map during the ﬂight, in case the
+GNSS is lost or unavailable. This section provides the back-
+ground of the Particle Filter localization algorithm, intro-
+duces the problem of converting image similarity to prob-
+ability, and proposes conversion functions to deal with the
+problem.
+1 https://github.com/jureviciusr/
+particle-match
+2.1 Particle Filter Localization
+Localization is achieved by sampling a set of particles us-
+ing their probability distribution. Particles are hypothesized
+UAV locations on the map and are assigned a likelihood
+value that is proportional to the likeliness of being the true
+location. Particles are iteratively re-sampled using sampling
+technique which adapts sampled particle count n depending
+on Kueller-Leiblach distance (abbr. KLD sampling):
+n = 1
+2ε Z2
+k−1,1−δ = k −1
+2ε
+(
+1−
+2
+9(k −1) +
+s
+2
+9(k −1)z1−δ
+)3
+,
+(1)
+where z1−δ is the upper 1 −δ quantile of the standard nor-
+mal N(0,1) distribution and ε is the upper bound of the dis-
+crete distribution [8]. The technique has shown good results
+against other sampling techniques on simulated ﬂight data
+it provides the same localization accuracy, but dynamic par-
+ticle count allows to decrease computational costs up to 1.7
+times [9]. The particles can be sampled only if the proba-
+bility distribution is known; the problem is how probability
+distribution could be calculated from image similarity. Par-
+ticle Filter uses a ﬁnite amount of particles; thus, a proba-
+bility mass function is going to be used as a discrete proba-
+bility distribution. Algorithm 1 shows the Particle Filter lo-
+calization. The initial particle set at time t S0 is generated
+around the starting point within 300 meters radius and initial
+likelihood is set to 1. During the ﬁrst iteration, all particles
+have an equal likelihood to be sampled. The bins used in
+the algorithm is implemented by dividing map coordinates
+into a 2-D grid of 5 meters. If a particle falls into a bin (a
+grid square), it is marked as taken. The number of bins is
+used in the Kueller-Leiblach distance calculation to adapt
+the number of particles according to their distribution on the
+map. Image similarity value is calculated using the Pearson
+Correlation Coefﬁcient value r between the image from the
+UAV and the map image corresponding to the particle lo-
+cation. Pearson Correlation Coefﬁcient is calculated using
+these equations:
+r =
+∑W
+x=0 ∑H
+y=0 I′(x,y)·T ′(x,y)
+q
+∑W
+x=0 ∑H
+y=0 I′(x,y)2 ·
+q
+∑W
+x=0 ∑H
+y=0 T ′(x,y)2
+,
+(2)
+I′(x,y) = I(x,y)−∑W
+x=0 ∑H
+y=0 I(x,y)
+W ·H
+,
+(3)
+T ′(x,y) = T(x,y)−∑W
+x=0 ∑H
+y=0 T(x,y)
+W ·H
+,
+(4)
+where
+– I is the gray scale image from the camera,
+– T is the gray scale image from the map according to a
+particle location,
+– x,y are pixel coordinates,
+[p.3]
+Algorithm 1 Proposed Particle Filter Localization Algorithm
+Inputs: Set of particles St−1 obtained from previous iteration, Latest camera image T, Conversion function parameter v (if applicable)
+Outputs: Proposed location < x′,y′,θ ′
+yaw > of the UAV in map coordinates
+function FILTERPARTICLES(St−1, T, v)
+H = 0,k = 1,St = /0,i = 0
+do
+P(i) ∼St−1
+▷Sample a particle from the particle set
+PropagateParticle(P(i))
+▷Propagate particle using planar motion model equations 6, 7, and 8
+I = ExtractMapImage(P(i))
+▷Extract map image corresponding to particle location
+r(i)
+t
+= CalcSimilarity(T,I)
+▷Calculate image similarity using NCC metric
+s(i)
+t
+= F(r(i)
+t ,v)
+▷Convert image similarity value using logistic conversions function
+H = H +s(i)
+t
+St = St ∪P(i)
+▷Insert particle into the particle set
+if P(i) falls into empty bin then
+bin = non-empty
+▷Mark bin as non-empty
+k = k +1
+▷Increase marked bin counter
+i = i+1
+▷Increase number of particles
+while i < 1
+2ε Z2
+k−1,1−δ
+▷Until K-L bound is reached
+n = i
+▷Save the number of particles
+x′ = 0,y′ = 0,θ ′
+yaw = 0
+for i = 1 .. n do
+b(i)
+t
+= s(i)
+t /H
+▷Calculate particle weight
+x′ = x′ +(b(i)
+t ∗x(i)
+t )
+▷Calculate weighted sum of particle coordinates
+y′ = y′ +(b(i)
+t ∗y(i)
+t )
+▷x(i)
+t ,y(i)
+t
+are ith particle’s coordinates in map
+θ ′
+yaw = θ ′
+yaw +(b(i)
+t ∗θ (i)
+t )
+▷Final pose heading angle θyaw
+return < x′,y′,θ ′
+yaw >
+– W,H are image dimensions, width and height accord-
+ingly.
+If the images are colored, they are converted to gray scale
+images. The correlation value r is converted to likelihood
+using one of the conversion functions F(x) described in sec-
+tion 2.5. Likelihood can be converted to probability using a
+normalization:
+b(i) =
+F(r(i))
+Σ n
+y=0F(r(y)),
+(5)
+where
+– r(i) is the correlation value of ith particle,
+– F(r(i)) is the likelihood of ith particle,
+– b(i) is the probability mass of ith particle,
+– n is the number of particles in the set.
+The calculated particle probability mass function can be
+used for sampling in Particle Filter. Sampled particles must
+be propagated given their motion since the last iteration. Vi-
+sual Odometry algorithm is used to calculate relative UAV
+movement over time and is added using a planar motion
+model. The Visual Odometry algorithm is described in detail
+in section 2.2. The particle location update can be calculated
+from the latest movement data using these equations [10]:
+x′ = x+α1 ˆδtrancos(θyaw +α3,
+(6)
+y′ = y+α2 ˆδtransin(θyaw +α3 ˆδrot),
+(7)
+θ ′
+yaw = θyaw +α3 ˆδrot,
+(8)
+where
+– x′, y′ and θ ′
+yaw are the posterior particle location
+– αn - measurement noise scale coefﬁcients, selected man-
+ually
+– ˆδtran - translational (movement speed) measurement with
+measurement noise εtran, obtained:
+ˆδtran = δtran +sample normal(εtran)
+– ˆδrot - rotational (heading angle) measurement with mea-
+surement noise εrot, obtained:
+ˆδrot = δrot +sample normal(εrot)
+– sample normal is Gaussian distribution sampling func-
+tion:
+sample normal(ε) = ε ·gaussian(0, 1
+3)
+Final aircraft pose estimation is calculated in a planar 2-
+dimensional coordinate frame (X,Y and ﬂight direction θyaw)
+of the map by calculating the weighted sum of the particle
+locations.
+2.2 Visual Odometry
+Visual odometry is the process of calculating aircraft (or
+robot) motion from the camera image stream. By measur-
+ing relative motion between two consecutive frames, it is
+possible to reduce the search space of the Particle Filter al-
+gorithm. The initial particle locations can be propagated us-
+ing movement measured by a visual odometry algorithm, in-
+stead of moving them randomly in the case if no odometry
+[p.4]
+is available. If the propagation step performs an ”educated
+guess” of the posterior particle locations, fewer particles are
+required; therefore the algorithm can perform faster.
+Monocular Semi-direct Visual Odometry (abbr. SVO) with
+a downward-facing camera is used to calculate aircraft mo-
+tion. SVO algorithm was selected due to more accurate po-
+sitioning compared to other algorithms and real-time execu-
+tion on embedded platforms[11]. The semi-direct approach
+used in this algorithm allows very fast execution — 55 frames
+per second on embedded computer hardware[11]. Figure 1
+shows the transformation, which is calculated from image
+sequences. The use of visual odometry reduces the search
+space of the Particle Filter algorithm.
+Fig. 1: Visual odometry calculates motion by aligning 3D
+world points pj in image sequence and calculate transfor-
+mation Tk,k−1 that causes the features to be reprojected from
+image patches un to u′
+n [11]
+2.3 ORB-SLAM2 Algorithm
+This paper evaluates the Particle Filter localization algorithm
+against ORB-SLAM2 algorithm, which achieves state-of-
+the-art results on TUM-RGBD and KITTI datasets [12]. The
+algorithm is available for stereo and mono images, but only
+mono version will be evaluated since dataset contains only
+monocular images. The concept of monocular ORB-SLAM2
+algorithm is based on ORB feature [13] extraction and match-
+ing. Extracted features are matched between two consecu-
+tive frames using RANSAC algorithm. The ORB features
+are tracked in every frame of the image sequence; the cam-
+era is localized by matching the features to the local map
+and minimizing the reprojection error by applying motion
+only bundle adjustment. The local map is constructed by the
+algorithm, and the camera is localized relatively to the local
+map. The output trajectory is scaled according to UAV ﬂight
+height, and it can be compared against the ground truth.
+(a) Rectangular trajectory over
+forest map
+(b) Rectangular trajectory over
+urban map
+(c) Circle trajectory over urban
+map
+(d) Straight line trajectory
+over forest map
+Fig. 2: Flight trajectory way points in UAV ground station.
+2.4 Aerial Imagery Dataset
+This paper presents a new dataset from simulated ﬂights in
+urban and forested environments using ortho photo maps.
+Aerial ortho photo imagery was retrieved from USGS web-
+site [14]. A map is used as ground view in Gazebo simulator
+environment, running PX4 autopilot software that navigates
+through the simulated environment and MAVLink message
+subscribing software, collecting aerial images at 50 frames
+per second. The PX4 autopilot software is run using soft-
+ware in the loop simulation. Images are recorded alongside
+with metadata containing aircraft attitude and ground truth
+location coordinates. Three simple trajectories - straight line,
+circle, and rectangle were planned at altitudes of 200 and
+300 meters over the forest and urban environments, total-
+ing in 12 simulated ﬂights. The dataset is published with
+open access online 2. Preview of planned rectangular, circu-
+lar, and straight-line trajectories are shown in ﬁgure 2. The
+ﬂight plans are also included in the dataset. QGroundCon-
+trol software was used to create ﬂight plans. 12 ﬂights are
+recorded and abbreviated using two characters and a num-
+ber, e.g., UR-200, where the ﬁrst character stands for envi-
+ronment (U for urban and F for forest), the second character
+stands for trajectory (R - rectangle, C - circle, L - straight
+line) and the number is the altitude of the ﬂight.
+2 https://doi.org/10.5281/zenodo.1211729
+[p.5]
+2.5 Image Similarity To Likelihood Conversion Functions
+This section describes F(x) used for image similarity to like-
+lihood conversion. The easiest approach to calculate likeli-
+hood is to convert negative image similarity values to pos-
+itive. The range of the Pearson Correlation Coefﬁcient is
+ﬁxed in the range of[-1; 1], the following formula can be
+used:
+F(x) = x+1
+2
+(9)
+Equation 9 provides high likelihoods at poor similarity
+values, e.g. if x = −0.1, then F(x) = 0.45. Fig. 3a shows the
+visual representation of such conversion. This means that
+particles with poor image-map similarity survives with high
+probability.
+Softmax is a popular function used to convert arbitrary out-
+put values to probability densities in neural networks and
+machine learning [15]. Softmax conversion function (see ﬁg-
+ure 3b) can be implemented by the following equation :
+F(x) = ex
+(10)
+Due to its wide use amongst machine learning applica-
+tions, it is going to be used as a baseline in the experimental
+sections of this paper.
+The main idea for the conversion function is to achieve ro-
+bust localization with as little particles as possible. It should
+assign low probabilities (non-zero) for the negative similar-
+ities and boost positive similarities to improve their surviv-
+ability during sampling. Two functions are proposed to deal
+with the conversion in the described fashion. The ﬁrst func-
+tion uses linear rectiﬁcation with a single parameter d de-
+scribing what likelihood value is assigned at x = 0 using
+positive parameter value and where the function starts rising
+on the X-axis using negative parameter values (see ﬁgure
+3c):
+F(x,d) =
+
+
+
+
+
+
+
+
+
+
+
+0,
+if d < 0 and x ≤|d|
+(1+|d|)(x−|d|)+d2,
+if d < 0 and x > |d|
+d(1+x),
+if d ≥0 and x ≤0
+x(1−d)+d,
+if d ≥0 and x > 0
+(11)
+The second function was developed from generalized lo-
+gistic function [16]:
+l(x) =
+A
+(1+δe−kx)
+1
+v
+(12)
+and by applying ﬁxed coefﬁcients: A = 1, δ = 1, k = 5, the
+logistic function becomes:
+L(x,v) =
+1
+(1+e−5x)
+1
+v
+(13)
+Parameter v is going to be used as a hyper-parameter to con-
+trol the shape of the curve. To achieve a curve in range of [0;
+1] at input range of [-1; 1], a division is added, so the ﬁnal
+conversion equation is:
+F(x,v) = L(x,v)
+L(1,v)
+(14)
+See ﬁgure 3d for the curves with different v values used
+in the research. This function has a more practical form with-
+out different if-cases. It also contains a single hyper-parameter,
+that is used to control the function curvature. Particle proba-
+bility values are calculated by normalizing F(X) using equa-
+tion 5. Each of these conversion functions is implemented,
+and their impact using different hyper-parameters on local-
+ization accuracy, speed, and robustness is analyzed.
+3 Experimental results
+3.1 Methodology
+The objective of the experiments is to measures the accu-
+racy and speed of the Particle Filter Localization algorithm
+using different conversion functions from section 2.5. Ex-
+periments are performed by simulating UAV ﬂights and pro-
+viding images from the dataset described in section 2.4 as
+input to the localization algorithm. A single combination of
+conversion function, a ﬂight scenario, and a map used for
+matching is run for ten times, and average results are pro-
+vided to account for randomness in the particle ﬁlter algo-
+rithm. Maps of different dates are used for matching to test
+whether the algorithm is able to cope with changes intro-
+duced due to the aging of the environment. Four maps are
+used for forest and urban environment which are created on
+2-year intervals. During each experimental ﬂights iteration,
+a measure of accuracy in meters and duration in particle
+evaluations are recorded. Rectifying function is used with
+parameter values: 0.2, 0.1, 0.0, -0.1, -0.2. Logistic function
+is used with 5 parameter values: 0.7, 0.4, 0.2, 0.1, and 0.05.
+Different metrics are used to evaluate accuracy, speed, and
+robustness:
+– Accuracy is measured by calculating Euclidean distance
+of dataset ground truth location and algorithm output lo-
+cation in map plane. To select which conversion func-
+tion gives the most accurate results, the ranking method
+is used. Average accuracies from each conversion func-
+tion ranked amongst each of the ﬂight scenarios, given
+the best - 1 point, 2 points for the second most accurate
+[p.6]
+(a) Linear conversion
+(b) Softmax conversion
+(c) Rectifying conversion
+(d) Logistic conversion
+Fig. 3: Conversion functions outputs.
+result and so on, ﬁnally, the function with least points
+will be chosen as the most accurate conversion function.
+– Speed is measured by the number of average evaluated
+particles during the single experimental ﬂight. Since the
+number of iterations in each simulated ﬂight is the same,
+average particle evaluations per iteration gives is pro-
+portionate to time of execution, eliminating stochastic
+changes introduced while measuring execution time and
+it is independent of system resources.
+– Robustness is evaluated by measuring the average accu-
+racy using maps that were created on a different date.
+USGS provides imagery of the same regions every two
+years starting from 2008 (for the regions chosen for this
+research). This way, we can measure how well the algo-
+rithm copes with changes introducing with each map.
+The results are also compared to the state-of-the-art ORB-
+SLAM2 algorithm. It compares localization error of the most
+accurate Particle Filter and conversion function combination
+from the ranking against the error of ORB-SLAM2 to see
+which provides the most accurate results.
+Table 1: Localization accuracy in meters using parametric
+logistic conversion function
+Scenario
+v = 0.7
+v = 0.4
+v = 0.2
+v = 0.1
+v = 0.05
+FL-200
+39.27
+37.41
+55.91
+225.41
+238.70
+FL-300
+26.74
+26.09
+27.66
+25.63
+160.18
+FR-200
+62.71
+52.73
+74.06
+62.36
+58.20
+FR-300
+64.34
+59.25
+31.83
+32.54
+58.48
+FC-200
+57.32
+68.53
+92.39
+102.86
+49.36
+FC-300
+95.63
+112.06
+126.93
+156.09
+140.20
+UL-200
+27.17
+27.64
+26.56
+25.46
+28.27
+UL-300
+27.27
+25.88
+25.95
+26.60
+27.57
+UR-200
+54.69
+42.43
+37.09
+66.53
+52.23
+UR-300
+50.00
+43.55
+41.27
+45.07
+55.10
+UC-200
+70.42
+56.57
+49.09
+48.38
+65.56
+UC-300
+73.71
+64.74
+54.29
+63.16
+67.49
+3.2 Accuracy
+This section provides localization accuracy results from ex-
+periments. Table 1 and table 2 shows average accuracy re-
+sults on each ﬂight scenario with logistic and rectifying con-
+version functions using different parameter values. Table 3
+shows the experimental results ranked by accuracy for each
+of the experimental results, by ranking from 1 (best) to 10
+[p.7]
+Table 2: Localization accuracy in meters using parametric
+rectifying conversion function
+Scenario
+d = 0.2
+d = 0.1
+d = 0.0
+d = -0.1
+d = -0.2
+FL-200
+39.97
+37.66
+50.79
+145.09
+233.22
+FL-300
+27.01
+25.74
+27.14
+56.05
+184.69
+FR-200
+59.64
+67.15
+72.57
+72.03
+79.35
+FR-300
+59.50
+51.41
+40.72
+29.18
+35.53
+FC-200
+58.26
+73.73
+78.47
+67.71
+26.03
+FC-300
+92.44
+116.12
+125.66
+142.34
+112.88
+UL-200
+29.81
+27.40
+26.67
+27.03
+26.61
+UL-300
+26.66
+26.34
+25.01
+25.60
+25.27
+UR-200
+58.50
+44.85
+36.39
+42.53
+49.48
+UR-300
+53.54
+42.82
+39.55
+39.92
+42.68
+UC-200
+78.07
+72.78
+49.43
+50.33
+48.05
+UC-300
+76.03
+67.38
+57.79
+56.38
+61.53
+Table 3: Conversion function ranking according to accuracy
+Function
+Parameter value
+Score
+Rank
+Rectifying
+0.2
+75
+8
+Rectifying
+0.1
+54
+2
+Rectifying
+0
+56
+3
+Rectifying
+-0.1
+69
+7
+Rectifying
+-0.2
+88
+10
+Logistic
+0.7
+82
+9
+Logistic
+0.4
+68
+6
+Logistic
+0.2
+52
+1
+Logistic
+0.1
+58
+4-5
+Logistic
+0.05
+58
+4-5
+(worst), the sum of the ranks is used to determine the most
+accurate (lowest value) conversion function, and it’s param-
+eter value. Table 4 shows the comparison of selected best
+conversion function with a parameter value (logistic with
+v = 0.2) to the baseline Softmax conversion function. The
+accuracy difference ∆accuracy is calculated by dividing the
+achieved mean localization accuracy δ of two functions, e.g.
+in case of Logistic / Linear:
+∆accuracy =
+δ linear −δ logistic
+δ logistic
+
+·100%.
+(15)
+The comparison results show that the best logistic function
+is 43% more accurate and also requires three times fewer
+iterations on average to achieve the result.
+3.3 Robustness
+By comparing average accuracies on different maps, we can
+evaluate the algorithms ability to localize with changes in
+the imagery. Figure 4 shows accuracies using different maps
+for localization. The ﬂight data was collected using 2008
+map, so with increasing date of map creation it incorpo-
+rates more changes. Data shows that using rectifying func-
+tion with parameter in range 0.0,...,0.2 and logistic conver-
+sion function with parameter in range 0.2,...0.7 provides
+similar accuracy with different maps, even with map dated
+in 2014 which is 6 years apart from the imagery used in the
+ﬂight. The accuracy also continues to increase with logistic
+function values 0.1 and 0.05 while using very recent maps,
+but the accuracy drops drastically with maps that were cre-
+ated later in time, so using these values would be provide
+beneﬁts only if the map is very recent and doesn’t have dras-
+tic changes.
+3.4 Comparison to ORB-SLAM2
+This section presents the comparison results of the best con-
+ﬁguration of the Particle Filter algorithm with state-of-the-
+art ORB-SLAM2 algorithm. Results of 4 ﬂight scenarios are
+compared since ORB-SLAM2 was not able to reconstruct
+other ﬂights and lost position tracking mid-ﬂight; incom-
+plete results are not included. This is most likely due to sud-
+den rotational movements during way-point changes in the
+trajectory. This might be resolved by increasing framerate
+of the video, but it was not performed during this research.
+Figures 5a to 5d shows ﬂight trajectories recovered by 3 al-
+gorithms - SVO (which is used internally by Particle Filter),
+proposed particle ﬁlter localization with logistic conversion
+function and parameter value of 0.2, and ORB-SLAM2. Ac-
+cording to results in table 5, ORB-SLAM2 provides similar
+results to SVO, while being a little bit more precise, mean-
+while, Particle Filter localization outperforms both SVO and
+ORB-SLAM2 with over 2.6 times higher precision in aver-
+age.
+4 Practical considerations
+This paper proposes a new Particle Filter localization algo-
+rithm based on KLD sampling and Pearson correlation coef-
+ﬁcient. Few image similarity to likelihood conversion func-
+tions are compared, and among those, the logistic function
+allows to achieve the most accurate results. In 10 ﬂight sce-
+narios out of 12 performed, the logistic function performs
+more accurately than trivial linear conversion. Additionally,
+since the logistic function decreases the survival chances of
+low likelihood particles, the adaptive KLD sampling reduces
+particle count efﬁciently, and the algorithm evaluates fewer
+particles, thus speeding up the execution around three times
+compared to linear conversion. The logistic function is not
+the best function to be used in all cases. If the maps are
+known to be quite different from the expected camera im-
+agery, it is recommended to use either rectifying function
+with parameter value in range 0.0,...,0.2 or logistic conver-
+sion function with parameter value in range 0.2,...,0.7. These
+conﬁgurations are not as accurate, but allows more particles
+with lower likelihoods to be sampled, increasing robustness
+of the algorithm to inaccuracies in maps. Logistic function
+[p.8]
+Table 4: Localization accuracy improvements when different functions against Softmax (eq. 10) and linear eq. (9) conversion
+functions.
+Accuracy improvement
+Speedup
+Scenario
+Softmax / Linear
+Logistic / Linear
+Logistic / Softmax
+Softmax / Linear
+Logistic / Linear
+Logistic / Softmax
+FL200
+7.79%
+15.59%
+7.24%
+1.06
+2.41
+2.26
+FL300
+6.47%
+32.40%
+24.35%
+1.07
+2.32
+2.17
+FR200
+14.77%
+10.18%
+-4.00%
+1.11
+3.23
+2.92
+FR300
+6.37%
+85.07%
+73.99%
+1.14
+3.36
+2.95
+FC200
+2.48%
+-40.14%
+-41.59%
+1.00
+2.66
+2.65
+FC300
+-2.58%
+-23.61%
+-21.58%
+0.99
+2.51
+2.53
+UL200
+12.10%
+65.12%
+47.30%
+1.14
+3.76
+3.31
+UL300
+12.37%
+48.47%
+32.12%
+1.12
+3.40
+3.03
+UR200
+22.90%
+224.89%
+164.34%
+1.14
+3.66
+3.21
+UR300
+6.49%
+98.27%
+86.19%
+1.10
+3.37
+3.07
+UC200
+0.81%
+95.25%
+93.67%
+1.01
+3.62
+3.58
+UC300
+2.79%
+63.48%
+59.04%
+1.02
+3.89
+3.83
+Average
+7.73%
+56.25%
+43.42%
+1.07
+3.18
+2.96
+(a) Accuracies using rectifying conversion function
+(b) Accuracies using logistic conversion function
+Fig. 4: Comparison of localization accuracy with different maps, map year axis depicts the date of map creation.
+Table 5: Localization accuracy comparison of ORB-SLAM2
+Accuracy, m
+Relative accuracy
+Scenario
+SVO
+PFL
+ORB2
+PFL/SVO
+ORB2/SVO
+PFL/ORB2
+FL-200
+48.36
+27.60
+49.56
+75.26%
+-2.43%
+79.61%
+FL-300
+45.00
+17.08
+58.55
+163.53%
+-23.14%
+242.88%
+UL-200
+130.95
+21.93
+118.48
+497.03%
+10.53%
+440.17%
+UL-300
+129.88
+21.06
+86.05
+516.84%
+50.94%
+308.67%
+Average
+313.16%
+8.97%
+267.83%
+with parameter value 0.2 is recommended for the general
+case, but parameter value can be decreased to 0.1 or 0.05 to
+increase accuracy if the maps are known to be up-to-date.
+5 Conclusions
+An application of Particle Filter localization was implemented
+with different image similarity to likelihood conversion func-
+tions. Accuracy, speed, and robustness of localization were
+measured using different conversion functions and differ-
+ent hyper-parameter values. Over a thousand experimental
+ﬂights were conducted on the Aerial Imagery dataset to eval-
+uate proposed conversion functions. From all the data col-
+lected, we can draw these conclusions:
+– Localization performed using Softmax function (eq. 10)
+compared with linear conversion function (eq. 9) shows
+that localization using Softmax function improved accu-
+racy error by 7%.
+[p.9]
+(a) Forest map, 200 meters altitude
+(b) Forest map, 300 meters altitude
+(c) Urban map, 200 meters altitude
+(d) Urban map, 200 meters altitude
+Fig. 5: Linear ﬂight trajectories recovered using SVO, ORB-SLAM2, and proposed Particle Filter algorithms. Circle symbol
+marks start location, triangle symbol marks end location of the ﬂight.
+– Localization using the proposed logistic function with
+a parameter value of 0.2 was shown to provide the best
+results by ranking localization accuracy from all the con-
+version functions results.
+– Particle Filter localization achieved 43% higher accu-
+racy using three times fewer computations than the base-
+line Softmax probability conversion function.
+– Localization using rectifying conversion function with
+parameter values 0.2, 0.1, and 0.0 and logistic conver-
+sion function with parameter values 0.7, 0.4, and 0.2 has
+shown similar localization accuracy using maps of dif-
+ferent dates, showing an ability to be robust to changes
+in the imagery. Other functions showed higher accuracy
+with similar maps and inaccurate results using other maps
+for image matching.
+The best conﬁguration of the Particle Filter algorithm was
+compared against state-of-the-art ORB-SLAM2 algorithm.
+The results show that ORB-SLAM2 provides 9% higher ac-
+curacy than the odometry algorithm SVO. Meanwhile, Par-
+ticle Filter using the proposed logistic function was able to
+achieve 2.6 times better accuracy than both ORB-SLAM2
+and SVO. However, the results were only provided for the
+straight line ﬂight trajectory, since ORB-SLAM2 was unable
+to complete whole trajectories on the other ﬂight scenarios,
+while Particle Filter localization completed all ﬂights.
+References
+1. J. P. Golden, “Terrain contour matching (tercom): a cruise missile
+guidance aid,” in Image processing for missile guidance, vol. 238.
+International Society for Optics and Photonics, 1980, pp. 10–19.
+2. F. Kendoul, “Survey of advances in guidance, navigation, and con-
+trol of unmanned rotorcraft systems,” Journal of Field Robotics,
+vol. 29, no. 2, pp. 315–378, 2012.
+3. S. Weiss, D. Scaramuzza, and R. Siegwart, “Monocular-slam–
+based navigation for autonomous micro helicopters in gps-denied
+[p.10]
+environments,” Journal of Field Robotics, vol. 28, no. 6, pp. 854–
+874, 2011.
+4. R. Mur-Artal, J. M. M. Montiel, and J. D. Tardos, “Orb-slam: a
+versatile and accurate monocular slam system,” IEEE Transac-
+tions on Robotics, vol. 31, no. 5, pp. 1147–1163, 2015.
+5. J. Engel, T. Sch¨ops, and D. Cremers, “Lsd-slam: Large-scale di-
+rect monocular slam,” in European Conference on Computer Vi-
+sion.
+Springer, 2014, pp. 834–849.
+6. M. Shan, F. Wang, F. Lin, Z. Gao, Y. Z. Tang, and B. M. Chen,
+“Google map aided visual navigation for uavs in gps-denied en-
+vironment,” in Robotics and Biomimetics (ROBIO), 2015 IEEE
+International Conference on.
+IEEE, 2015, pp. 114–119.
+7. K. Pearson, “Mathematical contributions to the theory of evolu-
+tion. iii. regression, heredity, and panmixia,” Philosophical Trans-
+actions of the Royal Society of London. Series A, containing pa-
+pers of a mathematical or physical character, vol. 187, pp. 253–
+318, 1896.
+8. D. Fox, “Kld-sampling: Adaptive particle ﬁlters,” in Advances in
+neural information processing systems, 2002, pp. 713–720.
+9. R. Jurevicius, V. Marcinkevicius, and V. Taujanskas, “Comparison
+of image similarity functions and sampling algorithms in vision-
+based particle ﬁlter for uav localization,” 2016.
+10. S. Thrun, W. Burgard, and D. Fox, Probabilistic robotics, 2005.
+11. C. Forster, M. Pizzoli, and D. Scaramuzza, “Svo: Fast semi-direct
+monocular visual odometry,” in Robotics and Automation (ICRA),
+2014 IEEE International Conference on.
+IEEE, 2014, pp. 15–22.
+12. R. Mur-Artal and J. D. Tard´os, “Orb-slam2: An open-source slam
+system for monocular, stereo, and rgb-d cameras,” IEEE Transac-
+tions on Robotics, vol. 33, no. 5, pp. 1255–1262, 2017.
+13. E. Rublee, V. Rabaud, K. Konolige, and G. Bradski, “Orb: An
+efﬁcient alternative to sift or surf,” in Computer Vision (ICCV),
+2011 IEEE international conference on.
+IEEE, 2011, pp. 2564–
+2571.
+14. NAIP
+Digital
+Ortho
+Photo
+Image.
+Salt
+Lake
+City,
+Utah: USDA-FSA-APFO Aerial Photography Field Ofﬁce,
+2009,2010,2012,2014.
+15. N. M. Nasrabadi, “Pattern recognition and machine learning,”
+Journal of electronic imaging, vol. 16, no. 4, p. 049901, 2007.
+16. F. Richards, “A ﬂexible growth function for empirical use,” Jour-
+nal of experimental Botany, vol. 10, no. 2, pp. 290–301, 1959.
+=== END ===

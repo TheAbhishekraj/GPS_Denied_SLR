@@ -1,0 +1,1641 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0489.pdf
+sha256: DA3CD2F445E4DA1FBB97F9585645D46A1A250A36F660A2EE2EA3A261EBD71DF9
+library: pymupdf (fitz) v1.28.2
+pages: 16
+=== BEGIN ===
+[p.1]
+IEEE TRANSACTIONS ON VEHICULAR TECHNOLOGY, VOL. 71, NO. 5, MAY 2022
+4825
+UAV Vision Aided INS/Odometer Integration for
+Land Vehicle Autonomous Navigation
+Jing Dong, Xingyu Ren
+, Songlai Han
+, and Shilin Luo
+Abstract—Autonomous navigation without external GNSS aid-
+ing is crucial for some kinds of land vehicle applications, such as
+military vehicles and unmanned vehicles navigation under GNSS
+denied environments. A typical solution for autonomous navigation
+can be achieved by integrating Inertial Navigation System (INS)
+and odometer, where the odometer can provide velocity aiding
+for INS. The INS/odometer integration approach can dramatically
+improve the navigation performances compared with the stan-
+daloneINSapproach,howeveritspositioningerrorisstillgradually
+accumulating with time because of lacking external position cor-
+rection. This paper proposes an approach to aid the INS/odometer
+integration by using vision positioning, where a UAV is used to
+carry the vision camera and helps to realize the positioning of
+the vehicle by image matching. The UAV vision positioning acts
+a role like GNSS and provides constant position correction for
+INS/odometer integration. A dual-rate Kalman ﬁlter is proposed
+and utilized to realize the data fusing of vision, INS and odometer.
+Simulation and ﬁled tests show that the proposed approach can
+dramaticallyimprovetheautonomousnavigationperformancesfor
+land vehicles.
+Index Terms—Autonomous Navigation, Data Fusion, Inertial
+Navigation, Image Matching, Land Vehicle.
+I. INTRODUCTION
+A
+UTONOMOUS navigation without external signals, es-
+pecially GNSS, aiding is becoming more and more im-
+portant for a lot of demanding navigation applications under
+challenging circumstances. For example, unmanned cars and
+their applications are developing very fast in recent years [1],
+[2]. The navigation requirements for unmanned cars are very
+demanding, considering the complex driving conditions and the
+reliability and safety requirements [3], [4]. The conventional
+and widely used stand-alone INS or INS/GNSS integration
+navigation schemes cannot guarantee the performances and
+functionality requirements for unmanned cars [5]. In another
+ﬁeld, military vehicles, such as missile launch vehicles and
+artillery geodesic vehicles, GNSS related navigation schemes
+Manuscript received February 3, 2021; revised May 26, 2021, September 12,
+2021, and December 20, 2021; accepted January 24, 2022. Date of publication
+February 16, 2022; date of current version May 20, 2022. This work was
+supported in part by the National Natural Science Foundation of China under
+Grants 61203199 and 61802423 and in part by the Natural Science Foundation
+of Hunan Province, China, under Grant 2020JJ5663. The review of this article
+was coordinated by Prof. Yao Ma. (Corresponding author: Songlai Han.)
+The authors are with the School of Aeronautics and Astronautics, Cen-
+tral South University, Changsha 410083, China (e-mail: dongjing1756@126.
+com; 1770299838@qq.com; songlai.han@csu.edu.cn; 739982778@qq.com).
+Digital Object Identiﬁer 10.1109/TVT.2022.3151729
+are generally refused because of their easily-spoofed and inter-
+fered characteristics [6]. Aiming at the aforementioned demand-
+ing navigation requirements, a novel autonomous navigation
+scheme will be discussed in following work.
+INSandodometerintegratednavigationsystemisatypicalau-
+tonomous navigation approach [7]–[10], which doesn’t rely on
+any external aiding. The divergence of the INS navigation can be
+effectively constrained by the odometer derived velocity. How-
+ever, the position errors and, as a result, the attitudes and heading
+errors will still grow slowly with time because of the absence of
+position correction for the INS/odometer integration [11], [12].
+For example, for navigation-grade INS/odometer integration,
+the typical positioning error is between 1%D to 0.1%D, where
+D is the travelling distance of the vehicle [13]–[15]. This means
+that the positioning error will exceed 10 to 100 meters for 10
+kilometers vehicle travelling, which is not acceptable for the
+aforementioned autonomous navigation applications.
+The integration of GNSS with INS can solve the above prob-
+lem. Literatures [16]–[18] uses the Extended Kalman Filter to
+integrate the INS with GNSS, and literatures [19]–[22] uses the
+Factor Graph Optimization to integrate the INS with GNSS. By
+introducing GNSS into the navigation system, the positioning
+error of the vehicles or robots can be restricted to a better scope.
+However, the introducing of GNSS will break the autonomous
+characteristics of the navigation system [23], [24]. Furthermore,
+the using of GNSS can be seriously affected by the GNSS denied
+environments. According to the denial characteristics, the GNSS
+denied environments can be classiﬁed into short-term signal
+denials, such as signal blocking and occasional interfering, and
+long-term denials, such as regional shutting down and regional
+interfering of GNSS signals which generally occur in military
+restraints or conﬂicts. For the shot-term signal denials of GNSS,
+such as the signal blocking because of bridge or tunnel, the
+GNSS performances can recover quickly. However, under long-
+term GNSS denial scenarios, such as regional shunting down of
+GNSS signal in border area because of conﬂicts, the GNSS will
+be completely unavailable for navigation applications.
+In recent years, simultaneous localization and mapping
+(SLAM) based land vehicle navigation has been extensively
+studied [25]–[27]. However, due to the drift problem of the
+track, SLAM also has accumulated errors like the INS/Odometer
+system. To solve the problem, closed-loop optimization is em-
+ployed by SLAM to correct the accumulated errors [25]. SLAM
+is a feasible solution for vehicle navigation in indoor scenarios
+where the closed-loop path is generally available. However, the
+closed-loop optimization cannot be properly used in land vehicle
+0018-9545 © 2022 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission.
+See https://www.ieee.org/publications/rights/index.html for more information.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+4826
+IEEE TRANSACTIONS ON VEHICULAR TECHNOLOGY, VOL. 71, NO. 5, MAY 2022
+navigation under open environments, where the closed-loop path
+assumption cannot be guaranteed.
+Most recently, cross-view matching methods based on deep
+learning are proposed [28]–[30], which can estimate the global
+position by matching the image of horizontal view (captured by
+the camera on the land vehicle) to the satellite image directly.
+Vehiclenavigationaidedbycross-viewmatchingis alsoreported
+in [31], however the results show that the position error of this
+method is high (over hundreds of meters) owing to the signiﬁcant
+parallax between the images.
+Geomagnetic matching is a positioning approach that utilizes
+the real-time measured magnetic ﬁeld and reference magnetic
+ﬁeld. It is an autonomous navigation approach, which can
+provide global positioning solution. However, the application
+of geomagnetic matching in positioning, especially in vehi-
+cle positioning, has the following problems. First of all, the
+reference geomagnetic ﬁeld [32], [33] used in matching has
+limitedaccuracy,whichﬁnallyresultsinlargepositioningerrors.
+Furthermore, the geomagnetic ﬁeld can be easily disturbed by
+artiﬁcial electromagnetic materials or even natural phenomenon,
+such as the Sun magnetic storm, which will results in the
+instability of the positioning accuracy [34].
+In this paper, we proposed an approach to solve the au-
+tonomous navigation problem of land vehicle under open envi-
+ronments. In this proposed approach, vision-based positioning
+technique is used to aid the INS/odometer integration by using
+a dual-rate Kalman ﬁlter. A UAV is used to carry the vision
+camera and helps to realize the positioning of the vehicle by
+image matching. The position obtained from UAV vision, INS,
+and the odometer velocity are integrated by using a dual-rate
+Kalman ﬁlter. By using this proposed navigation scheme, the
+autonomous navigation of the land vehicle can be continuously
+achieved without using the GNSS aiding.
+Compared with SLAM, the proposed method can achieve
+high precision global position under open environments without
+loop-path. In addition, the aerial image matching technique
+(employed in the proposed method) is much more precise and
+reliable (reported in the experimental part) than cross-view
+matching and geomagnetic matching.
+Our method is proposed for the vehicle navigation of critical
+missions in open environments. Such missions are so important
+thatmustbeaccomplishedeveniftheGPSislong-termlydenied.
+The main contribution of the proposed approach can be
+summarized as follows. (1) The accumulated position error
+of INS/Odometer is corrected by image matching rather than
+relying on GNSS or closed-loop optimization as SLAM does.
+Therefore, the proposed approach can provide continuous and
+reliable autonomous navigation information for land vehicle in
+open environment, even under the GNSS denied circumstances.
+(2) Considering the problems of low matching frequency and
+mismatching rate of image matching technique, Kalman ﬁlter is
+used to realize the integration of position from the UAV vision,
+the velocity from the odometer and navigation information from
+INS. (3) Considering the different update frequency, a dual-rate
+Kalman ﬁltering method is used to integrate the information
+of INS, vision and odometer to obtain a reliable and robust
+integrated navigation results.
+Fig. 1.
+Vehicle position estimation based on image matching.
+The remainder of this paper is organized as follows: The
+vehicle positioning method based on UAV vision is proposed
+in Section II. Section III introduces an optimal fusion algorithm
+integrating INS, Odometer and UAV vision. Section IV ana-
+lyzes the simulation results and the experimental test results are
+presented in Section V. Concluding remarks are presented in
+Section VI.
+II. VISION POSITIONING FOR LAND VEHICLE BASED ON
+IMAGE MATCHING
+The main idea of obtaining the land vehicle position by using
+UAV vision is shown in Fig. 1. The real-time image is captured
+by a UAV at the height about 200∼300 meters. The cover area of
+the real-time image must be large enough to include many stable
+landform features, so the matching result won’t be affected by
+the environment changes in short-term, or small disguised land
+objects. The vehicle must be contained in the real-time image.
+The position of the vehicle can be calculated by registering the
+real-time image with the referenced image with coordinates.
+A. Fast Multi-Sensor Image Matching Based on CFOG
+Since the referenced image is an optical satellite image, while
+the real-time image is capture by a visible light camera (in
+daylight) or an infrared camera (in night), the image Matching
+method must be able to handle the multi-sensor image matching
+problem. In addition, due to the real-time processing demand
+and the limited computing resource on the UAV platform, the
+image Matching method must be highly efﬁcient. Therefore, we
+developed the image Matching method based on the channel
+features of orientated gradients (CFOG) descriptors [35], which
+is designed for multi-sensor image matching and it can be
+accelerated with fast Fourier transform (FFT).
+Histogram of oriented gradient (HOG) is a well-known de-
+scriptor which captures the structure feature of image based
+on local gradient and orientation. HOG can adapt to nonlinear
+intensity variations between images and it can be successfully
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+DONG et al.: UAV VISION AIDED INS/ODOMETER INTEGRATION FOR LAND VEHICLE AUTONOMOUS NAVIGATION
+4827
+Fig. 2.
+Example of gradient reversal.
+applied to multimodal matching [36], [37]. CFOG is an exten-
+sion of the HOG descriptor, which out performs HOG in both
+matching performance and computational efﬁciency. Compared
+with HOG, three improvements are made in CFOG.
+1) A 3-D Gaussian kernel ﬁlter is developed for smoothing
+the descriptor in X- and Y-directions and between the ori-
+entation channels (each channel contains the orientation
+calculated form different scale). This process can reduce
+the inﬂuence of orientation distortions caused by noise
+distortion between images.
+2) Gradients with direction in [180◦, 360◦) are transferto
+[0◦, 180◦) to address the gradient reversal caused by inten-
+sityinversionbetweenmultimodalimages.Fig.2showsan
+exampleofgradientreversal.Thearrowsshowthegradient
+orientation from the brighter areas to the darker areas.
+3) The searching process (which is the main time-consuming
+part of template matching) is performed in frequency do-
+main with accelerate technique based on FFT. Therefore,
+the efﬁciency is signiﬁcantly improvement.
+The method originally proposed in [35] is based on feature
+point area matching. The CFOG descriptor is extracted from
+the small area around the feature point. This method is a ﬁne
+image registration approach which assumes the two images are
+approximately matched. Therefore, this method can’t match two
+images with large deviation.
+In our application, the deviation between the real-time image
+and the referenced image could be very large because of the
+accumulated position error. In this case, the real-time image
+must be searched in a very large area in the reference image
+for matching the right position. Therefore, we re-designed the
+CFOG image registration method for matching image with large
+deviation. Fig. 3 shows the ﬂow chart of the re-designed image
+method.
+The real-time image is corrected according to the altitude
+and pose information of UAV. After the correction, the real-
+time image is warped to an ortho-image which has the same
+orientation and ground resolution with the referenced image.
+The searching area is selected from the reference image
+according to the range of position error. Since there is mainly
+translation deviation between the corrected real-time image and
+the referenced image, a template matching with translation
+searching is employed for matching the position. The CFOG
+descriptor is extracted for each pixel of the real-time image and
+each pixel of the searching area of the reference image. Then,
+Fig. 3.
+Matching the real-time image with the reference image.
+sum of squared differences(SSD) is employed to compare the
+template with each candidate window in the search area, and
+the searching process is accelerated with FFT. After the fast
+template matching, the most translation deviation is removed,
+therefore we can employ the ﬁne registration method based on
+CFOG [35] to calculate the ﬁnal matching results.
+B. Vehicle Location in Real-Time Image
+To calculate the global position of the vehicle, we must locate
+the vehicle in the real-time image ﬁrst, as shown in Fig. 1. The
+template and the features of the speciﬁc vehicle can be prepared
+beforethelocationtask.naddition,uniquearrangementofmarks
+or lights can be placed on the top of the vehicle if there are
+multiplecarswithidenticalorsimilarphysicalappearance.Since
+the size of the vehicle and the altitude and the pose of the UAV
+are known, we can generate a template of this vehicle with the
+same resolution and the same direction with the vehicle in the
+real-time image. Therefore, this location task can be completed
+with a straightforward template matching processing.
+For reliable locating the vehicle, noticeable feature marks
+are added on the upside surface of the vehicle in daylight. In
+case of night, infrared mark lamps are added in the upside
+surface of the of the vehicle. Two templates are prepared, one
+is cut from the image which is captured by the visible light
+camera, and one is cut from the image which is captured by
+the infrared light camera. Since the template and the real-time
+image are captured in different time, there may be light change
+or gain variation between them. Therefore, we employ the NCC
+similarity measurement [38] to search the vehicle template in
+the real-time image. NCC is a relabel similarity measurement
+in case of light change or gain variation because it’s invariant to
+linear gray change [39]. The ﬂow chart of the vehicle location
+in real-time image is given in Fig. 4.
+III. UAV VISION POSITIONING AIDED INS/ODOMETER
+INTEGRATED NAVIGATION
+A. Integration Scheme
+The schematic diagram of the proposed UAV aided
+INS/Odometer data fusion mechanism is shown in Fig. 5. The
+INS, odometer system and UAV vision positioning system input
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+4828
+IEEE TRANSACTIONS ON VEHICULAR TECHNOLOGY, VOL. 71, NO. 5, MAY 2022
+Fig. 4.
+Vehicle location in real-time image.
+Fig. 5.
+UAV Vision Positioning Aided INS/Odometer Integration Schematics.
+different navigation information into the data fusion mechanism.
+The data fusion mechanism estimates the navigation errors and
+returns the estimated errors back to the INS and odometer sys-
+tem. At the same time, the integrated positioning information is
+input into the UAV vision positioning system as image matching
+aiding information.
+It should be noted that the odometer velocity and the UAV
+positioning information are both used as the references of the
+data fusion mechanism. However, the data rates of the odometer
+velocity and the UAV positioning information are quite different
+because of their different working mechanisms. The data rate of
+the odometer velocity is strictly 400Hz in our data processing
+realization, and the data rate of the UAV positioning is quite
+slow and determined by the successful image matching period
+which is irregular and generally takes several seconds. It can be
+found from the above analysis that the two reference sources
+for the data fusion are unsynchronized and have quite different
+date rates. So, the common EKF is difﬁcult to integrate the
+information. Thus, in this paper, a new ﬁlter structure, dual-rate
+Kalman Filter, is used to integrate data described above. Fig. 6
+illustrates the dual-rate Kalman Filtering scheme.
+Filter A in Fig. 6 is used to integrate the INS and odometer
+data. Measurement from the odometer could be converted into
+the velocity of the vehicle by using the reference attitude cal-
+culated by the INS. The calculated odometer velocity is used
+as reference velocity of Filter A and is compared with the
+INS velocity for obtaining the observation of the Filter A. This
+observation is used to estimate the errors of the INS, the drifts
+of the inertial sensors and the error parameters of the odometer,
+Fig. 6.
+Kalman Filtering Scheme for UAV Vision Positioning Aided
+INS/Odometer Integration.
+which are then returned to the INS and odometer system to
+correct the errors.
+Filter B in Fig. 6 is used to integrate the INS and UAV vision
+positioning information. The UAV positioning information for
+the vehicle is used as reference position of Filter B and is
+compared with the INS position for obtaining the observation of
+the Filter B. This observation is used to estimate and correct
+the position errors of the INS. It should be noted that the
+UAV vision positioning technique uses the position from the
+integrated navigation as a constraint for image searching and
+matching, which can dramatically reduce the image searching
+time burden.
+To implement the Kalman Filtering shown in Fig. 6, the
+system equation and the measurement equation should be for-
+mulated as follows [40], [41]:
+˙X = FX + U
+(1)
+Z = HX + W
+(2)
+Equation (1) is the system equation describing changing rule
+of the system state variables X, whereUis the process noise
+vector, and F is the system matrix. Equation (2) is the measure-
+ment equation describing relation between observation variable
+Z and state variable X, where W is the measurement noise
+vector and H is the measurement matrix. The main work of the
+remaining part of the section is to formulate the system equation
+and measurement equation discussed above.
+B. System Error Dynamics for Integration
+The system equation of Kalman Filtering Scheme shown in
+Fig. 6 is based on the INS error equations. The psi-angle error
+equations of INS are as follows [42]:
+⎧
+⎨
+⎩
+δ˙rn = δvn −ωn
+en × δrn
+δ ˙vn = −(ωn
+in + ωn
+ie) × δvn −ψn × f n + Cn
+b∇b
+˙ψn = −ωn
+in × ψn + Cn
+bεb
+(3)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+DONG et al.: UAV VISION AIDED INS/ODOMETER INTEGRATION FOR LAND VEHICLE AUTONOMOUS NAVIGATION
+4829
+In the above equations, the symbols at the superscript or
+subscript denote coordinate frames. The names of the coordi-
+nate frames are listed as follows and the detailed deﬁnitions
+can be found in the literature [42]. Symbols i, e, n, b represent
+inertial frame, earth frame, navigation frame, and body frame,
+respectively. Especially, the angular rate vector, such as ωn
+in with
+the subscript in, represents the rotation angular rate of n frame
+with respect to i frame.
+In (3), δrn, δvn, ψnrepresent position error vector, velocity
+error vector, and attitude error vector projected in n frame, re-
+spectively. And speciﬁc force measured by accelerator projected
+in n frame is denoted as f n. The angular rate vector in (3)
+are expressed asωc
+ab, which denotes the angular rate of b frame
+with respect to a frame projected in c frame. For example, ωn
+in
+represents the angular rate of nframe with respect to iframe
+projected in n frame.∇b, εbare the accelerometer bias vector
+and the gyro bias vector projected in the body frame. The
+transformation matrix from bframe to nframe is deﬁned as Cn
+b .
+The accelerometer bias vector∇b and the gyro bias vector
+εbcould be extended as the state variable of the Kalman Filter.
+Considering that ∇b, εb are approximately constant, so their
+differentials could be showed as:
+ ˙∇b = 0
+˙εb = 0
+(4)
+Insert (4) into (3), the error equation of INS can be expressed
+as follows:
+⎧
+⎪
+⎪
+⎪
+⎪
+⎨
+⎪
+⎪
+⎪
+⎪
+⎩
+δ˙rn = δvn −ωn
+en × δrn
+δ ˙vn = −(ωn
+in + ωn
+ie) × δvn −ψn × f n + Cn
+b∇b
+˙ψn = −ωn
+in × ψn + Cn
+bεb
+˙∇b = 0
+˙εb = 0
+(5)
+δKD, δαH, δαP are used to represent the scale factor error, the
+heading installation error and the pitch installation error of the
+odometer, which will be discussed in detail in Part C, Section III.
+Then, deﬁne vector δd as follows.
+δd = [δKD, δαH, δαP ]T
+(6)
+Similar to the accelerometer bias vector and the gyro bias vec-
+tor, the differentials of the odometer’s error could be expressed
+as follows:
+δ ˙d = 0
+(7)
+Combining (7) and (3), the error equations of the INS could
+be extended as follows.
+⎧
+⎪
+⎪
+⎪
+⎪
+⎪
+⎪
+⎨
+⎪
+⎪
+⎪
+⎪
+⎪
+⎪
+⎩
+δ˙rn = δvn −ωn
+en × δrn
+δ ˙vn = −(ωn
+in + ωn
+ie) × δvn −ψn × f n + Cn
+b∇b
+˙ψn = −ωn
+in × ψn + Cn
+bεb
+˙∇b = 0
+˙εb = 0
+δ ˙d = 0
+(8)
+where the position error, velocity error, attitude error, the ac-
+celerometer bias, the gyro bias and the odometer errors are all
+included. The driving noise vectors of above error equations
+can be deﬁned as ur, uv, uψ, u∇, uε, ud, which are the process
+noise vectors of the error equation. Then, equation (8) can be
+supplement as:
+⎧
+⎪
+⎪
+⎪
+⎪
+⎪
+⎪
+⎨
+⎪
+⎪
+⎪
+⎪
+⎪
+⎪
+⎩
+δ˙rn = δvn −ωn
+en × δrn + ur
+δ ˙vn = −(ωn
+in + ωn
+ie) × δvn −ψn × f n + Cn
+b∇b + uv
+˙ψn = −ωn
+in × ψn + Cn
+bεb + uψ
+˙∇b = u∇
+˙εb = uε
+δ ˙d = ud
+(9)
+Based on equations (1) and (9), system state vectors X and
+the process noise vectors U can be deﬁned as:
+X =
+
+δrn δvn ψn ∇n εn δd
+T
+(10)
+U =
+
+ur uv uψ u∇uε ud
+T
+(11)
+And system matrix could be written as:
+F =
+⎡
+⎢⎢⎢⎢⎢⎢⎣
+F11 F12
+0
+0
+0 0
+0
+F22 F23 F24
+0 0
+0
+0 F33
+0 F35 0
+0
+0
+0
+0
+0 0
+0
+0
+0
+0
+0 0
+0
+0
+0
+0
+0 0
+⎤
+⎥⎥⎥⎥⎥⎥⎦
+(12)
+The non-zero matrix Fijin (12) could be denoted as follows,
+where the subscript N/E/D represent the components projected
+in navigation frame n.
+F11 =
+⎡
+⎣
+0
+ωn
+enD −ωn
+enE
+−ωn
+enD
+0
+ωn
+enN
+ωn
+enE
+−ωn
+enN
+0
+⎤
+⎦
+(13)
+F12 =
+⎡
+⎣
+1 0 0
+0 1 0
+0 0 1
+⎤
+⎦
+(14)
+F22 =
+⎡
+⎣
+0
+(2ωn
+ieD + ωn
+enD)
+−(2ωn
+ieE + ωn
+enE)
+−(2ωn
+ieD + ωn
+enD)
+0
+(2ωn
+ieN + ωn
+enN)
+(2ωn
+ieE + ωn
+enE)
+−(2ωn
+ieN + ωn
+enN)
+0
+⎤
+⎦
+(15)
+F23 =
+⎡
+⎣
+0
+−f n
+D
+f n
+E
+f n
+D
+0
+−f n
+N
+−f n
+E f n
+N
+0
+⎤
+⎦
+(16)
+F24 = Cn
+b
+(17)
+F33 =
+⎡
+⎣
+0
+ωn
+inD −ωn
+inE
+−ωn
+inD
+0
+ωn
+inN
+ωn
+inE
+−ωn
+inN
+0
+⎤
+⎦
+(18)
+F35 = −Cn
+b
+(19)
+Equations (10), (11), and (12) deﬁne the system equation of
+Kalman Filter given in equation (1), where the system state
+vectors X is deﬁned in equation (10), the process noise vectors
+U is deﬁned in equation (11) and the system matrixF is deﬁned
+in equation (12).
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+4830
+IEEE TRANSACTIONS ON VEHICULAR TECHNOLOGY, VOL. 71, NO. 5, MAY 2022
+C. Measurement Model Based on Odometer Observations
+In this section, the measurement equation of Filter A will be
+derived from the measurement equation of the odometer. Herein,
+symbolmisusedtorepresentthemeasurementcoordinateframe
+of the odometer, which will be coincident with b frame in ideal
+situation. However, because of installation errors between the
+odometer and INS, the m frame and b frame are different with
+roll,pitch,andheadinginstallationangles,whicharerepresented
+as αR, αP , αH respectively.
+According to the previous deﬁnition, the land vehicle’s veloc-
+ity in m frame can be written as follows:
+Vm
+D =
+⎡
+⎣
+vD
+0
+0
+⎤
+⎦=
+⎡
+⎣
+KDPD
+0
+0
+⎤
+⎦
+(20)
+where Vm
+D is the velocity vector from odometer projected in m
+frame, vD is the scalar velocity from odometer, KD is the scale
+factor of the odometer, and PD is the original pulse output of
+the odometer.
+In b frame, the odometer velocity vector could be expressed
+as:
+Vb
+D= Cb
+mVm
+D
+(21)
+whereVb
+D is the velocity vector from odometer projected in b
+frame, and Cb
+m denotes the transformation matrix from m frame
+to b frame, which can be expressed according to the roll, pitch,
+and heading installation angles αR, αP , αH as follows:
+Cb
+m =
+⎡
+⎣
+cos αP cos αH −cos αR sin αH + sin αR sin αP cos αH
+cos αP sin αH
+cos αR cos αH + sin αR sin αP sin αH
+−sin αP
+sin αR cos αP
+sin αR sin αH + cos αR sin αP cos αH
+−sin αR cos αH + cos αR sin αP sin αH
+cos αR cos αP
+⎤
+⎦
+(22)
+Insert (20) and (22) into (21), the following equivalent form
+can be obtained:
+Vb
+D =
+⎡
+⎣
+cos αP cos αH
+cos αP sin αH
+−sin αP
+⎤
+⎦KDPD
+(23)
+From equation (23), it can be noted that the velocity vector
+Vb
+D is relevant to the installation angles αP , αH and will not be
+affected by the roll installation angle αR. The installation angles
+αP , αH and the scale factor KD could be calibrated through the
+vehicle’s driving for certain distance with known path.
+Deﬁne symbols δαP , δαH, δKDare the residual errors of
+αP , αH, KD after calibration. By taking perturbation analysis
+[42] to equation (23), the error vector of Vb
+D could be expressed
+as follows.
+δVb
+D =
+⎡
+⎣
+δKD
+δαH
+−δαP
+⎤
+⎦KDPD
+(24)
+Based on equation (24), the measurement model of the Filter
+A in Fig. 6 will be derived in the following part.
+Deﬁne symbol Z as the observation of Filter A as follows.
+Z = ˆVn−ˆV
+n
+D
+(25)
+where ˆVn denotes the INS measured vehicle velocity projected
+in n frame with error δVn, and ˆVn
+Ddenotes the odometer mea-
+sured vehicle velocity projected in n frame with error δVn
+D. So
+the following relationship holds.
+ˆVn = Vn+δVn
+(26)
+ˆVn
+D= Vn
+D+δVn
+D
+(27)
+Both Vn and Vn
+Drepresent the real velocity of the vehicle
+without errors, so they are equal.
+Vn= Vn
+D
+(28)
+Insert equations (26), (27), and (28) into equation (25), the
+following equation can be obtained:
+Z = δVn −δVn
+D
+(29)
+where δVn is the INS velocity error deﬁned in equation (3), and
+δVn
+D can be derived as follows.
+According to the above discussion, Vn
+D is the odometer
+measured vehicle velocity projected in n frame, and it has the
+following relationship with the previously deﬁned Vb
+D.
+Vn
+D= Cn
+bVb
+D
+(30)
+By taking perturbation analysis [42] to equation (30), the
+velocity error vector δVn
+D could be expressed as follows.
+δVn
+D = δCn
+bVb
+D + Cn
+bδVb
+D
+(31)
+where the error matrix δCn
+bof the attitude matrix Cn
+bcan be
+denoted as follows [43]:
+δCn
+b= −(ψn×) Cn
+b
+(32)
+where ψ is the INS attitude error deﬁned in equation (3), and
+(ψ×) denotes the asymmetric matrix of vector ψ [43].
+Insert (32) into (31), and the following relationship holds:
+δVn
+D = −(ψn×) Cn
+bVb
+D + Cn
+bδVb
+D
+(33)
+where the relationship Cn
+bVb
+D= Vn
+D = Vn holds according to
+equation (28). Finally, the following formula can be derived as
+follows:
+δVn
+D = Vn × ψn + Cn
+bδVb
+D
+(34)
+According to (24), Cn
+bδVb
+D in (34) could be showed as:
+Cn
+bδVb
+D= Cn
+b
+⎡
+⎣
+δKD
+δαH
+−δαP
+⎤
+⎦KDPD
+(35)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+DONG et al.: UAV VISION AIDED INS/ODOMETER INTEGRATION FOR LAND VEHICLE AUTONOMOUS NAVIGATION
+4831
+Deﬁne symbolIA as follows:
+IA =
+⎡
+⎣
+1 0 0
+0 1 0
+0 0 −1
+⎤
+⎦
+(36)
+Insert equation (36) into (35), and the following relationship
+holds:
+Cn
+bδVb
+D = (KDPD) Cn
+bIAδd
+(37)
+where δd is the error vector of the odometer deﬁned in equation
+(6). Insert equation (37) into (34), and δVn
+D can be expressed
+as:
+δVn
+D = (Vn×) ψn + (KDPD) Cn
+bIAδd
+(38)
+Inserting equation (38) into (29) can obtain the measurement
+equation of the Filter A.
+ZA= δVn −(Vn×) ψn −(KDPD) Cn
+bIAδd
+(39)
+This measurement equation shows the relationship between
+the observation vector ZA of Filter A and system state vector
+X. Deﬁne the velocity measurement noises of the odometer as
+wvA, measurement equation (39) can be rewritten as:
+ZA= δVn −(Vn×) ψn −(KDPD) Cn
+bIAδd + wvA (40)
+Considering the standard measurement model of Kalman
+Filter shown in equation (2), the observation vector Zand the
+measurement noise vector Wof Filter A can be expressed as
+follows:
+Z = ZA
+(41)
+W = wvA
+(42)
+According to equation (40), the measurement matrix H in
+equation (2) can be rewritten as HA which can be expressed as
+follows:
+HA =
+
+0 HA1 HA2 0 0 HA3
+
+(43)
+The null matrices in equation (43) are all three dimensional,
+and the non-zero matrix Hi could be denoted respectively as
+follows:
+HA1 =
+⎡
+⎣
+1 0 0
+0 1 0
+0 0 1
+⎤
+⎦
+(44)
+HA2 =
+⎡
+⎣
+0
+VD −VE
+−VD
+0
+VN
+VE −VN
+0
+⎤
+⎦
+(45)
+HA3 =
+⎡
+⎣
+−C11KDPD −C12KDPD C13KDPD
+−C21KDPD −C22KDPD C23KDPD
+−C31KDPD −C32KDPD C33KDPD
+⎤
+⎦
+(46)
+Equations (41), (42), and (43) have deﬁned the observation
+equation in the Filter A. The observation vector Z is deﬁned
+in equation (41), the measurement noise vectorW is deﬁned
+in equation (42) and the measurement matrix H is deﬁned in
+equation (43).
+D. Measurement Model Based on UAV Vision Positioning
+In this section, the measurement equation of Filter B will be
+derived according to the UAV vision positioning measurement.
+The measurement equation of the UAV vision positioning can
+be expressed as follows:
+ˆPV= P+Wp
+(47)
+whereˆPV is the UAV vision positioning result which is consist
+of the real position P of the vehicle and the measurement noises
+Wp.
+ˆPV, P, Wp can be expressed as follows:
+ˆPV =
+ ˆλv ˆLv ˆhv
+T
+P =
+ λ L h T
+WP =
+
+Wλ WL Wh
+T
+(48)
+where ˆλv, ˆLv, ˆhv represent the latitude, longitude, and height
+of the UAV vision positioning, and λ, L, h represent the real
+latitude, longitude, and height of the vehicle, and Wλ, WL, Wh
+represent the measurement noises of the latitude, longitude, and
+altitude respectively.
+Deﬁne the INS calculated position as ˆP, and it can be ex-
+pressed as:
+ˆP = P + δP
+(49)
+where P is the real position of the vehicle, and δP is the INS
+positioning error.
+ˆP, P, δPcan be written as follows:
+ˆP =
+ ˆλ ˆL ˆh
+T
+P =
+
+λ L h
+T
+δP =
+
+δλ δL δh
+T
+(50)
+where ˆλ, ˆL, ˆh represent the latitude, longitude, and height of
+the INS positioning, and λ, L, h represent the real latitude,
+longitude, and height of the vehicle, and δλ, δL, δh represent
+the measurement errors of the latitude, longitude, and altitude
+respectively.
+In (47) and (49), both the position and position error are ex-
+pressed by latitude, longitude and altitude. However, the position
+error in equation (3) is calculated in earth frame and projected
+in n frame [42]. So, herein, the equations (47) and (49) should
+be transformed into earth frame ﬁrst, and can be expressed as
+follows.
+ˆre
+v = re+we
+r
+(51)
+ˆre = re+δre
+(52)
+where e represents the earth frame which is ﬁxed in the earth
+and with the origin in the center of the earth, and ˆre
+v is the UAV
+vision positioning result which is consist of the real position re
+of the vehicle and the measurement noises we
+r, and ˆre is real
+position of the vehicle, and δre is the INS positioning error. It
+should be noted that all the vectors in equations (51) and (52)
+are calculated in e frame and projected in n frame.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+4832
+IEEE TRANSACTIONS ON VEHICULAR TECHNOLOGY, VOL. 71, NO. 5, MAY 2022
+Fig. 7.
+Moving Trajectory for Simulation.
+The system observation vector Ze
+B of the Filter B in e frame
+can be written as:
+Ze
+B = ˆre −ˆre
+v = δre −we
+r
+(53)
+Equation (53) can be projected from e frame to n frame, and
+can be expressed as follows.
+ZB= Cn
+eδre + Cn
+e (−we
+r)
+(54)
+Equation (54) can be transformed to be the form as follows:
+ZB = δrn + wrB
+(55)
+Comparing equations (2) and (55), the observation vector Z
+and the measurement noise Wof Filter B can be written as
+follows:
+Z = ZB
+(56)
+W = wrB
+(57)
+Based on equations (2) and (55), the measurement matrix of
+the Filter B can be written as follows:
+HB =
+ HB1 0 0 0 0 0
+(58)
+The null matrices in (58) are all three-dimensional, and non-
+zero matrix HB1 is a unit matrix:
+HB1 =
+⎡
+⎣
+1 0 0
+0 1 0
+0 0 1
+⎤
+⎦
+(59)
+Equations (56), (57), and (58) deﬁne the observation equation
+of the Filter B, where the observation vector Z is deﬁned in
+(56), the measurement noise vectorW is deﬁned in (57), and the
+measurement matrix HB is deﬁned in equation (58).
+IV. SIMULATION ANALYSIS
+A. INS/Odometer Integration Simulation
+1) Simulation Conditions: The vehicle trajectory during the
+simulation is shown in Fig. 7, where several maneuvers were
+set during the simulation to stimulate the errors of the inertial
+sensors [44].
+TABLE I
+ERROR PARAMETERS OF THE SIMULATED SENSORS
+Fig. 8.
+Positioning Error of INS/Odometer Integration.
+The main equipment in the simulation is an inertial navigation
+system and an electronic odometer. The sensor parameters in the
+simulation are shown in Table I.
+During the simulation, the inertial navigation system uses a
+typical navigation-grade equipment, in which the bias stability
+of the gyro is better than 0.01 deg/h and the bias stability of
+the accelerometer is better than 50ug. Navigation-grade inertial
+navigation systems are widely used in scenarios such as sur-
+veying and mapping vehicles and military launch vehicles. The
+overall measurement error of the odometer is 0.1% D, where D
+represents the total mileage of the vehicle. Odometers with this
+accuracy are also widely used in scenarios such as the above
+surveying and mapping vehicles and military launch vehicles.
+2) Simulation Results: The simulation time of the trajectory
+shown in Fig. 7 is 3600 seconds, and the corresponding driving
+distance of the vehicle is about 64 km. In the ﬁrst 400s of the
+simulation, the vehicle was stationary for the initial alignment
+of the inertial navigation system.
+The errors of INS/odometer integrated navigation are shown
+from Figs. 8 to 10. Fig. 8 shows the positioning error of
+INS/odometer integrated navigation. It can be seen from Fig. 8
+that during the navigation process, the peak values of latitude
+error and longitude error reached 40 m and −34 m respectively.
+Fig. 9 shows the velocity error of INS/odometer integrated
+navigation. It can be seen from Fig. 9 that the north velocity
+error and the east velocity error peak value reached 0.09 m/s
+and −0.075 m/s respectively.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+DONG et al.: UAV VISION AIDED INS/ODOMETER INTEGRATION FOR LAND VEHICLE AUTONOMOUS NAVIGATION
+4833
+Fig. 9.
+Velocity Error of INS/Odometer Integration.
+Fig. 10.
+Gyro Biases Estimation of INS/Odometer Integration.
+Fig. 10 shows the gyro biases estimation during the
+INS/odometer integrated navigation. Comparing the simulation
+conditions of the gyro biases in Fig. 10 and Table I, it can be
+found that under this motion trajectory, the estimated values
+of the gyro biases can converge to the correct value. This is
+mainly due to the maneuvers in the simulation trajectory during
+the integrated navigation process, which makes the gyro biases
+observable [45]. Under the conditions that the gyro biases are
+observable, the positioning error and velocity error of the system
+are signiﬁcantly improved as shown in Figs. 8 and 9. However,
+due to the lack of absolute position correction, the error of the
+integrated navigation system especially positioning error will
+continue to accumulate with time.
+B. INS/SLAM Integration Simulation
+1) Simulation Conditions: For the convenience of compari-
+son, the simulation trajectory for INS/SLAM Integration is set
+the same as INS/Odometer integration shown in Fig. 7. The
+inertial sensor parameters are also set the same as shown in
+Table I.
+The positioning error of SLAM is set to be 1%D under the
+circumstances that closed-loop optimization is unavailable for
+land vehicle in outdoor scenarios [25]–[27], where D represents
+the total mileage of the vehicle.
+Fig. 11.
+Positioning Error of INS/SLAM Integration.
+Fig. 12.
+Velocity Error of INS/SLAM Integration.
+Fig. 13.
+Gyro Biases Estimation of INS/SLAM Integration.
+2) Simulation Results: The errors of INS/SLAM integrated
+navigation are shown from Figs. 11 to 13. Fig. 11 shows the
+positioning error of INS/SLAM integrated navigation. It can be
+seen from Fig. 11 that during the navigation process, the peak
+values of latitude error and longitude error were about 150 m
+and 75 m respectively.
+Fig. 12 shows the velocity error of INS/SLAM integrated
+navigation. It can be seen from Fig. 12 that the north velocity
+error and the east velocity error peak value reached 0.25 m/s and
+−0.14 m/s respectively.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.10]
+4834
+IEEE TRANSACTIONS ON VEHICULAR TECHNOLOGY, VOL. 71, NO. 5, MAY 2022
+Fig. 13 shows the gyro bias estimation during the INS/SLAM
+integrated navigation. The estimated values of the gyro biases
+were also convergent, however, the converted values were a little
+deviated from the true values, which was introduced by the
+larger observation errors arising from the SLAM positioning.
+After the convergence of the gyro biases, the positioning error
+and velocity error of the system are signiﬁcantly improved as
+shown in Figs. 11 and 12. However, due to the lack of absolute
+position correction, the error of the integrated navigation system
+especially positioning error will continue to accumulate with
+time.
+C. UAV Vision Aided INS/Odometer Integration Simulation
+1) Simulation Conditions: For the convenience of com-
+parison, the simulation trajectory for UAV Vision Aided
+INS/Odometer Integration is set the same as INS/Odometer
+Integration shown in Fig. 7. The inertial sensor parameters are
+also set the same as shown in Table I.
+The difference of this subsection with Section A of Section IV
+is that the UAV Vision is used to aid the INS/Odometer Inte-
+gration in this simulation. The positioning error of the visual
+positioning is set to be within 2 meters with random noises. The
+positioning error setting takes into account the reference map
+error in the matching positioning, the attitude error of the UAV
+and the matching error.
+To evaluate the inﬂuence of different visual positioning fre-
+quencies, the periodic updates of visual position and the ape-
+riodic updates of visual position are both simulated to aid the
+INS/Odometer Integration system.
+2) Simulation Results for Periodic Visual Position Updates:
+Generally, the visual positioning computation can be completed
+in the period of no more than several seconds. But actually,
+during the integration process, we don’t need so high update
+frequency because of the high accuracy of the INS used. So,
+herein, two situations are simulated. In the ﬁrst situation, the
+visual positioning period is set to be two minutes, and in the
+second situation, the visual positioning period is set to be ﬁve
+minutes. The performances of the integrated navigation system
+for these two situations will be simulated and evaluated.
+For the two minutes visual positioning period situation, the
+errors of the integrated system are shown from Figs. 14 to 16.
+Fig. 14 shows the positioning error of the integrated system.
+It can be seen from Fig. 14 that during the navigation process,
+the peak values of latitude error and longitude error are both
+within the scope of 1 m. Obviously, due to the introduction of
+the absolute position correction from vision, the position error
+of the integrated system is constrained in a small range and does
+not diverge with time.
+Fig. 15 shows the velocity error of the integrated system. It can
+be seen from Fig. 15 that during the navigation process, the north
+velocity error and the east velocity error are both constrained
+within the scope of 0.01 m/s.
+Fig. 16 shows the gyro biases estimation of the integrated
+system. Obviously, the gyro biases also converge to the correct
+values. The reason is the same as the INS/odometer integrated
+navigation.
+Fig. 14.
+Positioning Error of UAV Vision Aided INS/Odometer Integration
+with Two Minutes Visual Positioning Period.
+Fig. 15.
+Velocity Error of UAV Vision Aided INS/Odometer Integration with
+Two Minutes Visual Positioning Period.
+Fig. 16.
+Gyro Biases Estimation of UAV Vision Aided INS/Odometer Inte-
+gration with Two Minutes Visual Positioning Period.
+For the Five minutes visual positioning period situation, the
+errors of the integrated system are shown from Figs. 17 to 19.
+Fig. 17 shows the positioning error of the integrated system. It
+can be seen from Fig. 17 that during the navigation process, the
+peak values of latitude error and longitude error were about 5 m
+and 2 m respectively.
+Fig. 18 shows the velocity error of the integrated system. It can
+be seen from Fig. 18 that during the navigation process, the north
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.11]
+DONG et al.: UAV VISION AIDED INS/ODOMETER INTEGRATION FOR LAND VEHICLE AUTONOMOUS NAVIGATION
+4835
+Fig. 17.
+Positioning Error of UAV Vision Aided INS/Odometer Integration
+with Five Minutes Visual Positioning Period.
+Fig. 18.
+Velocity Error of UAV Vision Aided INS/Odometer Integration with
+Five Minutes Visual Positioning Period.
+Fig. 19.
+Gyro Biases Estimation of UAV Vision Aided INS/Odometer Inte-
+gration with Five Minutes Visual Positioning Period.
+velocity error and the east velocity error are both constrained
+within the scope of 0.015 m/s.
+Fig. 19 shows the gyro biases estimation of the integrated
+system. Because the observation interval from visual positioning
+is too long, the gyro biases converge slowly and a little deviate
+from the true values.
+3) Simulation Results for Aperiodic Visual Position Updates:
+In the actual application, the visual positioning frequency will
+Fig. 20.
+Positioning Error of UAV Vision Aided INS/Odometer Integration
+with Aperiodic Visual Positioning Period.
+Fig. 21.
+Velocity Error of UAV Vision Aided INS/Odometer Integration with
+Aperiodic Visual Positioning Period.
+TABLE II
+PARAMETERS OF THE CAMERAS
+be apeiodic because of the actual image capturing and matching
+procedure. So, thesimulationfor theaperiodicvisual positioning
+is carried out herein, and the visual positioning intervals are
+arranged to change from tens of seconds to two minutes.
+The errors of the integrated system under aperiodic visual
+positioning aiding are shown from Figs. 20 to 22. Fig. 20 shows
+the positioning error of the integrated system. It can be seen
+from Fig. 20 that during the navigation process, the peak values
+of latitude error and longitude error are both within the scope of
+1 m.
+Fig. 21 shows the velocity error of the integrated system. It
+can be seen from Fig. 21 that during the navigation process, the
+north velocity error and the east velocity error are constrained
+within 0.01 m/s.
+Fig. 22 shows the gyro bias estimation of the integrated
+system. Comparing the simulation conditions of the gyro biases
+in Fig. 22 and Table I, it can be found that the estimated value
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.12]
+4836
+IEEE TRANSACTIONS ON VEHICULAR TECHNOLOGY, VOL. 71, NO. 5, MAY 2022
+TABLE III
+VISION POSITIONING RESULTS
+Fig. 22.
+Gyro Biases Estimation of UAV Vision Aided INS/Odometer Inte-
+gration with Aperiodic Visual Positioning Period.
+of gyro biases also converge to the correct values. The reason
+is the same as the INS/odometer integrated navigation. Under
+the condition that the gyro biases are observable, the positioning
+error and velocity error of the system are signiﬁcantly improved,
+as shown in Figs. 20 and 21. At the same time, due to the
+introduction of the absolute position correction from vision, the
+position error of the navigation system is also constrained in a
+small range and does not diverge with time.
+V. EXPERIMENTAL TESTS
+A. Field Tests of Vision Positioning
+The land vehicle vision positioning method is evaluated by
+a ﬁeld test. In this test, a visible light camera and an infrared
+camera are carried by a UAV (Model: DJI Martice 600Pro) to
+capture the real-time aerial image.
+The resolution and the ﬁeld of view of the camera are provided
+in Table II. The ground resolution of the real-time image can be
+estimated according to the camera parameters and the operating
+height shown in Table II. The referenced image is captured from
+Google Earth. After double the resolution with oversampling,
+the ground resolution of the referenced image is 0.3 meter/pixel.
+Both the infrared and visible light real-time images will be
+warped to the ortho-images with the same ground resolution
+as the referenced image.
+The test results are given in Table III. The accuracy of the
+vision positioning is evaluated by comparing it with the GPS
+RTK positioning, where the GPS antenna is mounted on the
+center of the vehicle. The RTK positioning accuracy is about
+0.02 m in this experiment, in which the GPS base station located
+at the distance no more than 10 kilometers from the test ﬁeld.
+According to Table III, the peak value of the proposed vision
+positioning error is 2.23 meters in our tests, and the standard
+deviation of the positioning errors is 1.52 meters. According
+to the approach presented in Section II, the vision positioning
+errors mainly arise from the following two sources.
+1) Error of image matching. Since the referenced image,
+the real-time image, and the template of the vehicle are
+captured in different time, there will be small landscapes
+changes or object variations among them, which will
+introduce errors to the matching results. In our tests, the
+standard error of image matching is about 1∼2pixels. The
+standard error of vehicle location in real-time image is
+less than 1 pixel. According to the ground resolution of
+referenced image (0.3 meter/pixel), the standard error of
+positioning introduced by image matching is less than1
+meter.
+2) Error of referenced images. The accuracy of the referenced
+images is also limited. In our tests, the standard error of
+the coordinates of the referenced images is about 1 meter.
+The two types of errors are additive because they are inde-
+pendent to each other. Therefore, the analysis is conﬁrmed by
+the positioning error of the results. Fig. 23 shows examples of
+the vision positioning testing.
+B. Field Tests of UAV Vision Positioning Aided INS/Odometer
+Integration
+We designed a ﬁeld test to evaluate the performance of
+UAV vision positioning aided INS/odometer integration. The
+integrated navigation system is mainly composed of two parts:
+the air part and the ground part.
+The air part includes a six-rotor UAV, camera and airborne
+computing platform. The performance parameters are shown
+in Table II. The ground part includes a ring laser gyro inertial
+navigation system (RLG INS) and an odometer system. The
+performance parameters of the RLG INS and the odometer
+are shown in Table IV. In addition, a high-precision RLG INS
+and GPS integrated navigation system was used as reference to
+evaluate the position, velocity and attitude accuracy of the tested
+system. The performance parameters of the reference RLG INS
+and GPS integrated navigation equipment are shown in Table V.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.13]
+DONG et al.: UAV VISION AIDED INS/ODOMETER INTEGRATION FOR LAND VEHICLE AUTONOMOUS NAVIGATION
+4837
+Fig. 23.
+Examples of Vision Positioning results.
+TABLE IV
+TESTED RLG INS AND ODOMETER PARAMETERS
+TABLE V
+REFERENCE RLG INS/GPS PARAMETERS
+The equipment used in the test is shown in Fig. 24. The camera
+and image positioning calculation computer are installed on
+the six-rotor UAV. The experimental RLG inertial navigation
+is installed in the trunk of the vehicle. The odometer is installed
+Fig. 24.
+Experimental Scenario.
+at the bottom of the vehicle and connected to the rotation axis
+of the vehicle. The camera positioning result is sent to the wire-
+less communication module installed in the inertial navigation
+system through the wireless communication module, and the
+odometer data is sent to the inertial navigation system in the
+form of TTL pulses. The navigation computer in the inertial
+navigation system assists the integration of inertial navigation
+data, odometer data and camera positioning data. The reference
+RLG INS/GPS is also installed in the trunk, and the GPS antenna
+is installed at the top of the rear of the vehicle. The time
+synchronization between the experimental RLG INS computer
+and the reference RLG INS computer is through TTL pulses.
+Three vehicle experiments were carried out, each of which
+lasted about 1 hour. Taking the position, velocity and attitude
+results of the reference RLG INS/GPS integration system as
+reference, the attitude and heading errors, the velocity errors
+and the position errors of the UAV vision aided INS/Odometer
+integration are shown in Figs. 25, 26 and 27 respectively. The
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.14]
+4838
+IEEE TRANSACTIONS ON VEHICULAR TECHNOLOGY, VOL. 71, NO. 5, MAY 2022
+Fig. 25.
+Attitude and Heading Errors of UAV Vision Aided INS/Odometer
+Integration for Field Tests. (a)Roll Errors. (b) Pitch Errors. (c) Heading Errors.
+TABLE VI
+NAVIGATION ERRORS STATISTICS OF INTEGRATED SYSTEM FOR FIELD TESTS
+Fig. 26.
+Velocity Errors of UAV Vision Aided INS/Odometer Integration for
+Field Tests. (a) North Velocity Errors. (b)East Velocity Errors.
+Fig. 27.
+Position Errors of UAV Vision Aided INS/Odometer Integration for
+Field Tests. (a) Latitude Errors. (b) Longitude Errors.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.15]
+DONG et al.: UAV VISION AIDED INS/ODOMETER INTEGRATION FOR LAND VEHICLE AUTONOMOUS NAVIGATION
+4839
+Fig. 28.
+Position Errors of common INS/Odometer Integration for Field Tests.
+(a) Latitude Errors. (b) Longitude Errors.
+statistical results of the navigation errors are shown in Table VI.
+As a comparison,
+the position errors of the common
+INS/Odometer integration are given in Fig. 28 by processing
+the same dataset without the UAV vision aiding.
+VI. CONCLUDING REMARKS
+This paper proposes a UAV vision aided INS/odometer in-
+tegration for land vehicle autonomous navigation. The main
+innovations are as follows:
+1) In this paper, a land vehicle positioning method based
+on image matching is proposed. During the positioning
+process, the UAV carries a camera to take pictures from the
+air to the land. By matching the real-time images taken by
+thecamerawiththereferenceimage,thevisualpositioning
+of the land vehicle is realized.
+2) An integrated navigation scheme based on UAV vision
+positioning information, INS and odometer was proposed,
+and the above-mentioned information was integrated by
+dual-rate Kalman Filtering.
+Throughsimulationandexperiment,theaccuracyandreliabil-
+ity of the proposed autonomous navigation method are veriﬁed
+to meet the autonomous navigation requirements of the land
+vehicles.
+There are still some limits about the proposed approach.
+First, the proposed method will not work when face some
+challenge weather. The camera can’t adapt to heavy rain, cloud
+or fog occlusion, also the UAV platform can’t ﬂight in heavy
+rain or storm wind. Second, the image matching technique
+is not reliable for area with unstable landform features, such
+as desert. Third, the proposed approach relies on the image
+matching to provide the global position. Therefore, it can’t
+adapt to UAV-denied situations, such as under a bridge, tunnel,
+or other shielding circumstances.
+Like other positioning approaches, the proposed method has
+its limits. Actually, the navigation system of critical mission will
+not entirely rely on one kind of position methods. The proposed
+method can be worked as a supplementary method.
+Currently, the UAV used for image matching and positioning
+in this paper is currently carried out to take pictures through
+manual control. As a part of future work, the UAV autonomous
+take-off method based on automatic control and target recogni-
+tion is under study.
+REFERENCES
+[1] S. Gu, Z. Xiang, Y. Zhang, and Q. Qian, “A multi-position joint particle
+ﬁlter method for vehicle localization in urban area,” in Proc. IEEE Conf.
+Intell. Robots Syst., Madrid. Spain, Oct. 2018, pp. 656–662.
+[2] E. Fraedrich, D. Heinrichs, F. J. Birke, and R. Cyganski, “Autonomous
+driving, the built environment and policy implications,” Transp. Res. Part
+A-Policy Pract., vol. 122, pp. 162–172, Apr. 2019.
+[3] Z. Jiang and S. Raziei, “A probabilistic decision engine for navigation
+of autonomous vehicles under uncertainty,” in Proc. IEEE Nat. Aerosp.
+Electron. Conf., Dayton. OH, Jul. 2019, pp. 131–138.
+[4] C. Liu, Z. Dai, Y. Zhao, J. Crowcroft, D. Wu, and K. Leung, “Distributed
+and energy-efﬁcient mobile crowdsensing with charging stations by deep
+reinforcement learning,” IEEE Trans. Mobile Comput., vol. 20, no. 1,
+pp. 130–146, Jan. 2021.
+[5] T. Li, H. Zhang, and Z. Gao, “Tight fusion of a monocular camera,
+MEMS-IMU, and single-frequency Multi-GNSS RTK for precise naviga-
+tion in GNSS-Challenged environments,” Remote Sensing, vol. 11, no. 6,
+pp. 610–634, Mar. 2019.
+[6] I. Nygren and M. Jansson, “Terrain navigation using the correlator
+method,” in Proc. IEEE Position Location Navigation Symp., Montere.
+CA, Apr. 2004, pp. 649–657.
+[7] H. Chen, Z. L. Zhang, and Z. F. Zhou, “SINS/OD integrated navigation
+algorithm based on body frame position increment for land vehicles,”
+Math. Problems Eng., vol. 23, no. 2, pp. 23–34, 2018.
+[8] S. C. Liu, D. Z. Zheng, and R. Li, “Compensation method for pipeline
+centerline measurement of in-Line inspection during odometer slips based
+on multi-sensor fusion and LSTM network,” Sensors, vol. 19, no. 17,
+pp. 3740–3758, Sep. 2019.
+[9] J. Gao, K. Li, and Y. Chen, “Study on integration of FOG Single-axis
+rotational INS and odometer for land vehicle,” IEEE Sensors J., vol. 18,
+no. 2, pp. 752–763, Jan. 2018.
+[10] N. Vagle, A. Broumandan, and G. Lachapelle, “Multiantenna GNSS and
+inertial sensors/odometer coupling for robust vehicular navigation,” IEEE
+Internet Things J., vol. 5, no. 6, pp. 4816–4828, Dec. 2018.
+[11] W. Ye, J. Li, J. Fang, and X. Yuan, “EGP-CDKF for performance improve-
+ment of the SINS/GNSS integrated system,” IEEE Trans. Ind. Electron.,
+vol. 65, no. 4, pp. 3601–3609, Apr. 2018.
+[12] Q.
+Q.
+Li,
+Z.
+P.
+Chen,
+Q.
+W.
+Hu,
+and
+L.
+Zhang,
+“Laser-
+AidedINSandOdometerNavigation system for subway track irregularity
+measurement,” J. Surveying Eng., vol. 143, no. 4, pp. 1–9, Nov. 2017.
+[13] Y. Sun, G. Yang, Q. Cai, and S. Wang, “An On-line calibration method of
+SINS/OdometerIntegrated navigation system,” in Proc. 4th Int. Conf. Inf.
+Sci. Control Eng., ChangSha, 2017, pp. 847–851.
+[14] C. Yang, Y. Cai, C. Xin, H. Wang, and M. Shi, “Integrated navigation anal-
+ysis for odometer-aided SINS,” in Proc. Chin. Automat. Congr., Hangzhou,
+2019, pp. 830–833.
+[15] W.Jia,X.Xiao,andZ.Deng,“Self-calibrationofINS/Odometerintegrated
+system via kalman ﬁlter,” in Proc. IEEE 5th Int. Conf. Adv. Comput. Intell.,
+Nanjing, 2012, pp. 224–228.
+[16] Y. Kim, J. An, and J. Lee, “Robust navigational system for a trans-
+porter using GPS/INS fusion,” IEEE Trans. Ind. Electron., vol. 65, no. 4,
+pp. 3347–3354, Apr. 2018.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+[p.16]
+4840
+IEEE TRANSACTIONS ON VEHICULAR TECHNOLOGY, VOL. 71, NO. 5, MAY 2022
+[17] Y. Gu, L. T. Hsu, and S. Kamijo, “GNSS/Onboard inertial sensor integra-
+tionwiththeaidof3-Dbuildingmapforlane-levelvehicleself-localization
+in urban canyon,” IEEE Trans. Veh. Technol., vol. 65, no. 6, pp. 4274–4287,
+Jun. 2016.
+[18] H. J. Chu, G. J. Tsai, K. W. Chiang, and T. T. Duong, “GPS/MEMS INS
+data fusion and map matching in urban areas,” Sensors, vol. 13, no. 9,
+pp. 11280–11288, Sep. 2013.
+[19] W. Li, X. Cui, and M. Lu, “A robust graph optimization realization
+of tightly coupled GNSS/INS integrated navigation system for urban
+vehicles,” Tsinghua Sci. Technol., vol. 23, no. 6, pp. 724–732, 2018.
+[20] W. Wen, X. Bai, Y.-C. Kan, and L.-T. Hsu, “Tightly coupled GNSS/INS
+integration via factor graph and aided by Fish-eye camera,” IEEE Trans.
+Veh. Technol., vol. 68, no. 11, pp. 10651–10662, Nov. 2019.
+[21] S. Zhao, Y. Chen, and J. A. Farrell, “High-precision vehicle navigation
+in urban environments using an MEM’s IMU and single-frequency GPS
+receiver,” IEEE Trans. Intell. Transp. Syst., vol. 17, no. 10, pp. 2854–2867,
+Oct. 2016.
+[22] V. Indelman, S. Williams, M. Kaess, and F. Dellaert, “Information fusion in
+navigation systems via factor graph based incremental smoothing,” Robot.
+Auton. Syst., vol. 61, no. 8, pp. 721–738, 2013.
+[23] E. Choi and S. Chang, “A consumer tracking estimator for vehicles in
+GPS-free environments,” IEEE Trans. Consum. Electron., vol. 63, no. 4,
+pp. 450–458, Nov. 2017.
+[24] M. Jaradat and M. Abdel-Hafez, “Non-linear autoregressive delay-
+dependent INS/GPS navigation system using neural networks,” IEEE
+Sensors J., vol. 17, no. 4, pp. 1105–1115, Feb. 2017.
+[25] R. Mur-Artal, J. M. M. Montiel, and J. D. Tardós, “ORB-SLAM: A
+versatile and accurate monocular SLAM system,” IEEE Trans. Robot.,
+vol. 31, no. 5, pp. 1147–1163, Oct. 2015.
+[26] T. Qin, P. Li, and S. Shen, “VINS-Mono: A robust and versatile monoc-
+ular visual-inertial state estimator,” IEEE Trans. Robot., vol. 34, no. 4,
+pp. 1004–1020, Aug. 2018.
+[27] R. Mur-Artal and J. D. Tardós, “ORB-SLAM2: An open-source SLAM
+system for monocular, stereo, and RGB-D cameras,” IEEE Trans. Robot.,
+vol. 33, no. 5, pp. 1255–1262, Oct. 2017.
+[28] K. Regmi and M. Shah, “Bridging the domain gap for Ground-to-Aerial
+image matching,” in Proc. IEEE/CVF Int. Conf. Comput. Vis., 2019,
+pp. 470–479.
+[29] Y. Shi, X. Yu, D. Campbell, and H. Li, “Where am i looking at? Joint
+location and orientation estimation by cross-view matching,” in Proc.
+IEEE/CVF Conf. Comput. Vis. Pattern Recognit., 2020, pp. 4064–4072.
+[30] H. Liu et al., “Epipolar rectiﬁcation method for a stereovision system with
+telecentric cameras,” Opt. Lasers Eng., vol. 83, pp. 99–105, 2016.
+[31] S. Hu and G. H. Lee, “Image-Based geo-localization using satellite im-
+agery,” Int. J. Comput. Vis., vol. 128, pp. 1205–1219, 2020.
+[32] R. A. Langel, “International geomagnetic reference ﬁeld,” J. Geomag-
+netism Geoelectricity, vol. 44, no. 9, pp. 679–707, 1992.
+[33] M. Navabiand and M. Barati, “Mathematical modeling and simulation
+of the earth’s magnetic ﬁeld: A comparative study of the models on the
+spacecraft attitude control application,” Appl. Math. Modelling, vol. 46,
+pp. 365–381, 2017.
+[34] C. Guo, H. Cai, and G. H. M. van der Heijden, “Feature extraction and
+geomagnetic matching,” J. Navigation, vol. 66, no. 6, pp. 799–811, 2013.
+[35] Y. Ye, L. Bruzzone, J. Shan, F. Bovolo, and Q. Zhu, “Fast and robust
+matching for multimodal remote sensing image registration,” IEEE Trans.
+Geosci. Remote Sens., vol. 57, no. 11, pp. 9059–9070, Nov. 2019.
+[36] Y. Ye, J. Shan, L. Bruzzone, and L. Shen, “Robust registration of multi-
+modal remote sensing images based on structural similarity,” IEEE Trans.
+Geosci. Remote Sens., vol. 55, no. 5, pp. 2941–2958, May 2017.
+[37] A. Sibiryakov, “Fast and high-performance template matching method,”
+in Proc. IEEE Conf. Comput. Vis. Pattern Recognit., Jun. 2011,
+pp. 1417–1424.
+[38] K. Briechle and U. D. Hanebeck, “Template matching using fast normal-
+ized cross correlation,” Proc. Spie Opt. Pattern Recognit. XII, vol. 4387,
+pp. 95–102, 2001.
+[39] Y. Hel-Or, H. Hel-Or, and E. David, “Fast template matching in nonlinear
+tone-mapped images,” in Proc. IEEE Int. Conf. Comput. Vis., Spain.
+Barcelona, Nov. 2011, pp. 1355–1362.
+[40] X. Huang, Y. Zhang, and X. Wang, “Kalman-Filtering-Based in-motion
+coarse alignment for odometer-aided SINS,” IEEE Trans. Instrum. Meas.,
+vol. 62, no. 12, pp. 3364–3377, Dec. 2017.
+[41] D. Nade, M. Bousbia-Salah, and M. Bettayeb, “Multi-sensor data fusion
+for wheelchair position estimation with unscented kalman ﬁlter,” Int. J.
+Automat. Comput., vol. 15, no. 3, pp. 207–217, Apr. 2018.
+[42] D.M.GoshenandI.Y.Bar,“Uniﬁedapproachtoinertialnavigationsystem
+error modeling,” J. Guid., Control, Dyn., vol. 15, no. 3, pp. 648–653,
+May 1992.
+[43] D. H. Titterton and J. L. Weston, Strapdown Inertial Navigation Technol-
+ogy, 2nd ed. Hertfordshire, U.K.: Institution of Engineering and Technol-
+ogy, 2004, pp. 253–255.
+[44] X. Y. Zhang, P. Liu, X. Yi, and C. Zhang, “Observability analysis of
+SINS/odometer integrated navigation,” in Proc. IEEE Chin. Guid., Navi-
+gation Control Conf., Yantai. China, Aug. 2014, pp. 148–152.
+[45] D. Dusha and L. Mejias, “Error analysis and attitude observability of a
+monocular GPS/visual odometry integrated navigation ﬁlter,” Int. J. Robot.
+Res., vol. 31, no. 6, pp. 714–737, May 2012.
+Jing Dong received the M.S. and Ph.D. degrees from the National University
+of Defense Technology, Changsha, China, in 2015. He is currently a Lecturer
+with the School of Aeronautics and Astronautics, Central South University,
+Changsha, China, and with the College of Aerospace Science and Engineering,
+National University of Defense Technology. His research interests include image
+registration, moving object detection, and video stabilization.
+Xingyu Ren received the bachelor’s degree from Chongqing Jiaotong Univer-
+sity, Chongqing, China, in 2018. She is currently a Graduate Student with the
+School of Aeronautics and Astronautics, Central South University, Changsha,
+China. Her research interests include INS/Odometer integration, multisensor
+fusion, and its applications in navigation systems.
+Songlai Han received the Ph.D. degree in optical engineering from the National
+University of Defense Technology, Changsha, China, in 2010. He is currently an
+Associate Professor with the School of Aeronautics and Astronautics, Central
+South University, Changsha, China. His current research interests include optical
+gyro, INS, GPS/INS integration, multisensor fusion, and stochastic theory and
+its applications in navigation systems.
+Shilin Luo received the B.Sc. degree in geography information science from
+South China Normal University, Guangzhou, China, in 2017. He is currently
+working toward the M.Sc. degree with the School of Aeronautics and Astronau-
+tics, Central South University, Changsha, China. His current research interests
+include inertial navigation and integrated navigation.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:20 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

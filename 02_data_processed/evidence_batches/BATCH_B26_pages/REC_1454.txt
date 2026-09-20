@@ -1,0 +1,1146 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1454.pdf
+sha256: 73A8F103DB0063003F92E07938C1EBD4E0F01320FB1969DA1F164F014647A979
+library: pymupdf (fitz) v1.28.2
+pages: 20
+=== BEGIN ===
+[p.1]
+Academic Editors: Mahmut
+Reyhanoglu and Fabio
+D’Andreagiovanni
+Received: 21 March 2026
+Revised: 3 May 2026
+Accepted: 4 May 2026
+Published: 7 May 2026
+Copyright: © 2026 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license.
+Article
+Adaptive UAV Visual Localisation Based on Improved
+Gradient-Damping Newton Method
+Xunli Zhou 1, Ancheng Fang 2, Song Fu 3, Jiaming Liu 3, Xiaoge Zhang 1, Xiong Liao 1,4,* and Jianwei Zhang 5
+1
+College of Electronic Information and Electrical Engineering, Chengdu University, Chengdu 610106, China;
+202310304105@cdu.edu.cn (X.Z.); 202310518105@cdu.edu.cn (X.Z.)
+2
+Sichuan Aerospace System Engineering Institute, Chengdu 610100, China; freak_mind@163.com
+3
+Chengdu Jinjiang Electronic System Engineering Company, Ltd., Chengdu 610051, China;
+13980588836@163.com (S.F.); zdjjxxh@163.com (J.L.)
+4
+Sichuan Time Frequency Synchronization System and Application Engineering Technology Research Center,
+Chengdu 610106, China
+5
+College of Computer Science, Chengdu University, Chengdu 610106, China; zhangjianwei@cdu.edu.cn
+*
+Correspondence: liaoxiong@cdu.edu.cn
+Abstract
+The role of unmanned aerial vehicles (UAVs) in time-sensitive missions such as low-altitude
+reconnaissance and disaster rescue has gained increasing significance. To address the
+challenge of visual localisation for UAVs operating in complex terrains under Global Nav-
+igation Satellite System (GNSS)-denied environments, this paper proposes an improved
+adaptive gradient-damped Newton approach to mitigate the trade-off between terrain
+non-convexity and computational real-time performance. The proposed approach incorpo-
+rates a terrain-gradient-based dynamic step-size adjustment mechanism that adaptively
+captures non-linear terrain characteristics in real time and effectively reduces the numerical
+oscillations typically observed in steep regions when using the standard Newton method.
+In addition, a tightly coupled vision–geometry framework was developed to constrain
+cumulative drift during long-range flight. Monte Carlo simulation results demonstrate that
+the proposed algorithm maintains submeter localisation accuracy while achieving approxi-
+mately a three-fold improvement in computational efficiency compared with traditional
+grid-based methods, and a 27.4% increase in convergence speed relative to the standard
+Newton method. Experiments conducted under high-noise conditions and highly undu-
+lating terrains indicate that the approach exhibits strong convergence stability, offering a
+computationally efficient and robust solution for UAV navigation.
+Keywords: monocular vision-based geolocation; unmanned aerial vehicle navigation;
+GNSS-denied environment; adaptive gradient-damped newton method; digital elevation
+model (DEM); tightly coupled vision–geometry framework
+1. Introduction
+In recent years, the role of unmanned aerial vehicles (UAVs) in time-sensitive missions
+such as low-altitude reconnaissance and disaster rescue has become increasingly promi-
+nent [1–3]. Although Global Navigation Satellite Systems (GNSS) are widely utilised, their
+reliability drops sharply in GNSS-denied environments due to electromagnetic interference
+or urban canyon effects [4]. Therefore, monocular visual geolocalisation technology, which
+relies on matching airborne imagery with digital elevation models (DEM), has emerged as
+a research focus in the navigation field because of its robust anti-interference capability and
+passive detection characteristics [5,6].
+Electronics 2026, 15, 1974
+https://doi.org/10.3390/electronics15101974
+[p.2]
+Electronics 2026, 15, 1974
+2 of 20
+With advancements in research, significant progress has been made in visual feature
+extraction and backend optimisation. Specifically, Tian et al. [7] proposed an end-to-end
+matching network that integrates cross-view synthesis with a localisation module, estab-
+lishing spatial correspondences between UAVs and satellite imagery through perspective
+projection to achieve absolute matching localisation in complex environments. Wang
+et al. [8] employed deep convolutional neural networks to extract implicit geometric fea-
+tures from images, significantly improving feature-matching accuracy under dynamic
+lighting scenarios. Chen et al. [9] summarised recent advancements in deep learning for
+visual localisation, noting that feature-matching networks incorporating attention mecha-
+nisms, such as Transformer models, can effectively overcome feature association failures in
+extremely textureless environments. Although these methods deliver outstanding accuracy,
+their substantial computational overhead makes it difficult to meet the stringent power-
+consumption constraints of miniature airborne edge computing platforms. When it comes
+to micro UAVs, integrating high-performance GPUs often severely restricts their payload
+capacity and inevitably curtails flight endurance. Given this practical bottleneck, there is a
+pressing demand within the engineering community to develop lightweight mathematical
+optimization strategies that can simultaneously guarantee low latency and minimal energy
+consumption [10,11].
+To overcome this computational challenge, some studies have focused on improv-
+ing backend non-linear optimisation algorithms to accelerate the solution process. For
+instance, Zhang et al. [12] introduced a non-linear least-squares framework with a robust
+kernel function into backend optimisation for dynamic localisation, effectively accelerating
+the update of the system state. Saxena et al. [13] proposed a unified theoretical frame-
+work for non-linear optimisation that significantly enhanced system solution efficiency
+by reconstructing state variables within a sliding window. Boche et al. [14] developed a
+multi-sensor tightly coupled framework supporting dense depth, effectively controlling
+optimisation time complexity in large-scale scenes by combining submap alignment with
+marginalisation strategies.
+Despite the remarkable progress made in accelerating backend optimisation and
+improving noise robustness, existing algorithms nevertheless struggle to balance low com-
+putational latency with robust convergence when dealing with severely undulating and
+unstructured terrains, High degrees of non-convexity often invalidate the local smoothness
+and quadratic convexity assumptions that underpin traditional nonlinear optimization
+frameworks. Within these intricate geometric manifolds, the Jacobian matrix of the ob-
+jective function remains highly susceptible to degeneracy or near-singularity, particularly
+where the terrain gradient undergoes abrupt shifts. This vulnerability, in turn, tends to
+trigger step-size expansion in conventional search operators [15,16] largely driven by the
+computational limits of airborne platforms [17,18]. Traditional grid-search methods can
+theoretically approximate the global optimum; however, their computational load surges
+exponentially as resolution increases [19]. Contemporary UAV dynamic localisation sys-
+tems require both sparse reconstruction and high-frequency computational efficiency [20],
+and the resulting surge in computational overhead makes it difficult for these methods
+to meet the demands of high-frequency dynamic navigation. Consequently, the indus-
+try has increasingly turned to the standard Newton method, which features a simple
+single-iteration structure. However, its fixed-step iterative mechanism is highly sensitive to
+non-linear terrain characteristics [21]. In extreme environments, this method is prone to
+numerical overshoot, which can cause iterative oscillations at sharp gradient transitions,
+and ultimately trapping the localisation solution in local optima within regions of abrupt
+terrain variation [22,23]. This persistent challenge of non-linear optimisation in complex
+three-dimensional spaces has been repeatedly corroborated in both the robustness evolu-
+https://doi.org/10.3390/electronics15101974
+[p.3]
+Electronics 2026, 15, 1974
+3 of 20
+tion of traditional visual simultaneous localisation and mapping systems and studies on
+complex UAV trajectory optimisation [24,25].
+In complex terrains, environmental perception and high-precision localisation are
+prerequisites for UAVs to execute advanced manoeuvring tasks, such as obstacle avoid-
+ance [26]. In recent years, significant progress has been made in trajectory planning over
+complex landforms, effectively enhancing the collaborative optimisation efficiency of multi-
+UAV systems in environments such as mountainous regions [27]. Tailored to outdoor
+unstructured scenarios, existing studies have also proposed various terrain perception,
+control and navigation strategies suitable for low-altitude unmanned platforms and space
+manoeuvring vehicles [28,29]. When executing high-altitude reconnaissance and high-
+precision tracking of mobile ground targets, a system’s dynamic position estimation and
+spatial computation capabilities face significant challenges [30]. Therefore, high-precision
+spatial state computation relies heavily on underlying 3D terrain data, such as DEMs
+constructed using sensors like LiDAR [31].
+However, when multisource environmental features are parameterised and incorpo-
+rated into a continuous state space, ensuring the numerical stability of model optimisation
+becomes challenging [32]. The root cause lies in the inherent discrete nature of 3D point
+clouds and elevation data along with their associated measurement noise, which constitute
+a primary bottleneck restricting the system’s global computational accuracy [33]. In particu-
+lar, when calculating the spatial intersection between the camera line-of-sight and the terrain
+surface, conventional interpolation strategies often introduce significant truncation effects
+and error discontinuities as the computation crosses discrete grid boundaries, thereby
+failing to authentically represent the physical smoothness of the geomorphology [34].
+To address the aforementioned challenges and achieve fast and robust localisation
+in complex terrain, this paper proposes an improved adaptive gradient-damped Newton
+method, making targeted improvements to the classical standard Newton’s method to ad-
+dress the specific physical and computational constraints of micro-UAVs over non-convex
+terrains. This approach mitigates the numerical divergence inherent in traditional optimi-
+sation algorithms when dealing with non-convex terrains, thereby significantly reducing
+computational latency. Building upon this, a tightly coupled optimisation architecture is
+constructed employing airborne sensor states as time-domain constraints, providing an
+effective mechanism for decoupling the error propagation between single-frame visual
+failures and low-frequency inertial drift.
+2. System Model
+This section defines the coordinate-frame transformations, camera imaging geometry,
+and the mathematical description of the terrain surface used in this paper.
+2.1. Coordinate Frame Definitions
+To accurately describe the spatial geometric relationships among the UAV platform,
+onboard camera and ground targets, three orthogonal coordinate frames are established:
+World Frame (W): A Cartesian East–North–Up (ENU) coordinate system is adopted as
+the global navigation reference. Origin Ow is placed at a ground control station or another
+known reference point. Any point P in space is represented as Pw =
+
+Xw, Yw, Zw]T .
+Camera Frame (C): The origin Oc is located at the optical centre of the camera. Zc-axis
+aligns with the optical axis pointing towards the front of the field of view, while the Xc and
+Yc axes are parallel to the horizontal and vertical directions of the image plane, respectively.
+Image Pixel Frame (I): Defined on the two-dimensional imaging plane, with the origin
+located at the top-left corner of the image. Pixel coordinates are denoted as m =
+
+u, v]T ,
+measured in pixels.
+https://doi.org/10.3390/electronics15101974
+[p.4]
+Electronics 2026, 15, 1974
+4 of 20
+2.2. Imaging Model and Distortion Correction
+The camera imaging process is modelled as a combination of the pinhole projection
+model and a non-linear distortion model. Let a spatial point in the camera frame be denoted
+as Pc =
+
+xc, yc, zc]T . Its normalised image–plane coordinates xn =
+
+xn, yn]T are defined as
+xn = xc/zc, yn = yc/zc.
+Considering the radial and tangential distortions introduced by wide-angle lenses in
+practical applications, a distortion model is incorporated to improve model fidelity. The
+distorted normalised coordinates xd =
+
+xd, yd]T are expressed as:
+xd = xn
+ 1 + k1r2 + k2r4 + 2p1xnyn + p2
+ r2 + 2x2
+n
+
+(1)
+yd = yn
+ 1 + k1r2 + k2r4 + p1
+ r2 + 2y2
+n
+ + 2p2xnyn
+(2)
+r2 = x2
+n + y2
+n and D = [k1, k2, p1, p2] denote the distortion coefficients. The final pixel
+coordinates m are obtained by projection through the camera intrinsic matrix K:
+
+
+u
+v
+1
+
+= K
+
+
+xd
+yd
+1
+
+=
+
+
+fx
+0
+cx
+0
+fy
+cy
+0
+0
+1
+
+
+
+
+xd
+yd
+1
+
+
+(3)
+2.3. Terrain Surface Modelling
+Unlike traditional planar assumptions or first-order linear approximations, the real ter-
+rain encountered during low-altitude UAV flights often exhibits pronounced non-convexity
+and strong local undulations. Essentially, the input DEM is a discrete two-dimensional spa-
+tial grid. However, the adaptive-damped Newton method proposed herein relies heavily
+on accurate sensing of high-frequency gradients on the terrain surface.
+To establish a smoother mathematical transition between discrete terrain grids and
+high-order continuous optimization, this study constructs a terrain manifold reconstruction
+mechanism. By primarily leveraging local nonlinear mapping, this method transforms
+discrete two-dimensional elevation data into an analytical surface characterized by second-
+order continuous differentiability. Such a mathematical construct holds substantial sig-
+nificance for the overall performance of the algorithm. At the physical level, it assists in
+significantly mitigating the truncation errors typically prone to emerge at the boundaries of
+conventional discrete grids. At the mathematical level, it provides a reasonably reliable
+safeguard for the continuity of the objective function’s Jacobian matrix and the stability of
+local curvature features. Overall, this reconstruction mechanism lays a theoretical founda-
+tion enabling the subsequent adaptive damping operator to better perceive high-frequency
+spatial gradients, thereby mitigating the risk of numerical degradation to a certain extent.
+By smoothly fitting local neighbourhood grids, the discrete elevation data are mapped
+into a non-linear terrain manifold function Hterr(·) that is twice continuously differentiable:
+Z = Hterr(X, Y),
+(X, Y) ∈Ω
+(4)
+Here, Ωdenotes the effective coverage region of the terrain.
+This higher-order continuous reconstruction effectively smooths the discrete step
+errors of the original grid at its boundaries and, critically, enables the analytical recovery
+of the terrain surface’s precise first-order gradient vector ∇H as well as second-order
+geometric features at arbitrary line-of-sight intersections in space.
+Consider a UAV observation platform equipped with a monocular camera. The UAV’s
+three-dimensional coordinates in the ground frame are defined as Puav =
+
+xs, ys, zs]T , while
+the camera-mounting pitch angle is denoted by θ.
+https://doi.org/10.3390/electronics15101974
+[p.5]
+Electronics 2026, 15, 1974
+5 of 20
+The essence of the localisation problem is to determine the intersection between the
+camera’s line of sight towards the target and the surface of DEM. The unit direction vector
+of the line of sight in the world coordinate frame is defined as lw. The expression for any
+point P along this ray in space is:
+P(d) = Puav + d · lw
+(5)
+Here, d is the Euclidean distance from the camera centre to the spatial point.
+The terrain surface is represented by a continuous elevation function Z = fDEM(X, Y).
+To compensate for the effect of the Earth’s curvature in long-range observations, an equiva-
+lent Earth-radius model is introduced, where the equivalent radius Re relates to the true
+radius R0 by Re = kR0. At this point, the residual function between the ray height and
+terrain height F(d) is constructed as:
+F(d) = Zray(d) −fDEM(Xd, Yd)
+(6)
+Zray(d) = Pz(d) + x2
+d + y2
+d
+2Re
+(7)
+The localisation task is therefore to determine the optimal distance d∗such that the
+residual F(d∗) < ϵ, where ϵ denotes a predetermined convergence tolerance.
+3. Methodology
+To elucidate data interaction mechanisms within the adaptive localisation framework,
+this chapter proposes a tightly coupled visual–geometric navigation architecture tailored
+for airborne edge computing. Given the computational bottlenecks of micro-aerial vehicles
+in complex, non-convex terrains, this architecture bypasses computationally redundant
+global manifold traversals, instead seeking an optimal engineering trade-off between
+computational latency and convergence robustness, as shown in Figure 1.
+Figure 1. Visual-geometric tightly -coupled navigation architecture and optimisation pipeline.
+3.1. Problem Modelling
+The essence of monocular visual geo-localisation is to determine the intersection point
+between the line-of-sight ray and the terrain surface. Based on the camera centre Cpos and
+normalised ray direction vector lw, the spatial ray equation can be expressed as a function
+of the distance factor d:
+P(d) = Cpos + d · lw
+(8)
+https://doi.org/10.3390/electronics15101974
+[p.6]
+Electronics 2026, 15, 1974
+6 of 20
+The objective is to determine the optimal scalar d∗such that the elevation of the point
+on the ray equals the terrain elevation at that specific location. Therefore, the target residual
+function F(d) is defined as:
+F(d) = Hray(d) −Hterr(xd, yd) = 0
+(9)
+where Hray(d) represents the vertical elevation of the ray at distance d, and Hterr(·) denotes
+the corresponding terrain elevation.
+3.2. Adaptive Damping Strategy
+In non-convex manifold optimization, traditional damped Newton methods or trust-
+region methods predominantly rely on rigorous mathematical iterations to update step-size
+constraints. Such complex matrix operations are highly computationally intensive, often
+exceeding the load capacity of micro onboard platforms, thereby constraining the real-time
+responsiveness of the system. To resolve the aforementioned theoretical bottlenecks, this
+study constructs a mapping mechanism between physical terrain features and mathemati-
+cal optimization boundaries and proposes a novel nonlinear damping operator. Specifically,
+this operator embeds the geometric fluctuations of the local terrain as a physical prior into
+the analytical construction of the penalty factor, thereby inducing an inherent adaptive trun-
+cation mechanism within the algebraic structure. This design not only effectively reduces
+the computational burden on micro-UAV platforms, but also achieves a structural exten-
+sion at the level of manifold optimization theory, objectively enhancing the convergence
+robustness of the system when solving within complex non-convex spaces.
+The core idea is to reshape the second-order update step size in real time by introducing
+an adaptive weight factor λk. Its convergence law is formulated as:
+dk+1 = dk −λk
+F(dk)
+F′(dk)
+(10)
+To bridge the analytical gap between the damping factor and local terrain gra-
+dients, we characterize the raw search displacement norm of the standard Newton
+method as ∆draw =|F(dk)/F′(dk)|.
+Building upon this, a quadratic penalty function
+Ψ(∆draw) =
+ ∆draw)2 is explicitly incorporated to serve as a nonlinear activation map-
+ping operator. Consequently, the explicit expression for the damping factor λk is derived
+as follows:
+λk =
+1
+1 + α · Ψ(∆draw)
+(11)
+In this context, α denotes the scale adjustment coefficient, which is empirically tuned to
+1 × 10−3 based on the observed convergence characteristics within our experimental scenarios.
+The selection of a quadratic penalty structure in this study, rather than linear or
+higher-order alternatives, primarily aims to strike a reasonable balance between the limited
+computational capacity of micro-UAV platforms and the demands of local non-convex
+optimization. From the perspective of numerical stability, the iterative step size of the
+standard Newton method tends to exhibit a divergent trend when encountering singular
+regions with abrupt changes in terrain curvature. Compared to traditional linear penalties,
+the quadratic mapping structure generally affords a more flexible nonlinear adjustment
+margin when accommodating severe step size fluctuations. A key advantage is that, in
+most scenarios, it mitigates the need for time-consuming line search mechanisms, thereby
+naturally confining the search step size within a physically reasonable trust region. Con-
+versely, when the micro-UAV navigates flat terrain where the gradient approaches zero,
+this quadratic structure often facilitates a relatively smooth mathematical transition. This
+allows the damping factor to largely remain near its initial baseline, which substantially
+https://doi.org/10.3390/electronics15101974
+[p.7]
+Electronics 2026, 15, 1974
+7 of 20
+aids in preserving the efficient second-order convergence characteristics inherent to the
+standard Newton method.
+In terms of system engineering implementation, the constrained hardware environ-
+ment of micro-UAVs necessitates highly efficient low-level algorithms. By introducing a
+damping term with a specific analytical form via forward computation, dynamic reshap-
+ing of the step size can be achieved. This strategy helps circumvent the complex matrix
+inversion procedures typical of higher-order algorithms and, to some extent, reduces the
+resource consumption associated with multiple trial-and-error iterations. The resulting sup-
+plementary computational overhead remains relatively controllable, reasonably adapting
+to the power and latency constraints of edge computing platforms. Regarding the propor-
+tional adjustment coefficient α, preliminary parameter sensitivity tests indicate that setting
+it at the current magnitude generally serves as a safe compromise at typical flight altitudes.
+3.3. Convergence Analysis
+To establish the theoretical reliability of our method across complex terrains, this
+section presents a mathematical demonstration focusing on its local convergence and
+numerical stability near singular points.
+Assuming the terrain surface function Hterr(·) is twice continuously differentiable
+within a local neighborhood and adequately satisfies the Lipschitz continuity condition.
+Let pk = λk
+F(dk)
+F′(dk) denote the actual update step size of the system at iteration k.
+Applying a first-order Taylor expansion to the objective residual function at dk yields:
+F(dk+1) = F(dk −pk) ≈F(dk) −F′(dk)pk
+(12)
+Substituting our designed actual update step pk into the equation, we obtain:
+F(dk+1) ≈F(dk) −F′(dk)
+
+λk
+F(dk)
+F′(dk)
+
+= F(dk)(1 −λk)
+(13)
+Based on the definition provided in Section 2.2, λk =
+1
+1+α(F(dk)/F′(dk))2 . It is evident
+that for any non-optimal solution, λk ∈(0, 1).
+Consequently:
+|F(dk+1)| ≈|F(dk)|(1 −λk) < |F(dk)|
+(14)
+This relationship naturally leads to E(dk+1) < E(dk). Such a result indicates that,
+provided a reasonable initial trust region, the algorithm generally guarantees a monotonic
+reduction in the objective residual energy, smoothly driving the system to stably converge
+toward a local minimum.
+When operating in regions characterized by severe non-convex topographical
+features—specifically where F′(dk) →0—the raw step size of the standard Newton
+method, ∆draw = F(dk)
+F′(dk), tends to approach infinity.
+In contrast, the actual single-step displacement pk in our proposed method can be
+algebraically reconstructed as follows:
+pk = λk
+F(dk)
+F′(dk) =
+1
+1 + α
+ F(dk)
+F′(dk)
+2
+F(dk)
+F′(dk) =
+F(dk)F′(dk)
+(F′(dk))2 + αF(dk)2
+(15)
+When encountering abrupt shifts in the terrain gradient:
+lim
+F′(dk)→0pk =
+lim
+F′(dk)→0
+F(dk)F′(dk)
+(F′(dk))2 + αF(dk)2 = 0
+(16)
+https://doi.org/10.3390/electronics15101974
+[p.8]
+Electronics 2026, 15, 1974
+8 of 20
+The preceding limit analysis helps delineate the theoretical robustness boundaries of
+the algorithm. In non-convex singular regions characterized by abrupt shifts in terrain
+curvature, specifically when the gradient F′(dk) approaches zero, the initial step size of
+conventional optimization methods often expands excessively due to gradient vanishing.
+This phenomenon frequently triggers spatial overshoot and numerical oscillation. In
+contrast, the nonlinear mapping operator formulated in this study structurally mitigates this
+divergence trend. It allows the actual physical search displacement pk to remain effectively
+controlled and naturally converge toward zero. Consequently, this limit derivation offers
+mathematical evidence supporting the resilience of the proposed architecture against non-
+convex manifold singularities. It theoretically substantiates a safe confidence region for the
+algorithm to approximate local optima even under severe geometric constraints.
+Strictly speaking, constrained by the pronounced non-convexity of real-world 3D
+terrains, the convergence analysis presented herein primarily falls within the scope of local
+convergence mathematically. In practical flight scenarios, however, the high-frequency a
+priori states provided by onboard inertial measurement units and barometers typically
+guide the algorithm to initialize within a valid region of attraction. Consequently, oper-
+ating within the standard flight envelope of the UAV, this local convergence mechanism
+frequently achieves quasi-global optimality in engineering applications. Nevertheless, it
+should be objectively noted that under extreme boundary conditions—such as prolonged
+sensor denial—the solver remains susceptible to local minima traps. Fundamentally, this
+design reflects a deliberate engineering trade-off at the architectural level: compared to
+the pursuit of computationally prohibitive global mathematical optima, this study places
+greater emphasis on satisfying the stringent low-latency processing requirements of micro-
+UAV edge computing platforms.
+3.4. Visual-Geometric Tightly Coupled Model
+Non-linear optimization in traditional UAV visual localization predominantly relies
+on the independent solving of single-frame images or loosely coupled strategies. These
+methods are essentially static approximations of the local spatial manifold. during long-
+distance flights, if homogeneous terrain features or degraded observation quality are
+encountered, they are highly prone to falling into local minima, thereby inducing low-
+frequency cumulative drift that is difficult to eliminate. To effectively suppress degeneration
+boundary effects, this study constructs a visual-geometric tightly coupled architecture. This
+architecture introduces the high-frequency kinematic propagation state as a temporal a
+priori regularization term, essentially accomplishing the mathematical reshaping of the
+visual elevation residual manifold. By imposing dynamic constraints in the time dimension
+during the gradient optimization process of the cost function, the system acquires a reliable
+mechanism for escaping local optima. Compared to conventional decoupled schemes,
+the proposed architecture safeguards the theoretical consistency of state estimation and
+the robustness of the underlying kinematics, even under extreme operating conditions
+characterized by severely sparse observational features.
+To bridge the inherent disparity in sampling frequencies between the onboard camera
+and the accompanying inertial or barometric sensors, we opted for a temporal alignment
+approach anchored primarily to the visual frame timestamps. Provided the system operates
+under a hardware-level global clock, we can denote the exact exposure instant of the k-th
+image frame as tk. When attempting to determine the a priori state at this precise moment
+tk, our strategy involves extracting the sequence of high-frequency sensor measurements
+falling within the interval [tk−1, tk]. Subsequently, by applying the governing state evolution
+equations, we meticulously integrate these measurements to propagate the system state
+forward to the target time tk.
+https://doi.org/10.3390/electronics15101974
+[p.9]
+Electronics 2026, 15, 1974
+9 of 20
+It defines dk as the line-of-sight distance parameter at time k. In the tightly coupled
+architecture, the ray elevation of the current frame is required to align with terrain ele-
+vation; the state prior ˆdk|k−1 derived from the onboard inertial and barometric sensors is
+also introduced.
+The prediction of this prior state is based on the kinematic recursion of the onboard
+system. During the time interval between consecutive image frames, the system performs
+state pre-integration using high-frequency angular velocity and acceleration data from the
+inertial measurement unit. By incorporating relative altitude feedback from the barometer,
+the predicted spatial position of the unmanned aerial vehicle at time tk is estimated. This
+position is then geometrically projected onto the local terrain manifold along the direction
+vector of the current visual ray, which allows for the analytical derivation of the prior
+line-of-sight distance dk|k−1.
+Grounded in the framework of maximum likelihood estimation, we operate under the
+initial assumption that both the visual observation residuals and the prior estimation errors
+are perturbed by independent Gaussian white noise. Specifically, the visual observation
+noise is characterized as ϵv ∼N
+ 0, σ2
+v
+
+, while the prior estimation noise is distributed as
+ϵg ∼N
+
+0, σ2
+g
+
+.
+Proceeding from this probabilistic premise, resolving the optimal line-of-sight distance
+dk is essentially equivalent to maximizing the associated joint probability distribution.
+By taking the negative logarithm of the Gaussian probability density functions, we can
+naturally recast this problem into the following nonlinear least-squares optimization model:
+argmin
+dk
+ 
+1
+σ2v
+∥F(dk) ∥2 + 1
+σ2g
+∥dk −ˆdk|k−1 ∥2
+!
+(17)
+As derived from this formulation, the weighting assigned to each penalty term corre-
+sponds directly to the reciprocal of its respective noise variance—yielding a visual weight
+of ωv = 1/σ2
+v and a prior weight of ωg = 1/σ2
+g.
+4. Fundamental Algorithm Performance and Statistical Verification
+4.1. Simulation Environment
+To comprehensively validate the effectiveness of the proposed algorithm, a high-
+fidelity simulation environment was constructed using MATLAB R2023b. The execution
+platform is equipped with an Intel Core i7-12700H processor and 32 GB of DDR5 RAM. The
+simulation utilised an authentic DEM covering a 3 km × 3 km area with a terrain resolution
+of 2 m, featuring non-linear topographical characteristics such as hills and gullies. The
+simulation parameters encompassed key variables including high-definition resolution,
+focal length settings, base flight altitude and atmospheric refraction compensation (Table 1).
+Table 1. Simulation parameters.
+Parameter
+Value
+Camera resolution/pixel
+1920 × 1080
+Lens focal length/pixel
+1200
+Distortion coefficients
+[−0.15, 0.02, 0.001, −0.002]
+GPS position jitter standard deviation/m
+0.5
+Principal point coordinates
+960, 540
+Initial flight altitude/m
+120
+Camera tilt angle/(◦)
+−15◦
+Terrain grid resolution/m
+2
+Atmospheric refraction index
+4/3
+Adaptive damping factor α
+1 × 10−3
+https://doi.org/10.3390/electronics15101974
+[p.10]
+Electronics 2026, 15, 1974
+10 of 20
+Table 1. Cont.
+Parameter
+Value
+Maximum iterations
+30
+Pixel noise standard deviation σpix/pixel
+1.0
+Convergence threshold ϵ/m
+1 × 10−5
+Reference station GPS coordinates
+[30.39◦N, 104.11◦E, 486]
+Terrain model range/m
+3000 × 3000
+4.2. Error Distribution Characteristics
+This research conducted 5000 Monte Carlo simulation trials based on a DEM with
+a 2 m resolution. As shown in Figure 2a, the positioning results demonstrate consistent
+convergence under the interference of 1.0 pixel image observation noise and 0.5 m satellite
+positioning jitter. From Figure 2b, it can be observed that the system achieves a Spherical
+Error Probable of 0.32 m at a 50% confidence level, while the error is 0.50 m at a 95%
+confidence level.
+Figure 2. (a) Spatial distribution of estimated coordinates relative to the reference ground truth;
+(b) CDF of the 3D positioning error.
+As illustrated in Figure 2a, the solved coordinates exhibit high-density clustering
+around the reference value. The spatial distribution approximates a convergent ellipsoid,
+reflecting the algorithm’s capability to suppress non-linear distortions induced by terrain
+fluctuations. The estimated coordinates are concentrated within a finite neighbourhood of
+the target’s ground truth, indicating that the constructed geometric constraint model helps
+mitigate systematic biases. Figure 2b illustrates the Cumulative Distribution Function of
+the 3D positioning error. The rapid upward trend of the curve reveals that a majority of
+positioning errors are distributed within a low-error interval.
+4.3. Comprehensive Performance Evaluation
+Given the stringent constraints on computational resources and real-time performance
+in micro-UAVs, this study introduces the grid search method, the standard Newton’s
+method, and the trust-region algorithm (serving as a high-order nonlinear optimization
+baseline) for a quantitative comparison. By analyzing the limitations of these classical
+algorithms in complex terrains and weighing the trade-off between solution accuracy and
+computational time, this paper aims to verify the practical performance of the proposed
+algorithm in improving system latency and numerical stability, thereby evaluating its
+potential for engineering applications.
+To objectively evaluate the computational efficiency and convergence performance of
+the proposed algorithm, comparative analyses were conducted under a unified simulation
+environment. As illustrated in Figure 3, the convergence trajectories of the objective
+https://doi.org/10.3390/electronics15101974
+[p.11]
+Electronics 2026, 15, 1974
+11 of 20
+function residuals indicate that the standard Newton’s method, when dealing with complex
+non-convex terrains, is constrained by its fixed step-size mechanism. Consequently, it is
+prone to numerical oscillation in the later stages of iteration, often causing the convergence
+process to stall at a relatively high residual level. In contrast, the trust-region algorithm
+demonstrates better adaptability to non-convex manifolds and can smoothly converge to a
+lower residual range; however, this numerical stability typically comes at the expense of
+increased computational complexity.
+Figure 3. Comparison of convergence and performance among three algorithms: (a) Convergence
+performance comparison; (b) Average runtime; (c) Positioning accuracy.
+In the benchmark tests for positioning accuracy, the proposed algorithm achieved bet-
+ter error convergence results than traditional baselines. Specifically, the method surpasses
+the standard Newton’s method in numerical accuracy and achieves a level comparable
+to that of the high-order trust-region algorithm. However, when considering the aver-
+age execution time, the trust-region algorithm incurs considerable computational latency
+due to the frequent evaluation of the Hessian matrix and the solving of subproblems. In
+comparison, the algorithm proposed herein effectively reduces the time required for a
+single computation while maintaining an equivalent level of convergence accuracy. These
+results suggest that the proposed architecture alleviates the computational bottlenecks
+of traditional high-order solvers to a certain extent, offering a viable trade-off between
+accuracy and real-time performance for micro-UAV systems.
+However, it is imperative to rigorously distinguish between the solver’s “numerical
+precision” and the system’s “actual physical positioning accuracy.” Physical accuracy is
+inherently bounded by the observational limits of the underlying hardware, such as the
+discrete resolution of DEM. Conversely, the sub-micron numerical precision discussed
+herein primarily characterizes the optimization solver’s capacity to approximate extrema
+within the mathematical residual space.
+While pursuing extreme numerical precision cannot transcend the lower error bounds
+dictated by sensor physics, the engineering significance of this design lies in provisioning
+substantial computational redundancy. Crucially, this redundancy mitigates the detrimen-
+tal coupling between algorithmic nonlinear truncation errors and underlying physical
+observation noise. Consequently, cumulative errors during long-range navigation tasks are
+robustly constrained to a tight regime bordering the hardware’s physical limits.
+5. Hardware-in-the-Loop Simulation Verification Based on Multi-Source
+Data in Complex Geographical Scenarios
+5.1. Static Feature Positioning Verification Under Typical Complex Terrain
+To eliminate coupling errors arising from drastic changes in UAV flight attitude and
+to purely verify the generalisation capability of the adaptive Newton method on complex
+https://doi.org/10.3390/electronics15101974
+[p.12]
+Electronics 2026, 15, 1974
+12 of 20
+real-world terrain, high-fidelity satellite imagery combined with DEM were utilised for a
+hardware-in-the-loop simulation, as shown in Figure 4.
+ 
+Figure 4. Unstructured mountainous test scenario for cross-source localisation.
+Figure 4 illustrates the selected typical test area, which encompasses diverse topo-
+graphical features, including ridges, gullies and flat terrain, exhibiting strong topographical
+non-convexity. In the experiment, typical landmark feature points were identified in the
+images and their three-dimensional spatial coordinates were calculated using the adaptive
+gradient-damped Newton method. These results were then compared with the high-
+precision reference ground truth, and the 3D positioning error was quantitatively evaluated
+using the Euclidean distance:
+∆P =
+q Xest −Xgt)2 +
+ Yest −Ygt)2 +
+ Zest −Zgt)2
+(18)
+Six representative high-frequency feature test points were selected within the unstruc-
+tured terrain as independent solutions to comprehensively and objectively verify the numerical
+robustness of the proposed algorithm under extreme terrain boundary conditions.
+Table 2 demonstrates a clear correlation between the algorithm’s convergence accuracy
+and the non-linearity of local terrain. In regions such as Basin D and Slope B, where
+terrain curvature is minimal and gradients are gentle, the terrain manifold approximately
+satisfies the local linearity assumption. Consequently, the system achieves higher solution
+accuracy, with 3D positioning errors maintained between 0.12 m and 0.15 m, while requiring
+fewer iterations for convergence. Conversely, Ridge A and Gully F exhibit significant
+topographical fluctuations characterised by strong non-convexity and step-like boundaries.
+Under such complex geomorphic conditions, standard Newton methods often risk local
+optima or divergence owing to near-singular Jacobian matrices or abrupt gradient changes.
+Table 2. Statistics of 3D positioning errors under typical complex terrains.
+Site
+Lat/Lon/Alt
+Ground Truth
+Error/m
+Site A (Ridge)
+36.254125
+36.254130
+0.38
+117.113015
+117.113025
+1532.44 m
+1532.20 m
+Site B (Slope)
+36.235412
+36.235415
+0.15
+117.082234
+117.082238
+488.92 m
+489.05 m
+https://doi.org/10.3390/electronics15101974
+[p.13]
+Electronics 2026, 15, 1974
+13 of 20
+Table 2. Cont.
+Site
+Lat/Lon/Alt
+Ground Truth
+Error/m
+Site C (Hill)
+36.213245
+36.213250
+0.28
+117.148567
+117.148575
+245.88 m
+246.10 m
+Site D (Basin)
+36.230154
+36.230155
+0.12
+117.105478
+117.105480
+95.66 m
+95.75 m
+Site E (Saddle)
+36.249567
+36.249575
+0.45
+117.128923
+117.128940
+810.12 m
+809.75 m
+Site F (Gully)
+36.221025
+36.221035
+0.52
+117.055682
+117.055695
+302.15 m
+301.80 m
+The proposed adaptive gradient damping mechanism regulates the iteration step size
+by dynamically sensing the non-linear features of the terrain, which helps mitigate the
+numerical overshoot in the vicinity of local minima. The findings demonstrate that even in
+the non-convex scenario of Gully F, the single-frame solution error is restricted within a
+submeter range of 0.52 m. Comprehensive analysis demonstrates that while maintaining
+computational efficiency, the algorithm exhibits a robust capability to bypass local minima,
+providing a reliable prior state for subsequent continuous trajectory tracking.
+As illustrated in Figure 5, the proposed algorithm maintains a relatively smooth
+error convergence trajectory across complex terrains, even when starting with meter-level
+prior deviations caused by limited initial observation conditions. Notably, in scenarios
+characterized by sharp topographical fluctuations—such as gullies (Site F) or saddles
+(Site E)—conventional optimization schemes often struggle with numerical divergence. In
+contrast, the adaptive gradient damping mechanism introduced in this study demonstrates
+robust performance. By dynamically sensing local landscape features, this mechanism
+effectively confines the iteration steps within what can be considered a “safe trust region.”
+Figure 5. Dynamic Convergence Characteristics under Complex Topography.
+5.2. Continuous Trajectory Tracking Based on Visual–Geometric Tightly Coupled Fusion
+Although the static cross-source validation in the previous section confirms the robust-
+ness of the proposed algorithm for single-frame processing in complex terrain, real-world
+long-endurance UAV cruising tasks are susceptible to observation jumps generated by local
+https://doi.org/10.3390/electronics15101974
+[p.14]
+Electronics 2026, 15, 1974
+14 of 20
+texture similarities when relying solely on independent single-frame solutions. Accordingly,
+a visual–geometric tightly coupled architecture was developed.
+It should be noted that this section introduces the “Barometer/GNSS” with jitter as a
+baseline to demonstrate the divergence of traditional modes under signal degradation. This
+baseline is used for comparison purposes only and does not participate in the optimization
+process of the proposed algorithm.
+The conventional baseline method, which combines barometers and GNSS, exhibits a
+noticeable systematic bias throughout the flight trajectory (Figure 6). The local enlarged
+view shows that within the 640–720m analysis interval, the baseline estimates remained
+consistently higher than the actual elevation. This phenomenon reflects a typical limitation
+of Barometer/GNSS fusion: atmospheric pressure fluctuations introduce low-frequency
+drift, while the inherent vertical dilution of precision in satellite positioning constrains
+overall altitude accuracy.
+Figure 6. Altitude estimation and drift correction based on tightly -coupled architecture.
+The baseline integrated navigation approach combining barometry and GNSS exhibits
+a clear performance degradation trend (Figure 7). Although internal filtering mechanisms
+maintain a smooth baseline trajectory, significant systematic drift persists. In simulated
+complex environments, traditional integrated navigation systems rely excessively on in-
+ertial extrapolation under weak-signal conditions. Considering the lack of an effective
+closed-loop correction mechanism, positioning errors exhibit monotonic accumulation as
+flight distance increases.
+Figure 7. Longitude tracking and error suppression in long-distance flights.
+The results derived from the semi-physical simulations suggest that our proposed
+scheme manages to curb the error divergence trend typically observed over simulated long-
+https://doi.org/10.3390/electronics15101974
+[p.15]
+Electronics 2026, 15, 1974
+15 of 20
+distance trajectories to a certain extent. From this, it can be reasonably inferred that under
+controlled conditions devoid of continuous high-frequency observations, this strategy often
+presents more practical engineering potential when compared to conventional architectures.
+To assess the efficacy of the vision-geometry tightly coupled architecture in mitigating
+spatial error accumulation during prolonged and complex missions, we conducted a com-
+prehensive analysis of the three-dimensional absolute trajectory error (ATE). As illustrated
+in the results (Figure 8), conventional baseline schemes often exhibit a propensity to deviate
+from the actual terrain manifold—a phenomenon likely exacerbated by the absence of
+high-frequency spatial loop-closure constraints. This deviation typically manifests as a
+monotonically increasing drift. In contrast, the proposed methodology appears to sustain
+reliable tracking stability over extended durations, even when subjected to relatively de-
+manding operational conditions. Throughout the flight profile, the computed trajectory
+remains closely aligned with the high-precision DEM ground truth.
+Figure 8. Evaluation of three-dimensional absolute trajectory error.
+These findings suggest that the developed framework effectively inhibits the prop-
+agation of localized dimensional biases into the global three-dimensional space, thereby
+maintaining the ATE within a manageable tolerance during long-distance cruising.
+Table 3 summarizes the error statistics of various schemes in multi-dimensional space,
+aiming to quantitatively evaluate the trajectory tracking performance in long-distance
+missions. Observations of the error evolution process reveal that the baseline scheme
+is susceptible to sensor drift during long-range cruises due to the lack of a closed-loop
+correction mechanism. This drift results in a pronounced cumulative trend in spatial
+deviation as the flight distance increases, reflecting the robustness bottleneck of traditional
+architectures when confronting complex terrain. In contrast, the method proposed in this
+paper suppresses the penetration of local nonlinear disturbances into the global scale at the
+underlying solver level, demonstrating superior multi-dimensional spatial consistency.
+Table 3. Long-distance trajectory tracking error statistics.
+Method
+Evaluation Metric
+RMSE/m
+Max. Error/m
+Baseline
+Altitude
+5.82
+7.15
+Longitude
+3.45
+5.20
+3D ATE
+7.14
+9.42
+Proposed
+Altitude
+0.41
+0.65
+Longitude
+0.28
+0.58
+3D ATE
+0.62
+0.92
+https://doi.org/10.3390/electronics15101974
+[p.16]
+Electronics 2026, 15, 1974
+16 of 20
+5.3. Noise Sensitivity Analysis
+Following the verification of long-distance tracking stability in the tightly coupled ar-
+chitecture, robustness testing under degraded observation conditions was conducted. This
+considers that airframe vibrations and illumination changes in real outdoor environments
+frequently induce pixel-level biases during image feature extraction. When the feature
+extraction noise increases to 2.5 pixels, the iterations of the standard Newton method tend
+towards divergence, resulting in a significant increase in computational overhead and
+a marked drop in positioning accuracy (Figure 9). Conversely, the proposed adaptive
+gradient damping mechanism maintains a gradual error growth trend under high-noise
+conditions driven by approximate trust-region constraints.
+Figure 9. System robustness analysis under extreme observation noise.
+The findings indicate that the system possesses excellent numerical convergence
+and computational robustness when handling non-convex terrain and visual observation
+degradation. The adaptive damping strategy maintains a stable convergence rate. This
+further demonstrates the practical engineering potential of the algorithm in balancing
+positioning robustness with computational efficiency.
+5.4. Comparative Analysis of Monte Carlo Simulations and HIL Experiments
+Comparing the positioning error statistics of HIL experiments and Monte Carlo simu-
+lations (Figure 10) reveals that the HIL error distribution is significantly wider and presents
+prominent long-tail characteristics.
+Figure 10. CDF comparison of 3D positioning errors.
+https://doi.org/10.3390/electronics15101974
+[p.17]
+Electronics 2026, 15, 1974
+17 of 20
+In this paper, Monte Carlo simulations are primarily used to evaluate the theoretical
+accuracy boundaries of the system under idealized Gaussian noise, while HIL experi-
+ments reveal the physical performance constraints restricted by computational power.
+The observed error shifts and long-tail effects reflect the impact of physical-layer nonlin-
+ear perturbations on system performance to a certain extent. These interference factors
+mainly originate from sensor delays brought by hardware communication and image
+processing, as well as unavoidable discretization errors in DEM retrieval and feature extrac-
+tion. Additionally, the closed-loop coupling between calculation delays caused by limited
+computational power and maneuver control stages might also be a key factor inducing
+system uncertainty. The HIL simulation scheme constructed in this paper integrates real
+high-resolution digital elevation model data and accounts for the physical delay effects
+of airborne sensors during hardware communication and image processing. In the field
+of autonomous UAV navigation, such verification methods can objectively evaluate the
+numerical stability of the system when responding to spatial discretization errors and
+non-linear external perturbations, providing a practically valuable reference for future
+engineering applications.
+In conclusion, even under conditions of limited hardware resources, the architecture in
+this paper still effectively constrains long-tail errors within safe tolerance limits, which vali-
+dates that the proposed scheme possesses a certain degree of fault tolerance and robustness
+in engineering environments.
+5.5. Ablation Analysis of Core Modules
+By comparing various functional variants under complex nonlinear terrain (Figure 11),
+the study validates the advantages of the proposed method under intricate boundary
+conditions. In depth analysis of the ablation results indicates that the baseline scheme
+exhibits numerical instability when encountering complex terrain. Since this scheme lacks
+an adaptive adjustment mechanism for sharp terrain fluctuations, it is prone to iterative
+oscillations in regions with abrupt gradient changes, which causes the overall positioning
+error to deviate significantly from the expected convergence interval. This phenomenon
+reflects the performance limitations of traditional fixed step algorithms under extreme
+operational conditions.
+ 
+(a) 
+(b) 
+Figure 11. Statistical comparison of core module ablation experiments: (a) Comparison of 3D RMSE;
+(b) Comparison of positioning recall rates under a one-meter error tolerance.
+In the comparative evaluation of individual modules, the model retaining only the
+visual geometric tight coupling functionality mitigates long-term cumulative drift through
+temporal prior constraints, yet its effectiveness in suppressing single frame nonlinear bias
+remains relatively limited. The variant deploying only the adaptive gradient damping
+mechanism performs better regarding the stability of micro optimization and effectively
+suppresses numerical fluctuations triggered by terrain discontinuities.
+https://doi.org/10.3390/electronics15101974
+[p.18]
+Electronics 2026, 15, 1974
+18 of 20
+As the complete architecture proposed in this study, the system achieves synergistic
+performance enhancement by integrating the two aforementioned improvements. Experi-
+mental data demonstrate that the noise margin provided by the adaptive damping term
+and the geometric constraints from the tight coupling architecture form a complementary
+effect, which not only compresses the root mean square error of three-dimensional posi-
+tioning (Figure 11a) but also reduces the statistical standard deviation. Furthermore, in the
+reliability assessment based on a one-meter error threshold (Figure 11b), the fully integrated
+scheme demonstrates robustness superior to that of independent module variants, ensuring
+that the vast majority of positioning results are stably maintained within the sub meter
+accuracy interval.
+6. Conclusions
+To address the localisation challenges of micro-UAVs in complex terrain under GNSS-
+denied environments, by deeply coupling the classical nonlinear second-order optimization
+framework with the underlying physical constraints of the UAV, this paper proposes an
+improved adaptive gradient-damping Newton method integrated with terrain gradients
+and a visual–geometric tightly coupled architecture.
+From a theoretical perspective, the adaptive damping mechanism dynamically per-
+ceives the non-linear characteristics of local terrains and constructs a smooth iterative
+law that approximates the trust region. This approach effectively mitigates the oscillatory
+behaviour inherent in the standard Newton method when navigating non-convex regions,
+thereby significantly broadening the algorithm’s convergence domain and enhancing the
+stability of the numerical approximation process.
+Without significantly increasing computational complexity, the mechanism improves
+the numerical convergence depth, providing numerical redundancy to counter the phys-
+ical sensor noise. At the architectural level, the visual–geometric tightly coupled model
+mitigates error accumulation in low-cost sensors during long-endurance missions. By
+introducing a time-series regularisation penalty term, the architecture achieves state–space
+smoothing between terrain constraints and inertial extrapolation effectively restricting
+trajectory drift during simulated long-range flights.
+In summary, the core academic value of this research is primarily manifested in the
+profound integration of the system architecture and a rational trade-off concerning com-
+putational resources. Rather than pursuing fundamental breakthroughs within the purely
+mathematical theoretical dimension, this study comprehensively accounts for the objective
+physical constraints of micro-UAV platforms. By constructing a mapping mechanism
+between physical spatial states and mathematical optimization boundaries, it partially
+mitigates the numerical degradation phenomena frequently induced by traditional fixed
+step-size algorithms when solving across complex non-convex manifolds. Grounded in
+realistic engineering conditions, this trade-off strategy not only assists in circumventing
+the cumbersome subproblem resolution burdens inherent to high-order optimization al-
+gorithms but also holds the promise of providing a highly feasible technical evolution
+pathway for autonomous perception and high-frequency state estimation tasks on resource-
+constrained platforms operating within extreme geomorphological environments.
+Future work will prioritize deploying the proposed algorithm onto physical UAV
+platforms to conduct rigorous field flight tests in real-world complex terrains, thereby
+thoroughly verifying and refining its practical engineering applicability.
+Author Contributions:
+Conceptualization, X.Z. (Xunli Zhou), A.F. and X.L.; Methodology,
+X.Z. (Xunli Zhou) and X.L.;
+Software,
+X.Z. (Xunli Zhou);
+Validation,
+X.Z. (Xunli Zhou),
+X.Z. (Xiaoge Zhang) and X.L.; Formal analysis, X.Z. (Xunli Zhou), S.F. and J.L.; Investigation, X.Z.
+(Xunli Zhou), S.F. and J.L.; Writing—original draft, X.Z. (Xunli Zhou); Writing—review and editing,
+https://doi.org/10.3390/electronics15101974
+[p.19]
+Electronics 2026, 15, 1974
+19 of 20
+X.Z. (Xunli Zhou) and X.L.; Visualization, X.Z. (Xunli Zhou); Supervision, X.L.; Funding acquisition,
+J.Z. All authors have read and agreed to the published version of the manuscript.
+Funding: This research was funded by the Natural Science Foundation of Sichuan Province, China
+under Grants No. 24NSFSC2722, the National Natural Science Foundation of China under Grants
+No. 62406043. The funders had no role in the design of the study; in the collection, analyses, or
+interpretation of data; in the writing of the manuscript, or in the decision to publish the results.
+Data Availability Statement: The data that support the findings of this study are available from the
+corresponding author upon reasonable request.
+Conflicts of Interest: Author Song Fu and Jiaming Liu were employed by the company Chengdu
+Jinjiang Electronic System Engineering Company, Ltd., 610051 Chengdu, China. The remaining
+authors declare that the research was conducted in the absence of any commercial or financial
+relationships that could be construed as a potential conflict of interest.
+Abbreviations
+The following abbreviations are used in this manuscript:
+UAVs
+unmanned aerial vehicles
+GNSS
+Global Navigation Satellite System
+DEM
+Digital Elevation Model
+LiDAR
+Light Detection and Ranging
+ENU
+East–North–Up
+GPS
+Global Positioning System
+HIL
+Hardware-in-the-Loop
+References
+1.
+Arafat, M.Y.; Alam, M.M.; Moh, S. Vision-based navigation techniques for unmanned aerial vehicles: Review and challenges.
+Drones 2023, 7, 89. [CrossRef]
+2.
+Tang, P.; Li, J.; Sun, H. A review of electric UAV visual detection and navigation technologies for emergency rescue missions.
+Sustainability 2024, 16, 2105. [CrossRef]
+3.
+Jin, Y.; Deng, Z.; Zhang, H.; Ding, Z.; Tang, X.; Wang, Z. A review of UAV positioning in LAIN: Toward a 5G-core ‘space-air-ground’
+integrated and cooperative architecture. Eng. Inf. Technol. Electron. Eng. 2026, 27, 250127. [CrossRef]
+4.
+Jarraya, I.; Al-Batati, A.S.; Kadri, M.B.; Abdelkader, M.; Ammar, A.; Boulila, W.; Koubaa, A. Gnss-denied unmanned aerial
+vehicle navigation: Analyzing computational complexity, sensor fusion, and localization methodologies. Satell. Navig. 2025, 6, 9.
+[CrossRef]
+5.
+Li, Z.; Jiang, X.; Ma, S.; Ma, X.; Lv, Z.; Ding, H.; Ji, H.; Sun, Z. Expediting the convergence of global localization of UAVs through
+forward-facing camera observation. Drones 2024, 8, 335. [CrossRef]
+6.
+Couturier, A.; Akhloufi, M.A. A review on deep learning for UAV absolute visual localization. Drones 2024, 8, 622. [CrossRef]
+7.
+Tian, X.; Shao, J.; Ouyang, D.; Shen, H.T. UAV-satellite view synthesis for cross-view geo-localization. IEEE Trans. Circuits Syst.
+Video Technol. 2022, 32, 4804–4815. [CrossRef]
+8.
+Wang, S.; Li, X.; Zhang, Y.; Ma, S.; Ren, X. Deep learning-based 6-DoF visual relocalization assisted simultaneous localization and
+mapping (SLAM). Ind. Robot 2025, 52, 573–580. [CrossRef]
+9.
+Chen, C.; Wang, B.; Lu, C.X.; Trigoni, N.; Markham, A. Deep learning for visual localization and mapping: A survey. IEEE Trans.
+Neural Netw. Learn. Syst. 2024, 35, 17000–17020. [CrossRef] [PubMed]
+10.
+Xie, C.; Gu, C.; Wu, B.; Guo, D. Flight path optimization for UAV-aided reconnaissance data collection. Electronics 2025, 14, 1718.
+[CrossRef]
+11.
+Deng, Y.; Tian, L.; Hou, X.; Liu, X.; Wang, Y.; Liu, X.; Liao, C. HiRo-SLAM: A high-accuracy and robust visual-inertial SLAM
+system with precise camera projection modeling and adaptive feature selection. Sensors 2026, 26, 711. [CrossRef] [PubMed]
+12.
+Zhang, H.; Zhao, X.; Luo, R.; Wang, Z.; Wang, G.; An, K. A roadmap of mathematical optimization for visual SLAM in dynamic
+environments. Mathematics 2026, 14, 264. [CrossRef]
+13.
+Saxena, A.; Chiu, C.Y.; Shrivastava, R.R.; Menke, J.; Sastry, S. Simultaneous localization and mapping: Through the lens of
+nonlinear optimization. IEEE Robot. Autom. Lett. 2022, 7, 7148–7155. [CrossRef]
+14.
+Boche, S.; Jung, J.; Laina, S.B.; Leutenegger, S. OKVIS2-X: Open keyframe-based visual-inertial SLAM configurable with dense
+depth or LiDAR, and GNSS. IEEE Trans. Robot. 2026, 41, 6064–6083. [CrossRef]
+https://doi.org/10.3390/electronics15101974
+[p.20]
+Electronics 2026, 15, 1974
+20 of 20
+15.
+Li, J.; Sun, L.; Lin, C.; Wang, X.; Wang, Z.; He, Q.; Yi, B.; Cao, S. SED-UAV: A synergistic framework of lightweight chaotic
+encryption and multiscale feature detection for secure UAV applications. IEEE Internet Things J. 2026, 13, 8050–8063. [CrossRef]
+16.
+Min, X.; Zhou, W.; Hu, R.; Wu, Y.; Pang, Y.; Yi, J. LWUAVDet: A lightweight UAV object detection network on edge devices. IEEE
+Internet Things J. 2024, 11, 24013–24023. [CrossRef]
+17.
+Zhou, X.; Zhang, X.; Yang, X.; Zhao, J.; Liu, Z.; Shuang, F. Towards UAV localization in GNSS-denied environments: The SatLoc
+dataset and a hierarchical adaptive fusion framework. Remote Sens. 2025, 17, 3048. [CrossRef]
+18.
+Zhang, Y.; Sun, Z.; Peng, W.; Lin, Y.; Li, X.; Yan, K.; Chen, P. Key technologies for intelligent operation of plant protection UAVs in
+hilly and mountainous areas: Progress, challenges, and prospects. Agronomy 2026, 16, 193. [CrossRef]
+19.
+Jang, J.; Kim, J. Topographic SLAM using a single terrain altimeter in GNSS-restricted environment. IEEE Access 2022, 10,
+10806–10815. [CrossRef]
+20.
+Li, J.; Wang, J.; Cui, W.; Jian, C. UAV-Mounted RIS-aided multi-target localization system: An efficient sparse-reconstruction-based
+approach. Drones 2024, 8, 694. [CrossRef]
+21.
+Zhao, J.; Lv, S.; Zhu, H.; Li, Y.; Yu, H.; Wang, Y.; Zhang, K. Pre-Dog-Leg: A feature optimization method for visual inertial SLAM
+based on adaptive preconditions. Sensors 2025, 25, 6161. [CrossRef]
+22.
+Zhou, X.; He, R.; Jia, W.; Liu, H.; Ma, Y.; Sun, W. Remote target high-precision global geolocalization of UAV based on multimodal
+visual servo. Remote Sens. 2025, 17, 2426. [CrossRef]
+23.
+Lan, T.; Li, D.; Lou, Q.; Liu, C.; Li, H.; Zhang, Y.; Yu, X. A highly robust terrain-aided navigation framework based on an improved
+marine predators algorithm and depth-first search. Drones 2025, 9, 543. [CrossRef]
+24.
+Chen, W.; Shang, G.; Ji, A.; Zhou, C.; Wang, X.; Xu, C.; Li, Z.; Hu, K. An overview on visual SLAM: From tradition to semantic.
+Remote Sens. 2022, 14, 3010. [CrossRef]
+25.
+Feng, W.; Fu, Y.; Yang, Y.; Gao, C.; Xu, K. Three-dimensional trajectory planning for unmanned aerial vehicles based on the
+starfish optimization algorithm (SFOA). J. Meas. Eng. 2025, 14, 24939. [CrossRef]
+26.
+Li, J.; Yu, C.; Zhang, Z.; Sheng, Z.; Yan, Z.; Wu, X.; Zhou, W.; Xie, Y.; Huang, J. Improved A-star path planning algorithm in
+obstacle avoidance for the fixed-wing aircraft. Electronics 2023, 12, 5047. [CrossRef]
+27.
+Zhou, Q.; Tao, Y.; Su, Q.; Tsukada, M. A feature-aware elite imitation MARL for multi-UAV trajectory optimization in mountain
+terrain detection. Drones 2025, 9, 645. [CrossRef]
+28.
+Zheng, Y.; Zhang, Y.; Yu, J.; Guo, W.; Xie, Y. Terrain-aware hierarchical control framework for dynamic locomotion of humanoid
+robots. Electronics 2025, 14, 1264. [CrossRef]
+29.
+Brad, S.; Balog, B. Integrated rover path planning and validation on real outdoor terrain scenarios using satellite information to
+conduct a real achievable trajectory. Electronics 2025, 14, 921. [CrossRef]
+30.
+Zhou, X.; Jia, W.; He, R.; Sun, W. High-precision localization tracking and motion state estimation of ground-based moving target
+utilizing unmanned aerial vehicle high-altitude reconnaissance. Remote Sens. 2025, 17, 735. [CrossRef]
+31.
+Zhang, G.; Zhou, J.; Duan, Z.; Zhao, W. Research on LiDAR-assisted optimization algorithm for terrain-aided navigation of
+eVTOL. Sensors 2025, 25, 5672. [CrossRef] [PubMed]
+32.
+Newman, D.R.; Hayakawa, Y.S. Robust land-surface parameterisation for repeated topographic surveys in dynamic environments
+with adaptive state-space models. Remote Sens. 2025, 17, 1993. [CrossRef]
+33.
+Emadi, S.; Limongiello, M. Optimizing 3D point cloud reconstruction through integrating deep learning and clustering models.
+Electronics 2025, 14, 399. [CrossRef]
+34.
+He, Y.; Luo, M.; Yang, H.; Bai, L.; Chen, Z. Variability of interpolation errors and mutual enhancement of different interpolation
+methods. Appl. Sci. 2024, 14, 11493. [CrossRef]
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+https://doi.org/10.3390/electronics15101974
+=== END ===

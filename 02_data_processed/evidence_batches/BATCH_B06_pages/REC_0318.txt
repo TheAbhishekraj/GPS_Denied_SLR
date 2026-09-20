@@ -1,0 +1,2304 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0318.pdf
+sha256: 43A975F2BA67EA7AA1F2AB784827360F44D7A18584721F2C8A55808C1BFB12B6
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+ 
+ 
+  
+Abstract—Unmanned Aerial Vehicles (UAVs), when used in a 
+formation setting, can be more advantageous. The concerted 
+operation of UAV formations has many potential applications, 
+such as cooperative reconnaissance, formation combat and 
+search and rescue in mountainous regions. Nevertheless, modern 
+navigation systems for UAVs are not able to guarantee the 
+precision of pose estimation when GPS is unavailable in complex 
+environment. The IMU drifts of navigation systems can cause 
+poor calculation accuracy of position, velocity and attitude of all 
+UAVs in the group within dozens of seconds. To solve this 
+problem, this paper puts forward a new cooperative navigation 
+method based on adaptive Cubature Kalman Filter which shares 
+the relative observations between the UAVs and fuses these data 
+with direct measurements from IMU to obtain better navigation 
+performance. The simulation results demonstrate the validity of 
+the proposed method. 
+I. INTRODUCTION 
+With the development of the technology of Unmanned 
+Aerial Vehicle (UAV), it has been possible to keep human 
+beings away from various complex and dangerous situations. 
+UAVs have been widely used in both military and civil field 
+for reconnaissance, hazardous search and rescue missions, 
+aerial photography, air-data acquisition, etc. Nowadays many 
+applications of UAVs require that a group of UAVs work in 
+collaboration in order to perform a certain task, since multi-
+UAV formation can effectively improve the reliability and 
+coverage compared with a single one. 
+Precise navigation for UAV is a necessary condition for 
+success of almost all the tasks mentioned above. When a group 
+of mobile vehicles is required to fulfil a task, if same external 
+landmarks are used by different vehicles for self-navigation, or 
+inter-vehicle observations are made, the navigation method for 
+each vehicle is not independent. In these cases, the navigation 
+problem is not resolved by dealing with the pose estimation 
+problems of each vehicle independently, but fusing complex 
+information from different vehicles of the group, which means 
+cooperative navigation [1]. The research about cooperative 
+navigation system aims to improve the accuracy of pose 
+estimation. In the previous work, the main research directions 
+on this topic fall into three categories: 1) analysis of multiple 
+vehicles formation models and navigation algorithms; 2) study 
+of error model and compensation method of cooperative 
+network; 3) research on formation configuration [2]. 
+ 
+*This work was supported by the National Natural Science Foundation of 
+China under Grants 61503009 and 61333011, the Beijing Natural Science 
+Foundation under Grant 4182035, the Young Elite Scientists Sponsorship 
+Program by CAST under Grant 2017QNRC001, the Aeronautical Science 
+Foundation of China under Grants 2016ZA51005 and 20170151001, the 
+Special Research Project of Chinese Civil Aircraft, the State Key Laboratory 
+of Intelligent Control and Decision of Complex Systems, and the 
+At present international and domestic experts have made a 
+lot of research in the field of cooperative navigation and 
+achieved many significant results, especially on the area of 
+autonomous underwater vehicles (AUVs) [3,4,5] and mobile 
+robots [6,7,8]. Amedeo Vetrella [9] proposed a cooperative 
+UAV navigation method that combined differential Global 
+Positioning System (GPS) and visual tracking information 
+with a sensor fusion algorithm based on EKF. Johnathan 
+Votion [10] devoted himself to develop navigation and 
+reconnaissance capabilities for cooperative multi-vehicle 
+system in uncertain environment. Giancarmine Fasano [11] 
+adopted distributed multi-antenna GNSS, vision and MEMS 
+sensors to improve the navigation performance of UAVs in 
+outdoor environments. 
+Typical navigation systems for UAVs consist of an Inertial 
+Measurement Unit (IMU) and GPS. Unfortunately, GPS 
+signals may be unavailable in complex conditions due to GPS 
+jamming, lack of line of sight, hardware failure, etc. Since the 
+process of obtaining pose estimates by simply integrating the 
+measurements from IMU will lead to significant deviations 
+over time, UAVs cannot only rely on IMU for navigation. 
+In order to solve the navigation problems for UAVs in GPS 
+denied areas, Rajnikant Sharma [12] proposed a cooperative 
+methodology based on the principle of exchanging IMU 
+information to constrain the pose estimation drift in the 
+absence of GPS. Anusna Chakraborty [13] compared and 
+evaluated the accuracy of navigation algorithms for different 
+relative measurements. Studying on cooperative navigation 
+between UAVs and mobile robots, Victor O. Sivaneri [14] 
+aimed at optimal motion planning of mobile robots to decrease 
+the navigation error of UAVs. Panagiotis Agis [15] developed 
+a new solution namely PHIMTA, which is a hybrid INS/ 
+pedestrian dead reckoning algorithm, and then combined it 
+with the most advanced navigation algorithms. Research 
+results of Lvtianyang Zhang [16] indicated that a UAV which 
+is equipped with GPS can assist the other GPS-denied one in 
+navigation. Moreover, James Russell [17] did the similar 
+research in 3-dimensional space. 
+The integration of measurements from proprioceptive 
+sensors and exteroceptive sensors is generally achieved by 
+Kalman filter, or some variants such as extended Kalman filter 
+(EKF). On the basis of Rajnikant Sharma’s research work, a 
+novel cooperative navigation method based on adaptive 
+Cubature Kalman Filter (CKF) is proposed in this paper, which 
+Fundamental Research Funds for the Central Universities under Grant YWF-
+18-BJ-Y-73. 
+Y. Yu, S. Peng, Q. Li, X. Dong and Z. Ren are members of the Science 
+and Technology on Aircraft Control Laboratory, School of Automation 
+Science and Electrical Engineering, Beihang University, Beijing, 100191 
+China (corresponding author to provide phone: 86-10-8231-4573; e-mail: 
+muziqingdong@126.com).  
+Cooperative Navigation Method Based on Adaptive CKF for UAVs 
+In GPS Denied Areas 
+Yingrong Yu, Siting Peng, Qingdong Li*, Xiwang Dong and Zhang Ren 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:11:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+ 
+ 
+shares the relative observations between the UAVs and fuses 
+these data with the IMU measurements from other UAVS 
+within the group to obtain better navigation performance. 
+The paper is organized as follows. In the following 
+sections, firstly the mathematical model of a UAV is 
+constructed; then, two filtering algorithms based on Extended 
+Kalman Filter (EKF) and adaptive Cubature Kalman Filter 
+(CKF) respectively, are adopted in section 3 for cooperative 
+navigation. Section 4 provides the simulation results and the 
+discussions. Conclusion are drawn in Section 5. 
+II. MATHEMATICAL MODEL ESTABLISHMENT 
+In this section the cooperative navigation problem for 
+multi-UAV is formulated preliminarily. To study the 
+cooperative navigation system, the UAV dynamical model and 
+observation model are constructed and the network 
+communication topology is provided. 
+A. Problem Statement 
+The cooperative multi-UAV navigation problem may be 
+stated as follows: 
+• 
+Consider a formation composed by N independent 
+UAVs moving in a complex scenario, where each 
+UAV is identified by a distinct positive integer 
+{
+}
+1,2,
+,
+i
+N
+∈
+
+ and 
+can 
+move 
+independently 
+according to its own nonlinear dynamical model. 
+• 
+Each UAV carries some proprioceptive sensing 
+devices in order to estimate its own position, velocity 
+and attitude. In this paper, each UAV in the group is 
+equipped with GPS and a low cost IMU, sometimes 
+flying in GPS denied areas. The IMU which consists 
+of three gyroscopes and three accelerometers, is not 
+sufficient to fulfill the navigation mission by simply 
+integrating the measurements from gyroscopes and 
+accelerometers. 
+• 
+Each UAV also carries some exteroceptive sensing 
+devices to detect other UAVs in the group and 
+provides inter-platform measurements (the relative 
+position and orientation), in order to help propagate 
+and update its own pose estimate. 
+• 
+All UAVs are equipped with communication devices 
+allowing exchange of information (measurements 
+from gyroscopes and accelerometers) within the 
+group. 
+B. UAV Dynamical Model 
+The mathematic model for a single UAV is built to 
+describe its motion characteristics. First of all, the following 
+assumptions are stated: 
+• 
+The UAV is treated as a rigid body without elastic 
+deformation, and its mass remains unchanged during 
+the course of flight. 
+• 
+The group of UAVs move at low altitude and we take 
+no account of earth curvature. 
+• 
+The fuselage of UAV is assumed to be symmetrical, 
+whose symmetry plane is exactly the longitudinal 
+plane of aircraft-body coordinate frame. 
+In normal conditions, the law of motion for UAV can be 
+described by: 
+ 
+(
+)
+,
+,
+0
+f
+X X U
+Y
+CX
+
+=
+
+=
+
+
+  
+(1) 
+Where X , U and Y represent UAV’s state variables, control 
+inputs and control outputs, respectively. The state variables 
+include the coordinate components of UAV in earth-surface 
+inertial reference frame x , y , h , airspeed V , angle of attack 
+α , sideslip angle β , angle of pitchθ , angle of rollφ , angle 
+of yaw ψ , and these angular ratesθ , φ ,ψ . The control inputs
+[
+]
+e
+a
+r
+T
+U
+δ
+δ
+δ
+δ
+=
+, which correspond to the elevator, 
+ailerons, rudder and engine throttle respectively. 
+For UAV formation flight, the relationships between the 
+accelerations and the forces and moments don’t need to be 
+taken into consideration. Therefore, complex dynamical 
+model can be simplified just to describe the connection among 
+the airspeed, Euler angles and the rest of state variables. 
+The equations of motion for the i th UAV are given by: 
+ 
+(
+)
+(
+)
+(
+)
+(
+)
+cos
+cos
+sin
+cos
+sin
+cos
+tan
+1
+1
+1
+1
+1
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+xy
+i
+i
+i
+xy
+i
+i
+i
+c
+i
+V
+i
+i
+i
+c
+i
+i
+i
+i
+c
+i
+i
+i
+i
+c
+i
+i
+h
+h
+x
+V
+y
+V
+h
+V
+V
+V
+g
+V
+V
+V
+V
+h
+h
+h
+h
+θ
+φ
+ψ
+θ
+ψ
+θ
+θ
+θ
+φ
+ψ
+τ
+θ
+θ
+θ
+τ
+φ
+φ
+φ
+τ
+τ
+τ
+
+=
+
+=
+
+
+=
+
+
+=
+
+
+
+=
+
+
+=
+−
+
+
+
+=
+−
+
+
+
+=
+−
+
+
+
+= −
++
+−
+
+
+
+
+
+
+
+
+
+
+
+
+  
+(2) 
+Where 
+i
+xy
+V
+ is the velocity component in horizontal plane, 
+i
+c
+θ 
+and 
+i
+c
+φ are commanded pitch and roll angle, 
+i
+c
+V and 
+i
+ch are 
+required velocity and height, and
+i
+V
+τ
+, 
+i
+θτ , 
+i
+φτ , 
+i
+h
+τ  , 
+i
+h
+τ are 
+autopilot time constants. 
+Thus 
+ 
+cos
+cos
+sin
+cos
+cos
+sin
+sin
+cos
+cos
+cos
+sin
+sin
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+x
+V
+V
+V
+y
+V
+V
+V
+ψ
+θ
+ψ
+ψ
+θ
+θ
+ψ
+θ
+ψ
+θ
+ψ
+ψ
+θ
+θ
+ψ
+θ
+
+=
+
+−
+−
+
+
+=
+
++
+−
+
+
+
+
+
+
+
+
+
+  
+(3) 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:11:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+ 
+ 
+When UAV moves in level flight and 
+i
+V is aligned with 
+the wind frame (sideslip angle β equals to zero), substituting 
+tan
+i
+i
+i
+xy
+g
+V
+φ
+ψ =
+
+ into (3), we obtain: 
+ 
+cos
+tan
+sin
+sin
+tan
+cos
+i
+i
+i
+i
+i
+i
+i
+i
+i
+i
+x
+V
+g
+y
+V
+g
+ψ
+φ
+ψ
+ψ
+φ
+ψ
+
+=
+−
+
+=
++
+
+
+
+
+
+  
+(4) 
+C. Observation Model 
+The observation of UAV for navigation state estimation is 
+composed of direct measurements 
+d
+Z
+ from IMU and the 
+relative observation
+r
+Z . The IMU in UAV consists of three 
+gyroscopes and three accelerometers. The gyroscopes provide 
+pitch rate
+g
+θ , roll rate 
+g
+φ and yaw rate
+g
+ψ
+, while the 
+accelerometers provide acceleration
+x
+a , 
+y
+a and 
+h
+a as outputs. 
+Gyroscope biases for pitch, roll and yaw rate are represented 
+by bθ , bφ and bψ . Now research mainly focuses on the 
+establishment of relative observation model. 
+For the small and miniature UAV discussed in the paper, 
+commonly used equipment for relative observation at present 
+such as infrared sensor, photoelectric sensor, camera, laser 
+sensor and so on, are able to complete range and direction 
+finding simultaneously (or one of them). With the 
+development of the technology of sensors and the applications 
+of data fusion, several advanced sensing devices like 
+SAR/GMTI radar, integrated ESM electronic information 
+detection equipment, have been increasingly installed on the 
+small and miniature UAV, but they are not yet in widespread 
+use. The relative observation system discussed in this paper is 
+a simple combination of a sensor for range finding (ultrasonic 
+or laser) and a sensor for direction finding (photo electricity or 
+infrared). 
+The geometrical relationship of state variables between the 
+i th and j th UAV is illustrated in Fig.1. 
+g
+X
+g
+Y
+g
+Z
+i
+UAV
+j
+UAV
+i j
+r
+ij
+ϑ
+ij
+ϕ
+O
+ 
+Figure 1 Relative position and orientation 
+ 
+The earth-surface inertial reference frame is presented as
+g
+g
+g
+g
+O X Y Z . The position vectors of the i th and j th UAV 
+are 
+,
+,
+T
+i
+i
+i
+x y h
+
+
+= 
+	
+iP
+ and 
+,
+,
+T
+j
+j
+j
+x
+y
+h
+
+
+= 
+	
+jP
+ respectively, 
+hence the relative vector is 
+,
+,
+T
+i
+j
+i
+j
+i
+j
+x
+x
+y
+y
+h
+h
+
+
+=
+−
+−
+−
+
+	
+ij
+P
+. 
+As space is limited, the relative position and orientation of 
+the i th and j th UAV are given directly by 
+ 
+(
+)
+(
+)
+(
+)
+(
+)
+(
+)
+2
+2
+2
+2
+2
+arctan
+arctan
+i
+j
+i
+j
+i
+j
+ij
+i
+j
+ij
+i
+j
+i
+j
+i
+j
+ij
+i
+j
+r
+x
+x
+y
+y
+h
+h
+h
+h
+x
+x
+y
+y
+y
+y
+x
+x
+ϑ
+ϕ
+
+
+
+=
+=
+−
++
+−
++
+−
+
+
+−
+
+=
+
+
+−
++
+−
+
+
+−
+
+=
+
+−
+
+ij
+p
+  (5) 
+D. Communication 
+For a formation composed by N independent UAVs, 
+suppose that the effective communication distance of each 
+UAV is 
+c
+ir , only the adjacent UAV node moving in its 
+communication range is allowed to communicate, and the 
+communication is bidirectional.  
+Define the set of all adjacent nodes of the i th UAV as 
+iS
+. The number of nodes contained in 
+iS can be expressed as 
+{
+}
+1,2,
+,
+i
+N
+N
+∈
+
+. In discrete case, the network topology of a 
+multi-UAV formation system can be represented by a 
+weighted undirected graph 
+{
+}
+, ,
+G
+S E W
+=
+, where the set of 
+nodes
+{
+}
+1
+2
+,
+,
+,
+N
+S
+s s
+s
+=
+
+ denotes all the UAVs and the set of 
+edges 
+(
+)
+{
+}
+,
+:
+,
+,
+i
+j
+i
+j
+E
+s s
+s s
+S i
+j
+⊆
+∈
+≠
+ denotes 
+all 
+the 
+communication links. The edge of graph G is 
+(
+)
+,
+ij
+i
+j
+e
+s s
+=
+. 
+N N
+ij
+W
+w
+×
+
+
+=
+∈
+
+	
+
+ represent the weighted adjacency matrix 
+associated with G . An edge 
+ije is called undirected if and 
+only if 
+,
+ij
+ji
+e
+e
+E
+∈
+ and 
+ij
+ji
+w
+w
+=
+. 
+Let 
+[ ]
+N N
+L k
+×
+∈
+be the laplacian matrix of the graph 
+[ ]
+G k , define incidence matrix [ ]
+A k as bellow: 
+ 
+[ ]
+(
+)
+[ ]
+1
+& ,
+0
+ij
+if i
+j
+i j
+E k
+A
+k
+otherwise
+
+≠
+⊆
+
+= 
+  
+(6) 
+Then 
+ 
+[ ]
+[ ]
+[ ]
+1,
+ij
+N
+ij
+ij
+j
+j i
+A
+k
+if i
+j
+L
+k
+A
+k
+if i
+j
+=
+≠
+−
+≠
+
+= 
+=
+
+ 
+  
+(7) 
+The convergence rate and stability of the cooperative 
+navigation system and the connectivity of the communication 
+topology can be evaluated by the second smallest eigenvalue 
+of [ ]
+L k . 
+Based on the definition of graph G , the graph-theoretic 
+neighborhood of the i th UAV is given by 
+ 
+(
+)
+{
+}
+| min
+,
+0
+c
+c
+c
+i
+i
+j
+ij
+N
+j
+S
+r
+r
+r
+=
+∈
+−
+≥
+  
+(8) 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:11:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+ 
+ 
+Meanwhile, define 
+I
+i
+N as the set of nodes which need to 
+share information with i for control calculation. 
+Definition (Spanos and Murray [18]). For the multi-UAV 
+system whose communication topology can be expressed as 
+[ ]
+[ ]
+(
+)
+{
+}
+,
+,
+1,2,
+,
+G k
+S E k
+S
+N
+=
+=
+
+, 
+[ ]
+E k
+S
+S
+⊆
+×
+, 
+the 
+geometric connectivity robustness of node i (the i th UAV) 
+can be defined as 
+( )
+I
+R
+i : 
+ 
+( )
+(
+)
+1
+min
+max
+, ,
+2
+c
+I
+c
+i
+i
+i
+c
+I
+j N
+N
+k N
+R
+i
+P
+i j k
+∈
+∈
+
+
+=
+
+
+
+
+
+
+  
+(9) 
+Where 
+(
+)
+(
+)
+(
+)
+(
+)
+, ,
+min min
+,
+,min
+,
+c
+c
+c
+c
+c
+i
+k
+ik
+j
+k
+jk
+P
+i j k
+r
+r
+r
+r
+r
+r
+=
+−
+−
+ 
+denotes the path robustness (associated with a two-way path 
+from i to j through k ). 
+Then: (1) If 
+( )
+0
+I
+R
+i >
+ for all i , G is connected; (2) If 
+( )
+0
+I
+R
+i >
+ for all i , the connectedness of G can still be 
+maintained when each node is displaced arbitrarily by a 
+distance 
+( )
+I
+R
+i . 
+The graph G of the UAVs in this paper is assumed to be a 
+fully connected graph. That is to say, there is bidirectional 
+communication link (
+)
+,i j
+E
+∈
+ between any two nodes i and 
+j . The motion trails of the UAV formation during the course 
+of flight is supposed to satisfy the conditions to maintain the 
+connectedness. The communication topology of a formation 
+composed by 4 UAVs is illustrated in Fig.2. 
+1
+UAV
+2
+UAV
+3
+UAV
+4
+UAV
+1
+c
+r
+2
+c
+r
+3
+c
+r
+4
+c
+r
+12
+r
+[ ]
+( )
+(
+)
+{
+}
+( )
+(
+) (
+) (
+) (
+)
+{
+(
+) (
+)
+(
+) (
+) (
+) (
+) (
+) (
+)}
+1
+,
+1 ,
+1,2,3,4
+1
+1,2 , 1,3 , 1,4 , 2,1 , 2,3 , 2,4 ,
+3,1 , 3,2 , 3,4 , 4,1 , 4,2 , 4,3
+G
+S E
+S
+E
+=
+=
+=
+ 
+Figure 2 Communication topology 
+ 
+III.  FILTER DESIGN FOR NAVIGATION INFORMATION 
+Denote that the state of the i th UAV at time k is 
+i
+kx and 
+it includes position (
+ix , 
+iy , 
+ih ), velocity (
+i
+xv , 
+i
+yv , 
+i
+zv ), 
+attitude (
+i
+θ , 
+iφ , 
+i
+ψ ), and gyroscope biases (
+ibθ , 
+ibφ , 
+ibψ ). 
+Meanwhile, 
+i
+kz includes IMU measurements (
+i
+xa , 
+i
+y
+a , 
+i
+ha , 
+i
+g
+θ
+, 
+i
+g
+φ , 
+i
+g
+ψ
+), relative position (
+ijr ,
+1,
+,
+j
+N
+= 
+, i
+j
+≠
+)and 
+relative orientation (
+ij
+ϑ ,
+1,
+,
+j
+N
+= 
+, i
+j
+≠
+; 
+ij
+ϕ ,
+1,
+,
+j
+N
+= 
+, 
+i
+j
+≠
+). 
+The states, inputs, observations of the system are given by: 
+ 
+1
+1
+1
+2
+2
+2
+,
+,
+k
+k
+k
+k
+k
+k
+k
+k
+k
+N
+N
+N
+k
+k
+k
+x
+u
+z
+x
+u
+z
+X
+U
+Z
+x
+u
+z
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=
+=
+=
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+	
+
+	
+
+
+
+  
+(10) 
+The nonlinear state space model of the cooperative UAV 
+navigation system is shown as: 
+ 
+(
+)
+(
+)
+1
+1
+1
+1
+,
+,
+k
+k
+k
+k
+k
+k
+k
+k
+k
+X
+f
+X
+U
+W
+Z
+h X
+U
+V
+−
+−
+−
+−
+
+=
++ Γ
+
+=
++
+
+  
+(11) 
+Where f denotes the state transform function, h denotes the 
+observation function, and the variance matrixes of noises are 
+k
+Q and 
+k
+R , respectively. 
+A. Extended Kalman Filter 
+Because of the nonlinearity of dynamics and measurement, 
+the cooperative navigation problems for multi-UAV system 
+are solved by EKF generally. Rajnikant Sharma adopted this 
+method for navigation state estimation.  
+Firstly, the state and observation equations are linearized 
+for estimation 
+ 
+(
+)
+(
+)
+(
+)
+(
+)
+*
+*
+,
+,
+|
+,
+,
+|
+X
+X
+X
+X
+f
+X U
+f
+X U
+X
+h X U
+h X U
+X
+=
+=
+∂
+
+=
+
+∂
+
+∂
+
+=
+
+∂
+
+  
+(12) 
+Propagation: 
+ 
+(
+)
+,
+1
+1
+1
+ˆ
+ˆ
+,
+k k
+k
+k
+X
+f
+X
+U
+−
+−
+−
+=
+  
+(13) 
+ 
+,
+1
+1
+1
+1
+1
+T
+k k
+k
+k
+k
+k
+P
+P
+Q
+−
+−
+−
+−
+−
+= Γ
+Γ
++
+  
+(14) 
+Where 
+k
+k
+s
+I
+F T
+Γ =
++
+, 
+sT is the sampling time. 
+Thus  
+ 
+(
+)
+(
+)
+(
+)
+,
+1
+,
+1
+,
+1
+ˆ
+ˆ
+ˆ
+k
+k k
+k
+k
+k k
+k
+k
+k
+k k
+X
+X
+K
+Z
+h X
+P
+I
+K H
+P
+−
+−
+−
+
+=
++
+−
+
+=
+−
+
+  
+(15) 
+Where 
+(
+)
+1
+,
+1
+,
+1
+T
+T
+k
+k k
+k
+k
+k k
+k
+k
+K
+P
+H
+H P
+H
+R
+−
+−
+−
+=
++
+. 
+B. Adaptive Cubature Kalman Filter 
+Adaptive CKF is adopted to fuse the measurements from 
+all sensing devices for its better numerical stability and 
+performance in high-dimensional nonlinear system. 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:11:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+ 
+ 
+Time update: 
+Define 
+1|
+1
+k
+k
+L −
+− as the Cholesky decomposition of the error 
+variance matrix 
+1|
+1
+k
+k
+P −
+−: 
+ 
+1|
+1
+1|
+1
+1|
+1
+T
+k
+k
+k
+k
+k
+k
+P
+L
+L
+−
+−
+−
+−
+−
+−
+=
+  
+(16) 
+Select 2n cubature points as below: 
+ 
+[ ]
+2
+1 ,
+1,... ,
+2
+i
+i
+i
+m P
+i
+m m
+n
+m
+ξ
+ω
+
+=
+
+
+=
+=
+=
+
+  
+(17) 
+ 
+,
+1|
+1
+1|
+1
+1|
+1
+ˆ
+i k
+k
+k
+k
+i
+k
+k
+L
+X
+χ
+ξ
+−
+−
+−
+−
+−
+−
+=
++
+  
+(18) 
+Estimate the state at time k : 
+ 
+2
+*
+|
+1
+, |
+1
+1
+1
+ˆ
+2
+n
+k k
+i k k
+i
+X
+n
+χ
+−
+−
+=
+=
+
+  
+(19) 
+Thus  
+2
+*
+*
+|
+1
+, |
+1
+, |
+1
+|
+1
+|
+1
+|
+1
+|
+1
+1
+1
+ˆ
+ˆ
+2
+n
+T
+T
+T
+k k
+i k k
+i k k
+k k
+k k
+k k
+k
+k k
+i
+P
+X
+X
+Q
+n
+χ
+χ
+−
+−
+−
+−
+−
+−
+−
+=
+=
+−
++ Γ
+Γ
+
+  (20) 
+Observation update: 
+Cholesky decompose the error variance matrix in (20) and 
+choose cubature points again: 
+ 
+, |
+1
+|
+1
+|
+1
+ˆ
+i k k
+k k
+i
+k k
+L
+X
+χ
+ξ
+−
+−
+−
+=
++
+  
+(21) 
+The prediction of observation is given by: 
+ 
+2
+*
+|
+1
+, |
+1
+1
+1
+ˆ
+2
+n
+k k
+i k k
+i
+Z
+Z
+n
+−
+−
+=
+=
+
+  
+(22) 
+Hence 
+ 
+2
+*
+*
+*
+*
+, |
+1
+, |
+1
+, |
+1
+, |
+1
+, |
+1
+1
+2
+*
+, |
+1
+, |
+1
+, |
+1
+|
+1
+, |
+1
+1
+1
+ˆ
+ˆ
+2
+1
+ˆ
+ˆ
+2
+n
+T
+T
+zz k k
+i k k
+i k k
+i k k
+i k k
+k
+i
+n
+T
+T
+xz k k
+i k k
+i k k
+k k
+i k k
+i
+P
+Z
+Z
+Z
+Z
+R
+n
+P
+Z
+X
+Z
+n
+χ
+−
+−
+−
+−
+−
+=
+−
+−
+−
+−
+−
+=
+
+=
+−
++
+
+
+=
+−
+
+
+
+  (23) 
+Finally 
+ 
+(
+)
+|
+|
+1
+|
+1
+|
+|
+1
+, |
+1
+ˆ
+ˆ
+ˆ
+k k
+k k
+k
+k
+k k
+T
+k k
+k k
+k
+zz k k
+k
+X
+X
+K
+Z
+Z
+P
+P
+K P
+K
+−
+−
+−
+−
+
+=
++
+−
+
+=
+−
+
+  
+(24) 
+Where 
+1
+, |
+1
+, |
+1
+k
+xz k k
+zz k k
+K
+P
+P−
+−
+−
+=
+. 
+Differing from typical CKF, the noise of adaptive CKF 
+algorithm is given by: 
+ 
+(
+)
+( )
+( )
+1
+|
+*
+*
+1|
+1
+1|
+1
+|
+1
+|
+1
+1
+1
+ˆ
+ˆ
+1
+1
+ˆ
+ˆ
+          
+T
+T
+k
+k
+k
+k
+k
+k
+k k
+L
+i
+i T
+T
+k
+k
+k
+k
+k k
+k k
+i
+Q
+k
+Q
+W
+W
+P
+k
+x
+x
+L
+ε ε
+χ
+χ
+−
+−
+−
+−
+−
+−
+−
+=
+
+=
+−
++
++
+−
+
+
+
+
+−
+
+
+
+
+
+	
+
+  
+(25) 
+ 
+(
+)
+( )
+( )
+1
+|
+1
+|
+1
+|
+1
+|
+1
+1
+1
+ˆ
+ˆ
+1
+1
+ˆ
+ˆ
+T
+k
+k
+k
+k
+L
+i
+i
+T
+T
+k k
+k k
+k k
+k k
+i
+R
+k
+R
+k
+Z
+Z
+z
+z
+L
+ε ε
+−
+−
+−
+−
+−
+=
+
+=
+−
++
+−
+
+
+
+
+−
+
+
+
+
+
+	
+
+  
+(26) 
+IV. SIMULATION AND DISSCUSSION 
+In order to demonstrate the performance of the cooperative 
+navigation method proposed in the paper, some simulations 
+are carried out here. Suppose that a formation composed of 5 
+independent UAVs flying in a GPS denied area, and they move 
+in level flight with V aligned with the wind frame (sideslip 
+angle β equals to zero). Therefore the problem of cooperative 
+navigation can be simplified to two-dimensional. The initial 
+state of each UAV is randomly decided and the motion 
+trajectory satisfies the conditions about (9). It is assumed that 
+the biases of all the gyroscopes of each UAV are constant. The 
+process and measurement noise are both white Gaussian noise, 
+and 
+5
+ijr
+m
+σ
+=
+, 
+3
+ij
+ϕ
+σ
+= ° , 
+3
+g
+σ
+= ° . 
+There are three methods discussed here: method 1 is the 
+IMU-only method that doesn’t introduce any other 
+observation; method 2 is the cooperative navigation method 
+proposed by Sharma; method 3 is the paper’s ACKF-based 
+cooperative navigation method using relative information. As 
+is illustrated in the figures, method 2 and method 3 both 
+perform well in pose estimation and constrain the IMU drift 
+significantly, 
+especially 
+the 
+ACKF-based 
+method. 
+Considering method 1, the errors caused by gyroscope bias 
+gradually increase over time, lead to distinct deviation from 
+desired trajectory in 60 seconds. While method 2 indicates a 
+slight trend of divergence. Compared with method 2, method 
+3 has better filter algorithm, less estimation errors in attitude 
+and velocity, better stability and smaller divergence speed. 
+ 
+Figure 3 Estimation for position 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:11:06 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+ 
+ 
+ 
+Figure 4 Estimation for yaw angle 
+ 
+Figure 5 Estimation for 
+xv 
+ 
+Figure 6 Estimation for 
+yv 
+ 
+V. CONCLUSION 
+In order to solve the navigation problem for multi-UAV 
+formation in GPS denied areas, research about a new 
+cooperative navigation method based on adaptive CKF has 
+been carried out in this paper, which adds more kinds of 
+external measurements into the typical navigation system to 
+enhance estimation accuracy of INS error. The simulation 
+results indicate that the proposed method is better than 
+Sharma’s method with smaller estimation errors. 
+REFERENCES 
+[1] H. Mu, T. Bailey, and P. Thompso, “Decentralised solutions to the 
+cooperative multi-platform navigation problem,” IEEE Trans. 
+Aerospace & Electronic Systems, vol. 47, no. 2, pp. 1433-1449, 2011. 
+[2] X. U. Bo, J. L. Bai, and Y. L. Hao, “The research status and progress of 
+cooperative navigation for multiple AUVs,” Acta Automatica Sinica, 
+vol. 41, no. 3, pp. 445-461, 2015. 
+[3] Z. J. Harris, and L. L. Whitcomb, “Preliminary feasibility study of 
+cooperative navigation of underwater vehicles with range and range-
+rate observations,” in Proc. Oceans. 2015, pp. 1-6. 
+[4] B. Allotta, A. Caiti, and R. Costanzi, “Cooperative navigation of AUVs 
+via acoustic communication networking: field experience with the 
+Typhoon vehicles,” Autonomous Robots, pp. 1-16, 2016. 
+[5] A. Vasilijevic, D. Nad, and F. Mandic, “Coordinated Navigation of 
+Surface and Underwater Marine Robotic Vehicles for Ocean Sampling 
+and Environmental Monitoring,” IEEE/ASME Transactions on 
+Mechatronics, pp. (99):1-1, 2017. 
+[6] P. Singh, R. Tiwari, and M. Bhattacharya, “Navigation in multi robot 
+system using cooperative learning: A survey,” in Proc. International 
+Conference on Computational Techniques in Information and 
+Communication Technologies, 2016, pp. 145-150. 
+[7] N. Naidoo, G. Bright, and R. Stopforth, “Navigation and control of 
+cooperative mobile robots using a robotic middleware platform,” in 
+Proc. IEEE International Conference on Control and Automation, 
+2016, pp. 927-932. 
+[8] V. Indelman, “Cooperative multi-robot belief space planning for 
+autonomous navigation in unknown environments,” Autonomous 
+Robots, vol. 2, pp. 1-21, 2017. 
+[9] A. R. Vetrella, G. Fasano, and D. Accardo, “Satellite and Vision-Aided 
+Sensor Fusion for Cooperative Navigation of Unmanned Aircraft 
+Swarms,” Journal of Aerospace Information Systems, vol. 14, no. 6, pp 
+1-18, 2017. 
+[10] J. Votion, and Y. Cao, “Multi-objective cooperative search of spatially 
+diverse routes in uncertain environments,” 2017. 
+[11] A. R. Vetrella, G. Fasano, and A. Renga, “Cooperative UAV navigation 
+based on distributed multi-antenna GNSS, vision, and MEMS sensors,” 
+in Proc. International Conference on Unmanned Aircraft Systems, 2015, 
+pp. 1128-1137.  
+[12] R. Sharma, and C. Taylor, “Cooperative navigation of MAVs in GPS 
+denied areas,” in Proc. IEEE International Conference on Multisensor 
+Fusion and Integration for Intelligent Systems, 2008, pp. 481-486. 
+[13] A. Chakraborty, C. N. Taylor, and R. Sharma, “Cooperative 
+localization for fixed wing unmanned aerial vehicles,” in Proc. 
+Position, Location and Navigation Symposium, 2016, pp. 106-117. 
+[14] V. O. Sivaneri, and J. N. Gross, “UGV-to-UAV cooperative ranging for 
+robust navigation in GNSS-challenged environments,” Aerospace 
+Science & Technology, vol. 71, 2017. 
+[15] P. Agis, Y. Zhang, and Y. Zhang, “Cooperative localization with hybrid 
+inertial navigation system/pedestrian dead reckoning tracking for GPS-
+denied environments,” in Proc. ACM Symposium on Applied 
+Computing, 2016, pp. 675-681. 
+[16] L. Zhang, M. Ye, and B. D. O. Anderson, “Cooperative localization of 
+UAVs in a GPS-denied environment using bearing measurements,” in 
+Proc. Decision and Control, 2016, pp. 4320-4326. 
+[17] J. Russell, M. Ye, and B. D. O. Anderson, “Cooperative Localisation of 
+a GPS-Denied UAV in 3-Dimensional Space Using Direction of Arrival 
+Measurements,” 2017. 
+[18] P. D. Spanos, and M. R.Murray, “Robust Connectivity of Networked 
+Vehicles,” in Proc IEEE Conference on Decision and Control. 
+Bahamas, 2004, pp. 2893-2898. 
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:11:06 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

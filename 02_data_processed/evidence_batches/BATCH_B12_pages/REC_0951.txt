@@ -1,0 +1,1498 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0951.pdf
+sha256: E6DB154A88AFC93F19BD7CB3DEBF10BC752C4A6EC9E4601DE665F6EAEB11204A
+library: pymupdf (fitz) v1.28.2
+pages: 12
+=== BEGIN ===
+[p.1]
+IEEE TRANSACTIONS ON INSTRUMENTATION AND MEASUREMENT, VOL. 75, 2026
+7505412
+PSS-LIO A Computationally Eﬃcient
+LiDAR-Inertial Odometry Framework for UAV
+Building Inspection via Geometric Predictability
+and Structure Prior Learning
+Yunlong Wang , Rongcan Qiu , Annan Tang , Longquan Li , Wenfeng Li , Shaoke Wan , and Xiaohu Li
+Abstract—Unmanned
+aerial
+vehicle
+(UAV)-based
+building
+inspection demands accurate and computationally eﬃcient state
+estimation
+in
+GNSS-denied
+environments.
+Existing
+LiDAR-
+inertial
+odometry
+(LIO)
+systems
+suﬀer
+from
+suboptimal
+observation utilization: frame-based and point-by-point methods
+process observations without exploiting geometric predictability,
+scalar information metrics risk observability degradation by
+conﬂating directional constraints, and recent plane merging
+methods improve map quality but do not feed learned structure
+back into state estimation. This article presents PSS-LIO, a
+building-inspection-oriented LIO framework integrating three
+complementary mechanisms. First, a prediction-based coarse
+ﬁltering mechanism bypasses observations conforming to range
+predictions from mapped surfaces. Second, an information-
+driven ﬁne selection strategy decomposes Fisher Information
+along state subspaces, enabling multiresolution updates with
+directional coverage guarantees. Third, a structure-prior guided
+update mechanism learns dominant surface orientations online
+as adaptive soft constraints, directly enhancing state estimation
+rather than merely improving map representation. Experiments
+on public datasets and real-world UAV deployments demonstrate
+that PSS-LIO achieves consistent accuracy improvements while
+substantially reducing computational requirements. Code will be
+available at: https://github.com/KerouacDlg/PSS-LIO
+Index Terms—Building inspection, LiDAR-inertial odometry
+(LIO), point cloud processing, state estimation, unmanned aerial
+vehicle (UAV).
+NOMENCLATURE
+Ldi
+Unit ray direction of the ith LiDAR point in frame
+L.
+Gdi
+Ray direction transformed to the global frame.
+Gok+1
+Ray origin (LiDAR position) in the global frame.
+dj
+Signed distance from origin to the jth map plane.
+tj
+Distance along the ray to intersection with plane
+j.
+ˆri
+Predicted range: minj∈Ji t j.
+robs
+i
+Observed (measured) range of the ith point.
+Received 21 May 2026; accepted 18 June 2026. Date of publication 2 July
+2026; date of current version 14 July 2026. The Associate Editor coordinating
+the review process was Dr. Yulong Huang. (Corresponding authors: Shaoke
+Wan; Xiaohu Li.)
+The authors are with the Department of Mechanical Engineering, Xi’an
+Jiaotong University, Xi’an 710049, China (e-mail: li.xiaohu@xjtu.edu.cn;
+skwan2020@xjtu.edu.cn).
+Digital Object Identiﬁer 10.1109/TIM.2026.3709427
+νi
+Range innovation: robs
+i
+−ˆri.
+¯νi
+Normalized innovation (dimensionless).
+σ2
+map,j
+Map uncertainty from point-to-plane ﬁtting resid-
+uals.
+σ2
+pred
+Total prediction uncertainty: σ2
+ˆr,state + σ2
+map, j.
+τl, τh
+Lower/upper thresholds for point classiﬁcation.
+ρ(k)
+Actual skip ratio at step k (fraction of SKIP
+points).
+ρ∗
+Target skip ratio.
+α
+Adaptation rate for τl.
+I(·)
+i
+Directional FIM for a given state subspace.
+I(·)
+i
+Min. eigenvalue of directional FIM: λmin(I(·)
+i ).
+τp, τd
+Information thresholds for pose/dynamics sub-
+spaces.
+Cn
+Normal covariance from W selected points.
+W
+Sliding window size for coverage monitoring.
+κ
+Coverage ratio: λmin(Cn)/λmax(Cn).
+κmin
+Minimum acceptable coverage ratio.
+˜u
+Canonically normalized surface normal.
+Gdk
+kth dominant structural direction (cluster center).
+γk
+Observation count of the kth cluster.
+σ2
+k
+Angular variance (tightness) of the kth cluster.
+γ0
+Saturation constant for conﬁdence modulation.
+rprior
+i
+Structure prior residual: 1 −|Gu⊤
+obs
+Gdk∗|.
+λi
+Adaptive weight for structure prior constraint.
+λ0
+Base prior weight.
+φ(·)
+Alignment modulation function.
+ψ(γ)
+Conﬁdence modulation: 1 −exp(−γ/γ0).
+ϵfit
+Plane ﬁtting residual threshold for normal reten-
+tion.
+Nb
+Maximum buﬀer size for structure learning.
+I. INTRODUCTION
+B
+UILDING inspection is essential for infrastructure life-
+cycle management. Traditional manual methods are
+labor-intensive and hazardous, particularly for high-rise struc-
+tures and conﬁned spaces, and unmanned aerial vehicles
+(UAVs) have emerged as a transformative alternative by
+enabling rapid, noncontact data acquisition [1], [2]. Accurate
+and real-time state estimation is fundamental to UAV-based
+inspection, directly determining navigation safety and mapping
+quality [3]. LiDAR-inertial odometry (LIO), which tightly
+1557-9662 © 2026 IEEE. All rights reserved, including rights for text and data mining, and training of artiﬁcial intelligence and
+similar technologies. Personal use is permitted, but republication/redistribution requires IEEE permission.
+See https://www.ieee.org/publications/rights/index.html for more information.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:29 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+7505412
+IEEE TRANSACTIONS ON INSTRUMENTATION AND MEASUREMENT, VOL. 75, 2026
+fuses LiDAR measurements with IMU data, has become the
+predominant solution for GNSS-denied scenarios [4], [5].
+However, practical deployment demands not only high-ﬁdelity
+localization but also suﬃcient computational capacity for
+concurrent tasks such as defect detection—a dual requirement
+that challenges resource-constrained onboard processors [6].
+The past decade has witnessed remarkable advances in
+LIO systems. Filter-based approaches built upon the extended
+Kalman ﬁlter and its variants [7], [8], [9] constitute the
+mainstream. FAST-LIO2 [7] pioneered direct point registration
+with an incremental k-d tree, achieving up to 100 Hz odom-
+etry. Faster-LIO [10] further accelerated computation using
+incremental voxels, and iG-LIO [8] integrated generalized ICP
+constraints for improved registration accuracy. Despite these
+advances in frame-based LIO, per-frame processing introduces
+inherent latency, limiting responsiveness during aggressive
+maneuvers [11]. Point-by-point update frameworks [12], [13],
+[14] address this by processing each LiDAR point at its true
+sampling instant, achieving 4–8 kHz output and eliminating
+in-frame motion distortion. However, processing every point
+individually incurs substantial computational overhead, partic-
+ularly in building environments where planar surfaces provide
+redundant geometric constraints, straining onboard resources.
+To improve robustness under challenging sensing condi-
+tions, intensity-based methods [15], [16] enhance constraints
+in
+geometrically
+degraded
+scenarios.
+Multisensor
+fusion
+approaches including visual-inertial integration [17], dynamic
+visual-inertial SLAM with deep feature extraction [18],
+[19], adaptive noise estimation for visual-inertial odome-
+try [20], [21], and GNSS-RTK coupling [22] have also
+been explored to address complementary sensing modalities.
+Beyond sensor-level enhancements, structural priors inherent
+in man-made environments oﬀer an orthogonal avenue for
+improving estimation accuracy. The Atlanta World general-
+ization [23] relaxes strict Manhattan orthogonality for linear
+SLAM formulations, and LIO-BIM [24] couples odometry
+with building information models. However, these approaches
+require environments to conform to predeﬁned structural tem-
+plates, limiting applicability to buildings with nonstandard
+geometry. Ground surface constraints such as VBRO [25]
+suppress accumulated errors through spatiotemporal ground
+modeling, but are designed for ground vehicles and not directly
+transferable to UAV platforms with intermittent ground obser-
+vations.
+From a computational eﬃciency perspective, eﬃcient obser-
+vation selection and map representation strategies have been
+proposed to reduce redundancy. IO-LIO [26] introduced
+information-oriented voxel mapping, and UA-LIO [27] mod-
+eled measurement uncertainty to improve match quality
+awareness. FI-SLAM [28] employs scalar information metrics
+based on subspace vector similarity for feature selection, but
+evaluates each point through a single aggregated score that
+cannot distinguish pose and dynamics subspaces. VoxelMap++
+[29] and C3P-VoxelMap [30] achieve plane merging for
+improved map accuracy and memory eﬃciency, but do not
+extract the learned planar structure as constraints for state
+estimation. Overall, existing methods either focus on mapping
+eﬃciency or observation selection in isolation, lacking a uni-
+ﬁed framework that jointly exploits geometric predictability,
+directional information allocation, and structural priors to
+balance computational cost and estimation quality.
+Despite substantial progress, existing LIO systems exhibit
+three key limitations for building inspection. First, neither
+frame-based nor point-by-point methods exploit the geomet-
+ric predictability of planar surfaces prevalent in buildings,
+resulting in unnecessary computational overhead. Second,
+observation selection methods, including recent information-
+based approaches [28], employ scalar metrics that conﬂate
+information across state components, risking observability
+degradation when directional constraints are systematically
+eliminated. Third, structural regularities remain underutilized;
+plane merging methods [29], [30] improve map quality but
+do not feed learned structure back into state estimation,
+while even the more ﬂexible Atlanta World generalization
+[23] requires environments to conform to predeﬁned structural
+templates that fail in buildings with irregular geometry. These
+limitations lead to either excessive computation or degraded
+accuracy.
+To address these limitations, this article proposes PSS-LIO.
+The main contributions are as follows.
+1) A prediction-based coarse ﬁltering mechanism that
+bypasses observations conforming to geometric pre-
+dictions, reducing computational load while preserving
+informative points.
+2) A ﬁne selection strategy via directional Fisher Infor-
+mation decomposition, enabling multiresolution updates
+that adapt to observation informativeness with direc-
+tional coverage guarantees.
+3) A structure-prior guided update mechanism that learns
+dominant surface orientations online and incorporates
+them as adaptive soft constraints for improved rotational
+accuracy.
+4) Comprehensive experiments on public datasets and
+real-world UAV deployments demonstrating consistent
+accuracy improvement and computational reduction over
+state-of-the-art methods.
+The three mechanisms operate sequentially: prediction-
+based ﬁltering reduces point volume by exploiting geometric
+predictability,
+information-driven
+selection
+ensures
+direc-
+tional constraint coverage across all state subspaces, and
+structure-prior update leverages learned regularities to enhance
+estimation accuracy. This hierarchical architecture achieves
+both computational eﬃciency and estimation precision tailored
+for building inspection, freeing onboard resources for concur-
+rent inspection algorithms.
+The remainder of this article is organized as follows. Sec-
+tion II details the proposed methodology. Section III presents
+experimental evaluation and ablation studies. Section V con-
+cludes with discussions on limitations and future directions.
+The system overview of the proposed PSS-LIO framework is
+illustrated in Fig. 1.
+II. METHODOLOGY
+This section details the proposed PSS-LIO framework. For
+clarity, Nomenclature summarizes the key notations introduced
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:29 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+WANG et al.: PSS-LIO COMPUTATIONALLY EFFICIENT LIO FRAMEWORK FOR UAV BUILDING INSPECTION
+7505412
+Fig. 1. System overview of the proposed PSS-LIO framework.
+in this section. Section II-A formulates the system kinematics
+and state estimation. Sections II-B–II-D present the three core
+innovations: prediction-based coarse ﬁltering, information-
+driven ﬁne selection, and structure-prior guided update.
+A. System Kinematics and State Estimation
+The system state is deﬁned on the manifold M
+≜
+S O(3) × R21 with dimension 24
+x ≜
+GRI
+GpI
+GvI
+bg
+ba
+Gg
+Iω
+Ia⊤
+(1)
+where GRI ∈S O(3), GpI, GvI ∈R3 represent the IMU attitude,
+position, and velocity in the global frame G, bg, ba ∈R3
+are gyroscope and accelerometer biases,
+Gg ∈R3 is the
+gravity vector, and Iω, Ia ∈R3 denote angular velocity and
+linear acceleration in the body frame I, modeled as stochastic
+processes to enable high-bandwidth state estimation.
+The continuous-time kinematics follow:
+G ˙RI = GRI
+Iω
+˘
+× ,
+G ˙pI = GvI,
+G ˙vI = GRI
+Ia + Gg
+˙bg = nbg,
+˙ba = nba,
+I ˙ω = wg,
+I ˙a = wa
+(2)
+where ⌊·⌋× denotes the skew-symmetric matrix operator, and
+nbg, nba, wg, wa represent Gaussian process noises. Discretiza-
+tion at measurement step k with interval ∆tk yields xk+1 =
+xk ⊞(∆tkf(xk, wk)), where ⊞denotes the manifold addition
+operator.
+For LiDAR measurements, a point Ipmk in the body frame
+is constrained to lie on a local planar surface in the map after
+transformation
+0 = Gu⊤
+k
+ GRIk
+Ipmk + GpIk −Gqk
+
++ nLk
+(3)
+where Guk and Gqk are the normal vector and a point on
+the corresponding plane, and nLk∼N(0, σ2
+obs) is zero-mean
+Gaussian measurement noise with variance σ2
+obs determined by
+the LiDAR sensor characteristics. This point-to-plane residual
+formulation serves as the foundation for the geometric con-
+straints in Sections II-B–II-D.
+B. Prediction-Based Coarse Filtering
+In building inspection scenarios, a signiﬁcant portion of
+LiDAR observations correspond to already-mapped planar
+surfaces, and processing all such points is computationally
+Fig. 2.
+Geometric illustration of range prediction for coarse ﬁltering. The
+LiDAR sensor at position Gok+1 emits a ray along direction Gdi toward
+the mapped plane characterized by normal Guj and signed distance dj. The
+predicted range ˆri is obtained as the nearest ray-plane intersection distance
+computed via (4). The innovation νi = robs
+i
+−ˆri quantiﬁes the discrepancy
+between the observed and predicted range, determining point classiﬁcation
+according to (9).
+redundant. A ﬁltering mechanism is proposed to bypass obser-
+vations that conform to the current state estimate and map,
+while retaining points from unmapped or uncertain regions
+that carry novel geometric information.
+Given the propagated state ˆxk+1 and the local map M =
+{(Guj, d j)}M
+j=1 represented as a collection of M planes, where
+Guj is the unit normal vector and dj = Gu⊤
+j
+Gqj is the signed
+distance from the global origin to the jth plane, the expected
+range measurement for a LiDAR ray is predicted. For the ith
+LiDAR point in the current scan, where the subscript i denotes
+the point index, let Ldi ∈R3 denote its unit ray direction
+in the LiDAR frame L. The ray origin and direction in the
+global frame are computed as Gok+1 = G ˆpIk+1 + G ˆRIk+1
+IpL
+and Gdi = G ˆRIk+1
+IRL Ldi, where IRL and IpL are the LiDAR-
+IMU extrinsic parameters. For plane (Guj, dj), the ray-plane
+intersection parameter tj, representing the distance along the
+ray from the origin Gok+1 to the intersection point, is computed
+as
+t j =
+dj −Gu⊤
+j
+Gok+1
+Gu⊤
+j
+Gdi
+.
+(4)
+The predicted range ˆri is the nearest valid intersection among
+planes facing the sensor, i.e., ˆri = minj∈Ji tj where Ji = {j :
+tj > 0∧Gu⊤
+j
+Gdi < 0}, with the two conditions ensuring that the
+intersection lies ahead of the sensor and that the ray strikes
+the front face of the plane. This process is illustrated in Fig. 2.
+Principled decision-making requires quantifying prediction
+uncertainty, which arises from state estimation error and map
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:29 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+7505412
+IEEE TRANSACTIONS ON INSTRUMENTATION AND MEASUREMENT, VOL. 75, 2026
+representation uncertainty. Applying ﬁrst-order error propaga-
+tion yields σ2
+ˆr,state = Hr ˆPk+1Hr⊤, where ˆPk+1 is the propagated
+covariance and Hr = ∂ˆri/∂x ∈R1×24 is the Jacobian of the
+predicted range with respect to the state. Although both Hr
+and the observation Jacobian Hi (Section II-C) derive from
+the same point-to-plane geometric relationship, they serve
+distinct roles: Hr maps state perturbations to range prediction
+variations for ﬁltering decisions, while Hi maps error-state
+perturbations to point-to-plane residual variations for EKF
+updates. Their position-related components are related by the
+ray-plane projection factor 1/(Gu⊤
+j
+Gdi). The components of Hr
+are
+∂ˆri
+∂GpI
+= −
+Gu j
+Gu⊤
+j
+Gdi
+(5)
+∂ˆri
+∂θ = −
+Gu⊤
+j
+G ˆRIk+1
+IpL
+˘
+×
+Gu⊤
+j
+Gdi
++
+
+dj −Gu⊤
+j
+Gok+1
+
+Gu⊤
+j
+Gdi
+˘
+×
+
+Gu⊤
+j
+Gdi
+2
+(6)
+where θ is the attitude perturbation. The map representation
+uncertainty σ2
+map, j captures the geometric ﬁdelity of the local
+planar approximation. For the intersected plane in voxel Vj, it
+is computed as the variance of point-to-plane ﬁtting residuals
+σ2
+map, j =
+1
+ˇˇVj
+ˇˇ −1
+X
+l∈Vj
+ Gu⊤
+j
+Gpl −d j
+2
+(7)
+where Vj is the set of map points within the jth voxel, Gpl is
+the lth point in Vj, and |Vj| denotes the number of points. This
+formulation adapts to local map quality: well-ﬁt planar regions
+yield small σ2
+map,j, while regions with surface roughness, cur-
+vature, or insuﬃcient observations produce larger values. The
+total prediction uncertainty becomes σ2
+pred = σ2
+ˆr,state + σ2
+map, j.
+Let robs
+i
+denote the observed range measurement of the ith
+LiDAR point. The innovation νi = robs
+i
+−ˆri, representing the
+discrepancy between observed and predicted range, indicates
+whether an observation conforms to the current map-state
+hypothesis. Normalizing by combined uncertainties yields
+¯νi =
+νi
+q
+σ2
+pred + σ2
+obs
+(8)
+where σ2
+obs is the LiDAR measurement variance. Under correct
+state estimation, ¯νi ∼N(0, 1), providing a statistical basis for
+point classiﬁcation
+C (pi) =
+8
+ˆ<
+ˆ:
+SKIP,
+if |¯νi| < τl
+CANDIDATE,
+if τl ≤|¯νi| < τh
+PROCESS,
+if |¯νi| ≥τh.
+(9)
+Points classiﬁed as SKIP lie in well-mapped regions provid-
+ing minimal new information. Points classiﬁed as PROCESS
+exhibit large innovation, indicating unmapped structures or
+state drift, requiring immediate processing. Points classiﬁed
+as CANDIDATE undergo further evaluation in Section II-C.
+The normalized innovation ¯νi serves as a joint indicator of
+registration quality and regional mapping reliability. A small
+|¯νi| requires both: 1) the state estimate is accurate and 2) the
+map plane is geometrically reliable. Unmapped regions yield
+no valid ray-plane intersection and are directly assigned to
+PROCESS; under-observed regions exhibit elevated σ2
+map,j that
+enlarges the normalization denominator, ensuring |¯νi| exceeds
+the SKIP threshold. This design ensures that only observations
+from regions with both accurate state estimates and reliable
+map representations are bypassed.
+To maintain robust ﬁltering across varying scene complexi-
+ties, the threshold τl is adaptively adjusted based on the actual
+skip ratio
+τ(k+1)
+l
+= τ(k)
+l
++ α
+ ρ∗−ρ(k)
+(10)
+where ρ(k) is the actual skip ratio at step k, deﬁned as the
+fraction of points classiﬁed as SKIP in the current scan, ρ∗
+is the target skip ratio, and α > 0 is the adaptation rate,
+preventing both overﬁltering in feature-sparse regions and
+underﬁltering in highly structured areas.
+C. Information-Driven Fine Selection
+While prediction-based ﬁltering eliminates observations
+from well-mapped regions, the remaining CANDIDATE points
+exhibit varying informativeness. In building environments,
+planar surface points provide redundant constraints, whereas
+edge and corner points contribute richer directional informa-
+tion, motivating a second-stage selection based on information
+content.
+For a single observation with Jacobian Hi and noise covari-
+ance Ri, the Fisher Information Matrix (FIM) contribution
+is Ii
+=
+H⊤
+i R−1
+i Hi
+∈
+R24×24. Previous works, including
+FI-SLAM [28], have employed scalar metrics such as tr(Ii)
+or det(Ii) to quantify point informativeness, but these con-
+ﬂate information across diﬀerent state components, potentially
+causing observability degradation when constraints in cer-
+tain directions are systematically eliminated. The proposed
+approach decomposes the FIM along physically meaningful
+state subspaces and evaluates each independently, enabling
+multiresolution updates rather than binary retain/discard deci-
+sions, with the directional coverage ratio κ [see (13)] providing
+a population-level observability safeguard. To address this
+limitation, the state is decomposed into physically meaningful
+subspaces
+x =
+"
+θ⊤, Gp⊤
+I
+„ ƒ‚ …
+xp∈R6
+Gv⊤
+I
+„ƒ‚…
+xv∈R3
+b⊤
+g , b⊤
+a
+„ƒ‚…
+xb∈R6
+Iω⊤, Ia⊤
+„ ƒ‚ …
+xd∈R6
+#⊤
+.
+(11)
+The observation Jacobian is partitioned accordingly as Hi =
+[H(p)
+i , H(v)
+i , H(b)
+i , H(d)
+i ], and the directional FIM for each sub-
+space is computed as I(·)
+i
+= H(·)⊤
+i
+R−1
+i H(·)
+i . The minimum
+eigenvalue I(·)
+i
+= λmin(I(·)
+i ) serves as the scalar informa-
+tion measure, which is more conservative than trace-based
+metrics as it captures the weakest direction of information
+contribution.
+Based on directional information analysis, a multiresolution
+update strategy adapts computational eﬀort to information
+content
+U (pi) =
+8
+ˆ<
+ˆ:
+FULL,
+if I(p)
+i
+> τp ∧I(d)
+i
+> τd
+POSE ONLY,
+if I(p)
+i
+> τp ∧I(d)
+i
+≤τd
+SKIP,
+otherwise
+(12)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:29 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+WANG et al.: PSS-LIO COMPUTATIONALLY EFFICIENT LIO FRAMEWORK FOR UAV BUILDING INSPECTION
+7505412
+where τp and τd are information thresholds. Points assigned
+FULL trigger complete 24-D state updates, while POSE_ONLY
+updates only pose-related states, reducing computational cost
+while preserving essential geometric constraints.
+A potential concern with aggressive point selection is the
+loss of geometric constraints in certain directions. To prevent
+degenerate conﬁgurations, directional coverage is monitored
+using surface normals from a sliding window of selected
+points. The normal covariance Cn = 1/W PW
+i=1
+GuiGu⊤
+i , where
+W is the number of selected points in the sliding window,
+characterizes the distribution of constraint directions, and the
+coverage ratio is deﬁned as
+κ = λmin (Cn)
+λmax (Cn) ∈[0, 1] .
+(13)
+When κ < κmin (set to 0.1 in our implementation), indicating
+deﬁcient coverage in certain directions, selection criteria are
+temporarily relaxed for points whose normals align with the
+deﬁcient direction, ensuring maintained observability.
+The theoretical basis for the proposed selection strategy
+is as follows. Among scalar information metrics, λmin(I(·)
+i )
+is adopted because it directly characterizes the worst case
+estimation precision: by the Cram´er–Rao lower bound,
+the estimation variance in the least constrained direction
+is lower-bounded by 1/λmin(I). Trace-based metrics such
+as tr(Ii) sum information across all directions, allowing
+strong
+constraints
+in
+one
+direction
+to
+compensate
+for
+deﬁciencies in others. Determinant-based metrics such as
+det(Ii) collapse to zero whenever any single direction lacks
+constraint,
+making
+them
+impractical
+for
+threshold-based
+selection. In contrast, λmin isolates the weakest direction,
+ensuring that only points contributing to the most deﬁcient
+geometric constraint are retained. The coverage ratio κ
+complements the per-point metric with a population-level
+guarantee.
+Since
+Cn
+is
+the
+second-moment
+matrix
+of
+selected surface normals, κ > 0 ensures that the normals
+span R3—a necessary condition for full-rank observability
+in point-to-plane registration [31]. Enforcing κ
+≥
+κmin
+therefore guarantees suﬃcient 3-D constraint coverage for
+unambiguous pose determination. In severely degenerate
+environments
+where
+directional
+diversity
+is
+inherently
+limited,
+the
+relaxation
+mechanism
+progressively
+accepts
+additional observations regardless of their information scores,
+gracefully degrading toward processing the full observation
+set. This ensures that the proposed method performs no
+worse than uniform processing. The analysis is corroborated
+by the indoor corridor deployment (Section IV), where
+PSS-LIO
+achieves
+substantial
+drift
+reduction
+under
+near-degenerate geometry, while VoxelMap++ and C3P-
+VoxelMap—which lack such safeguards—fail to operate.
+D. Structure-Prior Guided Update
+Building environments exhibit strong structural regularities,
+including vertical walls, horizontal ﬂoors, and orthogonal
+intersections. These patterns are not exploited by conventional
+LIO frameworks that treat each observation independently. A
+class of voxel mapping methods, represented by VoxelMap++
+[29] and C3P-VoxelMap [30], identify dominant planar struc-
+tures through voxel-level merging to improve plane ﬁtting
+accuracy and memory eﬃciency. While such plane merging
+approaches share the high-level goal of exploiting environmen-
+tal regularity, the learned structure remains conﬁned to the map
+representation layer and is not exploited as constraints for state
+estimation. Inspired by Schema Theory in cognitive science
+[32], a mechanism is proposed that learns dominant structural
+directions online and incorporates them as soft constraints
+during state update. Unlike Manhattan World assumptions
+[33] that impose hard orthogonality constraints, this approach
+learns environment-speciﬁc patterns and applies adaptive con-
+straints, accommodating buildings that deviate from strict
+orthogonality. The key distinctions from the aforementioned
+class of plane merging methods are: 1) clustering operates in
+the normal direction space to extract global structural patterns
+rather than local spatial coplanarity, 2) the learned directions
+directly participate in state update as residual constraints
+rather than merely improving map quality, and 3) the adaptive
+weighting mechanism prevents degradation in nonorthogonal
+or unstructured environments where rigid planar assumptions
+do not hold.
+The structure learning process begins with collecting surface
+normals Gui from plane ﬁtting during point processing. Only
+normals with ﬁtting residuals below threshold ϵ fit are retained
+in a sliding window buﬀer B = {(Gui, wi, ti)}Nb
+i=1, where Nb is
+the maximum buﬀer size, wi denotes the conﬁdence weight
+derived from plane ﬁtting quality, and ti is the timestamp.
+Since Gu and −Gu represent identical constraints, canonical
+normalization is applied as ˜u = sign(uz + ϵuy + ϵ2ux) Gu,
+where ϵ ≪1 (set to 10−3) is a small constant for deterministic
+tie-breaking when uz ≈0. The normalized normals are then
+clustered using spherical k-means with K = 3 clusters cor-
+responding to two wall directions and one vertical direction.
+Cluster centers are computed via weighted spherical mean
+Gdk =
+P
+i∈Ck wi ˜ui
+
+
+P
+i∈Ck wi ˜ui
+
+
+
+(14)
+yielding dominant directions D = {(Gdk, γk, σ2
+k)}K
+k=1, where
+γk = |Ck| is the number of normals assigned to the kth cluster
+and σ2
+k is the angular variance measuring cluster tightness,
+computed as σ2
+k = 1 −∥P
+i∈Ck wi ˜ui∥/ P
+i∈Ck wi.
+For a point with observed normal
+Guobs, the structure
+prior residual measures deviation from the nearest dominant
+direction. Let k∗= arg maxk |Gu⊤
+obs
+Gdk|, the residual is deﬁned
+as
+rprior
+i
+= 1 −
+ˇˇGu⊤
+obs
+Gdk∗
+ˇˇ
+(15)
+which equals zero when perfectly aligned with a learned
+direction and approaches one when orthogonal to all direc-
+tions. To incorporate this prior into the EKF framework, the
+Jacobian is derived by noting that normal variation under small
+perturbations is dominated by rotational changes, yielding
+Hprior
+i
+=
+h
+sign
+ Gu⊤
+obs
+Gdk∗  Guobs × Gdk∗⊤
+01×21
+i
+.
+(16)
+The sparse structure with only three nonzero elements indi-
+cates that the prior primarily constrains attitude, incurring
+minimal computational overhead.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:29 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+7505412
+IEEE TRANSACTIONS ON INSTRUMENTATION AND MEASUREMENT, VOL. 75, 2026
+TABLE I
+ABSOLUTE TRAJECTORY ERROR RMSE (METERS) ON PUBLIC DATASETS
+The prior inﬂuence adapts to observation reliability through
+a weight λi = λ0 φ(|Gu⊤
+obs
+Gdk∗|) ψ(γk∗), where the alignment
+modulation φ(·) reduces weight when normals deviate from
+learned directions, and the conﬁdence modulation ψ(γ) = 1 −
+exp(−γ/γ0) ensures directions with more observations exert
+stronger inﬂuence, where γ0 is a saturation constant controlling
+how quickly conﬁdence grows with observation count. The
+joint residual combines geometric and prior constraints
+ri =
+ rgeom
+i
+λi · rprior
+i
+
+,
+Hi =
+ Hgeom
+i
+λi · Hprior
+i
+
+(17)
+where
+rgeom
+i
+=
+Gu⊤(G ˆRIk+1
+Ipmk+1
++
+G ˆpIk+1
+−
+Gq)
+is
+the
+point-to-plane
+geometric
+residual
+and
+Hgeom
+i
+=
+[−Gu⊤⌊G ˆRIk+1
+Ipmk+1⌋×, Gu⊤, 01×18]
+is
+the
+corresponding Jacobian.
+State update follows the on-manifold EKF formulation.
+Given propagated state ˆxk+1 and covariance ˆPk+1, let Hk+1
+and ¯Rk+1 denote the stacked observation Jacobian and mea-
+surement noise covariance matrix constructed from all selected
+points at step k + 1. The Kalman update computes
+Kk+1 = ˆPk+1H⊤
+k+1
+ Hk+1 ˆPk+1H⊤
+k+1 + ¯Rk+1
+−1
+¯xk+1 = ˆxk+1 ⊞
+ Kk+1rk+1
+
+¯Pk+1 =
+ I −Kk+1Hk+1
+ ˆPk+1.
+(18)
+For POSE_ONLY updates from the information-driven selec-
+tion, the Kalman gain and covariance update are restricted to
+pose-related dimensions, further reducing computational cost.
+III. METRICS EVALUATION
+This section evaluates PSS-LIO through experiments on
+public datasets, covering accuracy (Section III-B), eﬃciency
+(Section III-C), ablation studies (Section III-D), and parameter
+sensitivity (Section III-E).
+A. Experimental Setup
+The proposed PSS-LIO is evaluated on four public datasets
+covering diverse environments and LiDAR types. The M2DGR
+dataset [34] provides multisensor sequences collected on
+a ground robot in campus environments. The lili dataset
+[35] contains structured indoor and outdoor sequences with
+Livox Horizon solid-state LiDAR. The utbm dataset [36]
+provides urban driving sequences recorded with two Velodyne
+HDL-32E LiDARs. The M3DSS dataset [37] oﬀers indoor
+building sequences captured by a quadrotor UAV platform
+characterized by high vibration and aggressive maneuvers.
+Among these, M2DGR, M3DSS, and lili feature building-
+rich scenarios aligned with the target application, while utbm
+evaluates generalization capability in unstructured outdoor
+environments. Five LIO baselines are selected: FAST-LIO2
+[7], Faster-LIO [10], Point-LIO [12], iG-LIO [8], and
+LIO-SAM [4].
+All experiments were run on an ASUS NUC 14 Pro (Intel
+Core Ultra 5, 16 GB RAM, Ubuntu 20.04). Key parameters:
+prediction thresholds τl = 1.0, τh = 2.5, ρ∗= 0.4, α = 0.1;
+information thresholds τp = 0.01, τd = 0.005, κmin = 0.1,
+W = 500; structure learning Nb = 2000, K = 3, λ0 = 0.5, γ0 =
+200, ϵ fit = 0.05 m, σobs = 0.02 m. The map uncertainty σ2
+map, j
+(7) is computed adaptively and requires no manual tuning.
+Sensitivity analysis is provided in Section III-E.
+B. Accuracy Evaluation
+Absolute trajectory error measured as root-mean-square
+error against ground truth serves as the primary evaluation
+metric. Table I presents an accuracy comparison across 12
+sequences. PSS-LIO achieves optimal performance on eight
+sequences, with particularly strong results in building-rich
+environments. On structured indoor environments including
+M2DGR gate 1, hall 1, room 1, and M3DSS sequences,
+PSS-LIO consistently achieves the lowest or comparable
+RMSE, beneﬁting from the structure-prior mechanism that
+exploits dominant orthogonal directions. On the lili dataset fea-
+turing structured building environments, PSS-LIO outperforms
+all baselines across all three sequences, demonstrating eﬀective
+integration of predictive ﬁltering and structural constraints. For
+less structured outdoor scenarios such as M2DGR street 3
+and utbm sequences, PSS-LIO maintains competitive accuracy
+while exhibiting superior robustness. Notably, several base-
+lines suﬀer signiﬁcant degradation on challenging sequences,
+whereas PSS-LIO delivers consistent performance through the
+adaptive weight mechanism.
+Table II reports end-to-end drift on sequences. On building-
+centric sequences lili 6 and lili 7, PSS-LIO achieves the
+lowest drift among all methods, conﬁrming eﬀective drift
+suppression through structure-prior constraints. On utbm
+long-distance urban sequences, PSS-LIO remains compet-
+itive with leading methods. The results validate that the
+three-stage pipeline provides both accuracy improvement in
+target building scenarios and robust generalization to diverse
+environments.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:29 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+WANG et al.: PSS-LIO COMPUTATIONALLY EFFICIENT LIO FRAMEWORK FOR UAV BUILDING INSPECTION
+7505412
+TABLE II
+END-TO-END DRIFT (METERS)
+C. Eﬃciency Evaluation
+For practical UAV-based building inspection, computa-
+tional eﬃciency directly determines whether suﬃcient onboard
+resources remain available for concurrent inspection tasks
+such as defect detection and semantic segmentation. Table III
+compares computational eﬃciency across three representative
+sequences. PSS-LIO achieves the lowest processing time and
+memory consumption among all evaluated methods.
+For processing time, PSS-LIO reduces computation by
+25 %–40 % compared to leading lightweight methods includ-
+ing Faster-LIO and Point-LIO. The improvement is most
+signiﬁcant on M3DSS 2 featuring dense indoor point clouds,
+where the prediction-based ﬁltering eﬀectively bypasses
+redundant planar observations. On lili 2 and utbm 4,
+PSS-LIO maintains consistent eﬃciency gains while all base-
+line methods exhibit increased processing time due to higher
+point density. LIO-SAM incurs substantially higher computa-
+tional cost due to its factor graph optimization backend.
+For memory consumption, PSS-LIO achieves 30 %–40 %
+reduction across all sequences. The three-stage ﬁltering
+pipeline processes only 30 %–45 % of original points for
+full state update, signiﬁcantly reducing memory allocation for
+map maintenance and covariance computation. This eﬃciency
+advantage makes PSS-LIO particularly suitable for resource-
+constrained UAV platforms in building inspection applications.
+These eﬃciency gains are critical for resource-constrained
+UAV platforms: the reduced computational footprint not only
+ensures real-time odometry but also preserves substantial pro-
+cessing capacity for concurrent inspection algorithms, enabling
+integrated localization-and-inspection workﬂows essential for
+practical building inspection deployment.
+D. Ablation Study
+Table IV quantiﬁes individual contributions of the three
+proposed mechanisms across diﬀerent environments. Dis-
+abling prediction-based ﬁltering increases processing time by
+30 %–40 % on all sequences while maintaining compara-
+ble accuracy, conﬁrming its primary role in computational
+eﬃciency through bypassing redundant observations. Remov-
+ing information-driven selection results in a moderate time
+increase and slight accuracy degradation on lili 2 and
+M3DSS 1, validating its contribution to preserving geo-
+metrically informative constraints. Disabling structure-prior
+leads to 10 %–50 % accuracy degradation on building-
+rich sequences lili 2 and M3DSS 1 but yields marginal
+improvement on utbm 1, demonstrating that this mechanism
+is speciﬁcally designed for exploiting structural regularities
+prevalent in building environments. The full PSS-LIO achieves
+optimal trade-oﬀfor building inspection applications, with
+each component addressing distinct aspects: prediction-based
+ﬁltering for eﬃciency, information-driven selection for con-
+straint quality, and structure-prior for accuracy enhancement.
+This synergistic design ensures that PSS-LIO delivers high-
+accuracy state estimation while minimizing computational
+overhead, thereby enabling reliable deployment on resource-
+constrained platforms with suﬃcient capacity reserved for
+real-time inspection tasks.
+E. Parameter Sensitivity Analysis
+The prediction thresholds τl and τh admit theoretically
+grounded selection based on the statistical properties of ¯νi ∼
+N(0, 1): τl = 1.0 corresponds to the 68.3 % conﬁdence
+interval and τh = 2.5 to the 98.8 % conﬁdence interval, with
+the gap deﬁning the CANDIDATE region. The information
+thresholds τp = 0.01 and τd = 0.005 represent 0.4 % and
+0.2 % of the nominal single-point information 1/σ2
+obs, ensuring
+conservative retention of directionally informative points.
+The base prior weight λ0 = 0.5 assigns the structure-prior
+residual half the weight of a geometric residual, with φ(·)
+and ψ(·) further attenuating when alignment or conﬁdence
+is insuﬃcient. This reﬂects a deliberate trade-oﬀbetween
+structural regularization and geometric ﬂexibility.
+Table V demonstrates stable performance across diverse
+environments. For τl, increasing the threshold reduces pro-
+cessing time but degrades accuracy beyond 1.5 due to
+over-ﬁltering; the adaptive mechanism in (10) further compen-
+sates for suboptimal initial values. For τh, lower values yield
+marginal accuracy gains at signiﬁcantly higher cost, while
+higher values risk missing novel observations. For λ0, accuracy
+on building-rich lili 2 improves substantially from λ0 = 0 to
+0.5 and saturates, while excessive weights degrade utbm 1 as
+the prior enforces regularity on irregular geometry—reﬂecting
+the
+inherent
+trade-oﬀ
+between
+structural
+regularization
+and
+geometric
+ﬂexibility.
+The
+default
+values
+provide
+robust performance across both structured and unstructured
+scenarios.
+IV. REAL-WORLD DEPLOYMENT
+To validate practical applicability, we deploy PSS-LIO on a
+UAV platform for building inspection missions across diverse
+real-world scenarios. These deployments evaluate odome-
+try accuracy, mapping quality, computational eﬃciency, and
+robustness under operational conditions. In addition to the
+LIO baselines used in Section III, VoxelMap++ [29] and
+C3P-VoxelMap [30] are further evaluated to validate the
+architectural distinction between PSS-LIO and map-level plane
+merging methods. For fair and reproducible comparison, all
+baseline methods are evaluated using their oﬃcially released
+open-source implementations with default parameter conﬁgu-
+rations as recommended by the original authors. All real-world
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:29 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+7505412
+IEEE TRANSACTIONS ON INSTRUMENTATION AND MEASUREMENT, VOL. 75, 2026
+TABLE III
+COMPUTATIONAL EFFICIENCY: PROCESSING TIME PER SCAN AND MEMORY CONSUMPTION
+TABLE IV
+ABLATION STUDY: ATE RMSE (M)/PROCESSING TIME (MS)
+TABLE V
+SENSITIVITY ANALYSIS OF KEY PARAMETERS
+deployment datasets are publicly available at https://dx.doi.org/
+10.21227/avaw-1t61. The DJI M210 V2 RTK equipped with
+a Livox Mid-360 LiDAR is employed for ﬁeld validation, as
+illustrated in Fig. 3. The ASUS NUC 14 onboard computer
+represents typical resource-constrained edge hardware on com-
+mercial inspection UAVs, where computational capacity must
+be shared between state estimation and concurrent inspection
+tasks.
+A. Indoor Building Inspection
+Fig. 4(a)–(c) presents results from a closed-loop corridor
+environment with approximately 180 m total trajectory length.
+The glass-walled rooms on both sides introduce reﬂective
+surfaces and geometric repetition, causing data association
+ambiguity and directional degeneracy. PSS-LIO produces geo-
+metrically consistent maps with sharp wall boundaries and
+uniform point density as shown in Fig. 4(d). The learned
+principal directions accurately capture the orthogonal corri-
+dor structure, with over 60 % of surface normals achieving
+Fig. 3.
+UAV platform for ﬁeld deployment: DJI M210 V2 RTK equipped
+with Livox Mid-360 (360◦× 59◦FOV) and ASUS NUC 14 (Intel Core
+Ultra 5, 16 GB RAM) as onboard computer.
+alignment scores above 0.95 as visualized in Fig. 5. In
+contrast, FAST-LIO2 exhibits surface irregularities near glass
+boundaries as shown in Fig. 4(e), while Point-LIO produces
+duplicated surfaces at corners as shown in Fig. 4(f).
+As summarized in Table VI, PSS-LIO achieves 1.37 m end-
+to-end drift, representing 56 %, 51 %, and 35 % improvement
+over FAST-LIO2, Faster-LIO, and Point-LIO, respectively.
+Processing time averages 8.2 ms per scan with 125 MB
+memory, occupying less than 10 % of the scan interval. Vox-
+elMap++ and C3P-VoxelMap both diverged in this scenario,
+highlighting the limited robustness of map-level plane merging
+under geometric repetition.
+This scenario also validates the directional coverage mech-
+anism in Section II-C. We monitor the coverage ratio κ at
+representative trajectory segments: along straight corridor sec-
+tions, κ drops to 0.06–0.08, falling below κmin and triggering
+the relaxation mechanism that retains observations from door
+frames and ceiling-ﬂoor transitions. At corridor corners where
+perpendicular walls become simultaneously visible, κ recovers
+to 0.25–0.35, indicating balanced 3-D constraint coverage. The
+resulting drift reduction over baseline methods conﬁrms that
+selectively directing computational resources toward geomet-
+rically critical observations outperforms uniform processing in
+constrained environments.
+B. Sculpture With Challenging Geometry Inspection
+To evaluate performance on nonorthogonal structures, we
+inspect four sail-shaped sculptures featuring curved surfaces,
+thin edges, and rough stone texture as shown in Fig. 6. The
+alignment modulation φ(·) enables graceful degradation on
+curved surfaces. As reported in Table VI, PSS-LIO achieves
+0.21 m RMSE against RTK-GNSS ground truth, outperform-
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:29 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+WANG et al.: PSS-LIO COMPUTATIONALLY EFFICIENT LIO FRAMEWORK FOR UAV BUILDING INSPECTION
+7505412
+TABLE VI
+QUANTITATIVE COMPARISON IN REAL-WORLD DEPLOYMENT SCENARIOS
+Fig. 4.
+Indoor corridor mapping at Innovation Harbor. (a) Satellite view with
+survey area highlighted; inset shows UAV operating in corridor. (b) Global
+reconstruction with trajectory (cyan). (c) Zoomed-in view corridor section.
+(d) Wall thickness reconstruction by PSS-LIO, producing clean single-surface
+walls. (e) Wall thickness reconstruction by FAST-LIO2, exhibiting uneven
+density. (f) Wall thickness reconstruction by Point-LIO, showing surface
+duplication.
+ing FAST-LIO2, Faster-LIO, and Point-LIO by 45 %, 40 %,
+and 32 %, respectively. Processing averages 9.8 ms per scan
+with 106 MB memory consumption. Neither VoxelMap++ nor
+C3P-VoxelMap completed this scenario, as their plane merging
+Fig. 5. Visualization of online structure prior learning in the indoor corridor
+environment. (a) Top view and (b) 3-D view of surface normals on the unit
+sphere, where gray points indicate unaligned normals and colored points
+denote normals aligned with learned principal directions. (c) Alignment score
+distributions for each principal direction, demonstrating that over 60 % of
+normals achieve alignment scores exceeding 0.95.
+strategies lack the adaptability required for irregular geometry
+with sparse planar structure.
+C. Large-Scale Building Inspection
+The experiment surveys a U-shaped building featuring
+repetitive window patterns and tree-lined courtyards as shown
+in Fig. 7, evaluating long-baseline consistency against geomet-
+ric repetition. The prediction-based ﬁltering and structure-prior
+update jointly suppress drift on repetitive facades overextended
+trajectories. As reported in Table VI, PSS-LIO achieves 0.24 m
+RMSE against RTK-GNSS ground truth, representing 43 %,
+38 %, and 33 % improvement over FAST-LIO2, Faster-
+LIO, and Point-LIO, respectively. Processing averages 14.1 ms
+per scan with 165 MB memory consumption. VoxelMap++
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:29 UTC from IEEE Xplore.  Restrictions apply. 
+[p.10]
+7505412
+IEEE TRANSACTIONS ON INSTRUMENTATION AND MEASUREMENT, VOL. 75, 2026
+Fig. 6. Sail sculpture inspection (four structures, each approximately 15 m
+tall). (a) Site overview with UAV platform (inset). (b) Reconstruction captur-
+ing curved surfaces, thin edges, and complex geometry.
+Fig. 7.
+Large-scale U-shaped building inspection (200 × 50 m). (a) Aerial
+view. (b) UAV platform. (c) Reconstruction with crisp facades and aligned
+corners.
+achieves comparable processing time in this scenario but
+consumes 4.3× more memory at 711 MB, a level that severely
+constrains the remaining capacity for concurrent inspection
+tasks on resource-limited UAV platforms, while also delivering
+inferior accuracy at 0.40 m RMSE. C3P-VoxelMap failed to
+initialize. These results conﬁrm that map-level plane merging
+alone cannot substitute for structure-aware state estimation in
+large-scale building inspection.
+D. Transportation Infrastructure Inspection
+Fig. 8 presents an inspection of a metro viaduct with
+a parallel highway bridge under GNSS-denied conditions,
+featuring repetitive structural elements and limited geometric
+diversity that induce degeneracy along the bridge axis.
+Fig. 8(d)–(g) compares mapping quality of the bridge deck
+cross section. PSS-LIO produces a consistent deck surface
+with sharp pier-deck junctions and preserved ﬁne details as
+shown in Fig. 8(d). FAST-LIO2 exhibits surface thickening
+due to rotational drift as shown in Fig. 8(e), and Point-
+LIO shows severe surface dilation as shown in Fig. 8(f).
+Fig. 8.
+Transportation infrastructure inspection under GNSS-denied condi-
+tions. (a) Under-deck view showing viaduct structure and UAV. (b) Global
+reconstruction by PSS-LIO with trajectory and zoomed-in view region.
+(c) Aerial context view of the parallel viaduct and highway bridge. (d)–(f)
+Bridge deck cross section comparison: PSS-LIO produces a thin, uniform
+surface with sharp pier-deck junctions; FAST-LIO2 exhibits surface thickening
+due to accumulated rotational drift; Point-LIO shows the most severe surface
+dilation. (g) VoxelMap++ achieves thinner surfaces on large planar regions
+but loses ﬁne structural details at pier edges.
+TABLE VII
+MAP PLANARITY EVALUATION ON TRANSPORTATION
+INFRASTRUCTURE (M)
+VoxelMap++ achieves thinner surfaces on large planar regions
+through aggressive plane merging as shown in Fig. 8(g),
+but loses ﬁne structural details at pier edges. As shown in
+Table VII, VoxelMap++ and PSS-LIO achieve comparable
+mean planarity of 0.018 m, both substantially outperforming
+FAST-LIO2 at 0.042 m and Point-LIO at 0.035 m. However,
+VoxelMap++ attains low planarity by merging points into
+dominant planes, smoothing large surfaces but eliminating
+geometric details critical for inspection, whereas PSS-LIO pre-
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:29 UTC from IEEE Xplore.  Restrictions apply. 
+[p.11]
+WANG et al.: PSS-LIO COMPUTATIONALLY EFFICIENT LIO FRAMEWORK FOR UAV BUILDING INSPECTION
+7505412
+serves these details through structure-aware state estimation.
+C3P-VoxelMap did not converge to a valid initialization. The
+structure-prior mechanism learns the dominant horizontal and
+vertical directions from bridge surfaces, while the conﬁdence
+modulation ψ(γk∗) reduces the inﬂuence of under-observed
+directions and the adaptive weight λi allows geometric con-
+straints to dominate when normals concentrate along a few
+directions. Processing averages 12.1 ms per scan with 155 MB
+memory, while VoxelMap++ consumes 3× more memory at
+471 MB.
+Across all four deployment scenarios, C3P-VoxelMap did
+not converge to a valid initialization and VoxelMap++
+diverged in two of four scenarios while consuming 3–4× more
+memory where it succeeded. We attribute these diﬃculties to
+the fact that the default conﬁgurations of these methods are
+tuned for general-purpose mapping rather than the resource-
+constrained UAV inspection settings considered in this work.
+These results conﬁrm the fundamental architectural distinc-
+tion: plane merging methods can achieve comparable surface
+planarity on large ﬂat regions but sacriﬁce ﬁne structural
+details and lack the robustness required for diverse inspection
+environments, whereas PSS-LIO extracts dominant structural
+directions as adaptive EKF constraints, achieving both geomet-
+ric ﬁdelity and robust operation across all tested scenarios.
+Quantitatively, PSS-LIO achieves 32 %–57 % reduction in
+localization error and 34 %–66 % reduction in memory
+consumption relative to the LIO baselines, while consistently
+maintaining processing times below 15 ms per scan.
+V. CONCLUSION
+This article presented PSS-LIO, a computationally eﬃ-
+cient LIO framework for UAV-based building inspection.
+The proposed approach integrates prediction-based coarse
+ﬁltering to bypass redundant observations, information-driven
+ﬁne selection with theoretically grounded directional cover-
+age analysis for multiresolution updates, and structure-prior
+guided update that learns dominant orientations as adaptive
+soft constraints feeding back into state estimation. Compre-
+hensive evaluation on four public datasets demonstrated that
+PSS-LIO achieves the best accuracy on 8 out of 12 sequences
+while reducing processing time by 25 %–40 % and mem-
+ory consumption by 30 %–40 % over leading lightweight
+baselines. Ablation studies further conﬁrmed that the three
+mechanisms address complementary aspects: prediction-based
+ﬁltering primarily contributes to computational eﬃciency,
+information-driven selection preserves geometric constraint
+quality, and structure-prior guided update speciﬁcally enhances
+accuracy in building-rich environments. Real-world UAV
+deployments across four representative inspection scenarios
+validated that PSS-LIO achieves accuracy improvements of
+32 %–56 %, processing time reduction of 33 %–56 %, and
+memory reduction of 34 %–66 % relative to all baseline
+methods. Comparisons with VoxelMap++ and C3P-VoxelMap
+conﬁrmed
+the
+architectural
+advantage
+of
+the
+proposed
+structure-aware state estimation over map-level plane merging
+alone.
+Current limitations include the quasi-static environment
+assumption and reduced eﬀectiveness in scenes lacking
+dominant planar structures. Future work will explore visual-
+inertial fusion for geometrically degenerate scenarios, adaptive
+structure-prior learning for dynamic environments, and multi-
+UAV collaborative mapping with shared structural priors.
+REFERENCES
+[1]
+Y. Wang, S. Wan, R. Qiu, and X. Li, “A path planning algorithm for UAV
+3D surface inspection based on normal vector ﬁltering and integrated
+viewpoint evaluation,” J. Field Robot., vol. 42, no. 6, pp. 2561–2579,
+Sep. 2025, doi: 10.1002/rob.22530.
+[2]
+Y. Wang, W. Li, S. Wan, R. Qiu, and X. Li, “A uav-based multi-defect
+real-time detection system for tunnel lining using attention mechanism-
+enhanced detection model,” Tunnelling Underground Space Technol.,
+vol. 162, Aug. 2025, Art. no. 106630.
+[3]
+A. Ghadimzadeh Alamdari, F. A. Zade, and A. Ebrahimkhanlou, “A
+review of simultaneous localization and mapping for the robotic-based
+nondestructive evaluation of infrastructures,” Sensors, vol. 25, no. 3,
+p. 712, Jan. 2025.
+[4]
+T. Shan, B. Englot, D. Meyers, W. Wang, C. Ratti, and D. Rus, “LIO-
+SAM: Tightly-coupled LiDAR inertial odometry via smoothing and
+mapping,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS), Oct.
+2020, pp. 5135–5142.
+[5]
+J. St¨uhrenberg and K. Smarsly, “LIO-BIM–coupling LiDAR inertial
+odometry with building information modeling for robot localization and
+mapping,” Adv. Eng. Informat., vol. 66, Jul. 2025, Art. no. 103477.
+[6]
+H. Wang, Z. Li, X. Zheng, H. Wang, H. Xu, and J. Wang, “Pizza-
+LIO: Intensity-enhanced LiDAR-inertial odometry with adaptive scan
+slicing,” IEEE Trans. Instrum. Meas., vol. 75, pp. 1–12, 2026.
+[7]
+W. Xu, Y. Cai, D. He, J. Lin, and F. Zhang, “FAST-LIO2: Fast
+direct LiDAR-inertial odometry,” IEEE Trans. Robot., vol. 38, no. 4,
+pp. 2053–2073, Aug. 2022.
+[8]
+Z. Chen, Y. Xu, S. Yuan, and L. Xie, “IG-LIO: An incremental GICP-
+based tightly-coupled LiDAR-inertial odometry,” IEEE Robot. Autom.
+Lett., vol. 9, no. 2, pp. 1883–1890, Feb. 2024.
+[9]
+C. Zhang, J. Zhang, Q. Liu, Y. Liu, and J. Qin, “Si-LIO: High-precision
+tightly-coupled LiDAR- inertial odometry via single-iteration invariant
+extended Kalman ﬁlter,” IEEE Robot. Autom. Lett., vol. 10, no. 1,
+pp. 564–571, Jan. 2025.
+[10] C. Bai, T. Xiao, Y. Chen, H. Wang, F. Zhang, and X. Gao, “Faster-LIO:
+Lightweight tightly coupled LiDAR-inertial odometry using parallel
+sparse incremental voxels,” IEEE Robot. Autom. Lett., vol. 7, no. 2,
+pp. 4861–4868, Apr. 2022.
+[11] X. Li and T. Zhang, “DOF-LIO: LiDAR-inertial odometry with
+lightweight dynamic object ﬁlter,” IEEE Trans. Instrum. Meas., vol. 75,
+pp. 1–10, 2026.
+[12] D. He, W. Xu, N. Chen, F. Kong, C. Yuan, and F. Zhang, “Point-LIO:
+Robust high-bandwidth light detection and ranging inertial odometry,”
+Adv. Intell. Syst., vol. 5, no. 7, Jul. 2023, Art. no. 2200459.
+[13] Z. Yuan, P. Lange, M. Xu, and X. Yang, “Sr-LIO: LiDAR-inertial
+odometry with sweep reconstruction,” in Proc. IEEE/RSJ Int. Conf.
+Intell. ROBOTS AND Syst. (IROS), Oct. 2024, pp. 7862–7869.
+[14] T. Zhang, X. Zhang, Z. Liao, X. Xia, and Y. Li, “As-LIO: Spatial overlap
+guided adaptive sliding window LiDAR-inertial odometry for aggressive
+fov variation,” in Proc. IEEE/RSJ Int. Conf. Intell. ROBOTS AND Syst.
+(IROS), Oct. 2024, pp. 10829–10836.
+[15] T. Zhang, L. Wei, H. Tang, M. Yuan, L. Wang, and X. Niu, “SE-LIO:
+Semantic-enhanced solid-state-LiDAR-inertial odometry for tree-rich
+environments,” IEEE Trans. Instrum. Meas., vol. 74, 2025, Art. no.
+5014713.
+[16] T. Sun, R. Guo, G. Chen, H. Wang, E. Li, and W. Zhang, “Rid-
+LIO: Robust and accurate intensity-assisted LiDAR-based SLAM for
+degenerated environments,” Meas. Sci. Technol., vol. 36, no. 3, Art. no.
+036313.
+[17] Z. Yuan, J. Deng, R. Ming, F. Lang, and X. Yang, “SR-LIVO: LiDAR-
+inertial-visual odometry and mapping with sweep reconstruction,” IEEE
+Robot. Autom. Lett., vol. 9, no. 6, pp. 5110–5117, Jun. 2024.
+[18] H. Zhang, J. Huo, Y. Huang, and Q. Liu, “Real-time dynamic visual-
+inertial SLAM and object tracking based on lightweight deep feature
+extraction matching,” IEEE Trans. Instrum. Meas., vol. 74, pp. 1–22,
+2025.
+[19] X. Duan et al., “STATIC-LIO: A sliding window and terrain-assisted
+dynamic points removal LiDAR inertial odometry,” Inf. Fusion, vol. 121,
+Sep. 2025, Art. no. 103132.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:29 UTC from IEEE Xplore.  Restrictions apply. 
+[p.12]
+7505412
+IEEE TRANSACTIONS ON INSTRUMENTATION AND MEASUREMENT, VOL. 75, 2026
+[20] Y. Tang, H. Zhang, Y. Yu, X. Li, and Y. Huang, “CAMSCKF: A
+multi-state constraint Kalman ﬁlter with adaptive multivariate noise
+parameters clustering and estimation for visual-inertial odometry,” in
+Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS), Oct. 2025,
+pp. 15173–15180.
+[21] T. Du, D. Shan, and P. Guo, “PFLIO-SAM: Tightly-coupled polar-
+ization camera/optical ﬂow/LiDAR/IMU odometry via smoothing and
+mapping,” IEEE Sensors J., vol. 25, no. 19, pp. 36243–36253, Oct.
+2025.
+[22] R. Wang et al., “RTK-LIO: Tightly coupled RTK/LiDAR/inertial naviga-
+tion system based on optimization approach,” IEEE Sensors J., vol. 25,
+no. 13, pp. 26220–26227, Jul. 2025.
+[23] K. Joo, T.-H. Oh, F. Rameau, J.-C. Bazin, and I. S. Kweon, “Linear
+RGB-D SLAM for Atlanta world,” in Proc. IEEE Int. Conf. Robot.
+Autom. (ICRA), May 2020, pp. 1077–1083.
+[24] J. St¨uhrenberg and K. Smarsly, “LIO-BIM-coupling LiDAR iner-
+tial odometry with building information modeling for robot local-
+ization
+and
+mapping,”
+Adv.
+Eng.
+Informat.,
+vol. 66,
+Jul.
+2025,
+Art. no. 103477.
+[25] X.
+Li,
+Y.
+Huang,
+S.
+Si,
+H.
+Zhang,
+Y.
+Ji,
+and
+Y.
+Zhang,
+“Vbro:
+Vehicle
+behavior-guided
+reliable
+road
+surface
+constraints
+for
+LiDAR
+self-localization
+in
+urban
+environments,”
+IEEE
+Trans.
+Aerosp.
+Electron.
+Syst.,
+vol. 61,
+no. 6,
+pp. 16009–16031,
+Dec. 2025.
+[26] J. Lu et al., “IO-LIO: Information-oriented voxel mapping for eﬃcient
+and precise LiDAR-inertial odometry,” IEEE Trans. Intell. Transp. Syst.,
+vol. 27, no. 1, pp. 1352–1370, Jan. 2026.
+[27] Q. Wu et al., “UA-LIO: An uncertainty-aware LiDAR-inertial odometry
+for autonomous driving in urban environments,” IEEE Trans. Instrum.
+Meas., vol. 74, 2025, Art. no. 8502912.
+[28] Z. Song et al., “FI-SLAM: Feature information-based robust and eﬃ-
+cient LiDAR SLAM,” IEEE Trans. Instrum. Meas., vol. 74, pp. 1–12,
+2025.
+[29] C. Wu et al., “Voxelmap++: Mergeable voxel mapping method for online
+LiDAR(-inertial) odometry,” IEEE Robot. Autom. Lett., vol. 9, no. 1,
+pp. 427–434, Jan. 2024.
+[30] X. Yang et al., “C3P-VoxelMap: Compact, cumulative and coalescible
+probabilistic voxel mapping,” in Proc. 2024 IEEE/RSJ Int. Conf. Intell.
+Robots Syst. (IROS), Oct. 2024, pp. 7908–7915.
+[31] J. Zhang and S. Singh, “Loam: LiDAR odometry and mapping in real-
+time,” in Robotics: Science and Systems. Berkeley, CA, USA: Robotics:
+Science and Systems Foundation, 2014.
+[32] D. E. Rumelhart, “Schemata: The building blocks of cognition,” in The-
+oretical Issues in Reading Comprehension. London, U.K.: Routledge,
+2017.
+[33] S. Liu et al., “MG-SLAM: Structure Gaussian splatting SLAM with
+Manhattan world hypothesis,” IEEE Trans. Autom. Sci. Eng., vol. 22,
+pp. 17034–17049, 2025.
+[34] J. Yin, A. Li, T. Li, W. Yu, and D. Zou, “M2DGR: A multi-sensor and
+multi-scenario SLAM dataset for ground robots,” IEEE Robot. Autom.
+Lett., vol. 7, no. 2, pp. 2266–2273, Apr. 2022.
+[35] K. Li, M. Li, and U. D. Hanebeck, “Towards high-performance solid-
+state-LiDAR-inertial odometry and mapping,” IEEE Robot. Autom. Lett.,
+vol. 6, no. 3, pp. 5167–5174, Jul. 2021.
+[36] Z. Yan, L. Sun, T. Krajn´ık, and Y. Ruichek, “EU long-term dataset with
+multiple sensors for autonomous driving,” in Proc. IEEE/RSJ Int. Conf.
+Intell. Robots Syst. (IROS), Oct. 2020, pp. 10697–10704.
+[37] S. Huang, H. Zhang, K. Xu, X. Lv, and X. Ma, “M3DSS: A
+multi-platform, multi-sensor, and multi-scenario dataset for SLAM
+system,” in Proc. IEEE Int. Conf. Robot. Autom. (ICRA), May 2025,
+pp. 14542–14549.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:29 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

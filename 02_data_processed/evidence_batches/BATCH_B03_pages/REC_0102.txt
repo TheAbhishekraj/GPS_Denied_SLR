@@ -1,0 +1,732 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0102.pdf
+sha256: B6C5027F9FB3DAE63A20EAA3B68664D9EA4933A2131A1FE761C543C853749C26
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+Quantum-Enhanced Multi-Sensor Fusion for
+UAV Navigation in GPS-Denied Environments
+Ahlam Moussa, Ilham Nait Him, Kacem Chawqi, and Yassine Salih-Alj
+School of Science and Engineering
+Al Akhawayn University in Ifrane
+Ifrane, Morocco
+(Ah.Moussa, I.NaitHim, K.Chawqi, Y.SalihAlj)@aui.ma
+Abstract—Reliable navigation in GPS-denied or degraded
+environments remains a core challenge for Unmanned Aerial
+Vehicles (UAVs), as inertial-vision systems accumulate drift over
+time. This paper proposes a feasibility study of a quantum-
+enhanced multi-sensor fusion framework that integrates cold-
+atom accelerometer-inspired aiding and NV-center-based heading
+stabilization with conventional IMU, camera, and LiDAR mea-
+surements inside a unified Extended Kalman Filter (EKF). The
+proposed architecture combines high-rate classical sensing with
+low-rate, bias-stable quantum corrections to suppress long-term
+drift during GNSS outages. Using real IMU data from the EuRoC
+MAV benchmark, both a standard IMU+GPS/VO-style EKF and
+a quantum-enhanced EKF under injected GPS-denial intervals
+are evaluated. The results show substantially reduced velocity and
+position drift, extended holdover time, and improved error distri-
+butions for the quantum-aided filter. Deployment considerations,
+including power, cost, integration complexity, and scalability, are
+discussed to assess the real-world feasibility of quantum-aided
+fusion as a promising pathway toward resilient all-weather UAV
+autonomy across highly demanding environments.
+Index Terms—Quantum sensing, UAV Navigation, Sensor Fu-
+sion, GPS-Denied Environments, Extended Kalman Filter.
+I. INTRODUCTION
+Unmanned Aerial Vehicles (UAVs) have become indispens-
+able tools for precision agriculture [1], environmental monitor-
+ing [2], forest-fire detection [3], and public-safety surveillance
+[4]. Their effectiveness, however, depends on accurate naviga-
+tion in complex terrains and degraded environments, where
+Global Navigation Satellite Systems (GNSS) such as GPS
+often suffer from multi-path, signal blockage, or interference
+[5].
+In the absence of reliable GPS signals, most systems rely
+on the fusion of inertial measurement units (IMUs) with
+exteroceptive sensors such as cameras and LiDAR. While
+Visual-Inertial Odometry (VIO) and Simultaneous Localiza-
+tion and Mapping (SLAM) frameworks, such as VINS-Mono
+and ORB-SLAM3, provide low-drift pose estimation through
+robust initialization and filtering [6], [7], their accuracy de-
+grades over time due to cumulative drift and lack of absolute
+referencing. The performance further declines under low vis-
+ibility conditions caused by dust, fog, or poor lighting [8].
+Recent efforts introduce alternative localization aids such
+as Single-Photon LiDAR [9] and geomagnetic-field-based
+navigation [10], which exploit spatial magnetic anomalies to
+reduce odometric drift. However, these methods still face
+limitations in maintaining long-term accuracy during extended
+GNSS outages.
+A promising advancement lies in quantum-aided inertial
+sensing [11]. Cold-atom interferometers provide long-term
+bias stability in acceleration and rotation measurements, while
+diamond nitrogen-vacancy (NV) magnetometers offer high-
+sensitivity room-temperature vector magnetic readings [12],
+[13]. Rapid progress in compact, low-power quantum sensors
+makes their integration into small UAVs potentially feasi-
+ble. Studies demonstrate that coupling quantum and classical
+sensors could significantly extend navigation holdover and
+mitigate cumulative drifts [14].
+Building on these advances, this paper investigates the
+feasibility of a quantum-enhanced Extended Kalman Filter
+(EKF) framework that tightly fuses a classical VIO/LiDAR-
+IMU baseline with cold-atom accelerometry and NV-diamond
+magnetometry to achieve long-term drift suppression and
+absolute heading stabilization under GPS-denied conditions.
+The proposed EKF synchronizes high-rate inertial and vi-
+sual updates with low-rate quantum corrections, employing
+adaptive covariance gating, bias tracking, and dynamic sensor
+confidence weighting to maintain robust state estimation even
+during degraded visibility or magnetic disturbances. Further-
+more, power-aware duty-cycling and selective activation of
+quantum sensors optimize Size, Weight, and Power (SWaP)
+performance, enabling continuous real-time navigation on
+lightweight UAV platforms without sacrificing endurance or
+precision.
+The remainder of this paper is organized as follows. Sec.
+II describes the overall system architecture, the classical
+sensing components, and the state-estimation equations. Sec.
+III presents the proposed hybrid quantum-classical fusion
+framework and its filtering structure. Sec. IV outlines the
+dataset, the simulation setup, and the evaluation methodology.
+Sec. V reports quantitative results obtained under GPS-denied
+conditions. Sec. VI discusses deployment considerations to-
+gether with cost and scalability aspects. Sec. VII concludes
+the paper.
+II. CLASSICAL NAVIGATION SYSTEM MODEL
+A. System Architecture
+The classical-quantum navigation system design is outlined
+in the block diagram of Fig. 1. The system is composed of
+2026 International Conference on Frontiers of Engineering and Emerging Technologies (FET)
+979-8-3195-1886-6/26/$31.00 ©2026 IEEE
+2026 International Conference on Frontiers of Engineering and Emerging Technologies (FET) | 979-8-3195-1886-6/26/$31.00 ©2026 IEEE | DOI: 10.1109/FET68771.2026.11601505
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:02:04 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+Classical Sensing
+Unit
+•
+Inertial Measurement
+Unit
+(IMU/Camera/LiDAR)
+•
+Monocular/stereo vision
+(VIO)
+•
+Outputs: velocity,
+orientation updates
+Quantum Sensing
+Unit
+•
+Cold-Atom
+Accelerometer
+•
+NV-Diamond
+Magnetometer
+•
+Outputs: bias-corrected
+acceleration, magnetic
+field vector
+Fusion Processing
+Unit (EKF)
+•
+State vector
+•
+Corrections: quantum
+aiding (QACC,
+QMAG) + VIO/LIO
+•
+Adaptive weighting by
+sensor confidence
+•
+Output: final navigation
+estimate
+Visualization/Mission
+Interface
+•
+3D map and trajectory
+visualization
+•
+Attitude (roll-pitch-yaw)
+display
+Fig. 1. Block diagram of the proposed quantum-enhanced
+multi-sensor system.
+four units: a classical sensing suite (IMU/Camera/LiDAR), a
+quantum sensing suite (cold-atom accelerometer, NV-diamond
+magnetometer), a fusion processing unit (EKF), and a vi-
+sualization/mission interface. Classical sensors deliver high-
+frequency motion data, while quantum sensors provide bias-
+stable measurements that constrain positional drift during
+periods of GNSS unavailability [15], [16]. The data is then
+relayed to the EKF processing unit, whose output controls the
+display visualization interface.
+B. Classical Sensing Suite
+The inertial measurement unit (IMU) consists of tri-axial
+accelerometers and gyroscopes measuring specific force fb
+and body angular rates ωb at high frequency [17], [18]. The
+specific force is defined as the difference between the absolute
+acceleration a and gravity g
+fb(i) = (a −g) · ei.
+(1)
+The orientation of the UAV with respect to the navigation
+frame is represented in two equivalent forms. First, in the
+Euler angles formulation, using the standard ZYX (yaw-pitch-
+roll) convention, yaw ψ, pitch θ, and roll ϕ define the rotation
+matrix Rnb as
+Rnb =
+
+
+cθcψ
+cθsψ
+−sθ
+sϕsθcψ −cϕsψ sϕsθsψ + cϕcψ sϕcθ
+cϕsθcψ + sϕsψ cϕsθsψ −sϕcψ cϕcθ
+
+,
+(2)
+where c(·) and s(·) denote cosine and sine.
+Second, a quaternion representation is used to avoid sin-
+gularities by expressing attitude with the quaternion qnb.
+Together with Rnb and g, the standard navigation equations
+for position, velocity, and attitude are
+˙p = v,
+(3)
+˙v = Rnb(fb −ba −na) + g,
+(4)
+˙q = 1
+2 Ω(ωb −bg −ng) q,
+(5)
+with accelerometer and gyroscope biases modeled as random
+walks
+˙ba = nba,
+(6)
+˙bg = nbg.
+(7)
+This formulation provides accurate propagation of UAV
+translational and rotational motion, while Euler angles remain
+useful for interpretation. Drift is further controlled by Visual-
+Inertial Odometry (VIO) and LiDAR-Inertial Odometry (LIO).
+VIO systems, such as VINS-Mono and ORB-SLAM3, produce
+pose updates of the form
+∆zVIO =
+∆p
+θ
+
++ nVIO,
+(8)
+where θ denotes a small-angle correction. LIO provides geo-
+metric depth constraints that remain reliable under low-texture
+or low-illumination conditions [19]. Combined, VIO and LIO
+bound short-term drift but lack long-term absolute referencing
+during extended GNSS outages.
+III. PROPOSED QUANTUM-CLASSICAL HYBRID
+NAVIGATION MODEL
+A. Quantum-Classical Fusion Framework
+The hybrid model integrates quantum sensors (cold-atom
+accelerometer, NV-diamond magnetometer) with the classical
+sensing suite through an Extended Kalman Filter (EKF). Quan-
+tum measurements provide absolute drift-free references that
+constrain the biases of the classical IMU and improve long-
+term navigation accuracy. The fusion framework adaptively
+weighs sensor contributions based on confidence levels and
+operational conditions, producing a final navigation estimate
+that leverages the strengths of both classical and quantum
+sensing.
+The block diagram in Fig. 1 illustrates the combined system,
+showing the classical and quantum units feeding into the
+EKF, which outputs the fused navigation solution to the
+visualization/mission interface.
+B. Quantum Sensing Suite
+To enhance long-term stability, two quantum modalities
+complement the classical sensors.
+a) Cold-Atom Interferometer Accelerometer: The inter-
+ferometric phase ϕ codes the specific force along the sensor
+axis as
+ϕ = keff · aT 2 + ϕ0,
+(9)
+where keff is the effective Raman wave vector, T the pulse
+separation, and ϕ0 a constant phase offset.
+2026 International Conference on Frontiers of Engineering and Emerging Technologies (FET)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:02:04 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+b) NV-Diamond
+Magnetometer
+(NV-MAG):
+Provides
+vector magnetic field measurement for absolute heading
+BNV = [Bx, By, Bz]T .
+(10)
+Together, they constrain the gyro bias and accelerometer
+drift while remaining compact and low power [20], [21].
+C. Fusion Processing Unit (EKF)
+A tightly coupled Extended Kalman Filter estimates the
+state vector as⃗
+x = [⃗p⃗v⃗q⃗ba⃗bg]T ,
+(11)
+IMU
+propagation
+follows
+(3)-(5);
+measurements
+from
+VIO/LIO, NV-MAG, and Q-ACC update as
+ν = zno −Rnbez,
+(12)
+τace = zqace −bo.
+(13)
+Measurement covariances are adjusted based on sensor reli-
+ability, allowing the filter to reduce the influence of degraded
+measurements and maintain robustness under poor visual or
+magnetic conditions [22].
+D. Visualization Interface
+The interface displays real-time position, attitude (roll-pitch-
+yaw), uncertainty, and sensor health, aiding UAV mission
+decisions and ensuring navigation continuity under GNSS
+denial.
+E. EKF Algorithm
+The proposed navigation algorithm employs a tightly cou-
+pled Extended Kalman Filter (EKF) integrating quantum and
+classical sensing modalities. The state vector is defined as⃗
+x = [⃗p⃗v⃗q⃗ba⃗bg]T ,
+(14)
+where⃗p and⃗v denote position and velocity in the navigation
+frame,⃗q is the attitude quaternion, and⃗ba,⃗bg represent the
+accelerometer and gyroscope biases.
+1) Prediction Step: The IMU propagation follows the stan-
+dard strapdown inertial navigation equations already defined
+in (3)-(5), which describe the continuous-time evolution of
+position, velocity, and attitude using the IMU measurements.
+These equations are numerically integrated to obtain discrete-
+time predictions of the state vector ˆxk|k−1 and its covariance
+Pk|k−1.
+2) Quantum-Aided Correction:
+Quantum accelerometers
+(cold-atom interferometers) periodically constrain acceleration
+bias drift, while NV-center magnetometers provide absolute
+heading updates. Their measurement models are given as
+zQACC = a + bq + nq,
+(15)
+zQMAG = Bref + nB.
+(16)
+A Kalman gain-based fusion then corrects the IMU-
+predicted states, ensuring long-term stability under GPS de-
+nial.
+3) Multi-Sensor Fusion: The EKF integrates quantum sen-
+sors with GPS, vision, and LiDAR updates through adaptive
+covariance weighting according to sensor reliability
+K = PHT (HPHT + R)−1,
+(17)
+where R is dynamically tuned based on sensor availability and
+noise levels: when visual degradation or magnetic disturbances
+are detected, the corresponding covariance is increased to re-
+duce its influence in the update step. Vision updates dominate
+during rich-texture scenes, while quantum updates maintain
+global consistency during degraded or GPS-denied conditions.
+IV. DATASET AND SIMULATION SETUP
+This work uses a MATLAB evaluation framework to assess
+the proposed quantum-enhanced fusion using real inertial data
+from the EuRoC MAV benchmark in a controlled simulation
+study. GPS-denial intervals and synthetic aiding signals are in-
+jected to reproduce both classical and quantum-aided behavior.
+The main parameters are summarized in Table I.
+TABLE I. SIMULATION PARAMETERS.
+Parameter
+Value
+IMU sampling rate
+≈200 Hz
+Total duration T
+EuRoC V1 01 easy sequence
+GPS-denial interval D
+25%-90% of T (clamped)
+GPS position noise
+1.5 m
+VO position noise
+0.05 m
+Quantum accel. update rate
+1 Hz
+Quantum accelerometer noise
+0.1 µg/
+√
+Hz (equiv.)
+Quantum heading noise
+0.2◦
+A. Dataset and Protocol
+The V1 01 easy EuRoC MAV sequence [23] provides high-
+rate IMU data (about 200 Hz) with inherent sensor noise
+and precise ground truth (GT), used only for evaluation and
+generation of auxiliary observations. Pseudo-GPS/VO updates
+are generated by adding Gaussian noise to GT, supplied
+regularly outside the denial window D and sparsely inside it,
+mimicking degraded VO. VO/VIO effects are approximated
+through noisy GT-based position updates rather than a full
+visual SLAM pipeline. Both filters use identical initialization:
+a conventional EKF fusing the real EuRoC IMU measurements
+with pseudo-GPS/VO, and a quantum-enhanced EKF receiving
+low-rate bias-stable aiding (accelerometric nudges and heading
+corrections) with reduced process noise representative of cold-
+atom and NV-diamond sensors.
+B. Evaluation Metrics
+Performance is measured with respect to ground truth (GT)
+using the following metrics:
+1) Position error ep(t).
+2) Velocity error ev(t).
+3) Holdover time required for the position error to exceed
+the thresholds {1, 5, 10, 20} m within D.
+4) Cumulative distribution function (CDF) of ep(t) over D.
+5) Drift-rate histogram obtained from local linear slopes of
+ep(t) during GPS denial.
+2026 International Conference on Frontiers of Engineering and Emerging Technologies (FET)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:02:04 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+0.0
+32.0
+64.0
+96.0
+128.0
+160.0
+Time since start (s)
+0
+0.2
+0.4
+0.6
+0.8
+1
+Normalized Velocity Error
+Conventional
+Quantum
+Fig. 2. Normalized velocity error during the GPS-denial interval.
+C. Implementation Details
+All processing is performed in MATLAB. IMU measure-
+ments drive propagation, with GT resampled to IMU time for
+fairness. Quantum-inspired aiding is injected at low rate using
+noise levels representative of reported quantum sensor perfor-
+mance, keeping the pipeline lightweight while illustrating the
+potential advantage of the quantum-enhanced EKF.
+V. SIMULATION RESULTS
+A. Velocity and Position Error Evolution
+The normalized velocity error shown in Fig. 2 demonstrates
+the immediate divergence of the conventional EKF once GPS
+becomes unavailable. Its error increases almost monotonically
+and rapidly approaches saturation. In contrast, the quantum-
+enhanced EKF grows more gradually and remains significantly
+lower over the entire denial interval. This sustained gap illus-
+trates how bias-stable quantum-inspired corrections constrain
+drift growth and stabilize the velocity channel when classical
+inertial propagation becomes unreliable.
+Figure 3 shows the corresponding position error evolution.
+The conventional EKF exhibits a continuously increasing
+drift, while the quantum-enhanced EKF maintains a markedly
+slower error growth. The separation between the two curves
+widens with time, indicating that even low-rate quantum
+updates provide enough absolute referencing to suppress long-
+term inertial drift. The vertical dashed lines denote the GPS-
+denial window; within this interval, the zoomed-in portion
+highlights how the quantum-aided filter accumulates position
+error more slowly than the classical one.
+B. Holdover and Drift Analysis
+Holdover time represents how long the filter maintains
+acceptable accuracy after GPS loss. As shown in Fig. 4,
+the conventional EKF crosses the 20 m threshold almost
+immediately (around 0.03 s), reflecting rapid error growth
+from IMU bias and attitude drift. The quantum-enhanced EKF,
+0.0
+32.0
+64.0
+96.0
+128.0
+160.0
+Time since start (s)
+20
+40
+60
+80
+100
+120
+Position Error (m)
+GPS Denial Start
+GPS Denial End
+Conventional
+Quantum
+Fig. 3. Position error evolution during the GPS-denial interval.
+however, remains below this threshold for nearly 0.47 s, a
+19-fold improvement. This extended holdover arises from the
+absolute heading and bias-stabilizing nature of the quantum
+sensor updates, which counteract the runaway drift typical
+of classical inertial navigation during GPS outages. Because
+the classical EKF crosses intermediate errors instantly, no red
+curve appears in the 10 m region. The thresholds at which the
+classical filter exceeds error limits too quickly to appear are
+shown without visible bars.
+1m
+5m
+10m
+20m
+Holdover Time (s)
+0
+0.05
+0.1
+0.15
+0.2
+0.25
+0.3
+0.35
+0.4
+0.45
+0.5
+Conventional
+Quantum
+Fig. 4. Holdover duration under GPS denial for evaluated
+position-error thresholds.
+C. Error Distribution
+The cumulative distribution function (CDF) in Fig. 5 pro-
+vides a statistical view of performance over the entire denial
+period. The quantum-enhanced EKF curve rises steeply to-
+ward 1.0, indicating that most realizations remain within a
+narrow error band. In contrast, the conventional EKF shows a
+broader distribution, confirming less consistent performance
+2026 International Conference on Frontiers of Engineering and Emerging Technologies (FET)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:02:04 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+Position Error (m)
+0
+20
+40
+60
+80
+100
+120
+140
+Cumulative Probability
+0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1
+Conventional
+Quantum
+Fig. 5. CDF of position error during the outage interval.
+Fig. 6. Drift-rate distribution under GPS-denied operation.
+and greater susceptibility to drift. This demonstrates that
+quantum aiding improves not only mean accuracy, but also
+repeatability and reliability across multiple trials.
+D. Drift Rate Histogram
+Figure 6 compares the distribution of drift rates for both
+filters. The quantum-enhanced EKF shows a noticeably nar-
+rower, and more concentrated histogram, indicating reduced
+variability. The improvement in drift-rate stability is approx-
+imately 1.8x relative to the conventional EKF. This reduc-
+tion reflects the role of quantum updates in constraining
+bias growth and stabilizing the inertial solution over longer
+timescales.
+VI. DEPLOYMENT CONSIDERATIONS AND COST
+ANALYSIS
+A. Power, Size, and Measurement Fidelity
+Optomechanical and atom-based quantum sensors introduce
+notable SWaP penalties compared to classical MEMS de-
+vices. Although hybrid optomechanical sensors improve mea-
+surement robustness and bandwidth, their optical assemblies
+require tight environmental control and laser stabilization,
+making integration into compact UAVs difficult [24]. Their
+higher power draw, typically 2-15 W during active operation,
+also reduces flight endurance, highlighting the need for energy-
+aware scheduling and compact optical packaging.
+Dynamic duty-cycling and shared timing control help lower
+average power consumption while preserving long-term bias
+stability. Hardware-filter co-design (e.g., activating the cold-
+atom accelerometer only during prolonged GNSS outages)
+offers practical trade-offs between holdover performance and
+endurance.
+B. Cost and Scalability
+Cold-atom accelerometers and NV-diamond magnetometers
+remain more expensive than MEMS or optical sensors due
+to precision optical and vacuum subsystems. Prior work on
+low-cost UAVs shows that improved fusion algorithms can
+offset hardware limits [25], [26]. Extending this idea suggests
+modular quantum-classical designs, using miniaturized NV-
+diamond or compact cold-atom units only when mission
+precision justified cost, creating a scalable architecture that
+matches sensing performance to operational requirements.
+This approach also helps avoid unnecessary SWaP burdens
+on platforms that do not require full quantum precision.
+Table II shows the projected prototype cost. The total is
+about $810,189, dominated by quantum components [27],
+[28].
+TABLE II. PROJECTED PROTOTYPE COST BREAKDOWN.
+Component
+Description
+Cost (USD)
+IMU
+6-DOF unit (MicroStrain 3DM-GX5-AHRS)
+1,838
+LiDAR
+3D scanner (Livox Mid-70)
+1,429
+Camera
+Basler ace or FLIR Blackfly S (1.3 MP)
+579
+Q-ACC
+Compact atom-interferometer accelerometer
+800,000
+NV-MAG
+ODMR vector magnetometer (Qnami/Reichelt)
+3,143
+Interface
+Jetson Orin Nano + 10.1” display
+3,200
+Total
+∼810,189
+Scalability depends on progress in chip-scale vacuum and
+photonic integration, which continues to shrink volume and
+cost. As manufacturing improves, modular quantum-classical
+systems are expected to become viable across a wide range of
+UAV platforms, enabling tailored configurations that balance
+performance, endurance, and platform constraints.
+C. Practical Implementation and Operational Insights
+Sensor placement has to limit vibrations while preserv-
+ing camera and LiDAR visibility and maintaining correct
+quantum-sensor orientation. Payload mass remains important:
+cold-atom accelerometers and NV-diamond magnetometers
+have to be mounted without reducing endurance or stability,
+2026 International Conference on Frontiers of Engineering and Emerging Technologies (FET)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:02:04 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+and proper weight distribution is essential. Thermal manage-
+ment is also critical, as quantum modules require stable optical
+and environmental conditions.
+At the mission level, the hybrid system improves reliability
+in urban canyons, mountains, and dense vegetation, enabling
+longer GPS-denied flight with fewer ground corrections. More
+stable positioning supports higher autonomy, including trajec-
+tory adjustment, obstacle avoidance, and multi-UAV coordina-
+tion.
+Future refinements include adding quantum gyroscopes for
+improved attitude stability, duty-cycled quantum sensors to
+reduce power use, and learning-based or adaptive covariance
+tuning for greater EKF robustness.
+VII. CONCLUSION
+The proposed quantum-enhanced fusion framework inves-
+tigated the potential of improving UAV navigation in GPS-
+denied environments by combining cold-atom accelerometers
+and NV-diamond magnetometers with IMU, vision, and Li-
+DAR sensing in a unified EKF. Simulations showed a 19x
+increase in holdover duration and lower positional drift than
+conventional methods, highlighting the potential of quantum-
+aided navigation where GNSS is unreliable, while acknowl-
+edging that the quantum sensors in this study were modeled
+using reported performance parameters and Gaussian noise
+modeling rather than integrated hardware. Key challenges
+remained in sensor cost, power demand, and scalability, though
+chip-scale atomic and photonic advances continue to reduce
+these barriers. Power needs, typically a few watts, were low-
+ered through duty-cycling and shared timing, while modular
+architectures enabled more compact low-SWaP designs. Future
+work will add quantum gyroscopes, validate performance on
+real UAV flights, and explore adaptive filters with learning-
+based covariance tuning. Together with continued advances,
+these developments position quantum-enhanced sensing as a
+promising path to resilient autonomous navigation in GPS-
+degraded environments.
+REFERENCES
+[1] D. C. Tsouros, S. Bibi, and P. G. Sarigiannidis, “A review on UAV-
+Based Applications for Precision Agriculture,” Information, vol. 10, no.
+11, p. 349, Nov. 2019.
+[2] S. Asadzadeh, W. J. De Oliveira, and C. R. De Souza Filho, “UAV-
+based remote sensing for the petroleum industry and environmental
+monitoring: State-of-the-art and perspectives,” Journal of Petroleum
+Science and Engineering, vol. 208, p. 109633, Oct. 2021.
+[3] C. Li et al., “Fast Forest Fire Detection and Segmentation Application
+for UAV-Assisted mobile edge Computing system,” IEEE Internet of
+Things Journal, vol. 11, no. 16, pp. 26690-26699, Sep. 2023.
+[4] I. Shamta and B. E. Demir, “Development of a deep learning-based
+surveillance system for forest fire detection and monitoring using UAV,”
+PLOS ONE, vol. 19, no. 3, p. e0299058, Mar. 2024.
+[5] H. Zhou et al., “Opening a new era of investigating unreachable cliff
+flora using smart UAVs,” Remote Sensing in Ecology and Conservation,
+vol. 7, no. 4, pp. 638-648, Jun. 2021.
+[6] I. Jarraya et al., “GNSS-denied unmanned aerial vehicle navigation:
+analyzing computational complexity, sensor fusion, and localization
+methodologies,” Satellite Navigation, vol. 6, no. 1, p. 9, Apr. 2025.
+[7] K. Montalban et al., “Bayesian inference of visibility in fog and
+smoke artificial conditions from 3D-LiDAR point clouds,” Journal of
+Quantitative Spectroscopy and Radiative Transfer, vol. 308, p. 108666,
+May 2023.
+[8] T. Qin, P. Li, and S. Shen, “VINS-Mono: a robust and versatile monoc-
+ular visual-inertial state estimator,” IEEE Transactions on Robotics, vol.
+34, no. 4, pp. 1004-1020, Jul. 2018.
+[9] C. Campos, R. Elvira, J. J. G. Rodriguez, J. M. M. Montiel, and J.
+D. Tardos, “ORB-SLAM3: an accurate open-source library for visual,
+visual-inertial, and multimap SLAM,” IEEE Transactions on Robotics,
+vol. 37, no. 6, pp. 1874-1890, May 2021.
+[10] I. El Messaoudi, N. El Allami, and Y. S. Alj, “Enhanced Traffic Collision
+Avoidance System Using Single Photon LiDAR in Aviation Operations,”
+in 2024 International Conference on Information Technology and Com-
+puting (ICITCOM), Yogyakarta, Indonesia, pp. 66-71, Aug. 2024.
+[11] S. Abend, B. Allard, A. S. Arnold, and M. Zawada, “Technology
+roadmap for cold-atoms based quantum inertial sensor in space,” AVS
+Quantum Science, vol. 5, no. 1, pp. 019201-1-019201-27, Mar. 2023.
+[12] F. Viset, R. Helmons, and M. Kok, “An extended Kalman filter for
+magnetic field SLAM using Gaussian process regression,” Sensors, vol.
+22, no. 8, p. 2833, Apr. 2022.
+[13] J. F. Barry et al., “Sensitivity optimization for NV-diamond magnetom-
+etry,” Reviews of Modern Physics, vol. 92, no. 1, pp. 015004-1-015004-
+68, Mar. 2020.
+[14] W. S. Huxter et al., “Scanning gradiometry with a single spin quantum
+magnetometer,” Nature Communications, vol. 13, no. 1, pp. 3761-1-
+3761-9, Jun. 2022.
+[15] B. Kantsepolsky, I. Aviv, R. Weitzfeld, and E. Bordo, “Exploring
+quantum sensing potential for systems applications,” IEEE Access, vol.
+11, pp. 31569-31582, Jan. 2023.
+[16] H. Pei et al., “Navigation in the future: Review of quantum sensing in
+navigation,” Science China Physics, Mechanics & Astronomy, vol. 68,
+no. 9, pp. 290301-1-290301-20, Jul. 2025.
+[17] D. Tedaldi, A. Pretto, and E. Menegatti, “A robust and easy to implement
+method for IMU calibration without external equipments,” in 2014 IEEE
+International Conference on Robotics and Automation (ICRA), Hong
+Kong, China, pp. 3042-3049, May 2014.
+[18] Z. Bao, G. Lu, Y. Wang, and D. Tian, “A calibration method for
+misalignment angle of vehicle-mounted IMU,” Procedia - Social and
+Behavioral Sciences, vol. 96, pp. 1853-1860, Nov. 2013.
+[19] Z. Chen et al., “IGE-LIO: Intensity Gradient enhanced tightly coupled
+LIDAR-Inertial odometry,” IEEE Transactions on Instrumentation and
+Measurement, vol. 73, pp. 1-11, Jan. 2024.
+[20] S. Hong et al., “Nanoscale magnetometry with NV centers in diamond,”
+MRS Bulletin, vol. 38, no. 2, pp. 155-161, Feb. 2013.
+[21] T. Wolf et al., “Subpicotesla diamond magnetometry,” Physical Review
+X, vol. 5, no. 4, pp. 041001-1-041001-9, Dec. 2015.
+[22] T. Akitsu et al., “Quantum sensors for accurate and stable long-
+term photosynthetically active radiation observations,” Agricultural and
+Forest Meteorology, vol. 237-238, pp. 171-183, Feb. 2017.
+[23] M. Burri et al., “The EuRoC micro aerial vehicle datasets,” The
+International Journal of Robotics Research, vol. 35, no. 10, pp. 1157-
+1163, Jan. 2016.
+[24] L. Richardson et al., “Quantum Hybrid Optomechanical Inertial Sens-
+ing,” Applied Optics, vol. 59, no. 15, pp. 4515-4525, May 2020.
+[25] J. Garc´ıa et al., “A Methodology for Design and Analysis of Sensor
+Fusion with Real Data in UAV Platforms,” in Proc. IEEE Aerospace
+Conf., pp. 1-10, Oct. 2018.
+[26] J. Garc´ıa, J. M. Molina, and J. Trincado, “Real evaluation for designing
+sensor fusion in UAV platforms,” Information Fusion, vol. 63, pp. 136-
+152, Jun. 2020.
+[27] Basler AG, “Basler ace acA1920-40g - GigE Camera - Basler AG,”
+Baslerweb.
+[28] “3DM-CX5-IMU,”
+HBK
+World,
+Nov.
+28,
+2025.
+[Online].
+Available:
+https://www.hbkworld.com/en/products/transducers/inertial-
+sensors/measurement-units/3dm-cx5-imu#!ref-microstrain.com
+2026 International Conference on Frontiers of Engineering and Emerging Technologies (FET)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:02:04 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

@@ -1,0 +1,655 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1103.pdf
+sha256: 6E0A61012200F950DBCB3364E6E36F7E9C522E96C42041FBF8200A58355452D2
+library: pymupdf (fitz) v1.28.2
+pages: 10
+=== BEGIN ===
+[p.1]
+Journal of Physics:
+Conference Series
+     
+PAPER • OPEN ACCESS
+Integrated navigation of aerial robot for GPS and
+GPS-denied environment
+To cite this article: Satoshi Suzuki et al 2016 J. Phys.: Conf. Ser. 744 012219
+ 
+View the article online for updates and enhancements.
+You may also like
+Review of cross-medium multi-rotor aerial
+robots: classifications, current status,
+challenges, and smart structural
+perspectives
+Zeming Zheng, Yajing Zheng, Chenye Su
+et al.
+-
+SpeedNet: dual-channel CNN-GRU
+network with adaptive noise fusion for
+robust vehicle dead reckoning in GNSS-
+denied environments
+Meiying Qiao, Yunqiang Qiu, Ang Li et al.
+-
+Flying over uneven moving terrain based
+on optic-flow cues without any need for
+reference frames or accelerometers
+Fabien Expert and Franck Ruffier
+-
+This content was downloaded from IP address 112.196.163.168 on 16/09/2026 at 19:10
+[p.2]
+Integrated navigation of aerial robot for GPS and
+GPS-denied environment
+Satoshi Suzuki1, Hongkyu Min2, Tetsuya Wada3 and Kenzo Nonami2
+1 Shinshu University, 3-15-1 Tokida, Ueda-shi, Nagano, Japan
+2 Chiba University, 1-33, Yayoi-cho, Inage-ku, Chiba-shi, Chiba, Japan
+3 Autonomous Control Systems Laboratory Ltd. , 3-15-1 Tokida, Ueda-shi, Nagano, Japan
+E-mail: s-s-2208@shinshu-u.ac.jp
+Abstract.
+In this study, novel robust navigation system for aerial robot in GPS and GPS-
+denied environments is proposed.
+Generally, the aerial robot uses position and velocity
+information from Global Positioning System (GPS) for guidance and control. However, GPS
+could not be used in several environments, for example, GPS has huge error near buildings
+and trees, indoor, and so on. In such GPS-denied environment, Laser Detection and Ranging
+(LIDER) sensor based navigation system have generally been used. However, LIDER sensor also
+has an weakness, and it could not be used in the open outdoor environment where GPS could
+be used. Therefore, it is desired to develop the integrated navigation system which is seamlessly
+applied to GPS and GPS-denied environments. In this paper, the integrated navigation system
+for aerial robot using GPS and LIDER is developed. The navigation system is designed based on
+Extended Kalman Filter, and the eﬀectiveness of the developed system is veriﬁed by numerical
+simulation and experiment.
+1. Introduction
+In recent years, great success of aerial robot, which is also called drone, attracts attention all
+over the world [1]. The aerial robot could be used for various tasks under various environments.
+For example, it is used for information gathering at the time of a disaster, observation service in
+a height, inspection of large infrastructure like bridges and dam, security, and many others. To
+apply the aerial robot to such tasks easily, it is desired that the robot has autonomous capacity,
+and it is necessary for autonomous ﬂight to obtain the position and velocity information of the
+robot.
+In general, the aerial robot uses Global Positioning System (GPS) to measure the position
+and velocity for autonomous ﬂight. However, GPS could not be used in several environments,
+for example, GPS has huge error near buildings and trees, indoor, and so on. To realize the
+autonomous ﬂight of the aerial robot in such GPS-denied environments, several sensors are
+used to measure the position and velocity of the robot instead of GPS. Optical motion capture
+system[2][3] is commonly used for the researches of autonomous ﬂight of aerial robot in indoor
+environment. The motion capture system could measure precise position and attitude of the
+robot.
+Therefore, the system is used for the research about precise autonomous ﬂight[4][5].
+However, the system needs large-scale facilities and it is only applied to limited area. On the
+other hand, vision sensor is also used for the autonomous ﬂight in several researches[6][7]. The
+monocular or stereo vision system is useful because they could be applied in various environment.
+MOVIC2016 & RASD2016
+IOP Publishing
+Journal of Physics: Conference Series 744 (2016) 012219
+doi:10.1088/1742-6596/744/1/012219
+Content from this work may be used under the terms of the Creative Commons Attribution 3.0 licence. Any further distribution
+of this work must maintain attribution to the author(s) and the title of the work, journal citation and DOI.
+Published under licence by IOP Publishing Ltd
+1
+[p.3]
+Figure 1. Coordinate systems.
+However, they are easily aﬀected by change of light environment, and the robustness is not
+enough.
+The Laser Detection and Ranging (LIDER) sensor is mostly used for the research
+about the autonomous ﬂight in GPS-denied environment[9][10].
+LIDER-based Simultaneous
+Localization and Mapping (SLAM) is matured technology in the ﬁeld of robotics, and accurate
+position could be obtained from the system. However, LIDER sensor also could not be used in
+several environments, for example, an environment where less laser reﬂections are only obtained.
+As mentioned above, every sensors have their own weakness.
+And there are boundaries
+among the environment where each sensor could be used. Therefore, it is desired to develop the
+integrated navigation system which is seamlessly applied to various environment. In this paper,
+the integrated navigation system based on GPS and LIDER sensor is proposed. The integrated
+navigation system could be applied to both GPS and GPS-denied environments.
+The rest of the paper is organized as follows. Section 2 will introduce sensor system which is
+used for integrated navigation. Coordinate system and measurement equation of each sensor are
+deﬁned. Especially, the equation for absolute measurement of GPS, and relative measurement
+of LIDER will be introduced.
+The integrated navigation system is designed in section 3.
+The process model for estimation is deﬁned, and the navigation system is developed based
+on Extended Kalman Filter. A numerical simulation and experiment are carried out and the
+result is shown in section 4 and section 5 respectively. Finally, conclusion of this work will be
+presented in section 6.
+2. Sensor system
+In this section, the sensor system used for integrated navigation and its measurement equations
+are introduced.
+First, coordinate system used for navigation is deﬁned.
+The overview of
+coordinate systems are shown in Fig. 1. The ﬁrst coordinate system is called global frame and
+noted g-frame; its origin is ﬁxed at an arbitrary point on the ground. The Xg axis indicates
+true north; the Yg axis, east direction; and the Zg axis, the gravity direction. This frame is also
+known as world frame in the ﬁeld of robotics. The absolute sensor measurement from GPS and
+compass are expressed on this frame. The second coordinate system is called local frame and
+noted l-frame; its origin is ﬁxed at the origin of the local navigation system of LIDER sensor.
+The frame is used to express the relative measurement. The last coordinate system is called
+body frame and noted b-frame; its origin is at the center of the gravity of the robot. The Xb
+axis is in the forward direction of the body; the Yb axis, in the rightward direction; and the Zb
+axis, in the downward direction. The output of a Inertial Measurement Unit (IMU) is expressed
+as the vector on this frame. The state of the aerial robot which is estimated by navigation
+MOVIC2016 & RASD2016
+IOP Publishing
+Journal of Physics: Conference Series 744 (2016) 012219
+doi:10.1088/1742-6596/744/1/012219
+2
+[p.4]
+system is deﬁned as follows:
+x =
+[
+pgT
+vgT
+ΦgT ]T
+(1)
+Here, pg and vg is 3-axis position and velocity of the robot on g-frame. Φg is the attitude of
+the robot which is expressed by appropriate method such as euler angle or quaternion[10].
+Next, the sensors used for navigation and its sensor equation which expresses the relation
+between sensor output and the state of the robot is introduced. IMU is used to measure the
+acceleration and angular velocity. Considering the measured 3-axis acceleration as ab, 3-axis
+angular velocity as ωb, and the attitude Φg as the quaternion qb
+g, the following equation is
+obtained.
+˙qb
+g
+=
+1
+2qb
+g ⊗
+[ 0
+ωb
+]
+(2)
+˙vg
+=
+qb∗
+g ⊗
+[ 0
+ab
+]
+⊗qb
+g +
+
+
+0
+0
+g
+
+
+(3)
+Here, ⊗denotes product of quaternion, qb∗
+g denotes conjugate of the quaternion. Additionally,
+g is the gravitational acceleration. GPS is used to obtain the 3-axis position and velocity in
+outdoor environment. The output of GPS is considered as pgps and vgps, then the relation
+between these outputs and state is expressed as follows:
+pgps
+=
+pg + δpgps
+(4)
+vgps
+=
+vg + δvgps
+(5)
+Here, δpgps and δvgps are the measurement error of GPS. LIDER sensor is also used to obtain
+the position. However, the position obtained by LIDER is not absolute measurement, but also
+relative measurement. Now, considering relative attitude between g-frame and l-frame as ql
+g,
+the position of the origin of l-frame as pg
+lo, relation between the output of LIDER sensor plider
+and the state as follows:
+plider = ql
+g ⊗
+[
+0
+pg −pg
+lo
+]
+⊗ql∗
+g
+(6)
+Additionally, the magnetic compass measures the heading angle, which is the part of the attitude,
+on the g-frame.
+3. Integrated navigation system
+In this section, novel integrated navigation system is designed based on Extended Kalman Filter.
+3.1. Process model
+A process model of the navigation is derived. The estimate of the state of the robot is deﬁned
+as follows:
+ˆx =
+[
+ˆpgT
+ˆvgT
+ˆqbT
+g
+ˆb
+T
+a
+ˆb
+T
+ω
+]T
+(7)
+Here, ˆba and ˆbω are the bias error of the accelerometer and gyro sensor respectively. These bias
+errors is used to reduce the drift of estimated position, velocity, and attitude.
+First, state space equation of the system is derived. Using the bias error, (2) and (3) are
+rewritten as follows:
+˙ˆqb
+g
+=
+1
+2ˆqb
+g ⊗
+[
+0
+ωb −ˆbω
+]
+(8)
+˙ˆvg
+=
+ˆqb∗
+g ⊗
+[
+0
+ab −ˆba
+]
+⊗ˆqb
+g +
+
+
+0
+0
+g
+
+
+(9)
+MOVIC2016 & RASD2016
+IOP Publishing
+Journal of Physics: Conference Series 744 (2016) 012219
+doi:10.1088/1742-6596/744/1/012219
+3
+[p.5]
+Based on (8) and (9), discrete time state propagation model with system noise is derived as
+follows:
+ˆxt+1
+=
+f t(ˆxt, ut, wt)
+(10)
+ut =
+[
+at
+ωt
+]
+,
+wt =
+
+
+wa
+wω
+wba
+wbω
+
+
+(11)
+Here, at and ωt are tth measure of accelerometer and gyro sensor. w is the process noise of
+sensors and sensor bias. Additionally, the model of bias error is deﬁned as simple random walk
+model as follows:
+ˆbat+1
+=
+ˆbat + wba
+(12)
+ˆbωt+1
+=
+ˆbωt + wbω
+(13)
+Next, measurement equation of each sensor is derived. The output of the GPS is absolute
+position and velocity on g-frame, and the sensor output is only related to current state. Then,
+the output of GPS is considered as zt = [pgps
+vgps]T , the measurement equation of GPS is
+derived by using (5) as
+zt = ht(ˆxt, vgps
+t
+)
+(14)
+Here, vgps
+t
+is measurement noise of GPS. Additionally, the output of the compass is also absolute
+measurement. Therefore, the measurement equation of the compass is same style.
+On the other hand, the output of LIDER system is related to both current and past state,
+because the origin of l-frame in (6) is depend on the past absolute position of the robot.
+Therefore, the measurement equation of LIDER is obtained as follows:
+zt = ht(ˆxt, ˆxt−T , vlider
+t
+)
+(15)
+Here, ˆxt−T is T step past state from current state.
+3.2. Extended Kalman Filter
+Based on the derived process model, Extended Kalman Filter is designed. General Extended
+Kalman Filter algorithm is shown as follows:
+F t
+=
+(∂f t
+∂xt
+)
+xt= ˆxt/t
+, Gt =
+(∂f t
+∂ut
+)
+xt= ˆxt/t
+, Ht =
+(∂ht
+∂xt
+)
+xt= ˆxt/t−1
+Kt
+=
+P t/t−1HT
+t [HtP t/t−1HT
+t + Rt]−1
+ˆxt/t
+=
+ˆxt/t−1 + Kt[zt −ht(ˆxt/t−1)]
+(16)
+P t/t
+=
+P t/t−1 −KtHtP t/t−1
+ˆxt+1/t
+=
+f t(ˆxt/t)
+P t+1/t
+=
+F tP t/tF T
+t + GtQtGT
+t
+Here, Kt is kalman gain, P t is covariance matrix of estimation error, Rt is covariance matrix
+of measurement noise, and Qt is covariance matrix of process noise. However, it is diﬃcult to
+deal with the past state directly. Therefore, augmented state is introduced to handle both the
+current state and past state. In [11], the augmented state is deﬁned as follows:
+ˇxt =
+[
+ˆxT
+t ,
+ˆxT
+1 ,
+. . . ,
+ˆxT
+I
+]T
+(17)
+MOVIC2016 & RASD2016
+IOP Publishing
+Journal of Physics: Conference Series 744 (2016) 012219
+doi:10.1088/1742-6596/744/1/012219
+4
+[p.6]
+Figure 2. Overview of aerial robot.
+Here, ˆxi ∈Rni is ith augmented state corresponding to the past measurement of each sensor.
+For example, in the case of LIDER sensor, ˆxi is related to past position which is used to express
+the origin of l-frame. Besides, covariance matrix P is also augmented as
+ˇP =
+
+
+P ˆxt ˆxt
+P ˆxt ˆx1
+. . .
+P ˆxt ˆxI
+P ˆx1 ˆxt
+P ˆx1 ˆx1
+. . .
+P ˆx1 ˆxI
+...
+...
+...
+...
+P ˆxI ˆxt
+P ˆxI ˆx1
+. . .
+P ˆxI ˆxI
+
+
+(18)
+When the origin of l-frame is reset, it is necessary to remove old augmented state, and add new
+augmented to consider the absolute measurement which involved new origin of l-frame. Such
+operation could be done by following matrix operation[11].
+ˇx+
+t = M +ˇxt,
+M + =
+[
+I
+BI+1
+]
+(19)
+ˇx−
+t = M −ˇxt,
+M −=
+[
+I
+0
+0
+0
+0
+I
+]
+(20)
+ˇP
+± = M ± ˇP M ±T
+(21)
+(19) represents addition of augmented state, (20) represents removal of the state, and (21) is
+augmentation of covariance matrix. In the equation, B means a binary selection matrix for i th
+augmented state such as xi = Bix.
+4. Numerical simulation
+The numerical simulation was carried out to verify the proposed integrated navigation system.
+At ﬁrst, the sensor data was collected in ﬂight by using the aerial robot shown in Fig. 2. The
+main speciﬁcation of the robot is shown in Table 1. The aerial robot has six rotors, and it is also
+known as multi-rotor helicopter or Drone. The robot has large payload capability compared with
+its dry weight. The sensor and computer system mounted on the robot is shown in Fig. 3. The
+system consists of GPS, LIDER, IMU, and embedded computer. The ﬂight data was collected
+in several environment shown in Fig. 4.
+Next, the numerical simulation of integrated navigation was carried out by using collected data.
+The simulation was implemented by using MATLAB. The results are shown in Fig. 5-Fig. 6.
+MOVIC2016 & RASD2016
+IOP Publishing
+Journal of Physics: Conference Series 744 (2016) 012219
+doi:10.1088/1742-6596/744/1/012219
+5
+[p.7]
+Figure 3. Sensor and computer system.
+(a) GPS environment.
+(b) Near building.
+(c) Indoor environment.
+Figure 4. Data collection in GPS and GPS-denied environment.
+Fig. 5 shows the horizontal position and Fig. 6 shows the horizontal velocity. In each ﬁgures,
+dashed line represents the data from GPS, solid line represents the estimates of integrated
+navigation.
+From the ﬁgures, it is shown, especially for velocity data, that the integrated
+navigation could suppress the large sensor noise of GPS. Additionally, around 370[sec] in Fig. 5
+(a), GPS data has large drift because the robot enters the indoor environment at that time.
+Same error is also appeared in Fig. 6 (a). On the other hand, estimated position and velocity of
+integrated navigation are still continuous and stable. The reason is that the integrated navigation
+could compensate the position and velocity by using the LIDER system. The position data from
+LIDER system used in the simulation is shown in Fig. 7. In contrast to GPS, the position of
+LIDER system around 370[sec] is quite stable because large number of laser reﬂection could
+be obtained in the indoor environment. Thus, the LIDER system could output the accurate
+position. The integrated navigation could compensate estimated position and velocity by using
+such accurate position from LIDER system. From the results, the eﬃciency of the integrated
+navigation system was veriﬁed.
+Table 1. Speciﬁcations of the aerial robot
+Source of power
+Electric motor
+Rotor diameter
+330 [mm]
+Body length
+900 [mm]
+Dry weight
+about 3.0 [kg]
+Payload
+about 6.0 [kg]
+Endurance
+20 [min]
+MOVIC2016 & RASD2016
+IOP Publishing
+Journal of Physics: Conference Series 744 (2016) 012219
+doi:10.1088/1742-6596/744/1/012219
+6
+[p.8]
+0
+100
+200
+300
+400
+500
+−60
+−40
+−20
+0
+20
+40
+60
+Time [s]
+North−south position [m]
+ 
+ 
+GPS
+Estimated
+(a) North-south position.
+0
+100
+200
+300
+400
+500
+−60
+−50
+−40
+−30
+−20
+−10
+0
+10
+Time [s]
+East−west position [m]
+ 
+ 
+GPS
+Estimated
+(b) East-west position.
+Figure 5. Position estimation in numerical simulation.
+0
+100
+200
+300
+400
+500
+−6
+−4
+−2
+0
+2
+4
+6
+8
+Time [s]
+North velocity [m/s]
+ 
+ 
+GPS
+Estimated
+(a) North-south velocity.
+0
+100
+200
+300
+400
+500
+−3
+−2
+−1
+0
+1
+2
+Time [s]
+East velocity [m/s]
+ 
+ 
+GPS
+Estimated
+(b) East-west velocity.
+Figure 6. Velocity estimation in numerical simulation.
+0
+100
+200
+300
+400
+500
+−20
+−10
+0
+10
+20
+30
+40
+Time [s]
+Position data from LIDER [m/s]
+ 
+ 
+Xl axis
+Yl axis
+Figure 7. Position data from LIDER system.
+5. Experiment
+Integrated navigation system was implemented on embedded computer and navigation
+experiment in ﬂight was carried out. the experimental result is shown in Fig. 8. The ﬁgure shows
+the ﬂight trajectory obtained by GPS and integrated navigation system. In the ﬁgure, blued
+line represents the trajectory from GPS, and red line represents the trajectory from integrated
+navigation system. From the ﬁgure, it is shown that the trajectory of the integrated navigation
+is more smooth than the trajectory of GPS. Especially, when the robot enter narrow space
+between buildings, there are large error in the trajectory of GPS. On the other hand, the
+MOVIC2016 & RASD2016
+IOP Publishing
+Journal of Physics: Conference Series 744 (2016) 012219
+doi:10.1088/1742-6596/744/1/012219
+7
+[p.9]
+Figure 8. Result of experiment
+integrated navigation system still could estimate precise and continuous trajectory. From the
+result, the eﬃciency of designed integrated navigation system was shown.
+6. Conclusion
+In this paper, integrated navigation system applied to GPS and GPS-denied environment. The
+navigation system consist of GPS and LIDER sensor, and designed based on Extended Kalman
+Filter. The results of numerical simulation and experiment shows the eﬃciency of proposed
+navigation system.
+In future works, the navigation system will be extended to used vision sensor, barometer,
+and ultrasonic sensor to realize more robust navigation in various environment.
+Acknowledgment
+This work was funded by ImPACT Program of the Council for Science, Technology and
+Innovation (Cabinet Oﬃce, Government of Japan).
+References
+[1] Nonami, K. Kendoul, F. Suzuki, S. Wang, W. and Nakazawa, D. 2010 Autonomous Flying Robots (Springer
+Japan)
+[2] http://www.vicon.com/
+[3] http://www.optitrack.com/
+[4] Mellinger, D. Kumar, V. 2011 Minimum snap trajectory generation and control for quadrotors IEEE
+International Conference on Robotics and Automation (ICRA) 2011 p 2520 (Shanghai, China)
+[5] Hehn, M. D’Andrea, R. 2011 A ﬂying inverted pendulum IEEE International Conference on Robotics and
+Automation (ICRA) 2011 p 763 (Shanghai, China)
+[6] Schauwecker, K. Zell, A. On-board dual-stereo-vision for autonomous quadrotor navigation International
+Conference on Unmanned Aircraft Systems (ICUAS) 2013 p 333
+MOVIC2016 & RASD2016
+IOP Publishing
+Journal of Physics: Conference Series 744 (2016) 012219
+doi:10.1088/1742-6596/744/1/012219
+8
+[p.10]
+[7] Inkyu Sa Hu He Van Huynh Corke, P. 2013 Monocular vision based autonomous navigation for a cost-
+eﬀective MAV in GPS-denied environments IEEE/ASME International Conference on Advanced Intelligent
+Mechatronics 2013 p 1355
+[8] Shaojie S. Michael, N. Kumar, V. 2011 Autonomous multi-ﬂoor indoor navigation with a computationally
+constrained MAV IEEE International Conference on Robotics and Automation (ICRA) 2011 p 20
+(Shanghai, China)
+[9] Ito, K. Han, J. Ohya, A. 2014 Localization using uniaxial laser rangeﬁnder and IMU for MAV IEEE/SICE
+International Symposium o System Integration (SII) p 712
+[10] J. B. Kuipers 2002 Quaternion and Rotation Sequence (Princeton Univ Press)
+[11] Shaojie S. Mulgaonkar, Y. Michael, N. Kumar, V. 2014 Multi-sensor fusion for robust autonomous ﬂight in
+indoor and outdoor environments with a rotorcraft MAV IEEE International Conference on Robotics and
+Automation (ICRA) 2014 p4974 (Hongkong)
+MOVIC2016 & RASD2016
+IOP Publishing
+Journal of Physics: Conference Series 744 (2016) 012219
+doi:10.1088/1742-6596/744/1/012219
+9
+=== END ===

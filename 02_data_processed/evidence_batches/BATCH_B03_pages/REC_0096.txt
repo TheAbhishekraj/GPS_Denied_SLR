@@ -1,0 +1,578 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0096.pdf
+sha256: EA73B83DA97C5FB31B96D8E44E9F5AB0CFCAD5057808EDC721546BD1783965FE
+library: pymupdf (fitz) v1.28.2
+pages: 5
+=== BEGIN ===
+[p.1]
+Cooperative UWB-Based Localization for Outdoors
+Positioning and Navigation of UAVs aided by
+Ground Robots
+Yu Xianjia†, Li Qingqing†, Jorge Pe˜na Queralta†, Jukka Heikkonen†, Tomi Westerlund†
+†Turku Intelligent Embedded and Robotic Systems (TIERS) Lab, University of Turku, Finland.
+Emails: 1{xianjia.yu, qingqli, jopequ, jukhei, tovewe}@utu.ﬁ
+Abstract—Unmanned aerial vehicles (UAVs) are becoming
+largely ubiquitous with an increasing demand for aerial data.
+Accurate navigation and localization, required for precise data
+collection in many industrial applications, often relies on RTK
+GNSS. These systems, able of centimeter-level accuracy, require
+a setup and calibration process and are relatively expensive.
+This paper addresses the problem of accurate positioning and
+navigation of UAVs through cooperative localization. Inexpensive
+ultra-wideband (UWB) transceivers installed on both the UAV
+and a support ground robot enable centimeter-level relative
+positioning. With fast deployment and wide setup ﬂexibility, the
+proposed system is able to accommodate different environments
+and can also be utilized in GNSS-denied environments. Through
+extensive simulations and test ﬁelds, we evaluate the accuracy of
+the system and compare it to GNSS in urban environments where
+multipath transmission degrades accuracy. For completeness, we
+include visual-inertial odometry in the experiments and compare
+the performance with the UWB-based cooperative localization.
+Index Terms—UAV; GNSS; Ultra-wideband; UWB; VIO; Lo-
+calization; MAV; UGV; Cooperative localization; Navigation;
+I. INTRODUCTION
+Multiple industrial use cases beneﬁt from the deployment of
+unmanned aerial vehicles (UAVs) [1]. When accurate localiza-
+tion is needed, GNSS-RTK is the de-facto standard for gath-
+ering aerial data with UAVs [2]. For example, high-accuracy
+photogrammetry [3], civil infrastructure monitoring [4], or in
+urban environments where GNSS signals suffer more degrada-
+tion [2]. As UAVs become ubiquitous across different domains
+and application areas [5], having access to more ﬂexible
+and lower-cost solutions to precise UAV navigation can aid
+in accelerating adoption and widespread use. In this paper,
+we consider the problem of UAV navigation through relative
+localization to a companion unmanned ground vehicle (UGV).
+We consider a ground robot as a more ﬂexible platform
+from the point of view of deployment, but in simulations,
+we also consider localization based on ﬁxed beacons in the
+environment, closer to how GNSS-RTK systems are deployed.
+Within the different approaches that can be used for co-
+operative relative localization, from visual sensors [6] to
+cooperative SLAM [7], wireless ranging technologies offer
+high performance with low system complexity [8]. In par-
+ticular, ultra-wideband (UWB) wireless ranging offers un-
+paralleled localization performance within the different radio
+UAV Transceivers (initiators)
+UWB Ranging
+UGV Transceivers (responders)
+Fig. 1: Cooperative localization approach based on UWB ranging
+measurements from multiple transceivers in different robots
+technologies in unlicensed bands [9]. Other beneﬁts of UWB
+include resilience to multipath, high time resolution, and low
+interference with other radio technologies [10].
+The system we analyze in this paper consists of a UGV
+equipped with four UWB transceivers and a UAV equipped
+with two transceivers. The UAV transceivers act as initia-
+tors, taking turns in sending signals to each of the UGV
+transceivers. When these respond, the time of ﬂight of the
+signal is calculated and the distance between each pair of
+transceivers is calculated. This process is illustrated in Fig. 1.
+The main contribution of this paper is thus on evaluating how
+UWB-based relative localization can improve the positioning
+of UAVs when supported by ground robots. We simulate
+different trajectories to evaluate the performance of the system
+and compare the accuracy of the GNSS, UWB, and VIO
+approach to localization with ﬁeld tests in an urban environ-
+ment. In the simulations, we consider different conﬁgurations
+of transceivers in the ground to compare the localization and
+navigation performance.
+The remainder of this document is organized as follows.
+Section II introduces absolute and relative positioning ap-
+proaches relevant to the presented approach. Section III then
+describes the cooperative localization approach. In Section
+IV we introduce the methodology for simulations and ex-
+978-1-7281-7289-7/20/$31.00 ©2020 IEEE
+2021 IEEE International Conference on Autonomous Systems (ICAS) | 978-1-7281-7289-7/21/$31.00 ©2021 IEEE | DOI: 10.1109/ICAS49788.2021.9551177
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:09 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+periments, with results presented in Section V. Section VI
+concludes the work and outlines future research directions.
+II. BACKGROUND
+This section reviews the literature in the area of outdoors
+positioning and navigation methods for multi-robot systems.
+A. Limitations of standalone GNSS
+The long-term operation of autonomous robots outdoors
+is often a reliance on GNSS [11]. However, the positioning
+accuracy of GNSS can be easily inﬂuenced by multipath when
+satellites are not in line-of-sight. This is a typical problem
+in urban environments or partly covered environments such
+as forests [12], [13]. Additional sensors are thus used in
+practice, from IMUs at the lowest level [14] to odometry
+estimation from lidars [15] or visual sensors [16]. It is worth
+mentioning, nonetheless, that more recent receivers exploiting
+multi-constellation signals (e.g., GPS, GLONASS, BEIDOU,
+or GALILEO) are able to deliver signiﬁcantly higher position-
+ing accuracy [17].
+B. GNSS-RTK
+High-accuracy GNSS positioning is possible with real-time
+kinematic (RTK) systems. RTK positioning leverages measure-
+ments of the phase of the signal’s carrier wave in addition to
+the information content of the signal and relies on a reference
+station or interpolated virtual station to provide real-time
+corrections, providing up to centimeter-level accuracy [18].
+These systems, however, are costly and require calibration and
+setup for each different location.
+C. Onboard navigation
+With the increasing adoption of UAVs in recent years, the
+maturity of onboard estate estimation and localization has
+reached a point where it is standard in commercial systems.
+Onboard odometry and positioning are typically based on
+monocular or stereo vision (e.g., VINS-mono [19], vins-
+fusion [20]), but lidars are also effective in larger UAVs [21].
+Passive visual sensors, however, have evident limitations in
+terms of environmental conditions (e.g., night operation) and
+in situations where there is a lack of features [22], [23]
+D. UWB Localization
+Ultra-wideband (UWB) positioning systems are being in-
+creasingly adopted for autonomous systems [10].UWB posi-
+tioning systems based on a series of ﬁxed nodes in known
+locations (or anchors), and ranging measurements between
+these and mobile nodes (or tags), can be used for consistent,
+long-term localization of mobile robots [24], [8].Compared to
+RTK-based localization systems, UWB systems can be utilized
+both indoors and outdoors, can be automatically calibrated [25]
+for ad-hoc deployment, and offer similar accuracies at much
+lower prices. UWB sensors also have a small form factor
+and are generally considered more energy efﬁcient than other
+wireless solutions. Finally, UWB ranging is often combined
+with other sensors to add orientation estimation and increase
+the overall localization performance. Different approaches in
+the literature include fusion of UWB with IMU [26], VIO
+estimators [27], GPS [28], or lidar [29].
+E. UWB for relative estimation
+UWB ranging has been widely used for relative localization
+within multi-robot systems. For instance, in [30], the authors
+demonstrate a system where relative positioning between and
+UAV and a UGV is designed based on UWB transceivers
+installed on both robots. In subsequent works [27], a similar
+system is employed during docking maneuvers. Combined
+with vision sensors for the ﬁnal docking, the autonomous
+approach of the UAV to the UGV relied on UWB ranging
+between transceivers in both robots. Relative localization be-
+tween UAVs and UGVs has also been shown within the context
+of collaborative dense scene reconstruction [31]. In multi-UAV
+systems and UAV swarms, UWB ranging has been leveraged
+for swarm-level decentralized estate estimation [32], [33].
+In general, terms, while UWB systems including those for
+relative localization have been widely studied in the literature,
+we see a lack of studies that quantitatively analyze how UWB-
+based relative estate estimation can improve GNSS positioning
+and navigation outdoors.
+III. COOPERATIVE UWB-BASED LOCALIZATION
+We consider the problem of relative localization between a
+UAV and a UGV based on UWB ranging between transceivers
+installed onboard both robots. The objective is to leverage
+this relative localization to improve the accuracy of the UAV
+navigation outdoors. We are especially interested in improving
+the navigation performance in urban areas where the accuracy
+of GNSS sensors is degraded due to the signal being reﬂected
+at or occluded by nearby buildings.
+Let us denote by I the set of N transceivers onboard the
+UAV. These will act as initiators, i.e., will actively transmit
+messages to initiate ranging measurements between them and
+the responder transceivers on the ground. We denote the latter
+ones by the set R of size M. An initial approach, which
+we implement, is to iteratively range between each initiator
+and the set of responders. If the number of nodes increases
+signiﬁcantly, more scalable approaches can be used where, for
+example, a single initiator message is answered by several or
+all responders with different delays [34].
+We model the UWB ranges between an initiator i and a
+responder j with
+zUW B
+(i,j)
+= ∥pi(t) −qj(t)∥+ N (0, σUW B)
+(1)
+where pi and qj represent the positions of the initiator and
+responder transceivers, respectively, and N is Gaussian noise.
+Based on the ranges, different approaches to localization
+include, e.g., multilateration or a least squares estimator (LE).
+We implement the latter, and hence the position of each tag
+can be calculated based on the known anchor positions by
+pi = argmin
+p∈R3
+M
+X
+j=0
+
+zUW B
+(i,j)
+−∥p −qj∥
+2
+(2)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:09 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+UWB 
+Responders
+UWB 
+Initiators
+Livox Horizon 3D Lidar
+GNSS Receiver
+Realsense T265 VIO Module
+Husky UGV platform
+Custom UAV platform
+Fig. 2: UAV and companion ground robot utilized in the experiments.
+Alternatively, assuming that the position of initiators in the
+UAV ({pi}) is given based on the UAV’s position and
+orientation (p and θ, respectively) by a set of rigid body
+transformations fi, i.e., pi = fi (p, θ), then the estimator can
+be used to obtain the full pose of the UAV directly with
+p, θ = argmin
+p∈R3
+θ∈(−π,π]
+N
+X
+i=0
+M
+X
+j=0
+
+zUW B
+(i,j)
+−∥fi (p, θ) −qj∥
+2
+(3)
+IV. METHODOLOGY
+A. Simulation environment
+The ﬁrst tests are carried out in a simulation environ-
+ment using ROS and Gazebo. We simulate the UWB rang-
+ing with a standard deviation of the Gaussian noise set to
+σUW B = 10 cm. This is a conservative value based on the
+literature [8]. We simulate a single transceiver on the UAV
+and four transceivers on the ground. The latter ones are set
+are variable distances simulating deployment in small UGVs
+(0.6 separation), large UGVs (1.2 m separation) and different
+settings based, e.g., on tripods (with separations at 3 m, 4 m,
+12 m and 16 m).
+In the simulation experiments, we perform two types of
+ﬂights. First, a vertical ﬂight where the UAV is set to follow
+a straight vertical line up to an altitude of 30 m. Second, a
+ﬂight following a square pattern with a ﬁxed size of 8 by 8 m
+but at different altitudes (5 m, 10 m and 20 m). For each of
+these ﬂights, we evaluate the UWB positioning performance
+with ﬂights based on ground truth positioning. Then, we
+perform the ﬂight using the UWB position estimation as
+control input and evaluate how well the UAV follows the
+predeﬁned trajectory (we refer to this as navigation error).
+B. Multi-robot system
+The multi-robot system employed consists of a single
+ground robot and a UAV. The ground robot is a ClearPath
+Husky outdoor platform equipped with four UWB responder
+transceivers for cooperative positioning and a Livox Avia
+lidar utilized to obtain ground truth. Owing to the lack of
+a reference system such as a GNSS-RTK receiver, we extract
+the UAV position from the lidar’s point cloud and utilize this
+as a reference. The point cloud is automatically processed
+following the steps described in Algorithm ??, and manually
+validated. We refer the reader to [35]for further details on this
+method. Based on indoor testing with a reference anchor-based
+UWB system, we have evaluated the ground truth accuracy to
+be in the order of 10 cm. The UGV and the custom UAV
+are shown in Fig. 2. The UAV is equipped with two UWB
+transceivers and an Intel RealSense tracking camera T265 that
+performs VIO estimation.
+C. Experimental settings
+The ﬁeld experiments are carried out in Turku, Finland
+(precise location is 60.4557389° N, 22.2843384° E), between a
+short line of trees and a large building that presumably blocks
+and reﬂects GNSS signals. The UAV runs the PX4 autopilot
+ﬁrmware, which is unable to obtain a stable GNSS lock in
+the test location. This location is chosen as an example of an
+urban location where GNSS receivers operate in suboptimal
+mode.
+V. EXPERIMENTAL RESULTS
+A. Simulation Results
+The positioning and navigation errors for vertical ﬂights
+are shown in Fig. 4. We observe that the positioning error
+consistently decreases as the anchors become more separated.
+For the small UGV setting, the error goes over 1 m almost 20%
+of the time, being highly unstable. It is worth noticing that the
+navigation error becomes relatively stable with the large UGV
+anchor distribution (1.2 m separation). Navigation errors are in
+general lower than their positioning counterparts as the control
+of the drone is less affected by individual ranging errors, and
+these tend to average to zero as time passes. It is also worth
+noticing that the altitude error is signiﬁcantly lower in all cases
+when compared to the planar xy error.
+Figure 3 then shows the results of ﬂights following a
+square pattern. We can see that if UWB systems based on
+ﬁxed anchors separated more than 10 m are utilized, then the
+navigation error can be consistently maintained below 10 cm.
+In the case of relying on small or large UGVs, the error is
+in the tens of centimeters, providing a competitive alternative
+to RTK-GNSS systems with higher deployment ﬂexibility and
+lower system complexity.
+B. Experimental results
+Results from outdoors experiments with real robots are
+reported in Fig. 5 and Fig. 6. The former shows a partial
+extract from the trajectory in 3D, where we can observe that
+the UWB error is signiﬁcantly smaller even when the altitude
+reaches 30 m. In the latter plot we can see that the overall error
+more than 5 min ﬂight time. The cooperative UWB approach
+particularly outperforms both VIO and GNSS estimations in
+terms of vertical accuracy. In terms of planar xy error, VIO is
+more accurate but only during the ﬁrst few seconds of ﬂight,
+before it rapidly loses accuracy and diverges when the UAV
+altitude increases. In any case, the cooperative UWB-based
+localization provides consistent accuracy throughout the ﬂight
+and therefore has potential for better collection of aerial data
+through autonomous ﬂights.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:09 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+5m
+10m
+20m
+10−1
+100
+(a) Positioning xy error.
+5m
+10m
+20m
+10−2
+10−1
+100
+(b) Positioning z error.
+5m
+10m
+20m
+10−2
+10−1
+100
+(c) Navigation xy error.
+Fig. 3: Positioning and navigation errors over a ﬂight following a squared shape of 8 by 8 m, at three different altitudes (5, 10 and 20 m).
+The altitude is set to a constant so only the XY error is calculated for the UWB-based navigation. The legend has been omitted due to
+limited space, with the colors representing, from left to right in each group, anchors separated by 0.6 m, 1.2 m, 3 m, 4 m, 12 m and 16 m.
+0.6
+1.2
+3.0
+4.0
+12.0
+16.0
+10−2
+10−1
+100
+Anchor separation (m) in a square conﬁguration
+Positioning error (m)
+xy
+z
+(a) Positioning error based on different anchor distribution settings when doing
+up and down navigation during a vertical ﬂight.
+0.6
+1.2
+3.0
+4.0
+12.0
+16.0
+10−1
+100
+Anchor separation (m) in a square conﬁguration
+Navigation error (m)
+xy
+(b) Navigation error based on different anchor distribution settings when doing
+up and down navigation during a vertical ﬂight.
+Fig. 4: Positioning and navigation errors over a vertical ﬂight to
+an altitude of 30 m. The navigation error includes only the planar
+distance to the vertical line the drone is set to follow.
+Fig. 5: Partial trajectory of the UAV during the outdoors experiment.
+VIO is not included because it becomes unusable once the UAV
+reaches 8 m of altitude.
+V IOxy UW Bxy GP Sxy
+V IOz
+UW Bz
+GP Sz
+100
+101
+Error (m)
+Fig. 6: Planar and vertical errors of the different methods during the
+outdoors ﬂight. The VIO has low error but was only valid for the
+ﬁrst few seconds of ﬂight.
+VI. CONCLUSION
+We have presented an analysis on how UWB-based relative
+localization between a UAV and a companion ground robot
+can improve the accuracy of autonomous ﬂights outdoors. In
+particular, we have simulated different scenarios to assess the
+accuracy of the UWB-based relative positioning method. We
+have then validated this with robots in outdoor experiments, in
+an urban area where GNSS receivers do not perform optimally.
+Our analysis includes VIO estimation, which is more accurate
+at ﬁrst but loses the reference when the UAV starts gaining
+altitude, presumably due to the lack of reference points.
+In summary, we can conclude that UWB-based positioning
+systems can provide an alternative to RTK-GNSS when the
+accuracy of standalone GNSS is not enough for gathering
+aerial data. Moreover, we have proved that even when the
+transceivers are placed near each other in the ground, mounted
+on a mobile platform, the accuracy is enough to enable
+autonomous ﬂight.
+Future work will focus on integrating UWB with GNSS data
+and performing experiments in more varied environments. We
+will also analyze different anchor conﬁgurations and consider
+additional robots.
+ACKNOWLEDGMENT
+This research work is supported by the Academy of Fin-
+land’s AutoSOS project (Grant No. 328755) and RoboMesh
+project (Grant No. 336061).
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:09 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+REFERENCES
+[1] Hazim Shakhatreh, Ahmad H Sawalmeh, Ala Al-Fuqaha, Zuochao Dou,
+Eyad Almaita, Issa Khalil, Noor Shamsiah Othman, Abdallah Khreishah,
+and Mohsen Guizani. Unmanned aerial vehicles (uavs): A survey on civil
+applications and key research challenges. Ieee Access, 7:48572–48634,
+2019.
+[2] Tuan Li, Hongping Zhang, Zhouzheng Gao, Qijin Chen, and Xiaoji Niu.
+High-accuracy positioning in urban environments using single-frequency
+multi-gnss rtk/mems-imu integration. Remote sensing, 10(2):205, 2018.
+[3] Jae-One Lee and Sang-Min Sung. Assessment of positioning accuracy of
+uav photogrammetry based on rtk-gps. Journal of the Korea Academia-
+Industrial cooperation Society, 19(4):63–68, 2018.
+[4] Kiyoung Kim, Jaemook Choi, Junyeon Chung, Gunhee Koo, In-Hwan
+Bae, and Hoon Sohn. Structural displacement estimation through multi-
+rate fusion of accelerometer and rtk-gps displacement and velocity
+measurements. Measurement, 130:223–235, 2018.
+[5] Jorge Pe˜na Queralta, Jussi Taipalmaa, Bilge Can Pullinen, Victor Kathan
+Sarker, Tuan Nguyen Gia, Hannu Tenhunen, Moncef Gabbouj, Jenni
+Raitoharju, and Tomi Westerlund. Collaborative multi-robot search and
+rescue: Planning, coordination, perception, and active vision.
+IEEE
+Access, 8:191617–191643, 2020.
+[6] Cheng Hui, Chen Yousheng, Li Xiaokun, and Wong Wing Shing.
+Autonomous takeoff, tracking and landing of a uav on a moving ugv
+using onboard monocular vision. In Proceedings of the 32nd Chinese
+control conference, pages 5895–5901. IEEE, 2013.
+[7] Pileun Kim, Leon C Price, Jisoo Park, and Yong K Cho. Uav-ugv coop-
+erative 3d environmental mapping. In Computing in Civil Engineering
+2019: Data, Sensing, and Analytics, pages 384–392. American Society
+of Civil Engineers Reston, VA, 2019.
+[8] Jorge Pe˜na Queralta, Carmen Mart´ınez Almansa, Fabrizio Schiano,
+Dario Floreano, and Tomi Westerlund.
+Uwb-based system for uav
+localization in gnss-denied environments: Characterization and dataset.
+In IEEE/RSJ International Conference on Intelligent Robots and Systems
+(IROS), pages 4521–4528, 2020.
+[9] Wang Shule, Carmen Mart´ınez Almansa, Jorge Pe˜na Queralta, Zhuo
+Zou, and Tomi Westerlund.
+Uwb-based localization for multi-uav
+systems and collaborative heterogeneous multi-robot systems. Procedia
+Computer Science, 175:357–364, 2020.
+[10] Xianjia Yu, Qingqing Li, Jorge Pe˜na Queralta, and Tomi Westerlund.
+Applications of uwb networks and positioning to autonomous robots
+and industrial systems. arXiv preprint arXiv:2103.13488, 2021.
+[11] Li Qingqing, Jorge Pe˜na Queralta, Tuan Nguyen Gia, Zhuo Zou, and
+Tomi Westerlund. Multi sensor fusion for navigation and mapping in
+autonomous vehicles: Accurate localization in urban environments. The
+9th IEEE CIS-RAM, 2019.
+[12] Paul D Groves, Ziyi Jiang, Lei Wang, and Marek K Ziebart. Intelligent
+urban positioning using multi-constellation gnss with 3d mapping and
+nlos signal detection. In Proceedings of the 25th International Technical
+Meeting of The Satellite Division of the Institute of Navigation (ION
+GNSS 2012), pages 458–472, 2012.
+[13] Qingqing Li, Paavo Nevalainen, Jorge Pe˜na Queralta, Jukka Heikkonen,
+and Tomi Westerlund. Localization in unstructured environments: To-
+wards autonomous robots in forests with delaunay triangulation. Remote
+Sensing, 12(11):1870, 2020.
+[14] San Jiang and Wanshou Jiang.
+On-board gnss/imu assisted feature
+extraction and matching for oblique uav images.
+Remote Sensing,
+9(8):813, 2017.
+[15] Le Chang, Xiaoji Niu, Tianyi Liu, Jian Tang, and Chuang Qian.
+Gnss/ins/lidar-slam integrated navigation system based on graph opti-
+mization. Remote Sensing, 11(9):1009, 2019.
+[16] Tuan Li, Hongping Zhang, Zhouzheng Gao, Xiaoji Niu, and Naser
+El-Sheimy.
+Tight fusion of a monocular camera, mems-imu, and
+single-frequency multi-gnss rtk for precise navigation in gnss-challenged
+environments. Remote Sensing, 11(6):610, 2019.
+[17] Xingxing Li, Xin Li, Gege Liu, Guolong Feng, Yongqiang Yuan, Keke
+Zhang, and Xiaodong Ren. Triple-frequency ppp ambiguity resolution
+with multi-constellation gnss: Bds and galileo.
+Journal of Geodesy,
+93(8):1105–1122, 2019.
+[18] Juli´an Tomaˇst´ık, Martin Mokroˇs, Peter Surov`y, Alˇzbeta Grzn´arov´a, and
+J´an Merganiˇc. Uav rtk/ppk method—an optimal solution for mapping
+inaccessible forested areas? Remote sensing, 11(6):721, 2019.
+[19] Tong Qin, Peiliang Li, and Shaojie Shen.
+Vins-mono: A robust and
+versatile monocular visual-inertial state estimator. IEEE Transactions
+on Robotics, 34(4):1004–1020, 2018.
+[20] Tong Qin, Jie Pan, Shaozu Cao, and Shaojie Shen.
+A general
+optimization-based framework for local odometry estimation with mul-
+tiple sensors. arXiv preprint arXiv:1901.03638, 2019.
+[21] Ji Zhang, Chen Hu, Rushat Gupta Chadha, and Sanjiv Singh. Maximum
+likelihood path planning for fast aerial maneuvers and collision avoid-
+ance. In 2019 IEEE/RSJ International Conference on Intelligent Robots
+and Systems (IROS), pages 2805–2812. IEEE, 2019.
+[22] Xuesu Xiao, Jan Dufek, Tim Woodbury, and Robin Murphy. Uav as-
+sisted usv visual navigation for marine mass casualty incident response.
+In 2017 IEEE/RSJ International Conference on Intelligent Robots and
+Systems (IROS), pages 6105–6110. IEEE, 2017.
+[23] Li Qingqing, Jussi Taipalmaa, Jorge Pe˜na Queralta, Tuan Nguyen
+Gia, Moncef Gabbouj, Hannu Tenhunen, Jenni Raitoharju, and Tomi
+Westerlund.
+Towards active vision with uavs in marine search and
+rescue: Analyzing human detection at variable altitudes.
+In 2020
+IEEE International Symposium on Safety, Security, and Rescue Robotics
+(SSRR), pages 65–70. IEEE, 2020.
+[24] Nicola Macoir, Jan Bauwens, Bart Jooris, Ben Van Herbruggen, Jen
+Rossey, Jeroen Hoebeke, and Eli De Poorter. Uwb localization with
+battery-powered wireless backbone for drone-based inventory manage-
+ment. Sensors, 19(3):467, 2019.
+[25] Carmen Mart´ınez Almansa, Wang Shule, Jorge Pe˜na Queralta, and Tomi
+Westerlund. Autocalibration of a mobile uwb localization system for
+ad-hoc multi-robot deployments in gnss-denied environments.
+arXiv
+preprint arXiv:2004.06762, 2020.
+[26] Leehter Yao, Yeong-Wei Andy Wu, Lei Yao, and Zhe Zheng Liao. An
+integrated imu and uwb sensor based indoor positioning system.
+In
+International Conference on Indoor Positioning and Indoor Navigation
+(IPIN), pages 1–8. IEEE, 2017.
+[27] Thien-Minh Nguyen, Thien Hoang Nguyen, Muqing Cao, Zhirong Qiu,
+and Lihua Xie. Integrated uwb-vision approach for autonomous docking
+of uavs in gps-denied environments.
+In International Conference on
+Robotics and Automation (ICRA), pages 9603–9609. IEEE, 2019.
+[28] Kun Zhang, Chong Shen, Qun Zhou, Haifeng Wang, Qian Gao, and
+Yushan Chen. A combined gps uwb and marg locationing algorithm for
+indoor and outdoor mixed scenario. Cluster Computing, 22(3):5965–
+5974, 2019.
+[29] Yang Song, Mingyang Guan, Wee Peng Tay, Choi Look Law, and
+Changyun Wen.
+Uwb/lidar fusion for cooperative range-only slam.
+In international conference on robotics and automation (ICRA), pages
+6568–6574. IEEE, 2019.
+[30] Thien-Minh Nguyen, Abdul Hanif Zaini, Chen Wang, Kexin Guo,
+and Lihua Xie. Robust target-relative localization with ultra-wideband
+ranging and communication.
+In IEEE international conference on
+robotics and automation (ICRA), pages 2312–2319. IEEE, 2018.
+[31] Jorge Pe˜na Queralta, Li Qingqing, Fabrizio Schiano, and Tomi West-
+erlund.
+Vio-uwb-based collaborative localization and dense scene
+reconstruction within heterogeneous multi-robot systems. arXiv preprint
+arXiv:2011.00830, 2020.
+[32] Hao Xu, Luqi Wang, Yichen Zhang, Kejie Qiu, and Shaojie Shen.
+Decentralized visual-inertial-uwb fusion for relative state estimation
+of aerial swarm. In IEEE International Conference on Robotics and
+Automation (ICRA), pages 8776–8782. IEEE, 2020.
+[33] Yang Qi, Yisheng Zhong, and Zongying Shi. Cooperative 3-d relative
+localization for uav swarm by fusing uwb with imu and gps.
+In
+Journal of Physics: Conference Series, volume 1642, page 012028. IOP
+Publishing, 2020.
+[34] Bernhard Groβwindhager, Michael Stocker, Michael Rath, Carlo Alberto
+Boano, and Kay R¨omer. Snaploc: An ultra-fast uwb-based indoor local-
+ization system for an unlimited number of tags. In 2019 18th ACM/IEEE
+International Conference on Information Processing in Sensor Networks
+(IPSN), pages 61–72. IEEE, 2019.
+[35] Li Qingqing, Yu Xianjia, Jorge Pe˜na Queralta, and Tomi Westerlund.
+Adaptive lidar scan frame integration: Tracking known mavs in 3d point
+clouds. arXiv preprint arXiv:2103.04069, 2021.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:09 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

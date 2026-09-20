@@ -1,0 +1,1766 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1660.pdf
+sha256: 4902258ABF770380204959D00A39ADAB8C39C31B41461439A093C1038FC26DAC
+library: pymupdf (fitz) v1.28.2
+pages: 23
+=== BEGIN ===
+[p.1]
+Citation: Cheng, J.; Ren, P.; Deng, T.
+A Novel Ranging and IMU-Based
+Method for Relative Positioning of
+Two-MAV Formation in
+GNSS-Denied Environments. Sensors
+2023, 23, 4366. https://doi.org/
+10.3390/s23094366
+Academic Editors: Yuhang Li and
+Yongbo Zhang
+Received: 29 March 2023
+Revised: 24 April 2023
+Accepted: 26 April 2023
+Published: 28 April 2023
+Copyright:
+© 2023 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed
+under
+the
+terms
+and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).
+sensors
+Article
+A Novel Ranging and IMU-Based Method for Relative Positioning
+of Two-MAV Formation in GNSS-Denied Environments
+Jia Cheng, Peng Ren * and Tingxiang Deng
+School of Telecommunications Engineering, Xidian University, Xi’an 710071, China;
+21011210141@stu.xidian.edu.cn (J.C.); 21011210317@stu.xidian.edu.cn (T.D.)
+* Correspondence: pren@xidian.edu.cn
+Abstract: Global Navigation Satellite Systems (GNSS) with weak anti-jamming capability are vul-
+nerable to intentional or unintentional interference, resulting in difﬁculty providing continuous,
+reliable, and accurate positioning information in complex environments. Especially in GNSS-denied
+environments, relying solely on the onboard Inertial Measurement Unit (IMU) of the Micro Aerial
+Vehicles (MAVs) for positioning is not practical. In this paper, we propose a novel cooperative relative
+positioning method for MAVs in GNSS-denied scenarios. Speciﬁcally, the system model framework
+is ﬁrst constructed, and then the Extended Kalman Filter (EKF) algorithm, which is introduced
+for its ability to handle nonlinear systems, is employed to fuse inter-vehicle ranging and onboard
+IMU information, achieving joint position estimation of the MAVs. The proposed method mainly
+addresses the problem of error accumulation in the IMU and exhibits high accuracy and robustness.
+Additionally, the method is capable of achieving relative positioning without requiring an accurate
+reference anchor. The system observability conditions are theoretically derived, which means the
+system positioning accuracy can be guaranteed when the system satisﬁes the observability conditions.
+The results further demonstrate the validity of the system observability conditions and investigate
+the impact of varying ranging errors on the positioning accuracy and stability. The proposed method
+achieves a positioning accuracy of approximately 0.55 m, which is about 3.89 times higher than that
+of an existing positioning method.
+Keywords: relative positioning; GNSS-denied environments; ranging; IMU; EKF; MAVs
+1. Introduction
+Micro Aerial Vehicles (MAVs), which refer to small Unmanned Aerial Vehicles (UAVs),
+have gained popularity in aerial robotics due to their small size, agility, and versatility. It
+is possible for MAVs to perform a wide range of tasks, including surveillance, inspection,
+mapping, and environmental monitoring. However, achieving coordinated missions for
+MAV formations is a challenging task, as it requires precise and reliable navigation and
+positioning capabilities. Furthermore, such missions involve complex maneuvers and high
+synchronization between multiple MAVs, and any errors or inaccuracies in navigation or
+positioning can result in mission failure or even accidents. Therefore, developing robust
+and efﬁcient navigation and positioning methods is crucial for enabling MAVs to perform
+coordinated missions effectively and safely.
+Urban or forest environments are renowned for their complexity and heterogeneity,
+which pose signiﬁcant challenges to wireless communication systems due to issues such as
+multipath propagation and shadowing [1]. In this context, Hermosilla et al. [2] proposed
+the use of street-based urban metrics descriptions to quantify various spatial patterns
+of urban types constructed at different periods, and provided eight different types of
+urban environments (including urban, residential, and industrial areas) based on their
+structural characteristics, such as building height distribution or vegetation coverage.
+These differences may impact wireless signal propagation in different ways. For example,
+Sensors 2023, 23, 4366. https://doi.org/10.3390/s23094366
+https://www.mdpi.com/journal/sensors
+[p.2]
+Sensors 2023, 23, 4366
+2 of 23
+historic urban areas with lower building heights and narrower streets may experience
+more severe multipath effects, while emerging industrial areas with taller buildings and
+wider streets may face more severe signal blockage issues. As a result, there are numerous
+challenges in receiving Global Navigation Satellite System (GNSS) signals in urban or
+forest environments due to the weak anti-interference ability of GNSS [3]. Despite some
+related studies [4–6] having reduced the error in GNSS-based positioning systems through
+multi-information fusion technology, intentional interference may render GNSS unusable
+in certain specialized ﬁelds, such as military applications. Therefore, achieving relative
+positioning of MAVs in GNSS-denied scenarios has become a potentially fruitful area
+of research.
+The common methods for achieving relative positioning in GNSS-denied environ-
+ments can be classiﬁed into the following three categories: visual positioning [7–17], inertial
+navigation positioning [18–22], and radio positioning [23,24]. The development status of
+each category of positioning technology is systematically discussed below, and the advan-
+tages and limitations of each technology are analyzed, providing good inspiration for the
+study of relative positioning methods for MAVs in GNSS-denied environments.
+The visual localization methods can be broadly categorized into map-based localiza-
+tion [7–11] and map-free localization [12–17], depending on whether prior visual maps
+are utilized. (Note that visual refers to visual information, which is typically collected
+using sensors such as cameras or laser scanners. Visual maps can be understood as maps
+constructed based on visual information and used for visual localization and navigation.)
+In the map-based localization, a pre-constructed visual map was used to aid in localization,
+and the steps involved in map construction and updating, image retrieval, feature point
+extraction and matching, and precise localization have been studied extensively [7–10].
+The main focus of [7] was the construction of 3D maps, while reference [8] addressed
+map quality issues by removing outliers and tracking lanes. Map matching problems
+were mainly addressed in [9–11]. In contrast, map-free visual localization methods do not
+rely on prior visual maps and instead estimate the pose of the object and surrounding
+environment. This category can be further divided into Visual Simultaneous Localization
+and Mapping (VSLAM) [12–15] and Structure from Motion (SFM) [16,17]. The VSLAM is
+designed for real-time processing, making it well-suited for applications such as robotics
+and autonomous vehicles, while SFM prioritizes accuracy and is more appropriate for
+ofﬂine processing applications such as digital reconstruction of scenes [16]. Speciﬁc tech-
+niques within these categories have also been put forward. For example, an efﬁcient
+distributed particle ﬁlter (EDPF) was proposed in [12] to address the difﬁculty of sampling
+high-dimensional state spaces in range-only SLAM. Reference [13] proposed a weight-
+optimized particle ﬁlter-based algorithm for monocular visual SLAM, which aimed to
+improve the slow environmental interference repair speed of traditional ﬁltering SLAM
+algorithms. Three-level parallel optimization was adopted in [14], including the direct
+method, feature-based method, and pose graph optimization. The method in [15] involves
+two stages: the ﬁrst stage implements a local SLAM process based on ﬁltering techniques,
+while the second stage utilizes optimization-based techniques for constructing and main-
+taining a consistent global map of the environment, which includes addressing the loop
+closure problem. To estimate the state of a MAV, the main ﬁltering technique employed
+is the Extended Kalman Filter (EKF). In terms of optimization techniques, three methods
+are used: a local bundle adjustment technique to minimize the total reprojection error, the
+minimization of the Perspective-n-Point (PnP) problem, and graph optimization to correct
+the global map. In [16], 3D point clouds of close-range images were generated using SFM
+technology. Homologous features between different images were found to determine the
+shooting direction and position of each image. Finally, reference [17] used optimization to
+enhance the convergence rate of SFM by retrieving maximum internal similarity between
+images. The chosen images and query results were used to reconstruct a three-dimensional
+scene and estimate relative camera positions with SFM.
+[p.3]
+Sensors 2023, 23, 4366
+3 of 23
+The inertial navigation positioning is an autonomous method that provides accurate
+short-term navigation and positioning without relying on external information or emitting
+radiation. However, the general positioning system is prone to an error accumulation due
+to the second-order integration operation [18–22]. Various studies have been conducted to
+address this issue. For instance, a 3D trajectory planning method based on Particle Swarm
+Optimization-A star (PSO-A*) algorithm was proposed in [18] to solve the yaw problem of
+intelligent aircraft. In [19], the nonlinear error model was considered, and internal mea-
+surement information was utilized to correct the nonlinear error of inertial navigation. The
+zero-velocity detection algorithm was adopted to compensate for the accumulated error of
+pedestrian inertial navigation [20,21]. Additionally, reference [22] employed Convolutional
+Neural Networks (CNN) to reduce the error of MEMS IMU sensors.
+There are various wireless positioning methods based on radio technology, mainly
+including infrared positioning [23], Ultra Wide Band (UWB) positioning [24], and radio
+frequency identiﬁcation (RFID) positioning [25]. In [23], the angle of an object equipped
+with a positioning device was measured using an infrared laser beam emitted by a light-
+house base station, and the position of the object was calculated. An indoor positioning
+system based on improved adaptive Kalman ﬁlter (IAKF) was proposed in [24] that cal-
+culated the distance between the tag and the base stations using the time it took for UWB
+signals to travel, and then applied a triangulation algorithm to acquire the position of the
+tag. Similar to [24], reference [25] differs mainly in the method of distance measurement,
+using RFID technology to calculate the distance. In addition, Ref. [25] mentions that RFID
+positioning tags can be classiﬁed into two types, active and passive, depending on their
+power requirements. Passive tags mainly involve backscattering communication, and
+therefore do not require direct power supply, but they have limited communication range
+compared to active tags. Therefore, RFID technology is mostly used for indoor product
+tracking. Furthermore, the design, installation, and maintenance of RF navigation systems
+can be expensive and complex, which may pose challenges for deploying them in certain
+applications, such as small unmanned aerial vehicles.
+In addition, multi-technology fusion is an important means to improve the position-
+ing performance. An important trend in VSLAM is to integrate visual sensor data with
+other sensor data [26,27]. A method was proposed in [26] to integrate Inertial Measure-
+ment Unit (IMU) and dynamic VSLAM, which avoided the static assumption of common
+SLAM algorithms and solved the problems of fast vehicle motion and insufficient light.
+This method exhibited higher robustness compared with pure visual dynamic SLAM
+systems. In [27], a SLAM autonomous positioning algorithm combining magnetometer,
+IMU, and monocular camera was proposed to address the initialization instability and
+drift problem in the visual-inertial SLAM (VI-SLAM) algorithm. In wireless positioning,
+UWB technology is a potentially productive area of research [28–30] in multi-information
+fusion positioning due to its advantages such as strong penetration ability, low power
+consumption, small impact of multipath effects, and high positioning accuracy [31–33].
+In [28], UWB ranging was used in an indoor positioning scenario, and the position
+was jointly estimated by fusing the ranging and IMU information through cooperative
+positioning, which reduced the position drift of Inertial Navigation System (INS). A
+relative positioning method based on trilateration was proposed for the multi-mobile
+user mutual positioning scenario [29], where the UWB ranging and IMU information
+were fused and integrated into a probabilistic framework for cooperative positioning
+fault recovery. In [30], the pedestrian navigation was realized based on IMU and UWB
+ranging, and a zero-velocity detection algorithm and single anchor point reference were
+used. Due to the inherent error drift of IMU, relying solely on IMU for inertial navigation
+positioning is uncommon. Typically, the fusion of multi-sensor information is required
+to reduce the positioning errors [26–35].
+Authors have two observations on the existing research on positioning methods.
+•
+In the visual-based positioning research, the positioning accuracy is weakened in
+low-light environments and line-of-sight limitations lead to poor system robustness.
+[p.4]
+Sensors 2023, 23, 4366
+4 of 23
+These factors pose signiﬁcant challenges for MAVs to efﬁciently perform collaborative
+tasks in diverse environments.
+•
+In the research on IMU-based relative positioning, the multi-sensor fusion is mostly
+employed to reduce the inertial drift. Solely relying on IMU for dead reckoning
+cannot achieve long-term high-precision positioning [18–22]. When fusing with radio
+information, there are restrictions on MAV cooperative formation tasks, such as the
+existence of zero-velocity detection [31,33] and ﬁxed reference anchor [33]. In addition,
+there is a situation where two MAVs cannot be positioned [32].
+Motivated by the above facts, this paper investigates a relative positioning method of
+a two-MAV cooperative formation fusing inter-vehicle distance and IMU information in
+GNSS-denied environments, which does not require the use of other auxiliary devices such
+as odometers, except for the IMU and the devices used for ranging. The main contributions
+of this paper are summarized as follows:
+1.
+A novel method for relative positioning in GNSS-denied scenarios is proposed based
+on ranging and IMU information. The method utilizes the EKF algorithm to jointly
+estimate the relative positions of MAVs, providing continuous, precise, and reliable
+information for the formation without being affected by the error accumulation
+problem of IMU. Additionally, the method is capable of achieving relative positioning
+for an arbitrary number of nodes without requiring an accurate reference anchor. This
+innovative approach offers notable advantages over existing methods and has great
+potential for applications in various ﬁelds of aerial robotics.
+2.
+Theoretical derivations of the system observability conditions are presented, along
+with the speciﬁc expressions. The conditions indicate that the system positioning
+accuracy and reliability can be guaranteed when the ﬂight trajectory of the MAV
+formation satisﬁes the observability conditions. Failure to satisfy these conditions
+may result in decreased positioning accuracy and reliability, as well as a possibility
+of divergence.
+3.
+Monte Carlo simulations were conducted, where the correctness of the system ob-
+servability conditions was veriﬁed and the effects of different ranging errors on the
+positioning accuracy and reliability were investigated. Moreover, the positioning
+error was reduced by approximately 3.89 times compared to an existing positioning
+method [32].
+The rest of this paper is organized as follows. Section 2 describes the system model.
+Section 3 presents a detailed description of the relative positioning method. Section 4 de-
+rives the system observability conditions and provides the speciﬁc expressions. Section 5
+presents simulation results, followed by Section 6 which concludes this paper.
+2. System Model
+In this paper, we consider a system model for relative localization of two cooperative
+MAVs in GNSS-denied environments, as shown in Figure 1. The deﬁnitions of the reference
+coordinate systems are explained as follows. The global coordinate system is the Earth-ﬁxed
+North-East-Down (NED) coordinate system, denoted as n, and assumed to be an inertial
+frame. The origin of the body-ﬁxed horizontal coordinate system (denoted as hi, i = 1, 2)
+for MAV i (i = 1, 2) is located at its center of gravity, with x-y plane and z-axis paralleling
+those of n, respectively, meaning that hi is obtained by rotating the n around its z-axis by a
+yaw angle ϕ.
+[p.5]
+Sensors 2023, 23, 4366
+5 of 23
+x
+y
+z
+n
+1h
+x
+y
+z
+x
+z
+2h
+y
+1
+φ
+
+2
+φ
+1
+n
+p
+2
+n
+p
+1
+12 2
+h
+p
+Figure 1. Description of the system model (Gray: NED coordinate system (n); Olive: body-ﬁxed
+horizontal coordinate system (h1); Light blue: body-ﬁxed horizontal coordinate system (h2 )).
+It is worth noting that this paper does not use the typical body-ﬁxed coordinate system
+(denoted as bi, i = 1, 2) for the MAV i, which is represented by Euler angles with respect to
+n. According to the 321-rotation sequence, the corresponding Euler angles are yaw angle
+ϕ, pitch angle θ, and roll angle γ, respectively. The reason for using hi instead of bi is to
+simplify the kinematic relationships and minimize the impact of unnecessary factors, such
+as near-hovering states with small roll and pitch angles.
+In the system model, MAV i can measure its own state variables, which include
+acceleration, angular velocity, and velocity in hi. Furthermore, by means of wireless
+communication, MAV i can also obtain velocity and distance information from the other
+one in the system framework, where two MAVs utilize inter-vehicle distance information
+to enhance the accuracy and robustness of relative positioning in the system framework.
+The relative motion of two MAVs is described in h. Let pn
+i denote the position vector of
+MAV i in n, where the subscript i refers to the MAV number and the superscript n indicates
+the vector is projected onto n. The projection of the relative position of MAV k (k = 1, 2, but
+k̸ = i) with respect to MAV i in hi can be expressed as:
+phi
+ik = Chin (pn
+k −pn
+i )
+(1)
+where Chin is the coordinate transformation matrix from n to hi (see Equation (2)). It is only
+dependent on the yaw angle ϕi of MAV i, since x-y plane and z-axis of hi are parallel to
+those of n, respectively.
+Chin =
+
+
+cos ϕi
+−sin ϕi
+0
+sin ϕi
+cos ϕi
+0
+0
+0
+1
+
+
+(2)
+It can be inferred from Equations (1) and (2) that the z-component of the relative
+position phi
+ik corresponds to the difference in height (which can be measured by a barometric
+altimeter) between MAV i and MAV k in n. Therefore, the system model can be simpliﬁed
+from three-dimensional space to a two-dimensional plane in the horizontal direction.
+Some of the parameters and symbols used in this section are shown in Table 1.
+[p.6]
+Sensors 2023, 23, 4366
+6 of 23
+Table 1. Descriptions of parameters or symbols in Section 2.
+Parameters or Symbols
+Descriptions
+n
+Earth-ﬁxed North-East-Down (NED) coordinate system
+h
+Body-ﬁxed horizontal coordinate system
+b
+Body-ﬁxed coordinate system
+ϕ
+Yaw angle
+θ
+Pitch angle
+γ
+Roll angle
+∥·∥2
+2-norm
+pn
+i ∈R3
+Position vector of MAV i in n
+phi
+ik ∈R3
+Projection of the relative position of MAV k with respect to
+MAV i in hi
+Chin ∈R3×3
+Coordinate transformation matrix from n to hi
+3. A Ranging and IMU-Based Relative Positioning Method
+We propose a relative positioning method that integrates the inter-vehicle distance
+with on-board IMU information and employs the EKF algorithm for optimal position
+estimation. The acquired data is transformed into the corresponding framework to estab-
+lish the state differential equation. Based on the measurement information, the state of
+the MAVs is updated. The system observability analysis is conducted before and after
+the EKF algorithm’s prediction and update process to ensure the system positioning ac-
+curacy. Speciﬁcally, in Section 3.1, the state differential equation between two MAVs is
+simply derived, and the observation model and the overall system process are given in
+Sections 3.2 and 3.3, respectively.
+3.1. State Differential Model
+The nonlinear state vector system for the localization model is deﬁned as:
+
+.x = f(x, u)
+y = h(x)
+(3)
+where the vectors x ∈Rn, u ∈Rm, y ∈Rl are the state vector, input vector, and output
+vector of the system, respectively. f(x, u) is the system state differential vector function
+containing the vector parameters x and u, and h(x) is the observation equation related to
+the state vector x.
+According to the discussion in Section 2, and considering the relative positioning
+model of two MAVs, let p = R(p2 −p1) ∈R2, which represents the projection of the
+relative position of MAV 2 with respect to MAV 1 in h1, where R is the two-dimensional
+case of Equation (2). Speciﬁcally, it is equal to:
+R =
+cos(∆ϕ)
+−sin(∆ϕ)
+sin(∆ϕ)
+cos(∆ϕ)
+
+(4)
+where ∆ϕ = ϕ2 −ϕ1 is the yaw angle difference between MAV 1 and MAV 2.
+Moreover, the other variables in the nonlinear system are deﬁned below. The yaw
+rate difference is denoted by ∆
+.ϕ = r2 −r1 (where ri is the yaw rate of MAV i, i = 1, 2).
+The projections of velocity and acceleration of MAV i in hi are denoted as vi ∈R2 and
+ai ∈R2, respectively.
+It should be noted that the yaw rate ri and acceleration ai mentioned earlier refer to the
+horizontal plane components in hi and cannot be equated simply with the actual measured
+values ωi ∈R3 and si ∈R3 of the gyroscope and accelerometer. In particular, the latter
+must undergo a conversion process, which can be expressed as:
+ri = sin γi
+cos θi
+· ωiy + cos γi
+cos θi
+· ωiz, i = 1, 2
+(5)
+[p.7]
+Sensors 2023, 23, 4366
+7 of 23
+ai =
+cos θi
+sin γi sin θi
+cos γi sin θi
+0
+cos γi
+−sin γi
+
+· si, i = 1, 2
+(6)
+where ωiy and ωiz represent the y-axis component (true pitch rate) and z-axis component
+(true yaw rate) of ωi, respectively. γi and θi are the roll angle and pitch angle of MAV i,
+respectively. Proofs of Equations (5) and (6) are provided in Appendix A for reference.
+Let the state and input vector be x =
+
+pT, ∆ϕ, vT
+1 , vT
+2
+T ∈R7 and u =
+
+r1, r2, aT
+1 , aT
+2
+T ∈
+R6, respectively. The state differential equation of the system is simply derived as follows.
+The derivative of the relative position p with respect to time t is (Note that in Equation (7),
+the coordinate transformation matrix R does not act on v1. The reason is that, in the scenario
+of mutual positioning between two MAVs, when calculating the relative position of MAV 2
+with respect to MAV 1 in h1, there is no need to transform the velocity of MAV 1 in its own
+coordinate system h1 by left-multiplying R):
+dp
+dt
+= dR(p2−p1)
+dt
+= dR
+dt (p2 −p1) + R d(p2−p1)
+dt
+= −r×
+i R(p2 −p1) + Rv2 −v1
+= −r×
+1 p + Rv2 −v1
+(7)
+where the antisymmetric matrix r×
+i of cross product in two-dimensional case is equal to:
+r×
+i =
+0
+−ri
+ri
+0
+
+, i = 1, 2
+(8)
+vi is obtained by coordinate transformation of vn
+i ∈R2 in n, which is equal to vi = Rvn
+i .
+Taking the derivative of the velocity vi with respect to time t:
+dvi
+dt
+= dRvn
+i
+dt
+= dR
+dt vn
+i + R dvn
+i
+dt
+= −r×
+i Rvn
+i + ai
+= −r×
+i vi + ai
+(9)
+According to Equations (7) and (9), and the deﬁnition of the yaw rate difference ∆
+.ϕ,
+the state differential equation in Equation (3) can be written as:
+.x = f(x, u) =
+
+
+−r×
+1 p + Rv2 −v1
+r2 −r1
+−r×
+1 v1 + a1
+−r×
+2 v2 + a2
+
+∈R7
+(10)
+3.2. Observation Model
+The observations involved in the positioning model are the distance information
+∥p∥2 between two MAVs and the velocity vi of MAV i (where i = 1, 2). Converting the
+distance information to ∥p∥2
+2/2 can simplify the system observability theoretical analysis
+in Section 4 without affecting the analysis results [36]. However, the distance observation
+is still selected as ∥p∥2 in the experimental veriﬁcation. The corresponding observation
+model is expressed as:
+y = h(x) =
+
+
+∥p∥2
+2/2
+v1
+v2
+
+∈R5
+(11)
+[p.8]
+Sensors 2023, 23, 4366
+8 of 23
+3.3. Overall System Process
+The system process as a whole is depicted in Figure 2. In the system framework
+illustrated in Figure 1, the MAVs acquire their motion states through onboard sensors,
+encompassing acceleration, angular velocity, and velocity, which are transformed into h1
+via transformation Blocks T1, T2, and T3, respectively.
+Velocity
+IMU
+Acceleration
+Block T1
+Angular 
+velocity
+Block T2
+Block T3
+State differential model
+Ranging
+Observation model
+Prediction
+Update
+Position optimal estimation
+Extended Kalman Filter
+Preliminary 
+observability analysis
+Y
+Complete 
+observability analysis
+Locate failed 
+and start again
+Y
+N
+N
+ 
+Figure 2. The overall system process (including information acquisition and transformation, prelimi-
+nary observability analysis, EKF algorithm, and complete system observability analysis).
+Subsequently, a preliminary observability analysis is conducted to determine whether the
+observability conditions presented in Equations (30)–(32) of Section 4 are satisfied. Provided
+that the conditions are met, the positioning accuracy is adequately guaranteed. Otherwise,
+the system fails to localize and awaits the next sampling interval to retry localization.
+One important aspect of the system process is that the state differential equation is
+constructed based on the MAVs’ states. In addition, the real-time distance measurement
+between two MAVs and the target MAV’s velocity are obtained through radio communica-
+[p.9]
+Sensors 2023, 23, 4366
+9 of 23
+tion, with the measurement equation constructed accordingly. The EKF algorithm is then
+used to estimate the optimal relative position of the target MAV.
+A complete system observability analysis is performed based on the optimal position
+estimation and the MAVs’ states, as shown in Equation (29). The result is expected to be
+similar to that of the preliminary observability analysis, with the only difference being the
+expression of the conditions.
+Some of the parameters and symbols used in this section are shown in Table 2.
+Table 2. Descriptions of parameters or symbols in Section 3.
+Parameters or Symbols
+Descriptions
+x ∈R7
+State vector
+u ∈R6
+Input vector
+y ∈R5
+Output vector
+.x = f(·)
+State differential vector function
+h(·)
+Observation function
+p ∈R2
+Projection of the relative position of MAV 2 with respect to
+MAV 1 in h1
+R ∈R2×2
+Two-dimensional case of Chin
+∆ϕ
+Yaw angle difference between MAV 1 and MAV 2
+∆
+.ϕ
+Yaw rate difference between MAV 1 and MAV 2
+ri
+Yaw rate of MAV i
+vi ∈R2
+Projection of velocity of MAV i in hi
+ai ∈R2
+Projection of acceleration in hi
+ωi ∈R3
+Gyroscope measurement
+si ∈R3
+Accelerometer measurement
+r×
+i ∈R2×2
+Antisymmetric matrix of cross product
+vn
+i ∈R2
+Velocity of MAV i in n
+4. System Observability Analysis
+Considering the nonlinear state vector system shown in Equation (3), the system
+observability is analyzed by means of Lie derivative. The multiple Lie derivatives are
+deﬁned as follows:
+L0
+f h = h
+(12)
+Li
+fh = Lf
+
+Li−1
+f
+h
+
+= J
+
+Li−1
+f
+h
+
+· f, i ∈N∗
+(13)
+where J
+
+Li
+fh
+
+represents the Jacobi matrix of Li
+fh. Furthermore, the observability matrix of
+the nonlinear system is:
+H =
+
+
+J
+
+L0
+f h
+
+J
+
+L1
+f h
+
+...
+J
+
+Li
+fh
+
+
+
+, i ∈N∗
+(14)
+When the observable matrix H has full rank, the nonlinear system is considered locally
+weakly observable [37].
+The ﬁrst term of the observability matrix H is equal to:
+J
+
+L0
+f h
+
+= J(h) =
+
+
+pT
+0
+01×2
+01×2
+02×2
+02×1
+E2
+02×2
+02×2
+02×1
+02×2
+E2
+
+=
+ pT
+0
+01×4
+04×2
+04×1
+E4
+
+(15)
+Since the cross term of the last four rows and columns in the ﬁrst term of the observ-
+ability matrix H is the unit matrix, the rank of H cannot be increased by its corresponding
+[p.10]
+Sensors 2023, 23, 4366
+10 of 23
+observation functions. Therefore, only the distance observation corresponding to the ﬁrst
+row in Equation (11), denoted as h1(x) = ∥p∥2
+2/2, needs to be considered.
+The first-order Lie derivative corresponding to the distance observation h1(x) is equal to:
+L1
+f h1 = J
+
+L0
+f h1
+
+· f = pT −r×
+1 p + Rv2 −v1
+
+(16)
+Calculating the Jacobi matrix of the ﬁrst-order Lie derivative, the second term of the
+observability matrix H can be obtained:
+J
+
+L1
+f h1
+
+=
+
+
+(Rv2 −v1)
+pT ∂R
+∂∆ϕv2
+−p
+RTp
+
+
+T
+(17)
+Given that the full rank of the observability matrix H is seven and the ﬁrst term J
+
+L0
+f h
+
+has rank ﬁve, calculation of the second-order Lie derivative is necessary. The second-order
+Lie derivative is given by:
+L2
+f h1
+= J
+
+L1
+f h1
+
+· f
+= (Rv2 −v1)T −r×
+1 p + Rv2 −v1
+ + pT ∂R
+∂∆ϕv2(r2 −r1)
+−pT −r×
+1 v1 + a1
+ + pTR
+ −r×
+2 v2 + a2
+
+= vT
+2 v2 −2vT
+1 Rv2 + vT
+1 v1 + pT ∂R
+∂∆ϕv2r2 −pTa1 + pTR
+ −r×
+2 v2 + a2
+
+(18)
+where the simpliﬁcation is achieved using Equations (19) and (20). The result shows that
+the yaw rate r1 of MAV 1 is completely cancelled out.
+RTR = E2
+(19)
+RTr×
+1 = −∂RT
+∂∆ϕr1
+(20)
+The third term of the observability matrix H is the Jacobi matrix of the second-order
+Lie derivative (see Equation (18)), which can be expressed as:
+J
+
+L2
+f h1
+
+=
+
+∂L2
+f h1
+∂p
+∂L2
+f h1
+∂∆ϕ
+∂L2
+f h1
+∂v1
+∂L2
+f h1
+∂v2
+
+(21)
+where the speciﬁc expressions of each term are derived simply as follows:
+∂L2
+f h1
+∂p
+= vT
+2
+
+∂RT
+∂∆ϕr2 −r×T
+2
+RT
+−aT
+1 + aT
+2 RT
+= −aT
+1 + aT
+2 RT
+(22)
+∂L2
+f h1
+∂∆ϕ
+= −2vT
+2
+∂RT
+∂∆ϕv1 + vT
+2
+
+∂2RT
+∂∆ϕ2 r2 −r×T
+2
+∂RT
+∂∆ϕ
+
+p + aT
+2
+∂RT
+∂∆ϕp
+= −2vT
+2
+∂RT
+∂∆ϕv1 + aT
+2
+∂RT
+∂∆ϕp
+(23)
+∂L2
+f h1
+∂v1
+= −2vT
+2 RT + 2vT
+1
+(24)
+∂L2
+f h1
+∂v2
+= 2vT
+2 −2vT
+1 R + pT
+∂R
+∂∆ϕr2 −Rr×
+2
+
+= 2vT
+2 −2vT
+1 R
+(25)
+[p.11]
+Sensors 2023, 23, 4366
+11 of 23
+It can be seen from the above simpliﬁed results that the yaw rate r2 of MAV 2 is
+completely offset. In the event that the combination matrix A consisting of the Jacobi
+matrixes of the zero-order, ﬁrst-order, and second-order Lie derivatives corresponding
+to the distance observation h1(x) has full rank, the rank of observability matrix H is
+guaranteed to have full rank, indicating that the nonlinear system is observable.
+A =
+
+
+pT
+0
+vT
+2 RT −vT
+1
+pT ∂R
+∂∆ϕv2
+−aT
+1 + aT
+2 RT
+−2vT
+1
+∂R
+∂∆ϕv2 + pT ∂R
+∂∆ϕa2
+
+∈R3×3
+(26)
+In light of the above discussion, the observable system needs to satisfy the follow-
+ing condition:
+|A|̸ = 0
+(27)
+Multiplying each element in the third column of determinant |A| with the corresponding
+algebraic cofactor, adding and expanding to calculate, we can obtain the following expression:
+|A|
+= −pT ∂R
+∂∆ϕv2 ·
+ −aT
+1 + aT
+2 RT
+R∆ϕ=π/2p
++
+
+−2vT
+1
+∂R
+∂∆ϕv2 + pT ∂R
+∂∆ϕa2
+
+·
+ vT
+2 RT −vT
+1
+
+R∆ϕ=π/2p
+=
+
+pT ∂R
+∂∆ϕ
+ v2aT
+1 −a2vT
+1
+ −2vT
+1
+∂R
+∂∆ϕ
+ v2vT
+2 RT −v2vT
+1
+
+R∆ϕ=π/2p
+(28)
+Considering the properties of matrix R∆ϕ=π/2, when p̸ = 0 and Equation (28) satisﬁes
+the following inequality (where m is an arbitrary constant), Equation (27) holds, and the
+nonlinear system is observable.
+pT ∂R
+∂∆ϕ
+
+v2aT
+1 −a2vT
+1
+
+−2vT
+1
+∂R
+∂∆ϕ
+
+v2vT
+2 RT −v2vT
+1
+̸
+= mpT
+(29)
+While the inequality (29) is not intuitive in revealing the motion constraints of MAVs,
+it can be used to extract some more obvious conditions (as seen in Equations (30)–(32)),
+which greatly aid our comprehension of Equation (29).
+p̸ = 0
+(30)
+vi̸ = 0 or ai̸ = 0, i = 1, 2
+(31)
+v1̸ = nRv2 or (a1̸ = 0 or a2̸ = 0)
+(32)
+Equation (30) serves as a prerequisite for Equation (29), which means that the relative
+position between two MAVs cannot be equal to zero. Equation (31) indicates that the MAVs
+cannot remain stationary. Both the conditions are obvious. Equation (32) shows that two
+MAVs cannot ﬂy in parallel unless at least one of the MAVs has a non-zero acceleration,
+where n is an arbitrary constant.
+According to the system observability analysis in this section, we derived the motion
+conditions that must be satisﬁed by MAVs (see Equations (29)–(32)), which means if the
+relative motion between two MAVs in the system violates the observability conditions,
+the positioning accuracy and reliability of MAVs cannot be guaranteed. In such a case, by
+actively intervening in the relative motion of MAVs to satisfy the observability conditions,
+MAVs in the system can still achieve mutual positioning.
+Some of the parameters and symbols used in this section are shown in Table 3.
+[p.12]
+Sensors 2023, 23, 4366
+12 of 23
+Table 3. Descriptions of parameters or symbols in Section 4.
+Parameters or Symbols
+Descriptions
+Li
+fh
+The i-th order Lie derivative of h with respect to f
+J(·)
+Jacobi matrix
+H
+Observability matrix
+Ei
+The i-th order identity matrix
+∂
+Partial derivative
+A ∈R3×3
+Combination matrix
+|·|
+Determinant
+5. Results
+In this section, we employ computer simulations to demonstrate the performance of
+the proposed relative positioning method. Section 5 is structured as follows: Section 5.1
+describes the experimental setup, followed by Section 5.2 which veriﬁes the system observ-
+ability conditions. In Section 5.3, we investigate the impact of different ranging errors on
+the positioning accuracy and stability. Finally, an error comparison experiment with an
+existing method is conducted in Section 5.4.
+5.1. Experimental Setup
+Assuming two MAVs, A and B, in the system framework depicted in Figure 1, we use
+the proposed relative positioning method to calculate the position of MAV B relative to
+MAV A. The speciﬁc parameter settings for the simulation experiment are listed in Table 4,
+where deg = π/180 and mg = 9.8 × 10−3.
+Table 4. Parameter settings.
+Parameters/(Unit)
+Values
+Filtering step/(s)
+0.1
+Total simulation duration/(s)
+1000
+Constant gyroscope drift/(rad/s)
+0.05 deg/3600
+Constant accelerometer bias/
+ m/s2 )
+0.1 mg
+Barometric altimeter error/(m)
+1
+Ranging error/(m)
+2
+Velocity error/(m/s)
+0.1
+Noise matrix
+diag
+ 0, 0, 10−8, 10−6, 10−6, 10−6, 10−6
+Initial error
+[2, 2, 2deg, 0.1, 0.1, 0.1, 0.1]T
+Explanations for certain simulation parameters in Table 4 are provided below. The
+gyroscope and accelerometer parameters are typical electrical parameters of commercial
+IMU inertial sensors (such as MPU6050) commonly available on the market [38]. The
+error of the barometric altimeter was referenced from [39], where an ultrahigh resolution
+pressure sensor based on percolative metal nanoparticle arrays was designed. The sensor
+has an ultra-high resolution of 0.5 Pa and high sensitivity of 0.13 kPa−1, and the pressure
+range and sensitivity can be adjusted by changing the thickness of the PET membrane,
+which extends the working pressure range to 40 kPa. In actual altitude tests, the altitude
+measurement sensitivity was calculated as −0.00025 m−1 according to the slope of the
+response curve. RMS noise analysis shows that the accuracy of the sensor can be as low
+as 1 m. As a high-precision barometric sensor, the sensor can be used for high-resolution
+barometric altimeters (Note that it is possible to have different pressure at the same height
+but at different horizontal locations. However, in this work, we mainly focus on the relative
+positioning of two MAVs, where two MAVs are generally not distant from each other. Thus,
+it is reasonable to assume that the pressure difference of two MAVs only comes from the
+altitude level) [39]. The ranging error in this paper is referenced from [40], which proposed
+an improved through-the-wall (TTW) NLOS ranging method using UWB technology to
+[p.13]
+Sensors 2023, 23, 4366
+13 of 23
+achieve ranging errors of 0–2 m in NLOS environments. In addition, the noise used in the
+simulation is close to actual noise, and an adaptive adjustment method is employed for
+the noise matrix of the system to better adapt to the changes in noise characteristics and
+maintain good ﬁltering performance.
+In accordance with the system observability analysis presented in Section 4, the
+ﬂight trajectory of the two MAVs needs to satisfy Equation (29) to guarantee the system
+positioning accuracy and reliability. A trajectory satisfying the requirements of Equation
+(29), called Trajectory 1, can be deﬁned as follows: the straight-line AB rotates around the
+geometric center O in the horizontal plane, while O undergoes sinusoidal motion. The
+MAV height is measured using a barometric altimeter. The motion parameters are listed in
+Table 5. Setting the rotational angular velocity of AB and sinusoidal angular velocity of O
+to zero in Table 5, results in a straight-line ﬂight of the MAVs in parallel, which is denoted
+as Trajectory 2.
+Table 5. Motion parameter settings.
+Parameters/(Unit)
+Values
+Rotational angular velocity of AB/(rad/s)
+0.03
+Sinusoidal angular velocity of O/(rad/s)
+0.03
+Linear velocity of O/(m/s)
+20
+Initial angle of MAV A/(rad)
+π/3
+Initial angle of MAV B/(rad)
+π
+5.2. Veriﬁcation of the System Observability Conditions
+Section 5.2 aims to validate the system observability conditions derived in Section 4
+and evaluate the effectiveness of the proposed relative positioning method.
+In Section 5.1 of the experimental setup, two trajectories for the MAVs are deﬁned:
+Trajectory 1 and Trajectory 2. Trajectory 1 satisﬁes the system observability condition shown
+in Equation (29), while Trajectory 2 fails to comply with it. More speciﬁcally, Trajectory 2
+violates the observability sub-condition shown in Equation (32).
+Figure 3 shows the ﬁltered error results for the two trajectories, while the correspond-
+ing relative motion trajectories are presented in Figure 4. The average ﬁltering errors for
+x and y axes of Trajectory 1 are approximately 1.22 m and 0.57 m, respectively, with the
+errors gradually converging to zero over time. In contrast, Trajectory 2 has signiﬁcantly
+larger average ﬁltering errors of 6.23 m and 3.86 m for x and y axes, respectively, exceeding
+those of Trajectory 1 by factors of 5.1 and 6.77. Furthermore, the errors of Trajectory 2 tend
+to diverge over time. These results indicate that system observability conditions are critical
+for ensuring the higher positioning accuracy and reliability, whereas failing to meet it, the
+system accuracy and reliability cannot be guaranteed.
+For the purpose of avoiding experimental randomness, Monte Carlo simulation ex-
+periments were conducted to investigate the error statistical characteristics of Trajectory 1
+and Trajectory 2. Figure 5 presents the results of 100 Monte Carlo simulation experiments
+for error statistics. The upper and lower dashed lines of the error curves represent the
++3σ and −3σ boundaries, respectively, while the solid lines represent the error mean. The
+boundary values represent the positioning accuracy, and the boundary range represents
+the positioning stability. The speciﬁc data for Figure 5 is listed in Table 6. It can be con-
+cluded from Figure 5 and Table 6 that the positioning accuracy and stability of Trajectory
+2 are worse than those of Trajectory 1, and the positioning error of Trajectory 2 exhibits a
+diverging trend.
+[p.14]
+Sensors 2023, 23, 4366
+14 of 23
+Figure 3. Filtering errors for the two trajectories.
+Figure 4. The relative motion trajectories of MAV B relative to A.
+[p.15]
+Sensors 2023, 23, 4366
+15 of 23
+Figure 5. 100 Monte Carlo simulations, which are conducted to verify the system observability conditions.
+Table 6. Mean statistical data from 100 Monte Carlo simulation tests.
+Parameters
++3σ Boundary
+Mean
+−3σ Boundary
+Trajectory 1
+x
+1.62 m
+−0.04 m
+−1.69 m
+y
+2.07 m
+0.02 m
+−2.03 m
+Trajectory 2
+x
+8.47 m
+2.44 m
+−2.59 m
+y
+4.19 m
+1.39 m
+−3.41 m
+Trajectory 2
+Trajectory 1
+x
+5.23
+/
+1.53
+y
+2.02
+/
+1.18
+The simulation experiments in Section 5.2 demonstrate that the system has smaller
+positioning errors when it satisﬁes the observability conditions, versus larger errors with a
+divergent trend when it fails to meet the conditions. The result further conﬁrms the validity
+of the system observability theoretical analysis in Section 4.
+5.3. The Inﬂuence of Different Ranging Errors on the Positioning Accuracy and Stability
+In this section, we investigate the impact of different ranging errors on the positioning
+accuracy and stability of the proposed relative localization method, which integrates
+ranging and IMU information. The ranging errors for Trajectory 1 are set to four levels:
+1 m, 2 m, 4 m, and 8 m. The results of a single experiment’s positioning errors are shown in
+Figure 6. Since Trajectory 1 satisﬁes the system observability conditions, the corresponding
+positioning accuracy is within 2 m after approximately 100 s, despite the different ranging
+errors, and the system remains stable.
+[p.16]
+Sensors 2023, 23, 4366
+16 of 23
+Figure 6. The positioning errors corresponding to different ranging errors, where four ranging error
+levels of 1 m, 2 m, 4 m, and 8 m are set.
+Subsequently, 100 Monte Carlo simulations are conducted, and the simulation results
+are presented in Figure 7. It can be visually observed that the larger the ranging error, the
+worse the system’s positioning accuracy and stability. However, increasing ranging errors
+did not cause the positioning accuracy and stability of the proposed system to deteriorate
+signiﬁcantly, meaning the system did not diverge, but only increased the error. Speciﬁcally,
+the average boundary value increased from about 2 m to around 3 m as ranging errors
+increased from 1 m to 8 m. These experimental results indicate that different ranging errors
+have a limited impact on the system’s positioning accuracy and stability.
+5.4. Error Comparison with an Existing Positioning Method
+In Section 5.4, we compare the performance of the proposed method with an existing
+method introduced in [32].
+To demonstrate the rationality of the parameter settings in the comparative experiment,
+we offer the following explanations: The UWB ranging error in [32] was set to 2 m, and
+the IMU used was the 9-DOF MPU-9150, with assumed displacement errors of 0.2 m
+and orientation errors of 0.1 rad. The rationality of the parameters has been previously
+conﬁrmed in [32]. Therefore, we adopt the ranging error of 2 m from [32]. In addition, the
+IMU data used in this paper is from MPU-6050, whose data parameters are essentially the
+same as those of MPU-9150. Based on these considerations, we conclude that our parameter
+settings are appropriate for the purposes of our simulation.
+[p.17]
+Sensors 2023, 23, 4366
+17 of 23
+Figure 7. 100 Monte Carlo simulations, which are conducted to investigate the impact of different
+ranging errors on the positioning accuracy and stability.
+The experimental results of the two methods are shown in Figure 8. It can be observed
+that the average positioning error of the proposed method in this paper is approximately
+0.55 m, while that of the method in [32] is about 2.14 m, which is approximately 3.89 times
+the error of the proposed method. In contrast, the relative positioning method proposed in
+this paper, which fuses ranging and IMU information, achieves better positioning accuracy.
+Figure 8. A comparison of the positioning errors between the method proposed in this paper and
+that in [32] is presented.
+[p.18]
+Sensors 2023, 23, 4366
+18 of 23
+At the initial startup phase of the positioning system, EKF may have uncertainty about
+the initial state, that is, the initial estimate of the system state may not be accurate enough,
+which may lead to large errors. As time goes on, since the system has started to operate,
+through measurement updates and ﬁltering, the state estimate of the system will gradually
+become more accurate, and the error will gradually decrease until it stabilizes.
+6. Conclusions
+In this paper, we have presented a novel cooperative relative positioning method
+for MAVs in GNSS-denied scenarios. Within the framework of the system model, we
+have employed the EKF algorithm to fuse ranging and IMU information, addressing the
+problem of IMU error drift and enabling high-precision and robust MAV positioning. In
+addition, our proposed method has the following several distinctive features: it eliminates
+the requirement for precise reference anchors, expands the application scope of the system,
+and solves the problem of limited number of nodes in MAV formation. Furthermore,
+we have theoretically derived the system observability conditions and provided speciﬁc
+expressions that guarantee the system positioning accuracy when the system satisﬁes the
+observability conditions. We have veriﬁed the correctness of the observability theoretical
+analysis through simulations and investigated the inﬂuence of different ranging errors on
+the positioning accuracy and stability. Finally, we have demonstrated the superiority of the
+proposed method through simulation comparisons with an existing method.
+We have veriﬁed the proposed method through simulation experiments. To ensure that
+the experiments are as close to reality as possible, the system parameters considered in this
+paper are taken from the ofﬁcial datasheet of the sensor and previous research [32,38–40].
+However, there is still a certain gap between simulation and reality, mainly in the follow-
+ing aspects:
+1.
+The presence of obstacles, wind conditions, and other environmental factors may
+affect the performance of MAVs in practical applications.
+2.
+Simulated noise cannot fully reflect the noise experienced by MAVs in actual applications.
+3.
+There may be a certain difference in air pressure at the same altitude but different
+horizontal positions due to the inﬂuence of factors such as atmospheric pressure,
+temperature, and humidity, which may result in some spatial variations. In addition,
+the scale of pressure gradient varies across different regions. As a result, the barometric
+altimeter readings may be affected and may introduce some measurement bias.
+4.
+In practical applications, the airﬂow generated by the movement of MAVs may have
+an impact on the ﬂight stability and control of MAVs.
+These factors are difﬁcult to model accurately in simulation experiments. Therefore,
+actual veriﬁcation will direct our research in the future.
+Author Contributions: Conceptualization, J.C.; methodology, J.C.; software, J.C.; validation, J.C.,
+P.R. and T.D.; data curation, J.C.; writing—original draft preparation, J.C.; writing—review and
+editing, J.C. and P.R.; supervision, P.R. All authors have read and agreed to the published version of
+the manuscript.
+Funding: This work was supported in part by the National Natural Science Foundation of China
+(Grant No. 61971320, 62001361) and in part by the Key Industrial Innovation Chain Project in
+Industrial Domain (Grant No. 2023-ZDLGY-50).
+Institutional Review Board Statement: Not applicable.
+Informed Consent Statement: Not applicable.
+Data Availability Statement: The data presented in this study are available on request from the
+corresponding author. The data are not publicly available due to the regulations of our laboratory.
+Acknowledgments: The authors would like to thank the anonymous reviewers, and Long Yang for
+their insightful comments and suggestions on the research that led to this paper.
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+[p.19]
+Sensors 2023, 23, 4366
+19 of 23
+Appendix A.
+Appendix A.1. Proof of Equation (5)
+The relationship between the Earth-ﬁxed North-East-Down coordinate system n and
+the typical body-ﬁxed coordinate system b is shown in Figure A1. The following unit
+vectors are deﬁned:
+n1 ≜
+
+1
+0
+0
+T, n2 ≜
+
+0
+1
+0
+T, n3 ≜
+
+0
+0
+1
+T
+(A1)
+no
+n
+x
+n
+y
+nz
+bo
+bx
+by
+bz
+Figure A1. The relationship between the Earth-ﬁxed North-East-Down (NED) coordinate system n
+and the body-ﬁxed coordinate system b.
+The unit vectors along onxn, onyn, and onzn axes in n are represented by n1, n2, and n3,
+respectively. The following relationships are satisﬁed by the unit vectors along obxb, obyb,
+and obzb axes in b:
+bb1 = n1, bb2 = n2, bb3 = n3
+(A2)
+Furthermore, the unit vectors along obxb, obyb, and obzb axes in n are represented by
+nb1, nb2, and nb3, respectively.
+The schematic diagram of the rotational relationship from the Earth-ﬁxed North-East-
+Down coordinate system n to the body-ﬁxed coordinate system b is shown in Figure A2.
+Assuming on1n2n3 is a right-handed Cartesian coordinate system, the following three
+rotations are performed: First, the on1n2n3 system is rotated about the positive on3-axis by
+an angle ϕ, resulting in the ok1k2k3 system, which shares the same oz axis as the on1n2n3
+system. Next, the ok1k2k3 system is rotated about the positive ok2-axis by an angle θ,
+resulting in the oe1e2e3 system, which shares the same oy axis as the ok1k2k3 system. Finally,
+the oe1e2e3 system is rotated about the positive oe1-axis by an angle γ, resulting in the
+ob1b2b3 system, which shares the same ox axis as the oe1e2e3 system. The rotation sequence
+and the sign of each rotation angle can be denoted as ‘(+3)(+2)(+1)’, or simply ‘321’ by
+omitting the plus sign, where the numbers 1, 2, and 3 represent the rotations about ox,
+oy, and oz axes, respectively, and the plus sign in the parentheses indicates the positive
+direction of rotation according to the right-hand rule.
+[p.20]
+Sensors 2023, 23, 4366
+20 of 23
+φ
+φ
+θ
+θ
+γ
+γ
+o
+1
+n
+2
+n
+
+
+3
+3
+n
+k
+1k
+2k
+o
+1k
+
+
+2
+2
+k
+e
+3k
+1e
+3e
+o
+
+1
+1
+e
+b
+2e
+3e
+2b
+3b
+(a) 
+(b) 
+(c) 
+Figure A2. Deﬁne Euler angles by the 321-rotation sequence. (a) Yaw angle ϕ; (b) Pitch angle θ;
+(c) Roll angle γ.
+Assuming that the body angular velocity is bω =
+ωxb
+ωyb
+ωzb
+T, the relationship
+between the attitude change rate and the body angular velocity is given by the following
+equation [41]:
+bω =
+.ϕ·bk3 +
+.
+θ·be2 +
+.γ·bb1
+(A3)
+where,
+bb1 =
+
+1
+0
+0
+T
+(A4)
+be2
+= Rb
+e · ee2 = Rb
+e · n2 = Rx(γ) · n2
+=
+
+
+1
+0
+0
+0
+cos γ
+sin γ
+0
+−sin γ
+cos γ
+
+
+
+
+0
+1
+0
+
+
+=
+
+0
+cos γ
+−sin γ
+T
+(A5)
+bk3
+= Rb
+k·kk2 = Rb
+k · n3 = Rx(γ)Ry(θ) · n3
+=
+
+
+1
+0
+0
+0
+cos γ
+sin γ
+0
+−sin γ
+cos γ
+
+
+
+
+cos θ
+0
+−sin θ
+0
+1
+0
+sin θ
+0
+cos θ
+
+
+
+
+0
+0
+1
+
+
+=
+ −sin θ
+sin γ cos θ
+cos γ cos θ
+T
+(A6)
+According to Equations (A3)–(A6), the following equation is obtained:
+
+
+ωxb
+ωyb
+ωzb
+
+=
+
+
+1
+0
+−sin θ
+0
+cos γ
+sin γ cos θ
+0
+−sin γ
+cos γ cos θ
+
+
+
+
+.γ.
+θ.ϕ
+
+
+(A7)
+Then we can obtain the following expression by applying the inverse transformation
+to Equation (A7):
+
+
+.γ.
+θ.ϕ
+
+
+=
+
+
+1
+0
+−sin θ
+0
+cos γ
+sin γ cos θ
+0
+−sin γ
+cos γ cos θ
+
+
+−1
+
+ωxb
+ωyb
+ωzb
+
+
+=
+
+
+1
+sin γ tan θ
+cos γ tan θ
+0
+cos γ
+−sin γ
+0
+sin γ
+cos θ
+cos γ
+cos θ
+
+
+
+
+ωxb
+ωyb
+ωzb
+
+
+(A8)
+where,
+.ϕ = sin γ
+cos θ ωyb + cos γ
+cos θ ωzb
+(A9)
+[p.21]
+Sensors 2023, 23, 4366
+21 of 23
+Since the yaw angles in both coordinate systems (h and b) are identical, the yaw rate in
+the horizontal body-ﬁxed coordinate system h is the same as that given by Equation (A9).
+Therefore, Equation (5) is conﬁrmed.
+Appendix A.2. Proof of Equation (6)
+According to the relationship between the direction cosine matrix and the equiva-
+lent rotation vector, the transformation matrix from b to n in Figure A2 can be obtained
+as follows:
+Cn
+b =
+
+
+cos ϕ
+−sin ϕ
+0
+sin ϕ
+cos ϕ
+0
+0
+0
+1
+
+
+
+
+cos θ
+0
+sin θ
+0
+1
+0
+−sin θ
+0
+cos θ
+
+
+
+
+1
+0
+0
+0
+cos γ
+−sin γ
+0
+sin γ
+cos γ
+
+
+=
+
+
+cos ϕ cos θ
+−sin ϕ cos γ + cos ϕ sin θ sin γ
+sin ϕ sin γ + cos ϕ sin θ cos γ
+sin ϕ cos θ
+cos ϕ cos γ + sin ϕ sin θ sin γ
+−cos ϕ sin γ + sin ϕ sin θ cos γ
+−sin θ
+cos θ sin γ
+cos θ cos γ
+
+
+(A10)
+In this paper, we use the ﬁxed-body horizontal coordinate system h, whose yaw angle
+is the same as that of the typical ﬁxed-body coordinate system b, and x-y plane is parallel to
+that of the NED coordinate system n. Therefore, the transformation matrix from b to h is
+equivalent to Cn
+b with ϕ = 0, which is given by:
+Ch
+b =
+
+
+cos θ
+sin θ sin γ
+sin θ cos γ
+0
+cos γ
+−sin γ
+−sin θ
+cos θ sin γ
+cos θ cos γ
+
+
+(A11)
+Since this paper considers the two-dimensional case, according to Equation (A11), the
+transformation matrix of Equation (6) can be obtained.
+References
+1.
+Suzuki, T.; Matsuo, K.; Amano, Y. Rotating GNSS Antennas: Simultaneous LOS and NLOS Multipath Mitigation. GPS Solut. 2020,
+24, 86. [CrossRef]
+2.
+Hermosilla, T.; Palomar-Vázquez, J.; Balaguer-Beser, Á.; Balsa-Barreiro, J.; Ruiz, L.A. Using street based metrics to characterize
+urban typologies. Comput. Environ. Urban Syst. 2014, 44, 68–79. [CrossRef]
+3.
+Nicola, M.; Falco, G.; Morales Ferre, R.; Lohan, E.-S.; de la Fuente, A.; Falletti, E. Collaborative Solutions for Interference
+Management in GNSS-Based Aircraft Navigation. Sensors 2020, 20, 4085. [CrossRef] [PubMed]
+4.
+José, B.B. Aplicación de Sistemas GNSS y SIG a Infraestructuras de Transporte: Estudio Sobre la Conducción Naturalista. Ph.D.
+Thesis, Universidade da Coruña, La Coruña, Spain, 2014.
+5.
+Wang, S.; Dong, X.; Liu, G.; Gao, M.; Xiao, G.; Zhao, W.; Lv, D. GNSS RTK/UWB/DBA Fusion Positioning Method and Its
+Performance Evaluation. Remote Sens. 2022, 14, 5928. [CrossRef]
+6.
+He, S.; Hu, S.; Guo, Q.; Jiang, W. Relative Positioning Method for UAVs Based on Multi-Source Information Fusion. Math. Probl.
+Eng. 2022, 2022, 3755861.
+7.
+Zhang, J.; Ren, M.; Wang, P.; Meng, J.; Mu, Y. Indoor Localization Based on VIO System and Three-Dimensional Map Matching.
+Sensors 2020, 20, 2790. [CrossRef] [PubMed]
+8.
+Zhu, F.; Shen, Y.; Wang, Y.; Jia, J.; Zhang, X. Fusing GNSS/INS/Vision With A Priori Feature Map for High-Precision and
+Continuous Navigation. IEEE Sens. J. 2021, 21, 23370–23381. [CrossRef]
+9.
+Naus, K.; Waz, M. Precision in Determining Ship Position using the Method of Comparing an Omnidirectional Map to a Visual
+Shoreline Image. J. Navig. 2016, 69, 391–413. [CrossRef]
+10.
+Krüger, R.; Simeonov, G.; Beck, F.; Ertl, T. Visual Interactive Map Matching. IEEE Trans. Vis. Comput. Graph. 2018, 24, 1881–1892.
+[CrossRef]
+11.
+Yoo, D.-H.; Shan, G.; Roh, B.-H. A Vision-based Indoor Positioning Systems utilizing Computer Aided Design Drawing. In
+Proceedings of the 28th Annual International Conference on Mobile Computing and Networking (ACM MobiCom ’22), Sydney,
+NSW, Australia, 17–21 October 2022; ACM: New York, NY, USA, 2022. [CrossRef]
+12.
+Xiong, J.; Cheong, J.W.; Ding, Y.; Xiong, Z.; Dempster, A.G. Efﬁcient Distributed Particle Filter for Robust Range-Only SLAM.
+IEEE Internet Things J. 2022, 9, 21932–21945. [CrossRef]
+13.
+Wang, Y.; Wang, X. Research on SLAM Road Sign Observation Based on Particle Filter. Comput. Intell. Neurosci. 2022, 2022,
+4478978. [CrossRef] [PubMed]
+14.
+Lu, S.; Zhi, Y.; Zhang, S.; He, R.; Bao, Z. Semi-Direct Monocular SLAM With Three Levels of Parallel Optimizations. IEEE Access
+2021, 9, 86801–86810. [CrossRef]
+[p.22]
+Sensors 2023, 23, 4366
+22 of 23
+15.
+Munguia, R.; Trujillo, J.-C.; Guerra, E.; Grau, A. A Hybrid Visual-Based SLAM Architecture: Local Filter-Based SLAM with
+KeyFrame-Based Global Mapping. Sensors 2022, 22, 210. [CrossRef] [PubMed]
+16.
+Balsa-Barreiro, J.; Fritsch, D. Generation of visually aesthetic and detailed 3D models of historical cities by using laser scanning
+and digital photogrammetry. Digit. Appl. Archaeol. Cult. Herit. 2018, 8, 57–64. [CrossRef]
+17.
+Salarian, M.; Iliev, N.; Çetin, A.E.; Ansari, R. Improved Image-Based Localization Using SFM and Modiﬁed Coordinate System
+Transfer. IEEE Trans. Multimed. 2018, 20, 3298–3310. [CrossRef]
+18.
+Xing, H.; Zhao, Y.; Zhang, Y.; Chen, Y. 3d trajectory planning of positioning error correction based on pso-a* algorithm. Comput.
+Mater. Contin. 2020, 65, 2295–2308. [CrossRef]
+19.
+Chen, D.; Neusypin, K.; Selezneva, M.; Mu, Z. New Algorithms for Autonomous Inertial Navigation Systems Correction with
+Precession Angle Sensors in Aircrafts. Sensors 2019, 19, 5016. [CrossRef]
+20.
+Cho, S.Y.; Lee, J.H.; Park, C.G. A Zero-Velocity Detection Algorithm Robust to Various Gait Types for Pedestrian Inertial
+Navigation. IEEE Sens. J. 2022, 22, 4916–4931. [CrossRef]
+21.
+Wang, Q.; Liu, K.; Sun, Z.; Cai, M.; Cheng, M. Research on the Heading Calibration for Foot-Mounted Inertial Pedestrian-
+Positioning System Based on Accelerometer Attitude. Electronics 2019, 8, 1405. [CrossRef]
+22.
+Chen, H.; Taha, T.M.; Chodavarapu, V.P. Towards Improved Inertial Navigation by Reducing Errors Using Deep Learning
+Methodology. Appl. Sci. 2022, 12, 3645. [CrossRef]
+23.
+Maheepala, M.; Joordens, M.A.; Kouzani, A.Z. A Low-Power Connected 3-D Indoor Positioning Device. IEEE Internet Things J.
+2022, 9, 9002–9011. [CrossRef]
+24.
+Lin, S.-H.; Chang Chien, H.-H.; Wang, W.-W.; Lin, K.-H.; Li, G.-J. An Efﬁcient IAKF Approach for Indoor Positioning Drift
+Correction. Sensors 2022, 22, 5697. [CrossRef]
+25.
+Park, J.; Kim, Y.-J.; Lee, B.K. Passive Radio-Frequency Identiﬁcation Tag-Based Indoor Localization in Multi-Stacking Racks for
+Warehousing. Appl. Sci. 2020, 10, 3623. [CrossRef]
+26.
+Peng, Z.; Cheng, S.; Li, X.; Li, K.; Cai, M.; You, L. Dynamic Visual SLAM Integrated with IMU for Unmanned Scenarios. In
+Proceedings of the 2022 IEEE 25th International Conference on Intelligent Transportation Systems (ITSC), Macau, China, 8–12
+October 2022; pp. 4247–4253. [CrossRef]
+27.
+Yu, F.; Yu, H.; Wei, Y. Research on Robot Positioning Technology Based on Multi Sensor. In Proceedings of the 2019 International
+Conference on Computer Network, Electronic and Automation (ICCNEA), Xi’an, China, 27–29 September 2019; pp. 480–485.
+[CrossRef]
+28.
+Olsson, F.; Rantakokko, J.; Nygårds, J. Cooperative localization using a foot-mounted inertial navigation system and ultrawide-
+band ranging. In Proceedings of the 2014 International Conference on Indoor Positioning and Indoor Navigation (IPIN), Busan,
+Republic of Korea, 27–30 October 2014; pp. 122–131. [CrossRef]
+29.
+Liu, R.; Yuen, C.; Do, T.-N.; Jiao, D.; Liu, X.; Tan, U.-X. Cooperative relative positioning of mobile users by fusing IMU inertial
+and UWB ranging information. In Proceedings of the 2017 IEEE International Conference on Robotics and Automation (ICRA),
+Singapore, 29 May–3 June 2017; pp. 5623–5629. [CrossRef]
+30.
+Long, K.; Shen, C.; Tian, C.; Zhang, K.; Bhatti, U.A.; Kong, D.F.N.; Feng, S.; Cheng, H. Single UWB Anchor Aided PDR Heading
+and Step Length Correcting Indoor Localization System. IEEE Access 2021, 9, 11511–11522. [CrossRef]
+31.
+Zhao, X.; Yan, G.; Chang, T.; Liang, C.H.; Wang, Z.; Fu, H. Antenna design for ultra-wideband through wall radar. In Proceedings
+of the 2017 3rd IEEE International Conference on Computer and Communications (ICCC), Chengdu, China, 13–16 December
+2017; pp. 1121–1124. [CrossRef]
+32.
+Xu, H.; Zhu, Y.; Wang, G. On the anti-multipath performance of UWB signals in indoor environments. In Proceedings of
+the ICMMT 4th International Conference on Microwave and Millimeter Wave Technology, Beijing, China, 18–21 August 2004;
+pp. 163–166. [CrossRef]
+33.
+Lou, X.; Zhao, Y. High-Accuracy Positioning Algorithm Based on UWB. In Proceedings of the 2019 International Conference on
+Artiﬁcial Intelligence and Advanced Manufacturing (AIAM), Dublin, Ireland, 17–19 October 2019; pp. 71–75. [CrossRef]
+34.
+Yuan, K.; Wang, H.; Zhang, H. Robot Position Realization Based on Multi-sensor Information Fusion Algorithm. In Proceedings
+of the 2011 Fourth International Symposium on Computational Intelligence and Design, Hangzhou, China, 28–30 October 2011;
+pp. 294–297. [CrossRef]
+35.
+Zheng, W.; Wang, J.; Wang, Z. Multi-sensor fusion based real-time hovering for a quadrotor without GPS in assigned position. In
+Proceedings of the 2016 Chinese Control and Decision Conference (CCDC), Yinchuan, China, 28–30 May 2016; pp. 3605–3610.
+[CrossRef]
+36.
+Zhou, X.S.; Roumeliotis, S.I. Robot-to-Robot Relative Pose Estimation from Range Measurements. IEEE Trans. Robot. 2008, 24,
+1379–1393. [CrossRef]
+37.
+Velimir, J. Abstract control systems: Controllability and observability. SIAM J. Control 1970, 8, 424–439.
+38.
+Cismas, A.; Ioana, M.; Vlad, C.; Casu, G. Crash Detection Using IMU Sensors. In Proceedings of the 2017 21st International
+Conference on Control Systems and Computer Science (CSCS), Bucharest, Romania, 29–31 May 2017; pp. 672–676. [CrossRef]
+39.
+Chen, M.; Luo, W.; Xu, Z.; Zhang, X.; Xie, B.; Wang, G.; Han, M. An ultrahigh resolution pressure sensor based on percolative
+metal nanoparticle arrays. Nat. Commun. 2019, 10, 4024. [CrossRef] [PubMed]
+[p.23]
+Sensors 2023, 23, 4366
+23 of 23
+40.
+Silva, B.; Hancke, G.P. Ranging Error Mitigation for Through-the-Wall Non-Line-of-Sight Conditions. IEEE Trans. Ind. Inform.
+2020, 16, 6903–6911. [CrossRef]
+41.
+Ducard, G.J.J. Fault-Tolerant Flight Control and Guidance Systems: Practical Methods for Small Unmanned Aerial Vehicles; Springer
+Science & Business Media: Berlin/Heidelberg, Germany, 2009.
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+=== END ===

@@ -1,0 +1,1499 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1443.pdf
+sha256: 3C64273D2F6ADFF1D67160FAB596E05294001DE7977FFD92DB277E6139B83E92
+library: pymupdf (fitz) v1.28.2
+pages: 14
+=== BEGIN ===
+[p.1]
+Original article
+Proc IMechE Part G:
+J Aerospace Engineering
+2023, Vol. 0(0) 1–14
+© IMechE 2023
+Article reuse guidelines:
+sagepub.com/journals-permissions
+DOI: 10.1177/09544100221149235
+journals.sagepub.com/home/pig
+Study on angle-only relative navigation for
+unmanned aerial vehicle formation in
+GPS-denied environment
+Zixuan Zheng1, Sha Wang2, Baichun Gong2, Erlong Su3 and
+Hefei Huang2
+Abstract
+To satisfy the autonomous relative navigation demand of unmanned aerial vehicle (UAV) formation in a GPS-denied
+environment, an angle-only relative navigation algorithm is proposed. First, the relative states in 3-dimension space are
+decoupled into relative motion along the horizontal plane and altitude by applying the relative azimuth between the north-
+east-down global frame and the body-ﬁxed horizontal frame belonging to UAVs. Second, a relative dynamic and mea-
+surement model considering the measurement deviation of sensors are established. This solves the problem of colored
+noise in a majority of sensors used in practical engineering. Third, a consensus constraint model of relative states is
+established by introducing a geometric constraint among formation members. Additionally, a consensus-extended Kalman
+ﬁlter is designed. Finally, the angle-only relative navigation method is validated using standard Monte Carlo simulations. The
+simulation results show that all the states of the system are observable when the observability criterion is satisﬁed. The
+relative position accuracy achieved using gyros with a drift rate of 50°/h, accelerometers with 1 mg deviation, and optical
+cameras with 1° Gaussian white noise is within 10 m (3σ). Additionally, the method proposed in this study can be used to
+estimate the sensor measurement deviations effectively. Furthermore, it can be potentially applied to improve the absolute
+navigation accuracy of UAVs.
+Keywords
+Unmanned aerial vehicle, consensus-extended Kalman ﬁlter, angle-only navigation, observability analysis
+Date received: 12 July 2022; accepted: 15 December 2022
+Introduction
+Unmanned aerial vehicle (UAV) formation, a set of aerial
+robots, that is, drones that work together to achieve
+a speciﬁc goal, has attracted increased attention in
+military and civilian applications in recent decades.1,2
+Compared to a single UAV, distributed intelligent sys-
+tems based on networked autonomous UAVs are ex-
+pected to be more capable, ﬂexible, and robust in many
+applications,
+including
+mapping,
+inspection,
+and
+detection.3–5 For example, in a ﬂight mission, the failure
+of a single UAV directly lead to the failure of the mission,
+but a redundancy in the UAV formation design allows
+a backup UAV to complete the mission when a member
+of the formation fails. The ﬂight mission of a UAV
+formation is relatively complex, and it is necessary to
+control the relative position and orientation of the for-
+mation members in the coordinated ﬂight process so that
+the entire formation can maintain a certain geometric
+construction.6 However, the premise of completing
+formation control is precise relative navigation among
+the formation members.
+Accurate relative navigation information can be ob-
+tained in a short time using the inertial navigation
+equipment (inertial measurement unit, IMU) carried by the
+UAV, but the relative navigation error diverges over time
+as the IMU’s error drifts. Presently, most UAVs use IMU
+combined with GPS localization, which has been widely
+adopted and researched owing to the low-cost, high-rate
+output frequency, and high reliability. However, satellite
+navigation information is prone to interference and
+shading.7 Therefore, it is vital to ﬁnd a relative navigation
+1 School of Astronautics, Northwestern Polytechnical University, China
+2 College of Astronautics, Nanjing University of Aeronautics and
+Astronautics, Nanjing, China
+3 Science and Technology on Space Physics Laboratory, China Academy
+of Launch Vehicle Technology, Beijing, China
+Corresponding author:
+Baichun Gong, College of Astronautics, Nanjing University of
+Aeronautics and Astronautics, 29 Yudao Street, Qinhuai District,
+Nanjing, Jiangsu 210016, China.
+Email: baichun.gong@nuaa.edu.cn
+[p.2]
+method that is completely autonomous and meets the
+accuracy requirements.
+The range-only relative navigation algorithms for
+the UAV formation by using onboard data link range
+sensor, which does not need to consider the sensor
+pointing problem that exists in optical and radio
+measurements, have been studied a lot in the past
+decade. Bradley8 presented a range-only relative
+navigation algorithm in 3-dimension space and con-
+cluded that the system is locally weakly observable.
+Mohammed9 improved the observability of a range-
+only relative navigation system by installing multiple
+communication beacons on a single UAV. However,
+the baseline of the installed beacon was limited by the
+actual size of the UAV. Therefore, this scheme is more
+suitable for relative navigation under short-range
+conditions. Xiong10 introduced a UAV as a reference
+beacon in the formation. In studies,11–14 multiple ﬁxed
+points were used as reference beacons to study the
+relative positioning method of UWB ranging. Helm
+et al.15 studied the relative positioning of UAVs using
+velocity measurement information and ultra-wideband
+range information of the camera optical ﬂow method.
+However, the velocity measurement accuracy of the
+optical ﬂow method is greatly affected by the envi-
+ronment and speed of the aircraft, and the speed
+measurement information is unavailable in some cases.
+Gong et al.16 presented a range-based collaborative
+relative navigation algorithm for ﬁxed-wing UAV
+formation by integrated ranging sensor with other
+commonly used onboard sensors such as low-cost
+IMUs but without optical ﬂow measurement. Mar-
+tel17 proposed a unique four-degree-of-freedom rela-
+tive posing and positioning scheme using the distance
+measurement information of at least six times the ultra-
+wideband and displacement information of each air-
+craft from each origin measured by V-SLAM.
+However, in a complex electromagnetic denial envi-
+ronment, the method of relying on data link ranging to
+achieve relative navigation for the formation may still be
+unavailable, which is the same as GNSS. In contrast,
+relying on optical cameras to achieve relative navigation
+has become a vital development direction because of the
+passive nature, that is, there is no need to radiate elec-
+tromagnetic
+waves
+and
+receive
+communication
+in-
+formation, but it passively receives optical signals.
+However, angle-only relative navigation algorithms are
+often unobservable or weakly observable because of the
+lack of relative distance information between aircrafts.
+Wang et al.18 studied the relative navigation algorithm of
+dual line-of-sight vectors by introducing the relative
+distance information between two spacecraft and deduced
+the error propagation law for this method. Wofﬁnden19
+and Gong20 found that the observable performance of an
+angle-only relative navigation system can also be im-
+proved by installing the camera away from the center of
+mass of the spacecraft under close-range conditions. Wang
+et al.21 studied a robust sigma point ﬁltering algorithm. In
+this
+algorithm,
+when
+the
+zero-mean
+Gaussian
+measurement noise is polluted, it can obtain higher rel-
+ative navigation estimation accuracy compared to the
+extended Kalman ﬁlter.
+The main contribution of this study is to develop an
+angle-only relative navigation method for UAV for-
+mation. Although this method is independent of GPS
+location, camera-based velocity measurement, and
+multi-antenna ranging, it can provide sufﬁciently ac-
+curate and stable navigation information for formation
+control by integrating angle-measuring cameras and
+other commonly used low-cost sensors, such as IMU,
+altimeters, magnetometers, and pitot tubes. Unlike in
+previous research, the sensor deviations estimated by
+this angle-only relative navigation method can also be
+used to improve the absolute navigation accuracy of
+the UAV.
+This paper begins with the establishment of the relative
+dynamic model and measurement model in the second
+section. In the third section, the consensus constraint
+model for formation members is constructed, based on
+which the consensus-extended Kalman ﬁlter (CEKF) is
+designed. In After that, the observability analysis of the
+proposed angle-only relative navigation algorithm based
+on the Lie derivative is presented. Next, Monte Carlo
+simulations with sensor uncertainties are presented to
+verify the theoretical results. Finally, the conclusions are
+presented in the last section.
+Problem statement and relative model
+Problem statement
+In this study, a tri-UAV formation ﬂight mission in a GPS-
+denied environment is considered. Assuming that each
+UAV is capable of absolute measurements from IMU,
+altimeter, pitot tube, and magnetometer and relative
+measurement from optical camera, the key problem solved
+in this work is to integrate absolute and relative meas-
+urements to achieve an acceptable estimation of relative
+position and velocity among UAV formation.
+Reference frame deﬁnition
+The reference frames used in this study are shown in Figure
+1. The global reference frame, denoted as n, considers the
+north-east-down (NED) geographic frame, which is as-
+sumed to be an inertial frame. The origin of the body-ﬁxed
+frame, denoted as b, is located at the center of gravity of the
+UAV, and the directions of the three axes point front-right-
+down. The origin of the body-ﬁxed horizontal frame, de-
+noted as h, is also located at the center of gravity of the
+UAV, but the x and y axes are always in the horizontal
+plane, whereas the z-axis points toward the ground. The
+frame h is deﬁned in the process of rotating the frame n to
+coincide with the frame b according to the 321 rotation
+sequence, and the Euler angle relative to the frame b is the
+azimuth φ (north-east is a positive direction). Euler angles
+relative to the frame n are the pitch angle θ and roll angle γ.
+2
+Proc IMechE Part G: J Aerospace Engineering 0(0)
+[p.3]
+In contrast to the previous description of the relative
+motion between formation members in frame b, in this study,
+the relative dynamic model and measurement model con-
+cerning frame h are established. Here, the position vector of
+UAVi in frame n is denoted as pn
+i , where the subscript i is the
+label of the UAV and the superscript n indicates that the
+vector is projected in frame n. Then, the projection of the
+position of UAVk relative to UAVi in the body-ﬁxed hori-
+zontal frame hi of the UAVi can be expressed as
+phi
+ik ¼ Chi
+n
+
+pn
+k  pn
+i
+
+(1)
+where Chi
+n is the coordinate transformation matrix from n
+to hi, which is related to the azimuth φi of the UAVi
+Chi
+n ¼
+2
+4
+cosφi
+sinφi
+0
+sinφi
+cosφi
+0
+0
+0
+1
+3
+5
+(2)
+It can be observed from equations (1) and (2) that the z-
+axis of the relative position between UAVs is equal to the
+altitude difference in frame n, that is, the difference in the
+altitude of UAVi (which can be measured by an altimeter)
+and altitude of UAVk. Therefore, the relative motion can
+be reduced from three dimensions in space to two di-
+mensions in the horizontal plane.
+Relative dynamic model
+We establish the 15-dimension relative state vector be-
+tween formation members, as shown in equation (3)15,16
+X ik ¼
+
+phi
+ik; ψik; vhi
+i ; vhk
+k ; κωi; κωk; κai; κak; υi; υk
+
+2 R15×1
+(3)
+where phi
+ik 2 R2×1 is the relative position of UAVk in the
+body-ﬁxed
+horizontal
+frame
+of
+UAVi.
+Vectors
+vhi
+i and vhk
+k 2 R2×1 are the projections of the horizontal
+velocities of UAVi and UAVk in the frame hi and hk.
+Scalars κωi and κωk are the bias of the gyro measurements
+regarding the azimuth rates of UAVi and UAVk. Vectors
+κai and κak 2 R2×1 are the bias of the accelerometer
+measurements regarding the horizontal accelerations of
+UAVi and UAVk. Scalars υi and υk are the bias of the
+horizontal speeds of UAVi and UAVk measured by pitot
+tubes. Finally, the relative azimuth ψik is deﬁned as
+ψik ¼ ψk  ψi
+(4)
+We derive Xik with respect to time t as follows
+f ðX ik, UikÞ ¼ dX ik
+dt
+¼
+2
+66664
+vhi
+i þ Chi
+hkvhk
+k  ðri  κωiÞAphi
+ik
+ðrk  κωkÞ  ðri  κωiÞ
+
+ahi
+i  κai
+
+ ðri  κωiÞAvhi
+i
+
+ahk
+k  κak
+
+ ðri  κωiÞAvhk
+k
+08×1
+3
+77775
+(5)
+A ¼
+
+0
+1
+1
+0
+
+(6)
+where Chi
+hk 2 R2×2 is a coordinate transformation matrix
+from
+frame
+hk
+to
+frame
+hi.
+System
+input
+is
+Uik ¼ ½ahi
+i ; ahk
+k ; ri; rk 2 R6×1. Vector ahi
+i 2 R2×1
+is the
+horizontal acceleration of UAVi expressed in the frame hi,
+which can be obtained from accelerometer measurements
+si 2 R3×1. Scalar ri is the azimuth rate obtained from gyro
+measurements ωi 2 R3×1
+ahi
+i ¼
+
+cosθi
+sinγi sinθi
+cosγisinθi
+0
+cosγi
+sinγi
+
+si
+(7)
+ri ¼ sinγi
+cosθi
+ωix þ cosγi
+cosθi
+ωiz
+(8)
+where ωix and ωiz represent the x and z axes components of
+ωi. For simplicity, the superscripts hi and hk for the state
+vector X ik are omitted in the subsequent description.
+Measurement model
+In addition to the altimeter required in the subsection of
+problem statement, in this subsection, we establish
+measurement models for other sensors that are used to
+achieve relative navigation, including magnetometers,
+pitot tubes, cameras, and inertial measurement units. The
+magnetometer can be used to measure the azimuth of the
+UAV,22 and the measurement is modeled as
+~ψ ¼ ψ þ n
+
+0, ε2
+ψ
+	
+(9)
+where ψ and ~ψ represent the true and measurement values
+of the azimuth, respectively. The measurement noise was
+modeled as the Gaussian noise with zero mean and ε2
+ψ
+variance. The pitot tube was used to measure the horizontal
+speed of the UAV, and the measurement was modeled as
+~v ¼ v þ υ þ n
+
+0, ε2
+v
+
+(10)
+where v and ~v denote the true and measured values of the
+horizontal speed, respectively. The constant bias υ of the
+Figure 1. Illustration of the reference frames.
+Zheng et al.
+3
+[p.4]
+measurement error is primarily related to the local wind
+speed and UAV ground speed. The Gaussian white noise
+nð0, ε2
+vÞ of the measurement error is mainly related to the
+measurement accuracy of the instrument itself.
+The accuracy of relative measurements by optical
+camera will improve as the relative distance to the target
+decreases. Based on the imaging results of the target on the
+focal plane, the camera can obtain the relative line-of-sight
+angles, distance, attitude, and attitude angular velocity.23
+In this paper, we assume that the camera can only obtain
+the line-of-sight angles of the target, which brings less
+information but more challenges to the UAV formation
+relative navigation. Also, it is assumed that the mea-
+surement coordinate system coincides with the body-ﬁxed
+frame b after the camera is installed, and the relative line-
+of-sight vector measured by the camera is projected onto
+the body-ﬁxed horizontal frame h using the pitch angle
+and roll angle. Subsequently, the relative yaw angle be-
+tween the two UAVs can be obtained. The camera mea-
+surement is modeled as follows
+~α ¼ α þ n
+
+0, ε2
+α
+
+(11)
+where α and ~α represent the true and measurement values
+of the relative yaw, respectively, and ε2
+α represents the
+Gaussian white noise variance. Alternatively, the camera
+measurement can also take the form of a line-of-sight
+vector
+~lik ¼ phi
+ik
+phi
+ik
+þ n
+
+0, ε2
+l
+
+(12)
+where phi
+ik is the norm of the vector phi
+ik. Equations (11) and
+(12) are essentially equivalent, but the former will be used
+for subsequent simulations, whereas the latter will be used
+for the measurement model and observability analysis.
+The measurement errors of the accelerometers and gy-
+roscopes are composed of two parts, constant deviation
+and Gaussian white noise, and the measurements are
+modeled as24
+~ω ¼ ωþκω þn
+
+0,ε2
+ω
+
+~a ¼ aþκa þn
+
+0,ε2
+a
+
+_κω ¼ 0
+_κa ¼ 0
+(13)
+where
+~ω, ω, κω, and nð0, ε2
+ωÞ represent the gyroscope
+measurements, true angular rates, constant bias of the gyro
+rates, and Gaussian white noise, respectively. ~a, a, κa,
+and nð0, ε2
+aÞ represent accelerometer measurements, true
+accelerations, constant bias of the accelerometers, and
+Gaussian white noise, respectively.
+According to the sensor measurement models estab-
+lished using equations (9), (10), (11), (12), and (13), the
+relative navigation system measurement equation can be
+obtained as follows
+y ¼ hðX ikÞ ¼
+2
+6664~lik ~ψik~vi~vk
+3
+7775 2 R5×1
+(14)
+Design of distributed estimation ﬁlter
+In this section, based on the extended Kalman ﬁlter,
+a CEKF is constructed by introducing the geometric to-
+pological relationship between the members of the UAV
+formation.
+Consensus constraint model
+Figure 2 illustrates the distributed sensor and communi-
+cation network applied to multiple UAVs.
+As shown in Figure 2, the relative position between
+every three UAVs satisﬁes
+pij þ Ci
+jpjk þ Ci
+kpki ¼ 0
+(15)
+Equation (15) is a physical constraint on the esti-
+mated state. In theory, the observability of the system
+increases when additional constraints are added to the
+system. Therefore, this equation constraint can be
+introduced into the ﬁlter to improve estimation per-
+formance. From equation (15), we can infer that
+X ij þ Ti
+jX jk þ Ti
+kX ki ¼ 0
+(16)
+where the generalized coordinate transformation matrixes
+Ti
+j and Ti
+k are deﬁned as follows
+Ti
+j ¼
+2
+666666666666664
+Chi
+hj 0
+0
+0
+0
+0
+0
+0
+0
+0
+0 1
+0
+0
+0
+0
+0
+0
+0
+0
+0 0
+0
+0
+0
+0
+0
+0
+0
+0
+0 0  I2×2 0
+0
+0
+0
+0
+0
+0
+0 0
+0
+0
+0
+0
+0
+0
+0
+0
+0 0
+0
+0  1 0
+0
+0
+0
+0
+0 0
+0
+0
+0
+0
+0
+0
+0
+0
+0 0
+0
+0
+0
+0  I2×2 0
+0
+0
+0 0
+0
+0
+0
+0
+0
+0
+0
+0
+0 0
+0
+0
+0
+0
+0
+0  1 0
+3
+777777777777775
+2R15×15
+(17)
+Ti
+k ¼
+2
+666666666666664
+Chi
+hk 0 0
+0
+0
+0
+0
+0
+0
+0
+0
+1 0
+0
+0
+0
+0
+0
+0
+0
+0
+0 0  I2×2 0
+0
+0
+0
+0
+0
+0
+0 0
+0
+0
+0
+0
+0
+0
+0
+0
+0 0
+0
+0  1 0
+0
+0
+0
+0
+0 0
+0
+0
+0
+0
+0
+0
+0
+0
+0 0
+0
+0
+0
+0  I2×2 0
+0
+0
+0 0
+0
+0
+0
+0
+0
+0
+0
+0
+0 0
+0
+0
+0
+0
+0
+0  1
+0
+0 0
+0
+0
+0
+0
+0
+0
+0
+3
+777777777777775
+2R15×15
+(18)
+4
+Proc IMechE Part G: J Aerospace Engineering 0(0)
+[p.5]
+CEKF
+The framework of the CEKF is illustrated in Figure 3.
+Based on the CEKF algorithm running on its hardware, all
+members estimate the relative states of their neighbors in
+the formation. Every CEKF integrates the measurements
+from onboard sensors together with the consensus con-
+straint data from the other two UAVs. The formation
+members are required to share their data, including sensor
+measurements and prior estimation results of the CEKF.
+For example, to estimate the relative state of UAV2 with
+respect to UAV1 in the body-ﬁxed horizontal frame of
+UAV1, the measurement update is based on the prior
+estimation of UAV2 and UAV3. The time update equations
+for the CEKF20 are given as
+dX
+dt ¼ f ðX, UÞ
+(19)
+dP
+dt ¼ FXP þ PFT
+X þ J UQUJ T
+U
+(20)
+J U ¼ ∂f
+∂U ¼
+2
+66664
+02×2
+02×2
+Aphi
+ik
+02×1
+01×2
+01×2
+1
+1
+I2×2
+02×2
+Avhi
+i
+02×1
+02×2
+I2×2
+02×1
+Avhj
+j
+08×6
+3
+77775
+(22)
+The measurement update equations are given as25,26
+X t ¼ X t=t1 þ K
+
+zt  h
+
+X t=t1, 0
+
+ γ
+Pt=t1
+1 þ
+
+
+Pt=t1
+
+
+F
+
+X t=t1  X con
+
+(23)
+Pt ¼ ðI  KHÞPt=t1
+(24)
+where γ > 0 represents the feedback gain of the consensus
+constraint, kkF represents the Frobenius norm, and X con
+represents the estimated state vector obtained from the
+consensus constraint equation (16).
+Observability analysis
+The concept of observability was originally introduced by
+Kalman
+to
+solve
+the
+problem
+of
+system-state
+determination. If the initial state of the system can be
+uniquely determined by past observations, then the system
+is said to be observable. Observability reﬂects the ability
+of the ﬁlter to determine the state of the system using
+observations in a limited time and to a large extent de-
+termines whether the state vector can be estimated
+effectively.
+Lie derivative
+For the observability of nonlinear systems, a common
+practice is to analyze the observable rank condition of Lie
+derivatives. For a given nonlinear system
+Σ :
+(
+_x ¼ f ðx, uÞ
+y ¼ hðxÞ
+(25)
+where x ¼ ½x1, x2, :::, xnT 2 Rn×1 denotes the system state,
+u ¼ ½u1, u2, :::, ulT 2 Rl×1
+denotes
+the
+input,
+and
+y ¼ ½y1, y2, :::, ymT 2 Rm×1 denotes the observation. Then
+NðxÞ ¼ ∂
+∂x
+2
+664
+L0
+f hðxÞ
+L1
+f hðxÞ
+«
+Ln1
+f
+hðxÞ
+3
+775 2 Rmn×n
+(26)
+Figure 2. Measurement and communication topology
+diagram for UAV formation.
+FX ¼ ∂f
+∂X ¼
+2
+66664
+ðri  κωiÞA
+AChi
+hkvhk
+k
+I2×2
+Chi
+hk
+phi
+ik
+02×1
+02×2
+02×2
+02×2
+01×2
+0
+01×2
+01×2
+1
+1
+01×2
+01×2
+01×2
+02×2
+02×1
+ðri  κωiÞA
+02×2
+Avhi
+i
+02×1
+I2×2
+02×2
+02×2
+02×2
+02×1
+02×2
+ðrk  κωkÞA
+02×1
+Av
+hj
+j
+02×2
+I2×2
+02×2
+08×1
+08×1
+08×2
+08×2
+08×1
+08×1
+08×2
+08×2
+08×2
+3
+77775
+(21)
+Zheng et al.
+5
+[p.6]
+where
+8
+<
+:
+L0
+f hðxÞ ¼ h 2 Rm×1
+Li
+f hðxÞ ¼
+∂Li1
+f
+hðxÞ
+∂x
+f ðxÞ 2 Rm×1
+(27)
+If rankðNÞ ¼ n, then the system is locally observ-
+able. According to the local weak observability theory
+of nonlinear systems, when the observability matrix
+composed of low-order Lie derivatives is not full of
+rank, high-order Lie derivatives must be introduced for
+observability until the observability matrix is full of
+rank. However, if higher order Lie derivatives still fail
+to satisfy the observability condition, the system is
+unobservable.
+Observability analysis
+Along with the deviations of the inertial measurement
+units and pitot tube, we must introduce high-order Lie
+derivatives to obtain observable conditions. However,
+consequently, the observability matrix acquires multiple
+dimensions, which make it difﬁcult to solve. Note that
+the observability analysis of the system is difﬁcult in
+theory. Hence, a numerical analysis is performed in
+Section 4.
+Without considering the constant bias of the sensors,
+the state vector of the system will be reduced to 7 di-
+mensions; however, the observation vector will maintain 5
+dimensions. Therefore, two Lie derivatives are required to
+obtain potentially sufﬁcient conditions for the system to be
+observable. After deduction, the observability matrix is
+obtained as follows
+N ¼
+2
+66666666664
+M1
+0
+0
+0
+0
+1
+0
+0
+0
+0
+vT
+i
+0
+0
+0
+0
+vT
+k
+M2
+M3
+M4
+M5
+0
+0
+0
+0
+0
+0
+aT
+i
+0
+0
+0
+0
+aT
+k
+3
+77777777775
+2 R10×7
+(28)
+M1 ¼ 1
+p3
+ik
+
+p2
+ikI2×2  pikpT
+ik
+
+(29)
+M2 ¼ riA
+p3
+ik
+
+p2
+ikI2×2  pikpT
+ik
+
+ vikpT
+ik
+p3
+ik
+
+
+pT
+ikvik
+
+I2×2 þ pikvT
+ik
+p3
+ik
+þ 3pikpT
+ikvikpT
+ik
+p5
+ik
+(30)
+For equation (28), M3, M4, and M5 do not affect the
+observability analysis result and therefore not given. The
+necessary and sufﬁcient condition for matrix N to be full
+rank is that the linear equations Nc ¼ 0 concerning
+c 2 R7×1 have a unique solution c ¼ 0. After expansion,
+we obtain
+8
+>
+>
+>
+>
+>
+>
+>
+>
+<
+>
+>
+>
+>
+>
+>
+>
+>
+:
+M1c1 ¼ 0
+c2 ¼ 0
+vT
+i c3 ¼ 0
+vT
+k c4 ¼ 0
+M2c1 þ M3c2 þ M4c3 þ M5c4 ¼ 0
+aT
+i c3 ¼ 0
+aT
+k c4 ¼ 0
+(31)
+From the ﬁrst sub-equation of equation (31), we obtain
+c1 ¼ αpik
+(32)
+If the velocity vi and acceleration ai of the UAVi are not
+parallel, the 3rd, 4th, 6th, and 7th sub-equations of equation
+(31) indicate that
+c3 ¼ c4 ¼ 0
+(33)
+Substituting equations (32) and (33) into the 5th sub-
+equation of equation (31) yields
+M1c1 ¼ αvikpT
+ikpik þ αpT
+ikvikpik ¼ 0
+(34)
+Let pik ¼ ½x; y, vik ¼ ½vx; vy, we obtain
+α
+
+vyx  vxy
+
+y
+x
+
+¼ 0
+(35)
+If pik is not parallel to vik, it can be inferred that
+vyx  vxy ≠0
+(36)
+From equations (35) and (36), we obtain α ¼ 0, which
+means c1 ¼ 0. The aforementioned analysis shows that
+when the movement of the UAV formation satisﬁes vi ¤ ai
+and pik ¤ vik, there is only a zero solution for Nc ¼ 0, that
+is, the system can be observed. This raises the requirement
+for the absolute and relative movements of UAVs. First,
+the velocity and acceleration of a single UAV cannot have
+a parallel relationship. Second, the relative position and
+relative velocity between the formation members cannot
+be in a parallel relationship.
+Simulation validation
+The numerical simulation environment was established
+and the validity of the angle-only relative navigation al-
+gorithm was validated using the CEKF.
+Trajectory design
+The UAVs maintained a constant distance of 200 m in the
+horizontal plane, and the trajectory of the geometric center
+P of the formation is designed as (unit: m)
+rP ¼
+
+500
+2500
+
+þ
+
+20t
+500sinðω0tÞ
+
+(37)
+6
+Proc IMechE Part G: J Aerospace Engineering 0(0)
+[p.7]
+where ω0 ¼ 0:030rad=s. UAV1, UAV2, and UAV3 perform
+circular motions with angular velocity ω ¼ 0:015rad=s
+relative to P. Flying by the designed reference trajectories,
+the speed of the UAVs is between 18 m/s and 27 m/s, and
+the acceleration is less than 0:5m=s2.
+The angle between the velocity and acceleration of the
+UAVs within 300 s is shown in Figure 4. Because of the
+circular motion around P, the relative position and velocity
+are always vertical. Thus, the observability criterion
+discussed in Section 4.2 is satisﬁed and the system is
+observable. However, when ω ¼ 0, the relative velocity of
+the UAVs is 0. Thus, equation (23) does not hold and the
+system cannot be observed.
+Simulation parameters
+The sensor parameters and initial state estimation error
+parameter settings for the ﬁlter are presented in Tables 1 and
+2, respectively. The constant bias measured by the gyro-
+scope, accelerometer, and pitot tube was randomly gener-
+ated in every Monte Carlo simulation. The ﬁlter frequency
+was 2 Hz and the total simulation time was 1800 s.
+Simulation results
+To test the performance of the proposed angle-only relative
+navigation algorithm, the following three groups of simulations
+were performed based on 200 Monte Carlo simulations. The
+EKF and CEKF algorithms were applied when the trajectories
+of the UAVs satisfy and differ from the observability criterion.
+EKF applied to an unobservable system. By setting the
+consensus feedback gain γ ¼ 0 for equation (23), the
+CEKF algorithm degenerates into the EKF algorithm.
+When ω ¼ 0, the system is unobservable. The state vector
+estimation error for the EKF algorithm is shown in Figure
+5, Figure 6, Figure 7, and Figure 8.
+Figure 5 shows the relative position estimation errors of
+the UAVs in the horizontal plane. The blue solid line is the
+mean error of 200 Monte Carlo simulations, whereas the
+yellow dashed line and red dash-dotted line are the +3
+sigma and 3 sigma boundaries, respectively. As shown
+in Figure 5, the relative position estimation results were
+divergent. Additionally, the constant drift estimation re-
+sults for the gyro and constant bias estimation results for
+the accelerometer along the x axis, as shown in Figure 7,
+are also divergent. However, some variables of the system
+are still observable. For velocity, as shown in Figure 4, the
+constant bias of the accelerometer along the y axis, as
+shown in Figure 5, the constant bias of the Pitot tube, and
+the relative azimuth, as shown in Figure 6, the estimation
+results remain convergent.
+EKF applied to an observable system. When ω ¼ 0:015=s,
+the system is proven to be observable, and the estimation
+error of the EKF algorithm is shown in Figure 9, Figure
+10, Figure 11, and Figure 12. After t ¼ 600 s, the
+±3sigma boundaries were close to the mean error, which
+oscillated around 0, indicating that the ﬁlter algorithm was
+convergent.
+Figure 9 shows the relative position estimation errors of
+the UAVs in the horizontal plane. After the ﬁlter converges,
+the error boundaries of the x axis are between 8 m and +8 m,
+and the error boundaries of the y axis are between 6 m
+and +6 m. Thus, the relative position estimation accuracy
+of UAVs is within 10 m.
+Figure 10 shows the velocity estimation errors of the
+UAVs. After the ﬁlter converged, the velocity estimation
+errors along the x and y axes were both within 0.2 m/s,
+indicating that the velocity estimation accuracy along the x
+axis was slightly better than that along the y axis.
+Figure 11 shows the estimation error of the constant
+bias of the inertial measurement units. The three sub-
+ﬁgures on the left show the estimation results of the
+Figure 3. Framework of the consensus-extended Kalman ﬁlter.
+Zheng et al.
+7
+[p.8]
+constant drift of the gyro, and the six sub-ﬁgures on the right
+show the estimation results of the constant bias of the ac-
+celerometer. The estimation error decreased with time,
+gradually approaching zero. For the constant drift estimation
+error of the gyro at 600 s, 1200 s, and 1800 s, it is less than
+50°/h, 30°/h, and 20°/h, respectively. For the constant bias
+estimation error of the accelerometer along the x axis, it is
+less than 0.7 mg at 600 s and less than 0.5 mg after 1200 s.
+For the y axis, it is close to 0.01 mg after the ﬁlter
+converges.
+Figure 12 shows the estimation error of the pitot tube
+speed bias and the relative azimuth. At 1800 s, the esti-
+mation accuracy of the pitot tube constant bias is ap-
+proximately 0.14 m/s, and the relative azimuth is
+approximately 0.2°.
+CEKF applied to an observable system. In theory, if addi-
+tional constraints, such as increasing the number of
+observations, are added to the system, the observability of
+the system will improve. To visually verify that the CEKF
+algorithm proposed in Section 4.2, which introduces
+consensus feedback in the measurement update equations,
+is better than the EKF algorithm, we set the consensus
+coefﬁcient to be γ ¼ 0:03 and deﬁned the following
+statistics
+emðk, t0, t1Þ ¼
+1
+t1  t0
+Z t1
+t0
+bX ikðk, tÞ  X ikðk, tÞ
+dt
+(38)
+where scalar em represents the average absolute difference
+between the estimated state bXik and true state Xik from the
+ﬁlter convergence time t0 to the ﬁlter ending time t1 in the
+kth Monte Carlo simulation
+Mmðk, t0, t1Þ ¼ 1
+n
+X
+n
+k¼1
+em
+(39)
+Pmðk, t0, t1Þ ¼
+1
+n  1
+X
+n
+k¼1
+½em  Mm½em  MmT
+(40)
+where Mm and Pm are the mean and covariance errors,
+respectively, with which the relative navigation algorithm
+can be evaluated. Small Mm and Pm values usually in-
+dicate high estimation accuracy and good stability.
+Considering the ﬁlter convergence time as t0 ¼ 600s,
+Table 3 lists the statistical results of the estimation error for
+Figure 4. Angle between velocity and acceleration of UAVs.
+Table 1. Parameter settings for sensors.
+Parameter
+Value
+Parameter
+Value
+Gyro rate uncertainty
+Bias
+50°=h
+Accelerometer uncertainty
+Bias
+1mg
+Noise
+5°=h
+Noise
+0:1mg
+Azimuth noise
+5°
+Speed uncertainty
+Bias
+10 m=s
+Relative yaw noise
+1°
+Noise
+1m=s
+Table 2. Initial state estimation error parameter setting for the
+ﬁlter.
+Parameter
+Value
+Parameter
+Value
+Relative position
+1m
+Velocity
+1m=s
+Relative azimuth
+5°
+Gyro bias
+50°=h
+Accelerometer bias
+1mg
+Pitot tube bias
+3m=s
+8
+Proc IMechE Part G: J Aerospace Engineering 0(0)
+[p.9]
+Figure 5. Estimation error of the relative position when ω ¼ 0.
+Figure 6. Estimation error for velocity when ω ¼ 0.
+Zheng et al.
+9
+[p.10]
+Figure 7. Estimation error for the inertial measurement unit bias when ω ¼ 0.
+Figure 8. Estimation error for pitot tube bias and relative azimuth when ω ¼ 0.
+10
+Proc IMechE Part G: J Aerospace Engineering 0(0)
+[p.11]
+Figure 9. Estimation error for the relative position when ω ¼ 0:015=s.
+Figure 10. Estimation error for velocity when ω ¼ 0:015=s.
+Zheng et al.
+11
+[p.12]
+Figure 11. Estimation error for inertial measurement units bias when ω ¼ 0:015=s.
+Figure 12. Estimation error for pitot tube bias and relative azimuth when ω ¼ 0:015=s.
+12
+Proc IMechE Part G: J Aerospace Engineering 0(0)
+[p.13]
+the EKF and CEKF algorithms when the system is ob-
+servable. Compared with the EKF algorithm, the CEKF
+algorithm shows a smaller estimation mean error and
+covariance error, which validates that the CEKF algorithm
+designed in this study possesses a higher estimation ac-
+curacy and better stability.
+Conclusion
+A new angle-only cooperative relative navigation algo-
+rithm for UAV formation, which fuses an optical camera
+with other commonly used low-cost sensors, such as in-
+ertial measurement units, altimeters, magnetometers, and
+pitot tubes, was analyzed in this study. Accurate relative
+navigation for a formation composed of at least three
+UAVs was achieved with relatively light equipment, low
+power consumption, and low processing cost in a GPS-
+denied environment. The research work of this dissertation
+includes four main aspects.
+(1) An accurate relative dynamic model and measure-
+ment model between UAVs in the horizontal plane
+were established, and sensor measurement deviations
+were considered to realize the whitening of non-white
+Gaussian noise.
+(2) The Lie derivative criterion was introduced to ana-
+lyze the observability of the angle-only relative
+navigation system, and sufﬁcient conditions for the
+system to be observable were obtained. First, the
+velocity and acceleration of a single UAV cannot be
+parallel to each other. Second, the relative position
+and velocity between UAVs cannot be parallel.
+(3) A decentralized estimation strategy based on the
+CEKF was designed, and a consensus algorithm was
+constructed using multiple physical constraints.
+(4) The validity of the angle-only relative navigation
+algorithm and the superiority of the consensus-
+extended Kalman ﬁlter were validated using stan-
+dard Monte Carlo simulations. All the states are
+observable when the trajectories of the UAVs satisfy
+the observability criterion.
+The angle-only relative navigation algorithm proposed
+in this study was based on three UAVs. When more UAVs
+will participate in the formation, the decentralized strategy
+and nonlinear estimation algorithm will become more
+complicated. This will be the focus of future research.
+Declaration of conﬂicting interests
+The author(s) declared no potential conﬂicts of interest with
+respect to the research, authorship, and/or publication of this
+article.
+Funding
+The author(s) disclosed receipt of the following ﬁnancial support
+for the research, authorship, and/or publication of this article:
+This work was partially supported by the National Natural
+Science Foundation of China (11802119, 12272168) and
+Foundation of Science and Technology on Space Intelligent
+Control Laboratory (6142208200303, 2021-JCJQ-LB-010-04).
+ORCID iD
+Baichun Gong https://orcid.org/0000-0002-6701-797X
+References
+1. Tahir A, B¨oling J, Haghbayan M-H, et al. Swarms of un-
+manned aerial vehicles-A survey. J Ind Inf Integr 2019; 16:
+100106.
+2. Zhou T, Chen M, Han Z, et al. Multi-UAV cooperative
+multiple targets assignment based on improved wolf pack
+algorithm. Navig Position Timing 2022; 9(No. 5): 46–55.
+3. Chung S, Paranjape AA, Dames D, et al. A Survey on aerial
+swarm robotics. IEEE Trans Robotics 2018; 34(No. 4):
+837–855.
+4. Coppola M, McGuire KN, De Wagter C, et al. A survey on
+swarming with micro air vehicles: fundamental challenges
+and constraints. Front Robotics AI 2020; 7: 18.
+5. Li WH and Zhang X. Reviews on unmanned aerial vehicle
+formation ﬂight. Flight Dyn 2007; 2007(01): 9–11+18.
+6. Zhang L, Fang YW, Mao DH, et al. Adaptive sliding-mode
+controller design for missile cooperative engagement. J
+Astronautics 2014; 35(6): 700–707.
+7. Yan CY, Huang XM and Zhang K. Relative navigation based
+on inertial navigation/data link ranging. Computer Simu-
+lation 2020; 37(05): 55–60+109.
+8. Buechett BT. Unscented Kalman ﬁlters for range-only co-
+operative localization of swarms of munitions in three-
+dimensional ﬂight. Aerospace Science and Technology
+2018 85: 259–269.
+9. Shalaby M, Cossette CC, Forbes JR, et al. Relative position
+estimation in multi-agent systems using attitude-coupled
+range measurements. IEEE Robotics Automation Lett
+2021; 6(99): 1–1.
+10. Xiong J, Xiong Z, Cheong JW, et al. Cooperative positioning
+for low-cost close formation ﬂight based on relative esti-
+mation and belief propagation. Aerospace Sci Technol 2020;
+106: 106068.
+11. Nguyen TM, Qiu Z, Cao M, et al. Single landmark distance-
+based navigation. IEEE Trans Control Syst Technol 2019;
+28(99): 1–8.
+Table 3. Statistical results of estimation error for EKF and
+CEKF algorithms.
+Mean error
+Covariance
+error
+EKF
+CEKF
+EKF
+CEKF
+Relative position (m)
+x axis
+1.718
+1.382
+1.169
+0.833
+y axis
+1.576
+1.245
+1.253
+0.774
+Velocity (m/s)
+x axis
+0.018
+0.018
+0.012
+0.012
+y axis
+0.028
+0.028
+0.018
+0.017
+Relative azimuth (°)
+0.042
+0.039
+0.030
+0.028
+Gyro bias (°/h)
+18.16
+14.33
+9.041
+5.079
+Accelerometer (mg)
+x axis
+0.203
+0.160
+0.100
+0.056
+y axis
+0.004
+0.004
+0.002
+0.002
+Pitot tube bias (m/s)
+0.017
+0.016
+0.012
+0.012
+Zheng et al.
+13
+[p.14]
+12. Guo KX, Qiu ZR, Meng W, et al. Ultra-wideband based
+cooperative relative localization algorithm and experi-
+ments for multiple unmanned aerial vehicles in GPS denied
+environments. Int J Micro Air Vehicles 2017; 9(3):
+169–186.
+13. Ke XG, Qiu ZR, Miao CX, et al. Ultra-wideband-based
+localization for quadcopter navigation. Unmanned Syst
+2016; 4(1): 23–34.
+14. Cao Y, Yang C, Li R, et al. Accurate position tracking with
+a single UWB anchor. In: 2020 IEEE International Con-
+ference on Robotics and Automation (ICRA), 2020, pp.
+2344–2350.
+15. van der Helm S, Coppola M, McGuire KN, McGuire KN,
+et al. On-board range-based relative localization for micro
+air vehicles in indoor leader-follower ﬂight. Autonomous
+Robots 2020; 44(3): 415–441.
+16. Gong BC, Wang S, Hao MR, et al. Range-based collabo-
+rative relative navigation for multiple unmanned aerial
+vehicles using consensus extended Kalman ﬁlter. Aerosp Sci
+Technol 2021; 112: 106647.
+17. Molina MF, Juri S, Christoph B, et al. Unique 4-DOF relative
+pose estimation with six distances for UWB/V-SLAM-Based
+devices. Sensors (Basel, Switzerland) 2019; 19(20): 4366.
+18. Wang K, Xu SJ, Li K, et al. Error analysis and formation
+design for double line-of-sight measuring relative navigation
+method. Acta Aeronautica et Astronautica Sinica 2018;
+39(09): 152–166.
+19. Wofﬁnden D and Geller D. Optimal orbital rendezvous
+maneuvering for angles-only navigation. J Guidance,
+Control Dyn 2009; 32(4): 1382–1387.
+20. Gong BC, Wang S, Hao MR, et al. Cooperative relative
+navigation algorithm for multi-spacecraft close-range for-
+mation based. J Astronautics 2021; 42(03): 344–350.
+21. Wang XG, Guo JF and Cui NG. Roubust sigma-point ﬁltering
+and its application to relative navigation. Acta Aeronautica et
+Astronautica Sinica 2010; 31(05): 1024–1029. (in Chinese).
+22. Wang HY, Xu Y, Wang WD, et al. Onboard compen-
+sation method for gyroscope drift by capturing non-
+maneuvering window. J Chin Inertial Technol 2020;
+28(03): 365–371.
+23. Li JR. Research on angles-only relative navigation and
+autonomous control for space Rendezvous. Ph.D disserta-
+tion, Changsha, China: National University of Defense
+Technology, 2011.
+24. Qin YY. Inertial navigation. Beijing Science and Tech-
+nology Press, 2014.
+25. Wang J, Butcher EA and Tansel Y. Space-based relative orbit
+estimation using information sharing and the consensus
+kalman ﬁlter. J Guidance Control Dyn 2019; 42(3):
+491–507.
+26. Wang J and Butcher EA. Decentralized estimation of
+spacecraft relative motion using consensus extended Kal-
+man ﬁlter. In: 2018 Space Flight Mechanics Meeting,
+Kissimmee, Florida, 8–12 January, 2018.
+14
+Proc IMechE Part G: J Aerospace Engineering 0(0)
+=== END ===

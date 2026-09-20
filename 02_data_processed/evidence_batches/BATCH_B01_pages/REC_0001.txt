@@ -1,0 +1,467 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0001.pdf
+sha256: 8468C2CCD760EAA71D783564880CABCD10B44981BB4AF90EC109A02D0F50744D
+library: pymupdf (fitz) v1.28.2
+pages: 4
+=== BEGIN ===
+[p.1]
+BIM-Assisted UAV Topological Localization and 
+Navigation Method for GPS-Denied Indoor 
+Environments 
+Hao Pan 
+the School of Software 
+Nanchang Hangkong University 
+Jiangxi, 330038, China 
+71278@nchu.edu.cn 
+ 
+Haowei Ye* 
+the School of Software 
+Nanchang Hangkong University 
+Jiangxi, 330038, China 
+2420083500311@stu.nchu.edu.c
+n 
+Wei Zheng 
+the School of Software 
+Nanchang Hangkong University 
+Jiangxi, 330038, China 
+zhengwei@nchu.edu.cn 
+ 
+Lv Zhou 
+the School of Software 
+Nanchang Hangkong University 
+Jiangxi, 330038, China 
+71278@nchu.edu.cn 
+Abstract—This 
+paper 
+proposes 
+a 
+BIM-assisted 
+UAV 
+topological localization and navigation framework for GPS-denied 
+indoor environments. The method transforms BIM data into a 
+semantic-topological graph containing rooms, corridors, staircases, 
+and connectivity relationships. UAV image observations are 
+converted into candidate BIM nodes through spatial semantic 
+recognition and OCR-based textual matching rather than directly 
+estimating metric coordinates. A topology-aware recursive 
+localization mechanism is then introduced by integrating BIM 
+adjacency constraints and historical states to infer the most 
+probable indoor location. Furthermore, semantic-cost A* 
+planning is employed to validate whether the estimated topological 
+nodes can support indoor navigation tasks. Experiments were 
+conducted in a real university teaching-building environment with 
+721 indoor images and 74 navigation frames. Results demonstrate 
+that the proposed framework achieves 95.95% localization 
+coverage and 100% valid-frame node accuracy, showing strong 
+robustness and interpretability for indoor UAV localization and 
+navigation. 
+Keywords—BIM-assisted localization; UAV indoor navigation; 
+GPS-denied environments; semantic-topological graph; recursive 
+localization; indoor UAV localization 
+I. INTRODUCTION  
+Unmanned aerial vehicles (UAVs) have attracted increasing 
+attention in indoor applications such as building inspection, 
+emergency rescue, security patrol, infrastructure maintenance, 
+and digital twin management[1]. Compared to ground robots, 
+UAVs offer superior mobility and accessibility in narrow or 
+complex indoor spaces[2]. However, reliable indoor UAV 
+operation fundamentally depends on robust localization and 
+navigation capabilities. Unlike outdoor environments, indoor 
+scenarios typically suffer from unavailable or severely degraded 
+Global Positioning System (GPS) signals[3]. In addition, 
+repetitive corridors, visually similar rooms, weak textures, 
+dynamic occlusions, and illumination variations further increase 
+the difficulty of UAV localization in indoor environments[4]. 
+Existing indoor localization approaches mainly focus on 
+recovering continuous metric coordinates and performing 
+navigation on geometric maps[5]. Chen et al. [6]transformed 
+BIM semantic and geometric information into a graph structure 
+for UAV navigation, improving the interpretability of indoor 
+path planning. However, the approach primarily focused on 
+navigation planning and assumed that the UAV location was 
+already known, failing to address localization ambiguity caused 
+by repetitive corridors and visually similar rooms in GPS‑denied 
+indoor environments. Radwan et al. [7]reduced dependence on 
+purely geometric localization through semantic mapping and 
+multi‑level graph reasoning. However, the framework mainly 
+relied on SLAM‑based scene reconstruction and did not fully 
+utilize BIM semantic topology as a unified localization state 
+space. To address these issues, this paper proposes a 
+BIM‑assisted UAV topological localization and navigation 
+method for GPS‑denied indoor environments. The proposed 
+framework 
+transforms 
+BIM 
+into 
+a 
+lightweight 
+semantic‑topological 
+graph 
+and 
+converts 
+UAV 
+image 
+observations into candidate BIM node sets using spatial 
+semantic recognition and OCR‑based textual cues. A 
+topology‑aware recursive localization mechanism is then 
+introduced, integrating BIM adjacency constraints and historical 
+states to continuously infer the most probable topological node. 
+Furthermore, semantic‑cost A* path planning is employed to 
+verify whether the estimated topological locations can 
+effectively support indoor UAV navigation tasks. 
+II. RESEARCH METHODOLOGY 
+A. System Overview 
+ 
+Fig. 1. BIM-Assisted UAV Topological Localization and Navigation 
+Framework 
+The inputs of the proposed framework include the building 
+BIM model and the image sequence captured by the onboard 
+UAV camera, while the outputs include the estimated BIM 
+topological node of the current UAV location, the planned 
+navigation path toward the target node, and the next navigation 
+waypoint. The overall architecture is illustrated in Fig. 1. During 
+the offline stage, the system extracts rooms, corridors, staircases, 
+doors, and connectivity relationships from the BIM model to 
+2026 6th International Conference on Control and Intelligent Robotics (ICCIR)
+979-8-3315-8348-4/26/$31.00 ©2026 IEEE
+214
+2026 6th International Conference on Control and Intelligent Robotics (ICCIR) | 979-8-3315-8348-4/26/$31.00 ©2026 IEEE | DOI: 10.1109/ICCIR70228.2026.11633308
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 16:48:23 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+construct a semantic-topological graph. In addition, node 
+attributes including spatial type, room label, floor information, 
+and adjacency relationships are indexed to establish a unified 
+indoor topological state space. 
+B. BIM Semantic-Topological State Space 
+The original BIM model contains fine-grained architectural 
+entities such as spaces, doors, walls, staircases, slabs, and floor 
+information. To support UAV localization and navigation in 
+GPS-denied indoor environments, these building elements are 
+abstracted into a semantic-topological graph composed of node 
+set 𝑉and navigable edge set 𝐸: 
+𝐺ൌሺ𝑉, 𝐸ሻ
+൫1൯ 
+where 𝑉denotes the set of semantic-topological nodes and 
+𝐸represents the set of navigable connections between nodes. 
+Each node 𝑣∈𝑉corresponds to a navigation-related abstract 
+indoor location, such as a room entrance, corridor segment, or 
+staircase platform. Each node contains semantic attributes 
+defined as: 
+𝐴ሺ𝑣ሻൌ𝑖𝑑ሺ𝑣ሻ, 𝑡𝑦𝑝𝑒ሺ𝑣ሻ, 𝑓𝑙𝑜𝑜𝑟ሺ𝑣ሻ, 𝑙𝑎𝑏𝑒𝑙ሺ𝑣ሻ, 𝑓𝑒𝑎𝑡𝑢𝑟𝑒ሺ𝑣ሻ൫2൯ 
+where: 𝑖𝑑ሺ𝑣ሻdenotes the node identifier, 𝑡𝑦𝑝𝑒ሺ𝑣ሻdenotes 
+the semantic spatial category, 𝑓𝑙𝑜𝑜𝑟ሺ𝑣ሻdenotes the floor 
+information, 𝑙𝑎𝑏𝑒𝑙ሺ𝑣ሻdenotes the room number, doorplate label, 
+or semantic location name, 𝑓𝑒𝑎𝑡𝑢𝑟𝑒ሺ𝑣ሻdenotes visual or 
+semantic descriptors that can be matched with UAV image 
+observations. If two spatial units are connected through doors, 
+open boundaries, or staircase transitions, an undirected edge is 
+established: 
+𝑒௜௝ൌ൫𝑣௜, 𝑣௝൯
+൫3൯ 
+where 𝑒௜௝represents the navigable topological connection 
+between nodes 𝑣௜and 𝑣௝. In the real BIM topology experiments, 
+the basic traversal cost of each edge is initialized as: 
+𝑤0൫𝑒௜௝൯ൌ1
+൫4൯ 
+where 𝑤଴ሺ𝑒௜௝ሻdenotes the basic traversal cost associated 
+with edge 𝑒௜௝. This simplified setting allows the experimental 
+analysis to focus on BIM structural connectivity, semantic 
+topology reasoning, and semantic-cost navigation planning 
+without introducing unverified geometric-distance errors. Based 
+on this abstraction mechanism, the original BIM building 
+structure is transformed into a lightweight semantic-topological 
+navigation space suitable for UAV localization and graph-based 
+navigation inference. The abstraction process from BIM spatial 
+semantics to the navigation topology graph is illustrated in Fig. 
+2. 
+The current framework assumes that the manually 
+constructed BIM semantic-topological graph is sufficiently 
+accurate. However, practical deployment may suffer from BIM 
+modeling inconsistencies, outdated room labels, incorrect 
+connectivity relationships, or incomplete semantic annotations. 
+Such prior-map errors may negatively influence candidate-node 
+matching confidence and recursive localization reliability. 
+Future research will investigate the robustness of the proposed 
+framework under intentionally perturbed BIM topologies and 
+semantic-label noise. In addition, adaptive topology correction 
+and online semantic updating mechanisms may be introduced to 
+improve localization reliability in dynamically changing indoor 
+environments. 
+ 
+Fig. 2. Abstraction Mechanism from BIM Spatial Semantics to Navigation 
+Topological Graph 
+C. Image Observation to BIM Candidate Node Conversion 
+At time step 𝑡, the UAV captures an onboard image 𝐼௧. The 
+perception module extracts spatial semantic categories, OCR-
+based textual cues, and observation confidence to form the 
+observation vector: 
+𝑂௧ൌ𝑐௧, 𝑟௧, 𝑞௧
+൫5൯ 
+where: 𝑐௧denotes the semantic spatial category, such as 
+Room, Corridor, or Stair, 𝑟௧denotes OCR-recognized textual 
+information, including room numbers or floor signs, 𝑞௧denotes 
+the observation confidence. 
+Instead of directly assigning the observation to a single BIM 
+node, the proposed framework converts 𝑂௧into a BIM candidate 
+node set: 
+𝐶௧ൌሼሺ𝑣௜, 𝜎௜ሻ∣𝑣௜∈𝑉, 𝜎௜∈ሾ0,1ሿሽ
+൫6൯ 
+where 𝜎௜denotes the matching confidence between node 
+𝑣௜and the current image observation. The OCR-based text 
+matching score is defined as: 
+𝑆௧௘௫௧ሺ𝑣ሻൌ𝑠𝑖𝑚൫𝑟௧, 𝑙𝑎𝑏𝑒𝑙ሺ𝑣ሻ൯
+൫7൯ 
+where 𝑠𝑖𝑚ሺ⋅ሻdenotes the matching function between the 
+OCR text and the BIM node label. In the proposed framework, 
+readable room signs are treated as strong semantic cues. When 
+the recognized text matches the room label or adjacent room 
+labels in BIM, the corresponding room node and its neighboring 
+corridor nodes obtain higher text-matching confidence. The 
+spatial semantic classification score is defined as: 
+𝑆௖௟௦ሺ𝑣ሻൌ𝑃ሺ𝑐௧ൌ𝑡𝑦𝑝𝑒ሺ𝑣ሻ∣𝐼௧ሻ
+൫8൯ 
+where 𝑃ሺ𝑐௧ൌ𝑡𝑦𝑝𝑒ሺ𝑣ሻ∣𝐼௧ሻis obtained from the image 
+semantic classification module and measures the probability that 
+image 𝐼௧belongs to the semantic type of node 𝑣. The final fusion 
+score is computed as: 
+𝑆ሺ𝑣ሻൌ𝜆1𝑆௧௘௫௧ሺ𝑣ሻ൅𝜆2𝑆௖௟௦ሺ𝑣ሻ
+൫9൯ 
+where 𝜆ଵand 𝜆ଶdenote the fusion weights of OCR semantic 
+cues and spatial semantic classification cues, respectively. In the 
+experimental implementation, OCR-based room signs are 
+215
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 16:48:23 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+regarded as strong semantic constraints, while Room, Corridor, 
+and Stair categories provide coarse-grained spatial constraints. 
+For example, if the image can only be recognized as a Room 
+scene without unique semantic cues or historical constraints, the 
+observation should not be overconfidently mapped to a specific 
+room node. Instead, the candidate room-node set is preserved as: 
+𝐶௧
+௥௢௢௠ൌሼ𝑣∈𝑉∣𝑡𝑦𝑝𝑒ሺ𝑣ሻൌ𝑅𝑜𝑜𝑚ሽ
+൫10൯ 
+where 𝐶௧
+௥௢௢௠denotes the candidate node set containing all 
+BIM nodes with semantic type Room. 
+D. BIM Topology-aware Recursive Localization 
+After obtaining the candidate node set, the system estimates 
+the current UAV location by integrating BIM adjacency 
+constraints and historical localization states. The UAV location 
+is modeled as a hidden topological state: 
+𝑠௧∈𝑉
+൫11൯ 
+The posterior confidence of node 𝑣at time step 𝑡is defined as: 
+𝑏௧ሺ𝑣ሻൌ𝑃൫𝑠௧ൌ𝑣∣∣𝑂1:௧, 𝐺൯
+൫12൯ 
+where: 𝑏௧ሺ𝑣ሻdenotes the posterior probability of node 𝑣, 
+denotes the observation sequence from the initial frame to the 
+current frame, 𝐺denotes the BIM semantic-topological graph. 
+The recursive inference process consists of prediction and 
+update stages. 
+During the prediction stage, the system estimates the prior 
+confidence distribution using the previous posterior belief and 
+BIM connectivity relationships: 
+𝑏ത௧ሺ𝑣ሻൌ෍ 
+௨∈௏
+𝑃൫𝑠௧ൌ𝑣∣∣𝑠௧ି1 ൌ𝑢, 𝑎௧ି1, 𝐺൯𝑏௧ି1ሺ𝑢ሻ
+൫13൯ 
+where: 𝑏¯௧ሺ𝑣ሻdenotes the predicted prior confidence of node 
+𝑣, 𝑢denotes the possible node at time 𝑡െ1, 𝑎௧ିଵdenotes the 
+motion or navigation action at the previous step. 
+In the proposed implementation, the action term is 
+approximated using temporal continuity and BIM adjacency 
+constraints. If node 𝑣is neither adjacent to node 𝑢nor identical to 
+node 𝑢, the transition probability is set to zero: 
+𝑃൫𝑠௧ൌ𝑣∣∣𝑠௧ି1 ൌ𝑢, 𝐺൯ൌ0, 𝑣∉𝑁ሺ𝑢ሻ∪𝑢
+൫14൯ 
+where: 𝑁ሺ𝑢ሻdenotes the adjacent-node set of node 𝑢, 
+ሼ𝑢ሽdenotes the possibility that the UAV remains at the current 
+node. During the update stage, image observations are used to 
+refine the predicted distribution: 
+𝑏௧ሺ𝑣ሻൌ
+𝑃ሺ𝑂௧∣𝑠௧ൌ𝑣ሻ𝑏ത௧ሺ𝑣ሻ
+∑
+ 
+௨∈௏𝑃ሺ𝑂௧∣𝑠௧ൌ𝑢ሻ𝑏ത௧ሺ𝑢ሻ
+൫15൯ 
+where: 𝑃ሺ𝑂௧∣𝑠௧ൌ𝑣ሻdenotes the observation likelihood 
+generated at node 𝑣, the denominator is a normalization term 
+ensuring that the posterior probabilities sum to one. 
+In practical indoor UAV navigation tasks, localization 
+latency directly affects navigation stability and motion safety. 
+Therefore, additional computational performance analysis 
+should be incorporated to evaluate the recursive topology 
+inference process under real-time UAV operation constraints. 
+Future implementation will measure the average inference time 
+of image semantic recognition, OCR matching, candidate-node 
+generation, recursive posterior updating, and semantic-cost path 
+planning. Since the proposed method performs localization in a 
+lightweight semantic-topological state space rather than dense 
+metric maps, the computational complexity is expected to 
+remain significantly lower than traditional dense SLAM-based 
+localization approaches. Real-time experiments on embedded 
+UAV platforms will be conducted in future studies. 
+III. EXPERIMENTAL DESIGN 
+A. Experimental Setup 
+The experiments were conducted on a desktop workstation 
+equipped with an Intel Core i7-12700 CPU, 32 GB RAM, and 
+an NVIDIA RTX 3080 GPU under Ubuntu 22.04. The proposed 
+framework was implemented in Python using PyTorch for image 
+semantic classification and NetworkX for BIM topology 
+construction and path planning. UAV perception input was 
+simulated using monocular image sequences collected in a real 
+university teaching-building environment containing repetitive 
+corridors, room entrances, and staircase regions. The BIM 
+semantic-topological graph was manually constructed from the 
+floor-plan BIM model, resulting in 16 semantic nodes and 15 
+navigable edges. The dataset consisted of 721 indoor images, 
+including 349 Corridor images, 319 Room images, and 53 Stair 
+images, with an 8:2 training-testing split. 
+B. Analysis of Experimental Results 
+ 
+Fig. 3. Confusion Matrix for Image Spatial Type Recognition  
+The confusion matrix is illustrated in Fig. 3. In the testing 
+dataset, only one Room image was misclassified as Corridor, 
+while all Corridor and Stair images were correctly recognized. 
+These results demonstrate that the proposed spatial semantic 
+classification module can effectively reduce the localization 
+ambiguity by compressing the original 16 BIM nodes into a 
+smaller candidate-node set for subsequent topology-aware 
+recursive localization. 
+216
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 16:48:23 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+TABLE 1 BIM TOPOLOGY-AWARE RECURSIVE LOCALIZATION RESULTS 
+Path 
+Total Frames 
+Strong Observation 
+Frames 
+Topology-
+completed 
+Frames 
+Valid 
+Localization 
+Frames 
+Unknown 
+Frames 
+Localization 
+Coverage 
+Valid-frame 
+Node Accuracy 
+Corridor6_to_E210 
+18 
+4 
+14 
+18 
+0 
+100.00% 
+100.00% 
+E210_to_E212 
+12 
+3 
+7 
+10 
+2 
+83.33% 
+100.00% 
+Stair1_to_Stair2 
+44 
+7 
+36 
+43 
+1 
+97.73% 
+100.00% 
+Total 
+74 
+14 
+57 
+71 
+3 
+95.95% 
+100.00% 
+This experiment evaluates whether the candidate node set 
+can converge to a specific BIM location through BIM adjacency 
+constraints and historical states. The localization results of the 
+three image sequences are summarized in Table 1. 
+The results show that among the 74 image frames, 14 frames 
+relied on strong semantic observations such as OCR-based room 
+signs, while 57 frames were completed through BIM topological 
+inference. The proposed framework generated 71 valid node 
+estimations in total. To further validate the scalability of the 
+proposed BIM-assisted topological localization framework, 
+future work will evaluate the system in larger and more complex 
+indoor environments containing multi-floor structures, dense 
+corridor intersections, and significantly increased semantic-
+topological node counts. The current experiment was conducted 
+on a relatively small topology graph consisting of 16 nodes. 
+Although the results demonstrate the feasibility and robustness 
+of the proposed recursive topological inference mechanism, real-
+world smart-building applications may involve hundreds of 
+interconnected nodes with more complex semantic ambiguities. 
+Therefore, subsequent experiments will investigate localization 
+coverage, node convergence stability, and navigation robustness 
+under large-scale BIM topologies. 
+IV. CONCLUSION 
+This paper proposed a BIM-assisted UAV topological 
+localization and navigation framework for GPS-denied indoor 
+environments. By transforming BIM data into a semantic-
+topological graph, the proposed method converted UAV image 
+observations into candidate BIM nodes using spatial semantic 
+recognition and OCR-based textual cues. A topology-aware 
+recursive localization mechanism was introduced to infer the 
+most probable indoor location through BIM adjacency 
+constraints and historical states. In addition, semantic-cost A* 
+planning was employed to validate the navigation capability of 
+the 
+estimated 
+topological 
+nodes. 
+Experimental 
+results 
+demonstrated that the proposed framework achieved high 
+localization coverage and 100% valid-frame node accuracy in 
+real indoor environments containing repetitive corridors, rooms, 
+and staircase regions. To quantitatively validate the proposed 
+framework, future work will compare it with representative 
+visual localization methods, including feature-based approaches, 
+visual SLAM, and deep-learning-based place recognition. The 
+evaluation will consider localization accuracy, robustness, 
+computational efficiency, and navigation consistency in GPS-
+denied indoor environments. Compared with conventional 
+coordinate-based methods, the proposed framework is expected 
+to provide better interpretability and robustness through BIM 
+semantic-topological constraints. 
+ACKNOWLEDGMENT 
+Project: Early-Career Young Scientists and Technologists 
+Project of Jiangxi Province (Grants No. 20244BCE52093), 
+Jiangxi Provincial Department of Education Scientific and 
+Technological Research Project (Grants No. GJJ2401011). 
+REFERENCES 
+[1] Mohsan S A H, Othman N Q H, Li Y, et al. Unmanned aerial vehicles 
+(UAVs): Practical aspects, applications, open challenges, security issues, 
+and future trends[J]. Intelligent service robotics, 2023, 16(1): 109-137. 
+[2] Telli, K., Kraa, O., Himeur, Y., Ouamane, A., Boumehraz, M., Atalla, S., 
+& Mansoor, W. (2023). A comprehensive review of recent research trends 
+on unmanned aerial vehicles (uavs). Systems, 11(8), 400. 
+[3] Haider Z, Sreenan C J, Brown K N, et al. Indoor Autonomous Multi-
+UAVs: A Review of Current Research, Enabling Technologies and Open 
+Challenges[J]. IEEE Access, 2025, 13: 212231-212265. 
+[4] Aziz T, Koo I. A comprehensive review of indoor localization techniques 
+and applications in various sectors[J]. Applied Sciences, 2025, 15(3): 
+1544. 
+[5] Deshmukh R A, Hasamnis M A, Kulkarni M B, et al. Advancing indoor 
+positioning systems: innovations, challenges, and applications in mobile 
+robotics[J]. Robotica, 2025: 1-41. 
+[6] Chen Q, Chen J, Huang W. Pathfinding method for an indoor drone based 
+on a BIM-semantic model[J]. Advanced Engineering Informatics, 2022, 
+53: 101686. 
+[7] Radwan A, Tourani A, Bavle H, et al. UAV-assisted visual SLAM 
+generating reconstructed 3D scene graphs in GPS-denied environments[J]. 
+arXiv preprint arXiv:2402.07537, 2024. 
+ 
+217
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 16:48:23 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

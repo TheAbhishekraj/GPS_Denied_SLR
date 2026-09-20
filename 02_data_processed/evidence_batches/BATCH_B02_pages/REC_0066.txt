@@ -1,0 +1,568 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0066.pdf
+sha256: 681AFEC2FFAF3FC64BA342231DA2FC87979EFF7D4F72BB761E008986A1EF694A
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+Real Time Vision Based Obstacle Avoidance for
+UAV using YOLO in GPS Denied Environment
+Sanju Kumar NT
+Department EE
+IIT Hyderabad
+Hyderabad, India
+ee19resch01006@iith.ac.in
+G Ujwal Sai
+Department of AI
+IIT Hyderabad
+Hyderabad, India
+ai20mtech01001@iith.ac.in
+Prasanth Kumar Duba
+Department of EE
+IIT Hyderabad
+Hyderabad, India
+ee20resch11008@iith.ac.in
+P Rajalakshmi
+Department of EE
+IIT Hyderabad
+Hyderabad, India
+raji@iith.ac.in
+Abstract—This paper discussed cost-effective vision-based ob-
+stacle avoidance for Unmanned Aerial Vehicles (UAVs) operating
+in GPS-denied environments. The system combines the You Only
+Look Once (YOLO) architecture with stereo vision cameras
+(OAK-D Lite), a Raspberry Pi computer, and a ﬂight controller
+unit (Pixhawk-Cube). Navigating safely through obstacles be-
+comes challenging for UAVs in GPS-denied environments. To
+address this issue, the drone is conﬁgured in altitude hold mode,
+and the system is trained on the Common Objects in Context
+(COCO) dataset, enabling it to recognize objects and analyze
+the surrounding areas to identify free spaces. By doing so, the
+drone can traverse an obstacle-free path. The detected obstacle
+information is then utilized to generate avoidance trajectories,
+allowing the UAV to navigate around obstacles safely. Real-time
+testing of the proposed technique demonstrates its efﬁcacy in
+detecting and avoiding obstacles within a threshold distance of
+2 meters, with an error rate of 10%. The drone’s relative speed
+is conﬁgured at 2 m/s during these tests.
+Index Terms—Autonomous Navigation, Convolution Neural
+Networks, Drones, Obstacle Avoidance, Vision
+I. INTRODUCTION
+Unmanned Aerial Vehicles (UAVs) are highly versatile
+robots that ﬁnd applications in various domains, such as
+surveillance, search and rescue, inspections, and monitoring
+[1] [2] [3] [4]. Industries like construction, trafﬁc systems,
+agriculture [5], and cinematography have adopted UAVs for
+their speciﬁc needs, automating niche applications and reduc-
+ing human errors. However, navigating UAVs in environments
+where GPS signals are limited or unreliable, such as indoor or
+urban environments, presents challenges for safe and efﬁcient
+operations. So, obstacle avoidance is critical to UAV naviga-
+tion to prevent collisions and ensure safe operations. Vision-
+based obstacle avoidance has emerged as a promising solution
+to address this challenge as it leverages onboard cameras and
+advanced object detection algorithms to detect obstacles in
+real time and autonomously avoid them [6] [7]. Some of the
+approaches have discussed on drone racing that is autonomous
+and uses deep reinforcement learning [8], [9] about sensor-
+based navigation which uses onboard computing. There are
+still challenges remaining in terms of obstacle avoidance
+accuracy, utilization of system resources, and optimized path
+planning that needs to be addressed. The motivation behind
+this novel technique is to overcome the limitations of GPS and
+provide UAVs with the capability to navigate safely and au-
+tonomously in GPS-denied environments by relying on visual
+perception. This paper introduces an end-to-end pipeline for
+obstacle avoidance in GPS-denied environments speciﬁcally
+designed for UAVs. The proposed solution leverages a stereo
+vision camera and a Raspberry Pi onboard unit. It offers a
+low-cost solution that is compact and efﬁcient. By utilizing
+the YOLO (You Only Look Once) object detection algorithm
+[10], this approach efﬁciently detects and classiﬁes objects
+in real time, allowing for obstacle avoidance by considering
+the surrounding space and adjusting navigation based on
+velocity. The stereo vision cameras provide depth information
+for obstacle detection, and the onboard computing enables
+real-time processing and decision-making for safe obstacle
+avoidance. The contributions of this paper are as follows:
+• Developed an end-to-end pipeline for detecting and
+avoiding obstacles, utilizing YOLO to determine unoc-
+cupied and occupied space.
+• Developed velocity-based navigation system speciﬁcally
+designed for GPS-denied environments.
+• Design of an obstacle avoidance system that continuously
+monitors the availability of free space along the drone’s
+path to its destination.
+• In addition, integrated a probability module that assesses
+the likelihood of the detected objects. This pipeline also
+incorporates a free space assessment module.
+The remainder of this paper is structured as follows:
+In Section II, an exploration of related works pertaining to
+vision-based obstacle avoidance for Unmanned Aerial Vehicles
+(UAVs) is presented. Section III provides an overview of the
+system, detailing the technique employed and describing the
+hardware setup. In Section IV, the methodology of integrat-
+ing the YOLO algorithm into the system is discussed. The
+subsequent section, Section V, delves into the analysis of
+experimental results. Finally, Section VI concludes the paper.
+This work is supported by DST National Mission Interdisciplinary Cyber-
+Physical Systems (NMICPS), Technology Innovation Hub on Autonomous
+Navigation and Data Acquisition Systems: TiHAN Foundations at Indian
+Institute of Technology (IIT) Hyderabad”.
+979-8-3503-5823-0/23/$31.00 ©2023 IEEE
+586
+2023 OITS International Conference on Information Technology (OCIT) | 979-8-3503-5823-0/23/$31.00 ©2023 IEEE | DOI: 10.1109/OCIT59427.2023.10431039
+21st OITS International Conference on Information Technology (OCIT 2023)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:25 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+Fig. 1: System overview
+II. RELATED WORK
+Challenges persist in aerial autonomous navigation regard-
+ing precision, sensor errors, noise, and wind-induced data vari-
+ation. Goals include enhancing stability, reliability, simplicity,
+and cost-effectiveness. Extensive research has been conducted
+on vision-based autonomous navigation for Unmanned Aerial
+Vehicles (UAVs) in unknown environments, as demonstrated
+by various authors [18]–[22]. Early approaches utilized re-
+active heuristic collision avoidance techniques and extracted
+obstacle representations from camera images for autonomous
+navigation [18], [19]. One author even employed a cylinder
+concept for obstacle detection and reactive avoidance using
+a monocular camera [19]. However, these methods often
+required computationally intensive image processing on off-
+board ground computers. Alternatively, some methods relied
+on Simultaneous Localization and Mapping (SLAM) solutions,
+where UAVs create maps of their environments and make
+decisions based on them [21], [22]. [23] proposed a patch-
+based method for accurate obstacle detection. Zhihai et al.
+[11] discussed video-based motion ﬁeld estimation for UAV
+navigation and obstacle avoidance. Du et al. [12] explored the
+use of reinforcement learning for global path planning and ob-
+stacle avoidance, considering its complexity and computational
+cost [13], [14]. J. Hu [15] presented a technique for obstacle
+avoidance using a stereo vision camera to measure depth,
+showing the accuracy, reliability, and localization capabilities
+of UAVs. When a camera is unable to detect obstacles,
+ultrasonic sensors are used as an alternative L. Keyu, [16].
+Obstacle avoidance algorithms such as A*, APF (Artiﬁcial
+Potential Field Method), and RRT (Rapid Extended Random
+Tree Method) are widely used [17]. Reinforcement learning is
+also employed for path planning and collision avoidance. In
+recent efforts, a 3D occupancy global map of the environment
+was constructed from image data and used in conjunction with
+the VFH+ (Vector Field Histogram) algorithm for collision
+avoidance planning in UAVs. This paper introduces a new
+vision-based obstacle avoidance method for UAVs in GPS-
+denied environments. The system combines YOLO architec-
+ture with stereo vision cameras, trained on the COCO dataset,
+to detect objects and navigate safely around obstacles, enabling
+obstacle-free drone paths.
+III. SYSTEM OVERVIEW
+Figure 1 illustrates the system conﬁguration for vision-
+based obstacle avoidance in drones. The drone is equipped
+with an external camera facing forward to capture a frontal
+view. The ﬂight controller used in the system is the Pixhawk
+Cube. Additionally, a Raspberry Pi 4B with 4 GB RAM, 32
+GB memory card, 40-pin GPIO, a powerful quad-core with
+processing speed of 1.2 GHz, and a 64-bit CPU is employed as
+a secondary onboard controller. The Raspberry Pi is connected
+to the ﬂight controller, power is supplied by a universal battery
+eliminator circuit (UBEC) connected to the same 5000 mAh,
+12 V, 30 Amp lithium-polymer (LiPO) battery that powers
+the ﬂight controller via a Pixhawk cube power module 2.
+Serial communication is employed to send control commands
+between the Raspberry Pi and Pixhawk telemetry. The camera
+data is transmitted to the Raspberry Pi as a range value, which
+is then relayed to the Pixhawk system for effective collision
+avoidance. In this range, a threshold sensor value of 4m is
+set, and if the drone detects an obstacle approaching within
+this threshold, it immediately initiates appropriate avoidance
+measures to ensure a safe ﬂight. The system incorporates an
+in-house-built drone with a payload capacity of 1kg. It has
+an endurance of 10-15 minutes, making it ideal for various
+applications. This cost-effective and reliable drone system is
+designed to meet the demands of diverse tasks with efﬁciency
+and effectiveness.
+IV. METHODOLOGY
+This section discusses obstacle avoidance and detection,
+ensuring safe navigation from the source to the destination,
+as elaborated below.
+A. Obstacle avoidance
+Figure 3 illustrates our vision-based obstacle avoidance and
+navigation system. The system commences with a stereo-
+vision camera, capturing a real-time video stream serving as
+input for our Raspberry Pi processing unit. This video stream
+contains visual data essential for obstacle detection, avoidance,
+and navigation instructions for the drone’s ﬂight controller.
+Obstacle avoidance is a two-step process: initially, the system
+detects nearby obstacles and reduces the drone’s speed to
+prevent collisions. We employ the YOLO (You Only Look
+Once) object detection algorithm due to its swift and precise
+real-time object detection capability.
+YOLO partitions an input image into N cells of equal
+dimensions, as shown in Figure 4. Each cell is responsible for
+detecting bounding box coordinates relative to its coordinates
+and predicting the object label and the probability of the object
+587
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:25 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+Fig. 2: System Setup
+Fig. 3: System Setup
+Fig. 4: Dividing image into segments.
+being present. This approach can sometimes generate duplicate
+bounding boxes. To address this issue, YOLO employs Non-
+Maximum Suppression (NMS). NMS includes selecting the
+bounding box with the highest probability score as the starting
+point and then suppressing other bounding boxes with a lower
+Intersection over Union (IoU) with the current high probability
+bounding box. This process is repeated until a ﬁnal set of non-
+overlapping bounding boxes is obtained, representing the most
+conﬁdent and accurate detections for the objects in the image.
+Since YOLO is designed to work on images and our input
+signal is a video, we apply YOLO frame by frame, enabling
+real-time object detection. By analyzing the output of YOLO,
+we can determine the presence of obstacles in the scene.
+Additionally, leveraging the disparity information from the
+stereo vision camera, we can compute the depth or distance
+of the detected obstacles. If the calculated distance is within
+2 meters, the system triggers obstacle avoidance by reducing
+the drone’s speed to avoid collision with the obstacle.
+Algorithm 1
+Input:
+V(V elocity)
+A(Altitude),
+D(Distance)
+IMU(Attitude), C(Cameradata).
+Output: R(Roll), Y(Y aw), A(Altitude), P(Object detection
+as Person)
+//Initialization
+if Distance ≤2m then
+Check the free space
+else if Persondetected ≤2m then
+Avoid the obstacle
+else if Drone isfreespace then
+Until getting the free space within the 2m range
+else
+Then drone moves towards the destination
+end if
+B. Navigation
+The system’s navigation aspect involves reducing the speed
+and adjusting the drone’s direction to reach its ﬁnal destination
+safely. The drone is operated in altitude hold mode and is
+navigated using velocity mode estimated from the IMU sensor,
+which is required to guide the drone for navigation. The pre-
+dictions from the YOLO model can be used to determine free
+space for navigation. The model has a prediction parameter
+that assigns the probability of the class object being present.
+When an object is detected, the cells surrounding the object are
+examined to identify available space for the drone to navigate.
+When an obstacle is detected within 2 meters, the system
+prompts a slight change in the drone’s direction, typically to
+the right. Following this direction adjustment, the obstacle
+avoidance algorithm is executed again to evaluate the presence
+of a clear path. This iterative process of obstacle avoidance
+and direction adjustment continues until the drone successfully
+reaches its intended destination. The steps for this approach
+are illustrated in algorithm 1 Overall, our vision-based obstacle
+avoidance and navigation system integrates the capabilities of
+YOLO for real-time object detection, disparity information for
+obstacle distance estimation, and adaptive navigation strategies
+to ensure safe and efﬁcient drone operation in challenging
+environments.
+V. EXPERIMENTAL RESULTS AND ANALYSIS
+The experimental evaluation was conducted to rigorously
+test the performance of our obstacle detection and avoidance
+588
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:25 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+system, particularly in scenarios involving human-sized obsta-
+cles represented by a human mannequin. This evaluation took
+place at the TiHAN Testbed, Indian Institute of Technology
+Hyderabad (IITH) in Hyderabad, India. By using a human
+mannequin obstacle. Figure 5 illustrates the external view of
+the drone while moving from the source to its destination while
+avoiding obstacles. The leftmost image shows the drone during
+takeoff, while the center and right images demonstrate suc-
+cessful obstacle avoidance as the drone navigates rightwards
+to reach its destination. Raspberry Pi was utilized to send
+commands for controlling the drone during the experiment.
+The distance to the object was calculated using Equation (1),
+which takes into account the baseline distance (B) between the
+camera lenses, focal length (f) of the camera lens, measured
+disparity (d) between the corresponding points in the stereo
+images, width (P) of the image sensor, and disparity (p)
+between the object and the image center.
+D = (B ∗f)/(d + (P/2 −p))
+(1)
+where D is the distance to the object in meters, B is the
+baseline distance between the two camera lenses in meters,
+f is the focal length of the camera lens in pixels, and d
+is the measured disparity (horizontal difference) between the
+corresponding points in the left and right stereo images in
+pixels, P is the width of the image sensor in pixels, p is the
+disparity between the object and the image center in pixels
+Figure 6 depicts the internal view of the drone’s navigation
+from the source to the destination while avoiding obstacles
+as observed through its stereo-vision camera mounted on the
+drone. After running YOLO object detection algorithm on each
+frame of the video (as highlighted earlier), the obstacle is
+detected at various ranges, including 4.5m, 4.33m, and 2.9m
+(refer ﬁg 6(a), 6(b) an 6(c) respectively). The drone continues
+its movement towards the destination until an obstacle is
+detected within a 2.5m range (refer ﬁg 6(d)). At that instant,
+the drone performs a 1m roll adjustment to the right.
+Subsequently, it continuously checks for free space within
+the 2.5m range. If another obstacle is detected within that
+range, the drone adjusts its roll either to the right or left,
+based on the availability of more free space in the grid with
+the center as the reference point. The drone performs an
+additional 1-meter roll adjustment to the right (refer ﬁg 6(e)).
+It then proceeds by moving forward 1 meter, rolling left by 2
+meters, and successfully reaches its goal, where it lands safely
+(refer ﬁg 6(f)). Table I presents the system resource utiliza-
+tion during the drone’s navigation and avoidance algorithm
+execution. Despite the limited computational resources, the
+algorithms showcase effective performance. It is worth noting
+that the model has been optimized to operate efﬁciently on the
+resource-constrained Raspberry Pi computing platform. The
+camera speciﬁcations of our system can be found in Table II.
+Figure 7 shows the velocity graph of the drone from its starting
+point to its destination point. This information is derived from
+the drone’s . X,Y,Z label shows the velocity along X, Y and Z
+dircection respectively. X setpoint, Y setpoint and Z setpoint
+are the desired velocity along the same axes. As can be seen
+from the ﬁgure, there is a slight deviation between the actual
+and the desired route taken.
+TABLE I: System resource utilization
+Resource Utilization
+In Percentage
+CPU
+93%
+Number of cores utilise
+Four Cores with 39 -43%
+Numbers FPS used
+15-20%
+Physical Memory used
+485MB
+Load average time
+0.83 0.72 0.41
+TABLE II: Camera Speciﬁcation
+Sensor0
+Color Image
+stereo
+DFOV / HFOV / VFOV
+81° / 69° / 54°%
+86° / 73° / 58°
+Resolution
+13MP (4208x3120)
+480P (640x480)
+Focus
+AF: 8cm OR FF: 50cm
+Fixed-Focus 6.5cm
+Max Frame rate
+35 FPS
+120FPS
+F-number
+2.2 ± 5%
+2.0 ± 5%
+Lens size
+1/3.1 inch
+1/7 inch
+Effective Focal Length
+3.37mm 1.3mm
+Pixel size
+1.12μm x 1.12μm
+3μm x 3μm
+Figure 7(a) provides a visualization of the drone’s velocity
+graph during its journey from the starting point to the destina-
+tion. The graph presents the drone’s velocity along the X, Y,
+and Z axes, which are labelled as X, Y, and Z, respectively.
+The X setpoint, Y setpoint, and Z setpoint correspond to the
+desired velocities along their respective axes.
+As apparent from the ﬁgure, a slight deviation is present
+between the actual trajectory followed by the drone and the
+intended path indicated by the setpoints. This deviation may
+stem from several factors, including external disturbances,
+variations in wind conditions, control system dynamics, or
+limitations in the accuracy of the drone’s sensors. These factors
+can contribute to minor discrepancies in the drone’s velocity
+and, consequently, its trajectory. It is crucial to analyze and
+understand such deviations to enhance the drone’s navigation
+accuracy. By continuously reﬁning the control algorithms,
+accounting for external inﬂuences, and ﬁne-tuning system
+parameters, it is possible to minimize these deviations and
+improve the alignment between the drone’s actual path and
+the desired route indicated by the setpoints. In Figure 7(b), the
+drone’s altitude proﬁle is shown as it moves from its starting
+point to the destination. The drone maintains a constant
+altitude of 2m throughout the ﬂight, except during takeoff
+and landing. Figure 7(c) displays the drone’s roll graph in
+green, along with the altitude graph in red. During takeoff,
+the drone has a roll angle of zero and ascends vertically. As
+the drone continues its journey, small left and right shifts
+can be seen in the roll graph due to the tuning PID factor.
+The roll graph shows more signiﬁcant deviations when the
+navigation algorithm instructs the drone to make turns. In
+this experiment, most turns were towards the right to avoid
+the obstacle positioned on the left. These turns cause the roll
+angle to deviate as the drone adjusts its orientation to navigate
+around obstacles and follow the designated path. We tested
+589
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:25 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+(a) The drone ascends to 2m altitude
+(b) The drone detects obstacle at 2.5m and avoids it
+by right roll movement of 1m
+(c) The drone navigates through free space and
+reaches its destination
+Fig. 5: Drone navigation and obstacle avoidance (external view)
+(a) Initial detection: Object at 4.5m.
+(b) Updated distance: Object at 4.3m
+(c) Drone approached a Object at 2.9m, persistently
+tracked
+(d) Drone repositioning: Object at 2.49m, shifted
+right by 1m.
+(e) Further adjustment: Object at 2.08m, additional
+1m roll adjustment right.
+(f) Final movement: Forward 1m, roll left 2m,
+successful landing.
+Fig. 6: Drone navigation and obstacle avoidance (internal view using stereo vision camera)
+our algorithm by placing an obstacle at a known distance of
+5-10 meters and gradually reducing meters until it was below
+2.5 meters. We conducted 15 experiments for each distance
+interval, and our algorithm consistently achieved less than
+1% error. In this paper, we’ve developed a ﬂight system for
+constant altitude ﬂight and collision avoidance using a two-
+dimensional stereo camera. Which improved the ﬁeld of view
+by not accumulating data over multiple frames, enabling the
+detection of different parts of the environment.
+590
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:25 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+(a) Velocity
+(b) Altitude
+(c) Roll
+Fig. 7: The velocity roll and altitude graph
+VI. CONCLUSION
+This paper introduces a UAV obstacle avoidance system
+utilizing a stereo vision camera with YOLO module, and depth
+information for navigation. Design an obstacle avoidance
+system that provides continuous monitoring of available free
+space along the drone’s path toward its destination. The system
+effectively navigates the UAV by inspecting the space around
+objects and utilizing the YOLO model for object presence
+prediction and bounding box estimation. The proposed sys-
+tem performs well in low-resource settings, leveraging the
+Raspberry Pi compute unit and OAK-D Lite stereo camera,
+with a detection rate of 90% and a relative speed of 2 m/s
+for the drone and obstacle avoidance speed of 1 m/s. Future
+research in this area will focus on 3D lidar-based autonomous
+navigation. This will further enhance the capabilities of UAVs
+for safe and efﬁcient navigation in complex and dynamic
+environments.
+REFERENCES
+[1] Coifman, B & McCord, Mark & Mishalani, R & Redmill, K. (2004).
+Surface Transportation Surveillance from Unmanned Aerial Vehicles.
+[2] S. J. Chung, A. A. Paranjape, P. Dames, S. Shen, and V. Kumar, “A
+survey on aerial swarm robotics,” IEEE Transactions on Robotics, vol.
+34, pp. 837–855, 2018.
+[3] H. Shakhatreh, A. H. Sawalmeh, A. Al-Fuqaha, Z. Dou, E. Almaita,
+I. Khalil, N. S. Othman, A. Khreishah, and M. Guizani, “Unmanned
+aerial vehicles (uavs): A survey on civil applications and key research
+challenges,” IEEE Access, vol. 7, pp. 48 572–48 634, 2019.
+[4] N. Gyagenda, J. V. Hatilima, H. Roth, and V. Zhmud, “A review of
+gnss-independent uav navigation techniques,” Robotics and Autonomous
+Systems, p. 104069, 2022
+[5] M. Kulbacki et al., ”Survey of Drones for Agriculture Automation
+from Planting to Harvest,” 2018 IEEE 22nd International Conference
+on Intelligent Engineering Systems (INES), 2018, pp. 000353-000358,
+doi: 10.1109/INES.2018.8523943.
+[6] Abderahman Rejeb, Alireza Abdollahi, Karim Rejeb, Horst Treiblmaier,
+”Drones in agriculture: A review and bibliometric analysis”, Computers
+and Electronics in Agriculture, Volume 198, 2022, 107017, ISSN 0168-
+1699.
+[7] J. Chen, Y. Zhou, Q. Lv, K. K. Deveerasetty and H. Ugochi
+Dike, ”A Review of Autonomous Obstacle Avoidance Technol-
+ogy for Multi-rotor UAVs,” 2018 IEEE International Conference
+on Information and Automation (ICIA), 2018, pp. 244-249, doi:
+10.1109/ICInfA.2018.8812473.
+[8] R. PS and M. L. Jeyan, “Mini unmanned aerial systems (uav)-a review
+of the parameters for classiﬁcation of a mini uav.” International Journal
+of Aviation, Aeronautics, and Aerospace, vol. 7, no. 3, p. 5, 2020.
+[9] Y. Song, M. Steinweg, E. Kaufmann, and D. Scaramuzza, “Autonomous
+drone racing with deep reinforcement learning,” in 2021 IEEE/RSJ
+International Conference on Intelligent Robots and Systems (IROS).
+IEEE, 2021, pp. 1205–1212.
+[10] Redmon , Joseph & Divvala, Santosh & Girshick, Ross & Farhadi, Ali.
+”You Only Look Once: Uniﬁed, Real-Time Object Detection”. 779-788.
+10.1109/CVPR.2016.91 2016.
+[11] Zhihai He, R. V. Iyer and P. R. Chandler, ”Vision-based UAV ﬂight
+control and obstacle avoidance,” 2006 American Control Conference,
+2006, pp. 5 pp.-, doi: 10.1109/ACC.2006.1656540.
+[12] G. -T. Tu and J. -G. Juang, ”Path Planning and Obstacle Avoidance
+Based on Reinforcement Learning for UAV Application,” 2021 Interna-
+tional Conference on System Science and Engineering (ICSSE), 2021,
+pp. 352-355, doi: 10.1109/ICSSE52999.2021.9537945.
+[13] H.
+Du,
+Z.
+Wang,
+Z.
+Zhang
+and
+Q.
+Li,
+”Hierarchical
+Path
+Planning
+and
+Obstacle
+Avoidance
+Control
+for
+Unmanned
+Sur-
+face Vehicle,”
+2021 4th International Conference
+on
+Mechatron
+ics, Robotics and Automation (ICMRA), 2021, pp. 134-138, doi:
+10.1109/ICMRA53481.2021.9675500
+[14] Nan, ”Research on Robot Obstacle Avoidance System Based on Com-
+puter Path Planning,” 2021 IEEE International Conference on Power
+Electronics, Computer Applications (ICPECA), 2021, pp. 909-913, doi:
+10.1109/ICPECA51329.2021.9362699.
+[15] J. Hu, Y. Niu and Z. Wang, ”Obstacle avoidance methods for rotor UAVs
+using RealSense camera,” 2017 Chinese Automation Congress (CAC),
+2017, pp. 7151-7155, doi: 10.1109/CAC.2017.8244068
+[16] L. Keyu, L. Yonggen and Z. Yanchi, ”Dynamic obstacle avoidance
+path planning of UAV Based on improved APF,” 2020 5th International
+Conference on Communication, Image and Signal Processing (CCISP),
+2020, pp. 159-163, doi: 10.1109/CCISP51026.2020.9273463.
+[17] G. -T. Tu and J. -G. Juang, ”Path Planning and Obstacle Avoidance
+Based on Reinforcement Learning for UAV Application,” 2021 Interna-
+tional Conference on System Science and Engineering (ICSSE), 2021,
+pp. 352-355, doi: 10.1109/ICSSE52999.2021.9537945
+[18] S. Tang and V. Kumar. Autonomous Flight. Annual Review of Control,
+Robotics, and Autonomous Systems 1, (2018) 29–52.
+[19] M. Bloesch, S. Weiss, D. Scaramuzza, and R. Siegwart. Vision based
+MAV navigation in unknown and unstructured environments. 2010
+21–28.
+[20] R. Nhair and T. Al-Assadi. Vision-Based Obstacle Avoidance for Small
+Drone using Monocular Camera. IOP Conference Series: Materials
+Science and Engineering 928, (2020) 032,048.
+[21] O. Esraﬁlian and H. D. Taghirad. Autonomous ﬂight and obstacle
+avoidance of a quadrotor by monocular SLAM. In 2016 4th International
+Conference on Robotics and Mechatronics (ICROM). 2016 240–245.
+[22] B. Yathirajam. Obstacle Avoidance for Unmanned Air Vehicles Using
+Monocular SLAM with Chain Based Path Planning in GPS Denied
+Environments. 2017.
+[23] S. NT and P. Rajalakshmi, ”Obstacle Detection and Collision Avoidance
+on UAV using Rangeﬁnder Sensor with Kalman Filter Technique,” 2022
+IEEE Global Conference on Computing, Power and Communication
+Technologies (GlobConPT), New Delhi, India, 2022, pp. 1-6, doi:
+10.1109/GlobConPT57482.2022.9938294.
+591
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:35:25 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

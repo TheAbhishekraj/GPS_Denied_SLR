@@ -1,0 +1,1116 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1116.pdf
+sha256: 3F0E4AD005037F58548BF3E80C6E5EAE98C10958182E6147DC53C696CBA315BE
+library: pymupdf (fitz) v1.28.2
+pages: 23
+=== BEGIN ===
+[p.1]
+Academic Editor: Fei Liu
+Received: 27 January 2026
+Revised: 13 March 2026
+Accepted: 13 March 2026
+Published: 15 March 2026
+Copyright: © 2026 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license.
+Article
+Development of a Visual SLAM-Based Autonomous UAV
+System for Greenhouse Plant Monitoring
+Jing-Heng Lin
+and Ta-Te Lin *
+Department of Biomechatronics Engineering, National Taiwan University, Taipei 10617, Taiwan;
+d11631001@ntu.edu.tw
+* Correspondence: m456@ntu.edu.tw; Tel.: +886-2-3366-5331
+Highlights
+What are the main findings?
+•
+A UAV navigation framework enables autonomous monitoring missions in GPS-
+denied commercial greenhouses.
+•
+A dual-link edge architecture offloads V-SLAM, while a side-view RGB stream sup-
+ports deep learning-based phenotyping via flower detection and tracking.
+What are the implications of the main findings?
+•
+The modular separation of navigation and sensing lowers onboard requirements and
+supports practical deployment with lightweight hardware.
+•
+Daily flower monitoring demonstrates a scalable pathway toward automated, data-
+driven greenhouse management and plant phenotyping.
+Abstract
+Autonomous monitoring is essential for precision agriculture in greenhouses, yet deploying
+unmanned aerial vehicles (UAVs) in confined, GPS-denied environments remains limited by
+payload, power, and cost constraints. This study developed and validated an autonomous
+UAV system for reliable, low-cost operation in such conditions. The proposed system
+employs a dual-link edge-computing architecture: a lightweight onboard controller handles
+flight control and sensor acquisition, while visual simultaneous localization and mapping
+(V-SLAM) is offloaded to an edge computer via the FPV video link. Phenotyping (flower
+detection and tracking/counting) is performed offline from the side-view RGB stream
+and does not participate in the flight control loop. Using muskmelon (Cucumis melo L.)
+flower development as a case study, the UAV autonomously executed daily missions
+for 27 days in a commercial greenhouse, performing flower detection and tracking to
+monitor phenological dynamics. Localization and control accuracy were evaluated against
+a validated UWB reference system, achieving 5.4~8.0 cm 2D RMSE for trajectory tracking
+and 12.7 cm translation RMSE for greenhouse mapping. This work demonstrates a practical
+architecture for autonomous monitoring in GPS-denied agricultural environments, with
+operational boundaries characterized through the sustained field deployment. The system’s
+design principles may extend to other indoor or communication-limited scenarios requiring
+lightweight, intelligent robotic operation.
+Keywords: autonomous navigation; edge computing; computer vision; GPS-denied
+environment; greenhouse; precision agriculture; plant phenotyping
+Drones 2026, 10, 205
+https://doi.org/10.3390/drones10030205
+[p.2]
+Drones 2026, 10, 205
+2 of 23
+1. Introduction
+Integrated sensing and control platforms support the development of data-driven
+greenhouse management. Internet of Things (IoT) sensors and mobile monitoring systems
+have emerged as crucial technologies for greenhouse data acquisition. Fixed IoT sensors
+can continuously monitor environmental parameters for plant management, while mobile
+platforms offer high-resolution sensing and real-time information for crop monitoring
+instead of fixed stations [1]. Within the greenhouse, automated guided vehicles (AGVs)
+have been developed and proven proficient in data collection, such as pepper fruit counting
+with three-dimensional scanning and machine vision-based leaf density estimation for
+spraying decisions in tomato production [2,3]. Autonomous unmanned aerial vehicles
+(UAVs) offer a complementary mobile platform that can address some of these ground-
+based limitations through three-dimensional mobility. A UAV system provides flexibility
+and lower costs for continuous spatial data collection; it is also a highly modular platform
+capable of performing various tasks, making it suitable for multiple imaging systems [4,5],
+such as multispectral imaging [6], RGB imaging [7], or thermal imaging [8]. The adoption
+of UAV technology in agriculture has expanded rapidly [9], with applications in green-
+houses including environmental monitoring, communication assessment, and pollination
+studies [10–13].
+The greenhouse environment presents various challenges for autonomous UAV op-
+eration beyond those encountered in other indoor settings. These include GPS-denied
+environments, restricted maneuverability and payload budgets in confined corridors, tem-
+poral scene changes driven by plant growth and variable illumination, and the need for
+perception outputs reliable enough to support agronomic decisions.
+Navigation in GPS-denied greenhouses is further complicated by the propagation
+environment.
+Dense vegetation with high water content affects RF signal propaga-
+tion while metallic structural elements and irrigation infrastructure introduce multipath
+reflections [14,15], limiting the reliability of RF-based positioning. Although greenhouse
+flight paths typically remain consistent and predictable, plant growth and changing plant
+morphology significantly change the visual landscape over time and variable lighting
+conditions further complicate vision-based navigation methods [16].
+Unlike ground-based platforms, UAVs require additional sensing and control mea-
+sures to maintain flight stability [17]. Sensor payloads impact flight endurance through
+added weight and increased onboard power consumption [18,19], while larger multirotor
+configurations that accommodate heavier computer hardware sacrifice maneuverability
+and increase system costs substantially [20]. Autonomous navigation and real-time per-
+ception demand significant onboard computational resources, creating tensions between
+processing requirements and the size, weight, and power constraints of practical aerial
+platforms [21]. For small to medium-scale greenhouse operations, cost-effectiveness repre-
+sents a critical threshold [22]. Beyond platform constraints, the monitoring system must
+ultimately produce phenotyping outputs reliable enough to inform agronomic decisions,
+even when perception is degraded by the environmental and computational limitations
+described above.
+In GPS-denied environments, validated navigation methods include motion-capture-
+based indoor positioning [23], ultra-wideband (UWB) positioning [24], and self-sensing vi-
+sual simultaneous localization and mapping (SLAM) techniques [25]. While infrastructure-
+based positioning systems (e.g., motion capture, UWB) can provide precise localization,
+they demand extensive installation and calibration, which limits deployment flexibil-
+ity, especially for small to medium-scale operations. Onboard sensing approaches offer
+infrastructure-free alternatives, though with distinct trade-offs: LiDAR-based methods
+provide robust mapping but impose substantial payload and cost burdens [26], while stereo
+https://doi.org/10.3390/drones10030205
+[p.3]
+Drones 2026, 10, 205
+3 of 23
+and visual-inertial systems increase hardware integration complexity [27–29]. Among the
+remaining vision-based solutions, monocular SLAM presents a pragmatic balance in cost,
+size, and integration simplicity [30–32], though it lacks metric scale without supplementary
+sensors and remains sensitive to feature-poor or visually changing environments.
+Recent studies have explored V-SLAM on agricultural platforms. Krul et al. [33]
+demonstrated UAV flight feasibility in a greenhouse but without autonomous navigation or
+multi-day deployment. Sukvichai et al. [34] applied ORB-SLAM for greenhouse mapping
+yet did not progress to autonomous flight. Islam et al. [35] developed a stereo SLAM
+system for agricultural navigation on a ground vehicle, avoiding the payload constraints
+inherent to aerial platforms. No prior study has combined autonomous V-SLAM-based
+UAV navigation with sustained multi-day deployment and integrated phenotyping under
+the compute and payload constraints of a small aerial platform. Given these trade-offs,
+monocular V-SLAM was selected as the core navigation strategy in this study.
+Using muskmelon flower cultivation as a case study, the system executed daily au-
+tonomous missions over 27 consecutive days in a commercial greenhouse, characterizing
+both navigation reliability and phenotyping feasibility under real growing conditions.
+Navigation accuracy was evaluated against an independent UWB reference with quantified
+measurement uncertainty. The decoupled architecture serves two purposes: autonomous
+navigation under stringent compute constraints, and consistent imagery acquisition for
+longitudinal phenotyping. The main contributions of this work are: (1) a constraint-
+driven, modular architecture for greenhouse UAV monitoring, where payload, compute,
+and cost constraints shaped each design choice, including dual-camera decoupling, edge-
+offloaded V-SLAM, and offline phenotyping; (2) operational characterization of a green-
+house UAV through a 27-day field campaign, covering navigation performance across
+trajectory types, sustained daily operability, and sensitivity to environmental variation; and
+(3) the proof-of-concept flower counting pipeline supports temporal trend recovery despite
+systematic undercounting.
+This paper first describes the UAV system architecture, including hardware integration,
+sensor configurations, and computational frameworks for real-time processing. It then
+details the navigation and localization strategies, with a focus on Visual SLAM-based
+pose estimation and flight control mechanisms. The experimental setup is introduced
+next, outlining the greenhouse environment, data collection procedures, and validation
+methods. This is followed by an analysis of UAV navigation performance and flower
+detection experiments, evaluating system accuracy, tracking reliability, and growth pattern
+analysis. The paper concludes with a discussion of operational boundaries, design trade-
+offs, limitations, and deployment feasibility.
+2. Materials and Methods
+2.1. UAV System Architecture and Design
+This study presents an integrated methodology for autonomous greenhouse moni-
+toring using a UAV platform. Designed to operate effectively in GPS-denied greenhouse
+environments, the platform was tested at the National Taiwan University Experimental
+Farm in a muskmelon greenhouse, as shown in Figure 1a. The system architecture con-
+sists of three primary components: a field-deployed UAV, online processing, and offline
+analytics. The UAV platform integrates multiple sensing modalities, comprising two RGB
+cameras, an optical flow sensor, and a rangefinder. Its compact dimensions (34 cm × 31 cm
+× 26 cm) and total mass of 1210 g are optimized for navigation in confined greenhouse
+spaces. The UAV is powered by a 2200 mAh lithium-ion battery, as illustrated in Figure 1b,
+with the control and processing units detailed in Figure 1c.
+https://doi.org/10.3390/drones10030205
+[p.4]
+Drones 2026, 10, 205
+4 of 23
+Figure 1. The overview of (a) the environment of the muskmelon greenhouse, (b) the UAV platform
+hardware design and key components, and (c) the architecture of the UAV monitoring system.
+The UAV was built using off-the-shelf components and was self-assembled, allow-
+ing for a cost-effective and customizable platform tailored for greenhouse operations.
+The online processing utilizes a ROS 2-based distributed control system to perform key
+autonomous functions such as mapping, localization, and mission planning alongside
+modules for data caching and preprocessing. The offline component focuses on advanced
+analytics, including data preprocessing, flower detection, and counting algorithms, leverag-
+ing a deep-learning-based YOLO object detector and tracking systems. This comprehensive
+approach is aimed at testing and validating the system’s feasibility and performance in
+autonomous UAV guidance for precision plant monitoring, with the muskmelon flower
+emergence detection experiment detailed in a later section.
+The UAV control architecture employs a distributed computing design with explicit
+execution boundaries between onboard control, ground-station edge computing, and post-
+mission analytics. Figure 2 depicts the real-time data-flow topology across these execution
+domains; Table 1 maps each functional module to its execution platform, control-loop
+role, and interface. At its core, a 2 GB RAM version of the Raspberry Pi CM4 (Arm
+Cortex-A72 SoC) compute module acts as the onboard companion computer. It functions
+as a ROS 2 and MAVROS bridge, handling inter-module messaging, link management,
+side-camera control, and outer-loop mission-execution PID control through standardized
+interfaces. The CM4 was selected for its verified compatibility with the Ubuntu 22.04
+LTS-based ROS 2 Humble software stack used in this project. Computationally intensive
+tasks, such as V-SLAM pose estimation and mission planning algorithms, are offloaded to
+a Jetson Orin Nano (Arm Cortex-A78AE CPU) deployed at the ground station as the edge
+computer. This selection reflects a cost-performance compromise relative to higher-power
+alternatives for this deployment scale. Visual data acquisition is handled by the front-facing
+Walksnail Avatar HD Pro FPV camera (8 MP, 160◦FOV, F1.6 aperture, and 1080 p 120 fps
+compatibility). The system prioritizes low-latency transmission at 22 ms over resolution to
+maintain stable visual feedback without overloading the main communication bandwidth.
+https://doi.org/10.3390/drones10030205
+[p.5]
+Drones 2026, 10, 205
+5 of 23
+Figure 2. System architecture illustrating the interaction between control components and data
+collection modules for UAV operations.
+Table 1. Module-to-hardware mapping of major functions in the UAV monitoring architecture.
+Functional Module
+Execution Platform
+Loop Ownership
+Interface
+V-SLAM pose estimation
+Jetson Orin Nano
+Global
+localization
+ROS 2 DDS
+Mission planning and
+setpoint publishing
+Jetson Orin Nano
+Outer-loop command
+generation
+ROS 2 DDS
+Mission execution PID and
+ROS2/MAVROS bridge
+RPi CM4 companion
+computer
+Outer-loop mission
+execution
+ROS 2 DDS + MAVLink
+Onboard EKF
+state estimation
+PX4 flight controller
+State estimation bridge
+Optical flow + ToF + IMU
+fusion
+Inner-loop flight control
+(velocity/attitude/rate + mixer)
+PX4 flight controller
+Inner-loop
+stabilization and
+actuation
+PX4 internal
+control path
+Side 4K capture control and
+local recording
+Side-mounted 4K action
+camera
+Phenotyping data
+acquisition
+Local SD card
+Offline flower
+detection/tracking/counting
+Offline pipeline
+Offline
+phenotyping
+Recorded side-camera
+footage
+The flight control system is powered by a Pixhawk 6X featuring an Arm Cortex-M7
+core (480 MHz, 2 MB flash, 1 MB RAM). It integrates additional sensor modules, including
+a combination module from ARK Flow, with a PAW3903 optical flow sensor capable of
+operating under 7.4 rad/s, and an AFBR-S50LV85D ToF rangefinder with a distance range
+of up to 30 m and 1% error. The PX4 flight controller fuses these sensor inputs with IMU
+data for onboard extended Kalman filter (EKF) state estimation, and handles high-rate
+inner-loop stabilization.
+To minimize interference and bandwidth contention, three communication channels
+separate data traffic by function: a 2.4 GHz Wi-Fi LAN for ROS 2 DDS transport, a 5.8 GHz
+link for FPV video transmission, and a 915 MHz telemetry channel for dedicated flight
+monitoring. A ground station laptop is used solely for mission monitoring and data logging
+(Figure 2).
+The platform integrates two independent camera systems to decouple navigation
+and phenotyping tasks. A front-facing Walksnail Avatar HD Pro FPV camera (8 MP, 160◦
+FOV, F1.6 aperture) provides real-time imagery for V-SLAM localization. A side-mounted
+4K action camera is rigidly positioned approximately perpendicular to the flight axis to
+https://doi.org/10.3390/drones10030205
+[p.6]
+Drones 2026, 10, 205
+6 of 23
+capture plant imagery during rack-following segments. The side camera is controlled
+through the CM4, and footage is stored locally on the camera SD card. Flower detection
+and counting are performed offline after each mission and do not participate in the flight
+control loop. This decoupled architecture allows latency-sensitive navigation and non-real-
+time phenotyping to proceed without competing for the same runtime path. All hardware
+components are commercially available off-the-shelf, with a core navigation platform cost
+of approximately $1800 USD.
+2.2. Localization and Navigation Systems of the UAV
+2.2.1. Navigation Control Architecture
+The design of control methods extends the concept of cascaded control architecture
+from the PX4 flight controller design, incorporating a slower loop for global positioning, as
+illustrated in Figure 3. The UAV relies on two key estimators: (1) an off-board estimator
+to provide global and local pose information and (2) an onboard EKF estimator that fuses
+measurements from the flight controller. By splitting estimation into these separate modules,
+the system mitigates the risk of single-point failures and reduces the computational load
+on any one processor. The control architecture uses the following symbols and setpoints:
+Psp: Position setpoint
+ xsp, ysp, zsp
+
+.
+ψsp: Yaw (heading) setpoint.
+Vsp: Velocity setpoint, generated by the position loop.
+ωsp: Yaw rate setpoint, also generated by the position loop.
+Asp: Acceleration setpoint, produced by the velocity controller.
+qsp: Desired attitude (roll, pitch, yaw) sent from the acceleration-yaw block.
+Ωsp: Body-rate setpoint (p, q, r), computed by the angle controller.
+δAsp, δEsp, δRsp, δTsp: Control signals for roll, pitch, yaw, and thrust, passed to the mixer.
+Tsp: Final thrust command to the motors.
+Figure 3. Control architecture with estimation processes and cascaded control loops for UAV navigation.
+The system aims to maintain low positioning errors at operating speeds up to 0.5 m/s
+for monitoring tasks, with a maximum speed of 1.0 m/s to handle potential disturbances
+or unexpected velocity excursions. According to the discrete-time position-control loop
+guidelines [36], the design frequency fs must satisfy the condition:
+fs = 1
+ts
+≥
+Vmax
+eposition,max
+(1)
+where Vmax is the target speed, and eposition,max is the allowance error. In the greenhouse
+scenario, a drift below 0.1 m at 1 m/s requires a sampling period of no more than 0.1 s.
+https://doi.org/10.3390/drones10030205
+[p.7]
+Drones 2026, 10, 205
+7 of 23
+Therefore, the outer position-control loop operates at 10 Hz, while the PX4 system handles
+velocity control and inner loops at higher frequencies to maintain stable UAV dynamics.
+2.2.2. Vision-Based Pose Estimator
+The pose estimation system comprises two components: onboard localization, which
+fuses data from the rangefinder and optical flow for flight control, and the Visual SLAM
+framework, which serves as the primary source for global localization, mission guidance,
+and greenhouse map construction.
+An optical flow sensor is used for onboard localization based on the brightness con-
+stancy assumption, which states that a pixel’s intensity remains constant over time. How-
+ever, airflow disturbances can affect barometer readings in indoor environments, making
+precise altitude estimation challenging. To address this, a ToF range finder is integrated for
+height estimation. The sensor fusion process utilizes an extended Kalman filter on the flight
+controller, combined with the PX4 drone pose estimation module. This onboard localization
+system is integrated with the fast control loop to improve real-time navigation accuracy.
+For global positioning, the system implements Visual SLAM through an OpenVS-
+LAM architecture, selected for its highly modular framework and compatibility with
+mobile devices compared to ORB-SLAM2 and ORB-SLAM3 [37].
+The OpenVSLAM
+architecture includes three distinct components: tracking, map-building, and global
+optimization modules.
+Visual data is acquired using a wide-angle First Person View (FPV) camera operating
+at 1080 p and 60 Hz, received with the Avatar FPV VRX, and transmitted to the edge com-
+puting unit via an HDMI capture card. The images are rescaled to 720 p resolution, and the
+frame rate is resampled to 15 fps, utilizing a pinhole camera model with integrated OpenCV
+distortion correction algorithms for real-time operation through a customized ROS 2 node.
+For the SLAM framework, the tracking system detects and matches keypoint features using
+the FAST (Features from Accelerated Segment Test) corner detection method, with an initial
+threshold of 20 and a minimum threshold of 7 to ensure robust feature detection under
+greenhouse lighting conditions. The companion computer and the edge computing unit
+are connected through ROS 2 under the Eclipse Cyclone DDS (Data Distribution Service)
+middleware, allowing the position controller to process the onboard localization and global
+localization in real time. Through monitoring, the location is updated every 126 ms. For
+reproducibility, V-SLAM pose estimates are computed in the camera optical frame by the
+edge computer and published to the companion computer in the ROS 2 ENU convention;
+MAVROS converts these to the PX4 NED body-frame convention before forwarding to the
+flight controller. Time alignment between the companion computer and PX4 is maintained
+through the MAVLink TIMESYNC protocol. When off-board V-SLAM pose updates are
+unavailable, control falls back to onboard optical-flow-based position hold; if the off-board
+source timeout exceeds 2 s, the mission controller initiates autonomous landing.
+2.2.3. Path Planning and Tuning Strategies
+To rigorously evaluate the UAV’s global navigation performance in GPS-denied green-
+house environments, we adopt a global-only planning strategy without any onboard local
+planner. The overall framework is illustrated in Figure 4.
+https://doi.org/10.3390/drones10030205
+[p.8]
+Drones 2026, 10, 205
+8 of 23
+Figure 4. The navigation mission execution framework integrates user-designed paths, waypoint
+generation, pose estimation, and PID control.
+First, the user selects a small set of keypoints from the constructed greenhouse map. A
+cubic B-spline is then fitted through these keypoints and uniformly resamples the spline at
+an empirically tuned spacing parameter. The waypoint design is expressed as:
+W =
+
+P(s)| s ∈
+
+0, α, 2α, . . . ,
+S
+α
+
+α, S
+
+(2)
+where P(s) ∈R3 represents the user-provided trajectory, S the total length of the path,
+and α is the spacing parameter, the desired distance between consecutive waypoints. This
+parameter governs the spacing between waypoints, thereby allowing trajectory smoothness
+and control effort to be achieved. A higher density produces a finer-grained path for more
+precise following, whereas a lower density reduces computational load and can simplify the
+UAV’s motion planning. The desired flight path consists of waypoints, for each waypoint
+wi = (xi, yi, zi), a mission controller will handle the movement planning by
+dxy(p(t), wi) =
+q
+(x(t) −xi)2 + (y(t) −yi)2, dz(p(t), wi) = |z(t) −zi|
+(3)
+where the UAV position at time t is defined as p(t). In this work, the UAV obtains horizontal
+position estimates primarily from the Visual SLAM system, while the vertical position is
+derived from a fused measurement using PX4 altitude estimation. To account for different
+tolerances in horizontal and vertical directions, we let δxy be the horizontal threshold and
+δz be the vertical threshold. The UAV is considered to have reached waypoint i when
+dxy(p(t), wi) ≤δxy and dz(p(t), wi) ≤δz
+(4)
+Prior to conducting greenhouse plant monitoring experiments, the system was val-
+idated in both a controlled indoor environment and a simulated virtual setting. The
+development of an autonomous navigation system demands comprehensive parameter
+optimization across multiple subsystems. To achieve this, a simulation-based optimization
+framework was implemented before field testing. This framework integrated Visual SLAM-
+based localization with autonomous flight control, utilizing the Gazebo physics engine
+interfaced with PX4 firmware to create a controlled virtual environment for systematic
+parameter tuning, as shown in Figure 5.
+Parameter optimization was conducted through grid search in the simulated envi-
+ronment, allowing extensive parameter space exploration without operational risks. The
+optimized parameters underwent subsequent refinement in a controlled physical environ-
+ment to account for platform-specific dynamics and real-world conditions.
+https://doi.org/10.3390/drones10030205
+[p.9]
+Drones 2026, 10, 205
+9 of 23
+Figure 5. Parameter grid search in a simulated environment, followed by fine-tuning in a con-
+trolled setting.
+2.3. Validating UAV Performance Through Muskmelon Flower Detection
+2.3.1. Overview of the Image Processing Pipeline
+In this study, muskmelon (Cucumis melo L.) flower detection was selected as a case
+study to validate the UAV’s navigation performance and assess its feasibility in greenhouse
+plant monitoring applications. Muskmelon is an ideal candidate due to its economic
+importance, relatively short growth cycle, and sensitivity to environmental factors. It is
+frequently studied to optimize irrigation strategies, fertilizer management, and greenhouse
+environmental control [38,39]. Among the phenotypic traits influencing plant growth,
+flowers are recognized as key indicators [40]. Variations in the timing and number of flowers
+significantly affect pollination success [41]. However, monitoring floral development is
+labor-intensive, making UAVs a promising tool for automating this process.
+The overall experimental workflow is illustrated in Figure 6. Initially, raw footage
+from the UAV, combined with gyroscopic log data, is processed to correct lens distortion
+based on camera intrinsic parameters. Since frame quality significantly impacts detection
+and tracking performance, the footage utilizes gyroscopic stabilization processes from the
+Gyroflow library, which employs onboard sensor data to enhance video quality. Subse-
+quently, the stabilized frames are fed into a plant-tracking module designed to identify
+and track individual plants over consecutive image sequences. Each identified plant is
+assigned a unique ID, and frames corresponding to each plant are extracted as separate
+image sequences. In the next phase, flower tracking is performed on the plant-specific
+image sequences using YOLO detection and trajectory grouping methods. The results from
+this process are then associated with the respective plant IDs established in the previous
+tracking step. The subsequent sections describe each stage in detail.
+Figure 6. Overview of the image processing pipeline for muskmelon flower monitoring.
+2.3.2. Deep Learning Model for Muskmelon Flower Detection
+The muskmelon flower detection utilizes two specialized models: one for plant detec-
+tion and another for flower detection, both based on the YOLOv8 architecture but optimized
+with different configurations for their specific tasks. The plant detection model is built on
+https://doi.org/10.3390/drones10030205
+[p.10]
+Drones 2026, 10, 205
+10 of 23
+YOLOv8m and trained on a dataset of 1294 annotated greenhouse images collected through
+each growth phase without augmentation. It was trained using the standard YOLOv8
+architecture with the following configuration: an input resolution of 640 × 640 pixels, a
+batch size of 8, and an initial learning rate of 0.001. For flower detection, we employed
+a modified YOLOv8m architecture, incorporating P2 refinement to enhance small object
+detection capabilities, a method commonly applied in fruit detection [42,43]. This model
+was trained on 1815 images cropped from the plant detector. We annotated only the flowers
+with less than 50% occlusion, and the dataset was split into a 7:2:1 ratio for training, testing,
+and validation, with an input resolution of 800 × 800 pixels. Training parameters included
+a reduced initial learning rate of 0.0005 and a batch size of eight. Model selection was
+based on validation composite fitness rather than the final training epoch. Specifically,
+final deployed weights were selected at the epoch maximizing 0.9 × mAP@0.5:0.95 + 0.1
+× mAP@0.5 (epoch 91/150 for plant detection; epoch 173/200 for flower detection). A
+patience window of 100 epochs was configured but not triggered in either case.
+2.3.3. Determination of Flower Count from Footage
+The flower counting process consists of six sequential stages: (1) plant instance iden-
+tification and tracking, (2) flower tracking with low threshold parameters, (3) optical
+flow-based movement compensation, (4) trajectory analysis, (5) spatial clustering, and
+(6) flower count determination.
+Initially, individual plant instances are identified and tracked across frames using
+the default BOT-SORT configuration with the YOLOv8 detector. For each tracked plant, a
+corresponding mask is applied to extract the region of interest, and all frames in which that
+plant appears are saved in a dedicated folder to streamline subsequent processing. Next, in
+the flower detection and tracking process, YOLOv8 is employed with a deliberately low
+confidence threshold (τ = 0.2) to enhance sensitivity to small flower features; the BOT-SORT
+configuration is adjusted by implementing a detection confidence threshold of 0.3, an IoU
+matching threshold of 0.2, a minimum hit requirement of 2 frames for track confirmation,
+and a maximum track age of 15 frames. Although this approach ensures that most flowers
+are captured, it may introduce tracking instabilities and false positives. To mitigate these
+issues, a movement compensation mechanism is applied using the Lucas-Kanade optical
+flow method. Global frame motion is estimated across a grid of points defined as:
+G = {(x, y) | x ∈[step/2 : w : step], y ∈[step/2 : h : step]}
+(5)
+where w and h represent the frame width and height, respectively, and step controls the
+sampling interval. Let {v1(t), v2(t), . . . , vn(t)} be the optical flow vectors sampled at time
+t, the global frame movement M(t) is then computed as the median of these vectors:
+M(t) = median({v1(t), v2(t), . . . , vn(t)})
+(6)
+For each flower tracker Pk(t), the relative motion Fk(t) is obtained by subtracting the
+global movement M(t) from the optical flow of the tracker position:
+Fk(t) = optical_f low(Pk(t)) −M(t)
+(7)
+Since the camera is in motion and the plant is assumed to be relatively stationary, a
+depth compensation factor is introduced:
+Dk(t) =
+s
+Sr
+Sk(t) ×
+Vr
+|Fk(t)|
+(8)
+https://doi.org/10.3390/drones10030205
+[p.11]
+Drones 2026, 10, 205
+11 of 23
+where Sr is a reference pixel size, Vr is a reference velocity, and Sk(t) denotes the observed
+size of the flower region at time t. The factor Dk(t) compensates for differences in scale and
+perspective. Once the depth-compensated motions are computed, the trajectory of each
+flower tracker is obtained by integrating the adjusted velocities across time. Each trajectory
+is summarized by features such as the mean position. A spatial clustering procedure is
+then applied based on these features. Specifically, an initial set of potential cluster numbers
+{2, 3, . . . , K} is evaluated using k-means clustering. For each trial k, a silhouette score is
+computed to assess the quality of the clustering [44]. The optimal number of clusters, kopt,
+is selected to maximize S(k):
+kopt = argmaxS(k)
+(9)
+Using kopt, a final partition of all flower trackers into spatial clusters is obtained. The
+silhouette-based approach ensures that clusters are cohesive and well-separated, reducing
+the likelihood of over- or under-clustering. After identifying the optimal clusters for each
+plant instance, the number of flowers is estimated by counting these clusters. With this
+approach, we can use footage from the UAV to calculate and recognize the changes in the
+flowers of each plant, enabling continuous monitoring.
+2.4. Experimental Setup
+2.4.1. UAV Performance Evaluation—UWB Reference and Uncertainty Modeling
+The UAV navigation experiments and muskmelon flower counting experiments were
+conducted to evaluate the system’s localization accuracy, flight stability, and the effective-
+ness of automated flower detection and tracking in a greenhouse environment. Experiments
+were performed in a 7 m × 10 m greenhouse featuring three parallel racks, each contain-
+ing five muskmelon plants (Figure 7). Three positioning-related elements served distinct
+roles in these experiments: onboard V-SLAM provided operational navigation during
+autonomous flight (Section 2.2); marker boards on the greenhouse racks contributed ad-
+ditional visual features to the mapping environment; and an external UWB positioning
+system served as a metrologically independent evaluation reference.
+Figure 7. Muskmelon greenhouse layout and the mission paths for system evaluation. The red x
+symbols indicate the start points of the corresponding mission paths.
+Onboard Visual SLAM was the UAV’s sole global localization method during flight
+operations. An external Ultra-Wideband (UWB) positioning system (LinkTrack LTP-A
+series, Nooploop Ltd.) was deployed as an independent reference to validate Visual SLAM
+accuracy. Five anchors were positioned at (−1.0, −2.0, 2.0), (−1.0, 8.0, 1.5), (4.5, −2.0, 2.0),
+(4.5, 8.0, 2.5), and (4.5, −3.0, 1.0) m (ground-referenced x, y, z) with line-of-sight coverage
+of the flight corridor. The UWB tag was rigidly mounted on the center of mass. Vendor
+materials (LinkTrack Datasheet v2.3) report typical 2-D accuracy ≈10 cm and 5 cm at R99
+(99th-percentile radial error) under dynamic tests at 1.4 m/s. In our greenhouse, multipath
+https://doi.org/10.3390/drones10030205
+[p.12]
+Drones 2026, 10, 205
+12 of 23
+from metal racks and occasional non-line-of-sight (NLOS) propagation through foliage
+degrade raw ranging; therefore, UWB is treated as a reference with quantified uncertainty,
+not as ground truth. UWB was selected over vision-based references to ensure metrological
+independence: because V-SLAM relies on visual features for localization, evaluating it
+against a vision-derived reference would conflate measurement and reference errors.
+To mitigate these multipath effects, the raw UWB stream (50 Hz) was processed
+through a fixed signal-conditioning pipeline: (1) DBSCAN outlier rejection (ε = 0.01 in
+normalized, unitless coordinates; minPts = 10), (2) kinematic gating using 0.2 s velocity
+windows, (3) hybrid smoothing (median filter, window = 7; Gaussian-weighted average,
+window = 10, σ = 2), and (4) Kalman refinement (Q = 3 × 10−4, R = 1.0) to obtain a filtered
+reference trajectory. Across three trajectories (linear, zigzag, loop; n = 47,879 raw samples),
+DBSCAN retained 21.3–46.8% and the kinematic gate 20.0–46.2% of points (variation
+reflects path geometry and anchor layout). “Hot zones” with elevated temporal variance
+(defined by 0.2 s windowed σ > 8 cm) comprised 8.8–10.9% of path length and were flagged
+during evaluation.
+Reference uncertainty was quantified without resampling by pairing each SLAM pose
+to its nearest-timestamp UWB sample. Two complementary metrics were used: temporal
+consistency (0.2 s windows) showed median σ = 2.18–2.33 cm across trajectories; and
+trajectory residuals (2-D radial) of the final UWB reference against its own smooth fit
+yielded MAD = 0.26–1.25 cm, p95 (95th percentile) = 1.39–8.01 cm, and p99 (99th percentile)
+= 1.80–16.40 cm. Across all runs, the pipeline produced 1737 filtered reference points
+used in evaluation. These post-processed UWB measurements serve as a metrologically
+independent reference for Visual SLAM evaluation in the greenhouse.
+Marker boards were present on the greenhouse racks during the experimental period.
+OpenVSLAM processes these patterns as generic visual features; no ArUco-specific de-
+tection or pose estimation was employed. The navigation results reported in this study
+were obtained in this marker-present environment; the system’s sensitivity to visual feature
+density is discussed in the Conclusions. The study evaluated three flight path designs to
+assess system performance: (1) a linear path, following a straight-line route along each rack;
+(2) a zigzag path, alternating between racks; and (3) a loop path, forming a continuous
+circuit around all racks, as illustrated in Figure 7. These flight pattern tests provided practi-
+cal insights for developing effective UAV-based data collection strategies in greenhouse
+environments. The results helped identify the flight path that balanced coverage reliability
+and navigation stability.
+2.4.2. Setup for Autonomous Navigation Mission
+The autonomous flight operation consists of three sequential stages: map creation,
+mission planning, and mission execution. In the initial map creation step, the UAV gen-
+erates a spatial map of the operational area using Visual SLAM. To ensure accurate real-
+world dimensions, a scale factor is calculated by comparing vertical measurements from a
+rangefinder to the corresponding SLAM-estimated heights. During the mission planning
+step, users manually select key points from the previously generated SLAM map and create
+a list of waypoints using the line fitting and resampling method mentioned in the previous
+section. In the final mission execution phase, the UAV autonomously navigates along
+the predefined waypoints. The mission controller continuously evaluates the difference
+between the UAV’s current position (provided by the off-board pose estimator) and the
+target waypoint coordinates, adjusting its flight path through PID-based cascaded control
+loops. As each waypoint is reached within predefined positional tolerances, the UAV pro-
+gresses to the next waypoint, concluding the mission upon reaching the final point. Each
+daily mission required approximately 30–60 min of preparation, including edge computer
+https://doi.org/10.3390/drones10030205
+[p.13]
+Drones 2026, 10, 205
+13 of 23
+initialization, network verification, and a SLAM map pre-build process (~10 min), followed
+by 4–6 min of flight per 2200 mAh battery.
+2.4.3. Flower Counting During Muskmelon Plant Growth
+Field data collection was conducted in a muskmelon greenhouse from 30 July to 25
+August 2024, spanning the vegetative through flowering stages until fruit set initiation.
+The experimental setup comprised three hydroponic racks, with each rack supporting
+five plants connected to a shared nutrient delivery system. The automated UAV platform
+developed in this study was used to monitor flower development patterns. Daily mon-
+itoring missions were conducted as independent flight operations, each requiring fresh
+system initialization to ensure no localization drift accumulated between sessions. The
+UAV executed predefined linear flight paths at a fixed height of 115 cm above ground level,
+systematically collecting imagery data along each greenhouse aisle to capture all plant
+racks. Flower counts per plant were quantified through an automated image processing
+pipeline, and the temporal flowering data were analyzed using the Gompertz growth
+model [45]. To validate system performance, daily manual flower counts were conducted
+alongside detailed documentation of flower emergence times and pollination timing when
+bees were introduced into the greenhouse. These manual observations served as ground
+truth data for evaluating the automated monitoring system’s reliability.
+3. Results and Discussion
+3.1. UAV System Performance Evaluation
+3.1.1. Mapping Capability with Visual SLAM Framework
+The UAV system’s mapping capabilities were evaluated across three environmental
+contexts: a simulated virtual indoor environment, a controlled indoor setting, and a
+greenhouse environment (Figure 8).
+Figure 8. Comparison of UAV system mapping in three environments: simulated indoor environment,
+controlled indoor environment, and greenhouse environment.
+The simulated environment, created using a 3D scan of an indoor field, served as a
+baseline for validating the system under controlled environmental conditions. In Table 2,
+these errors were compensated with a corresponding scale factor. The system achieved
+optimal performance in the simulated environment, with a translation RMSE of 5.9 cm and
+a rotation RMSE of 2.95 degrees. The introduction of simulated real-world noise had mini-
+mal impact on mapping accuracy, demonstrating the system’s robustness under idealized
+conditions. In the indoor controlled environment, translational accuracy decreased slightly,
+while rotational performance improved, achieving an RMSE of 2.43 degrees. This enhanced
+rotational accuracy can be attributed to the implemented trajectory, which bolstered the ro-
+https://doi.org/10.3390/drones10030205
+[p.14]
+Drones 2026, 10, 205
+14 of 23
+bustness of the three-dimensional map structure. These findings demonstrate the system’s
+capability to sustain reliable performance in controlled, real-world conditions.
+Table 2. The system’s mapping errors across different operational environments.
+Operational Environments
+Translation (cm)
+Rotation (Degree)
+RMSE
+Max Error
+RMSE
+Max Error
+Simulation Environment
+5.9
+10.8
+2.95
+4.28
+Indoor Controlled
+Environment
+8.3
+13.1
+2.43
+3.82
+Greenhouse Environment
+12.7
+25.2
+5.32
+6.84
+In the greenhouse environment, error metrics increased. This decline in performance
+is consistent with the visual challenges posed by variable lighting and reflective surfaces,
+which are known to reduce feature detection and matching reliability in monocular SLAM
+systems [32].
+3.1.2. Evaluation of Localization Capability
+Following map creation, the endurance of the localization system was evaluated
+through repeated operations under constrained hardware conditions. To assess localization
+stability over time, the relocalization module was disabled, so no new features were
+captured during this test. The UAV is handheld to perform five consecutive traversals
+along the greenhouse aisle using a continuous closed-loop trajectory that spans three
+adjacent parallel corridors, each measuring 40.4 m in length, with 30 predetermined, evenly
+distributed sample points in each round. Two-dimensional global pose measurements were
+collected to evaluate the performance, as illustrated in Figure 9a.
+Figure 9. Localization endurance assessment: (a) Localization error (blue) and position update rate
+(green) over time; the red dashed vertical lines indicate the time points at which loop closure events
+occurred; (b) Greenhouse visual contexts during navigation.
+The system maintained stable localization performance for most of its operation, with
+a position update rate of approximately 9 Hz, a mean localization error of 4.1 cm, and
+an RMSE of 6.4 cm in the two-dimensional plane. However, notable localization errors
+were observed in regions with limited visual features during loop closure events, indicated
+by the red dashed lines in Figure 9b. The peak localization errors reached 81.8 cm, and
+the pose update rate declined from 9 Hz to 6 Hz over the course of five traversals. At
+the degraded rate of 6 Hz and a flight speed of 0.3 m/s, the per-update displacement is
+approximately 5 cm (Equation (1)), which remains within the horizontal waypoint threshold
+(δxy = 10 cm). Because this endurance protocol was handheld rather than in-flight, these
+https://doi.org/10.3390/drones10030205
+[p.15]
+Drones 2026, 10, 205
+15 of 23
+results characterize temporal localization stability under controlled motion. Autonomous
+flight experiments (Section 3.2) operated within the same temporal range and did not
+exhibit localization divergence.
+Under these operating conditions, the maximum operating time without flying was
+limited to 8 min. Despite the rate degradation, the observed localization accuracy remained
+compatible with the tested low-speed waypoint-following flights in this study.
+3.2. Performance Evaluation of the Autonomous Navigation Missions
+3.2.1. Waypoint Tracking and Trajectory Assessment
+The optimized parameters from simulation and indoor testing were applied to green-
+house operations. The system employs Euclidean distance thresholds of 5 cm on the z-axis
+and 10 cm in the xy-plane for waypoint achievement. Figure 10 illustrates the execution of
+the navigation mission, showing the relationship between waypoints and 3D trajectories
+from Visual SLAM.
+ 
+Figure 10. UAV navigation trajectories: (Top) Greenhouse views for linear, loop, and zigzag patterns;
+(Bottom) 3D trajectories with waypoints and directional alignment (north). Colored lines denote
+different trajectory segments, and arrows indicate the flight direction and north reference.
+The system performance was evaluated using three trajectory patterns: linear, loop,
+and zigzag. Flight dynamics are quantified by the 95th-percentile angular speed (deg/s),
+while estimator consistency is summarized by the 95th percentile of a 2 s rolling RMSE
+between the logged velocity and the time-differentiated local position (m/s). In the linear
+pattern, the UAV followed waypoints precisely with minimal deviation. The angular-
+speed p95 was 5.49 deg/s, the 2 s rolling RMSE p95 was 0.062 m/s, and the mean speed
+was 0.131 m/s (speed std 0.073 m/s). These values indicate low dynamics and a small
+consistency error, aligning with effective straight-line control. For the loop pattern, minor
+deviations appeared at turning points (e.g., during loop-closure). Here the angular-speed
+p95 reached 6.85 deg/s and the RMSE p95 0.070 m/s, with a mean speed of 0.136 m/s (std
+0.056 m/s). This reflects the largest dynamics and error among the three, yet the absolute
+magnitudes remain small. The zigzag pattern behaved similarly to the loop case, and the
+increased path length did not degrade precision. The angular-speed p95 was 6.08 deg/s, the
+RMSE p95 0.060 m/s, and the mean speed 0.128 m/s (std 0.050 m/s). Across all patterns,
+the RMSE p95 remained within 0.06–0.07 m/s, indicating stable state estimation under the
+tested maneuvers. Each pattern exhibits an extended plateau during curve transitions and
+an initial drift due to ground effect at takeoff, consistent with the observed speed variability.
+3.2.2. Quantitative Performance Evaluation
+As in the endurance test (Section 3.1.2), the relocalization module remained disabled
+during autonomous flight; the system relied exclusively on features established during the
+initial map-building phase. An external UWB localization system provided reference posi-
+https://doi.org/10.3390/drones10030205
+[p.16]
+Drones 2026, 10, 205
+16 of 23
+tioning data with quantified uncertainty to evaluate the performance of the SLAM-based
+control system. Table 3 summarizes the positioning accuracy across three trajectory patterns,
+with the system achieving RMSE values ranging from 5.4 to 8.0 cm across all tests. Despite
+being the most complex pattern with 1149 evaluation points, the zigzag trajectory achieved
+the lowest RMSE (5.4 cm) and mean error (4.2 cm), indicating robust performance under
+challenging conditions. Across all trajectory types, SLAM pose-update interruptions (gaps
+exceeding 300 ms) remained below 0.45% of flight time, indicating continuous tracking
+availability at the tested speeds (0.128–0.136 m/s mean). These flight-condition RMSE val-
+ues are comparable to the handheld localization RMSE of 6.4 cm (Section 3.1.2), suggesting
+that flight dynamics at the tested low speeds add limited additional positioning error.
+Table 3. Comparison of the V-SLAM positioning with UWB estimation for the trajectories.
+Path
+Samples
+2D Absolute Translation Error (cm)
+RMSE
+Mean Error
+Std. Dev.
+Max Error
+Linear
+295
+5.8
+4.9
+3.2
+13.9
+Loop
+971
+8.0
+6.5
+4.8
+21.8
+Zigzag
+1149
+5.4
+4.2
+3.5
+22.7
+Normality testing on the error components rejected the Gaussian assumption (Shapiro–
+Wilk for X: W = 0.968, p < 0.001; Y: W = 0.937, p < 0.001; magnitude: W = 0.948, p < 0.001;
+Kolmogorov–Smirnov for X: D = 0.458, p < 0.001), indicating non-normal error distributions.
+Figure 11 compares the UWB reference and SLAM-estimated trajectories, showing con-
+sistent agreement with minimal drift accumulation. Error magnitudes were divided into
+four groups to highlight discrepancies between UWB and SLAM. The raw UWB readings
+overlaid in Figure 11 confirm that the filtered reference trajectory preserves the spatial
+geometry of the unprocessed measurements, with discarded samples concentrating in
+multipath-prone regions near rack boundaries.
+Analysis of error patterns revealed that large deviations primarily occurred at trajec-
+tory curve segments, where rotation-dominant maneuvers are associated with higher error
+to Visual SLAM estimation. To further investigate this relationship, trajectory segments
+were categorized by motion characteristics. Segments with low speed (<P20) and high
+yaw rate (|yaw_rate| > P75) exhibited a median error of 0.044 m, compared to 0.033 m for
+straight segments (|yaw_rate| < P25), representing a statistically significant 33% increase
+(Mann–Whitney p = 0.022, Cliff’s δ = 0.243). This difference primarily manifested in the
+median and interquartile range (IQR: 0.018–0.088 vs. 0.015–0.067 m) rather than extreme
+errors (P90: 0.105 vs. 0.103 m), suggesting that rotation-dominant behavior introduces
+moderate but consistent challenges to pose estimation without compromising worst-case
+performance. This observation is consistent with known limitations of feature-based Visual
+SLAM: during sharp turns at low speed, rapid viewpoint changes, and limited parallax
+reduce feature tracking stability, leading to increased pose estimation uncertainty. The phe-
+nomenon is particularly evident in the loop trajectory (Table 2), where frequent directional
+changes result in the highest RMSE (8.0 cm) despite a shorter path length compared to the
+zigzag pattern. In contrast, the zigzag trajectory benefits from longer straight segments
+between turns, allowing the SLAM system to maintain feature correspondence and stabilize
+pose estimates.
+The measured deviations likely reflect multiple interacting factors. Feature-based
+Visual SLAM faces inherent challenges during rotation-dominant maneuvers, where rapid
+yaw motion and limited parallax reduce feature tracking stability, leading to increased pose
+estimation uncertainty. These effects are compounded by momentum-induced overshoot-
+ing at curve edges, where transient controller corrections introduce additional positional
+https://doi.org/10.3390/drones10030205
+[p.17]
+Drones 2026, 10, 205
+17 of 23
+errors, as evidenced by the red-coded regions in Figure 11. While the UWB reference
+system may introduce minor measurement artifacts during rapid orientation changes, the
+consistent error patterns observed across all trajectories suggest that SLAM estimation and
+control dynamics may be major contributors to the measured deviations. Despite these
+challenges, these trajectories demonstrated the Visual SLAM framework’s practical viability
+for greenhouse navigation, maintaining position errors consistently below 23.0 cm.
+ 
+Figure 11. Comparison of UWB position points and SLAM-estimated trajectories for three flight
+patterns. Error magnitudes are color-coded from blue to red.
+3.3. Muskmelon Flower Counting by the Autonomous UAV Platform
+3.3.1. Muskmelon Plant and Flower Detection Model Evaluation
+Two separate models were developed for plant and flower detection. The flower
+detection model achieved a precision of 0.855 and recall of 0.875, yielding an mAP50 of 0.89.
+However, its lower mAP50-95 of 0.442 suggests room for improvement in precise object
+localization. The plant detection model demonstrated comparable performance, with a
+precision of 0.833 and recall of 0.897, yielding an mAP50 of 0.921 and an mAP50–95 of 0.639.
+The higher recall suggests that the plant detection model is highly sensitive, successfully
+identifying most plants in the dataset.
+https://doi.org/10.3390/drones10030205
+[p.18]
+Drones 2026, 10, 205
+18 of 23
+3.3.2. Results of Muskmelon Flower Counting
+Muskmelon plant tracking achieved a Multi-Object Tracking Accuracy (MOTA) of
+72.4%, with a False Negative Rate (FNR) of 17.96%, a False Positive Rate (FPR) of 8.6%, and
+an identity-switch (IDSW) rate of 1%, maintaining reliability despite leaf overlap in mature
+plants. The flight log shows low body-frame vibration during phenotyping (RMS linear
+acceleration 0.48 m/s2, gravity removed), which is consistent with negligible motion blur
+at our exposure and thus sufficient image sharpness for segmentation. Flower tracking,
+however, operated with lower sensitivity, achieving a MOTA of 49.1%, with a FNR of 32.2%,
+a FPR of 10.0%, and an IDSW rate of 8.7%, prioritizing tracking precision over detection
+coverage. To address occlusion and ID switches, the system applies a 20% confidence
+threshold and optical flow compensation. An example of the flower counting workflow
+is illustrated in Figure 12. The trajectories of flowers 4 and 5 merge into a single cluster
+through offline processing, with trajectory groups determining final plant flower counts.
+Figure 12. An example of flower tracking and counting through trajectory merging.
+The counting system exhibits a systematic undercounting bias, with a mean error of
+−1.63 flowers. This negative bias is consistent with the FN-dominant error profile at the
+flower level: missed detections substantially exceed false positives, producing a conser-
+vative net undercount. Accuracy metrics show 65% of counts within a ±1 flower margin.
+The mean absolute error (MAE) reaches 1.68, while the root mean square error (RMSE)
+is 2.97. Analysis reveals a heteroscedastic error distribution that increases with flower
+count. Statistical testing indicates significant temporal variations in accuracy, suggesting
+environmental factors influence system performance. For Figure 13, count trajectories are
+min-max normalized for visualization only; this scaling is not used to compute model
+parameters or infer growth dynamics.
+Figure 13. Flower counting error graph and the normalized counts over the observation phase.
+https://doi.org/10.3390/drones10030205
+[p.19]
+Drones 2026, 10, 205
+19 of 23
+3.3.3. Modeling of Temporal Flower Counts
+The previous section demonstrated the system’s ability to track individual flowers.
+This section shifts focus to the analysis of growth trends by quantifying flower counts
+and observing their temporal development patterns. Figure 14 compares the ground truth
+flower count (top) with the estimated count (bottom) for three rows (A, B, and C), each
+subjected to distinct conditions. The error bars in the top panel represent across-plant
+variability for the five plants within each row, rather than repeated measurements of a
+single plant. Gompertz growth curves fitted to the raw daily count data reveal minor
+variations in growth patterns between rows, likely resulting from micro-environmental
+differences within the greenhouse.
+Figure 14. Comparison of ground truth and estimated flower counts with corresponding growth
+rates for rows A, B, and C under different racks.
+Although the system consistently underestimated flower counts, the relative growth
+patterns and trends remained consistent. The growth curve inflection points align closely
+with the estimated female flower emergence time, as shown in Figure 14. This align-
+ment suggests that the growth curve analysis can serve as an indirect yet valuable indica-
+tor for estimating the emergence of female flowers and determining the optimal timing
+for pollination.
+The inflexion points identified using the Gompertz model for each row coincide
+with transition phases in flower growth. These points underscore the potential of this
+non-invasive monitoring approach to inform crop management decisions despite current
+limitations in tracking individual flowers. The figure further highlights the growth rate
+https://doi.org/10.3390/drones10030205
+[p.20]
+Drones 2026, 10, 205
+20 of 23
+trends, with peak rates corresponding to periods of rapid flower development. These
+findings underscore the need to enhance tracking accuracy while capitalizing on the
+system’s ability to capture relative growth dynamics effectively.
+4. Conclusions
+This study developed and validated an integrated UAV imaging platform for green-
+house monitoring under GPS-denied, compute-constrained conditions. The system inte-
+grated edge-based navigation with a dual-camera decoupled strategy: a forward V-SLAM
+stream for localization and a side-view RGB stream for phenotyping within the payload
+constraints of a sub-1.3 kg platform. In greenhouse mapping, the V-SLAM framework
+achieves a translation RMSE of 12.7 cm. Over autonomous missions, comparative analysis
+with an independent UWB positioning system confirmed trajectory RMSE of 5.4–8.0 cm at
+a mean flight speed of approximately 0.13 m/s. The flower counting pipeline recovered
+temporal growth trends (Gompertz R2 = 0.75–0.95) with inflection-point timing aligned
+to observed female flower emergence, supporting trend-level longitudinal monitoring
+despite per-frame tracking limitations. Operational boundaries characterized through this
+campaign include visual feature density dependence, rotation-induced error elevation,
+and compute degradation under sustained operation. The platform is deployable on com-
+mercially available components and operated with a single-operator setup throughout
+the campaign.
+Several limitations bound these results. All experiments were conducted in a single
+7 m × 10 m greenhouse, and further investigation is required to assess the system’s scala-
+bility across different greenhouse configurations. The endurance evaluation was handheld
+rather than in-flight. Marker boards on the racks contributed stable visual features to
+the SLAM map, though a marker-absent flight remained operational with limited quality
+degradation. Flower tracking MOTA of 49.1% with FN-dominant error produces systematic
+undercounting (mean −1.63 flowers), and compute throughput degraded from 9 to 6 Hz
+during sustained operation.
+The primary contribution of this research lies in the engineering integration, implemen-
+tation, and practical validation of a constraint-driven, modular architecture for greenhouse
+UAV monitoring, where payload, compute, and cost constraints shaped each design choice,
+including dual-camera decoupling, edge-offloaded V-SLAM, and offline phenotyping.
+A second contribution is operational characterization through a 27-day field campaign
+covering navigation performance across trajectory types, sustained daily operability, and
+sensitivity to environmental variation. Third, the proof-of-concept flower counting pipeline
+recovers temporal growth trends despite systematic undercounting, supporting temporal
+trend recovery for longitudinal crop monitoring.
+Future research should focus on system improvement and broader validation. Extend-
+ing deployment to diverse greenhouse environments and plant species would enhance
+applicability, while long-term monitoring studies across multiple growing seasons could
+establish reliability. Further refinement of control precision for complex missions and
+evaluation under diverse environmental conditions remain essential. Improving object
+tracking through motion-model-based re-identification, as demonstrated for dynamic agri-
+cultural targets by Zhai et al. [46], could address the current tracking limitations. The
+integration of advanced deep learning algorithms and adaptive control mechanisms could
+enhance system robustness, including yield-prediction support derived from temporal
+flower-count indicators. From a practical standpoint, assessing economic benefits and
+addressing maintenance challenges would accelerate commercial adoption. Scaling this
+technology across various agricultural settings offers significant potential for advancing
+automated greenhouse management systems.
+https://doi.org/10.3390/drones10030205
+[p.21]
+Drones 2026, 10, 205
+21 of 23
+Author Contributions: Conceptualization, T.-T.L.; Methodology, J.-H.L. and T.-T.L.; Software, J.-H.L.;
+Validation, J.-H.L. and T.-T.L.; Formal Analysis, J.-H.L. and T.-T.L.; Investigation, T.-T.L.; Resources, T.-
+T.L.; Data Curation, J.-H.L.; Writing—Original Draft Preparation, J.-H.L. and T.-T.L.; Writing—Review
+and Editing, T.-T.L.; Visualization, J.-H.L. and T.-T.L.; Project Administration, T.-T.L. All authors have
+read and agreed to the published version of the manuscript.
+Funding: This research received no external funding.
+Data Availability Statement: The dataset used for UAV-based plant flower monitoring in this study,
+including the processed UAV flight logs, SLAM-UWB alignment outputs, 3D maps, and flower monitor-
+ing results, can be accessed at the following repository: https://github.com/88fqg4n6gt-jpg/Dataset-
+for-Visual-SLAM-based-Autonomous-UAV-System-for-Greenhouse-Plant-Monitoring.git (accessed on
+12 March 2026).
+Acknowledgments: The authors would like to thank Lien-Chieh Cheng and the staff members of the
+National Taiwan University Experimental Farm for their assistance in this research.
+Conflicts of Interest: The authors declare no conflicts of interest.
+References
+1.
+Sánchez-Molina, J.A.; Rodríguez, F.; Moreno, J.C.; Sánchez-Hermosilla, J.; Giménez, A. Robotics in greenhouses. Scoping review.
+Comput. Electron. Agric. 2024, 219, 108750. [CrossRef]
+2.
+Smitt, C.; Halstead, M.; Zaenker, T.; Bennewitz, M.; McCool, C. PATHoBot: A robot for glasshouse crop phenotyping and
+intervention. In Proceedings of the 2021 IEEE International Conference on Robotics and Automation (ICRA), Xi’an, China, 30
+May–5 June 2021; pp. 2324–2330. [CrossRef]
+3.
+Nguyen, N.T.A.; Pham, C.C.; Lin, W.-C. Development of a line following autonomous spraying vehicle with Machine vision-based
+leaf density estimation for cherry tomato greenhouses. Comput. Electron. Agric. 2023, 215, 108429. [CrossRef]
+4.
+Makam, S.; Komatineni, B.K.; Meena, S.S.; Meena, U. Unmanned aerial vehicles (UAVs): An adoptable technology for precise and
+smart farming. Discov. Internet Things 2024, 4, 12. [CrossRef]
+5.
+Su, J.; Zhu, X.; Li, S.; Chen, W.-H. AI meets UAVs: A survey on AI empowered UAV perception systems for precision agriculture.
+Neurocomputing 2023, 518, 242–270. [CrossRef]
+6.
+Khose, S.B.; Mailapalli, D.R. Spatial mapping of soil moisture content using very-high resolution UAV-based multispectral image
+analytics. Smart Agric. Technol. 2024, 8, 100467. [CrossRef]
+7.
+Maimaitijiang, M.; Sagan, V.; Sidike, P.; Hartling, S.; Esposito, F.; Fritschi, F.B. Soybean yield prediction from UAV using
+multimodal data fusion and deep learning. Remote Sens. Environ. 2020, 237, 111599. [CrossRef]
+8.
+Ndlovu, H.S.; Odindi, J.; Sibanda, M.; Mutanga, O. A systematic review on the application of UAV-based thermal remote sensing
+for assessing and monitoring crop water status in crop farming systems. Int. J. Remote Sens. 2024, 45, 4923–4960. [CrossRef]
+9.
+Rejeb, A.; Abdollahi, A.; Rejeb, K.; Treiblmaier, H. Drones in agriculture: A review and bibliometric analysis. Comput. Electron.
+Agric. 2022, 198, 107017. [CrossRef]
+10.
+Shi, Q.; Pan, Y.; He, B.; Zhu, H.; Liu, D.; Shen, B.; Mao, H. The airflow field characteristics of UAV flight in a greenhouse.
+Agriculture 2021, 11, 634. [CrossRef]
+11.
+Al-Najadi, R.; Al-Mulla, Y.; Al-Abri, I.; Al-Sadi, A.M. Effectiveness of drone-based thermal sensors in optimizing controlled
+environment agriculture performance under arid conditions. Sci. Rep. 2025, 15, 9042. [CrossRef]
+12.
+Pantos, C.; Hildmann, H.; Valente, J. Experimental connectivity analysis for drones in greenhouses. Drones 2023, 7, 24. [CrossRef]
+13.
+Hiraguri, T.; Shimizu, H.; Kimura, T.; Matsuda, T.; Maruta, K.; Takemura, Y.; Ohya, T.; Takanashi, T. Autonomous drone-based
+pollination system using AI classifier to replace bees for greenhouse tomato cultivation. IEEE Access 2023, 11, 99352–99364.
+[CrossRef]
+14.
+Wang, J.; Peng, Y.; Li, P. Propagation characteristics of radio wave in plastic greenhouse. In Proceedings of the International
+Conference on Computer and Computing Technologies in Agriculture, Beijing, China, 27–30 September 2015; pp. 208–215.
+15.
+Foerster, J.R. The effects of multipath interference on the performance of UWB systems in an indoor wireless channel. In IEEE
+VTS 53rd Vehicular Technology Conference, Spring 2001. Proceedings (Cat. No.01CH37202); Institute of Electrical and Electronics
+Engineers (IEEE): Piscataway, NJ, USA, 2001; Volume 2, pp. 1176–1180. [CrossRef]
+16.
+Aslan, M.F.; Durdu, A.; Sabanci, K.; Ropelewska, E.; Gültekin, S.S. A comprehensive survey of the recent studies with UAV for
+precision agriculture in open fields and greenhouses. Appl. Sci. 2022, 12, 1047. [CrossRef]
+17.
+Li, J.; Xiong, X.; Yan, Y.; Yang, Y. A survey of indoor UAV obstacle avoidance research. IEEE Access 2023, 11, 51861–51891.
+[CrossRef]
+https://doi.org/10.3390/drones10030205
+[p.22]
+Drones 2026, 10, 205
+22 of 23
+18.
+Goli, S.; Kurtulu¸s, D.F.; Alhems, L.M.; Memon, A.M.; Imran, I.H. Experimental study on efficient propulsion system for
+multicopter UAV design applications. Results Eng. 2023, 20, 101555. [CrossRef]
+19.
+Jing, Y.; Mirza, A.; Sipahi, R.; Martinez-Lorenzo, J. Sliding mode controller with disturbance observer for quadcopters; experiments
+with dynamic disturbances and in turbulent indoor space. Drones 2023, 7, 328. [CrossRef]
+20.
+Jasim, A.N.; Fourati, L.C.; Albahri, O.S. Evaluation of unmanned aerial vehicles for precision agriculture based on integrated
+fuzzy decision-making approach. IEEE Access 2023, 11, 75037–75062. [CrossRef]
+21.
+Hashim, H.A. Advances in UAV avionics systems architecture, classification and integration: A comprehensive review and future
+perspectives. Results Eng. 2024, 24, 103786. [CrossRef]
+22.
+Cavalaris, C. Challenges and opportunities for cost-effective use of unmanned aerial system in agriculture. In Unmanned Aerial
+Systems in Agriculture: Eyes Above Fields; Bochtis, D., Tagarakis, A.C., Kateris, D., Eds.; Academic Press: Cambridge, MA, USA,
+2023; pp. 197–229.
+23.
+Iaboni, C.; Lobo, D.; Choi, J.-W.; Abichandani, P. Event-based motion capture system for online multi-quadrotor localization and
+tracking. Sensors 2022, 22, 3240. [CrossRef] [PubMed]
+24.
+Shule, W.; Almansa, C.M.; Queralta, J.P.; Zou, Z.; Westerlund, T. UWB-based localization for multi-uav systems and collaborative
+heterogeneous multi-robot systems. Procedia Comput. Sci. 2020, 175, 357–364. [CrossRef]
+25.
+Sonugür, G. A Review of quadrotor UAV: Control and SLAM methodologies ranging from conventional to innovative approaches.
+Robot. Auton. Syst. 2023, 161, 104342. [CrossRef]
+26.
+He, X.; Gao, W.; Sheng, C.; Zhang, Z.; Pan, S.; Duan, L.; Zhang, H.; Lu, X. LiDAR-visual-inertial odometry based on optimized
+visual point-line features. Remote Sens. 2022, 14, 622. [CrossRef]
+27.
+Elamin, A.; El-Rabbany, A.; Jacob, S. Event-based visual/inertial odometry for UAV indoor navigation. Sensors 2025, 25, 61.
+[CrossRef] [PubMed]
+28.
+Ju, X.; Xu, D.; Zhao, H. Scene-aware error modeling of LiDAR/visual odometry for fusion-based vehicle localization. IEEE Trans.
+Intell. Transp. Syst. 2022, 23, 6480–6494. [CrossRef]
+29.
+Mustafah, Y.M.; Azman, A.W.; Akbar, F. Indoor UAV positioning using stereo vision sensor. Procedia Eng. 2012, 41, 575–579.
+[CrossRef]
+30.
+Mur-Artal, R.; Tardos, J.D. ORB-SLAM2: An open-source SLAM system for monocular, stereo, and RGB-D cameras. IEEE Trans.
+Robot. 2017, 33, 1255–1262. [CrossRef]
+31.
+Sumikura, S.; Shibuya, M.; Sakurada, K. OpenVSLAM: A versatile visual SLAM framework. In Proceedings of the 27th ACM
+International Conference on Multimedia, Nice, France, 21–25 October 2019; pp. 2292–2295. [CrossRef]
+32.
+Al-Tawil, B.; Hempel, T.; Abdelrahman, A.; Al-Hamadi, A. A review of visual SLAM for robotics: Evolution, properties, and
+future applications. Front. Robot. AI 2024, 11, 1347985. [CrossRef]
+33.
+Krul, S.; Pantos, C.; Frangulea, M.; Valente, J. Visual SLAM for indoor livestock and farming using a small drone with a monocular
+camera: A feasibility study. Drones 2021, 5, 41. [CrossRef]
+34.
+Sukvichai, K.; Thongton, N.; Yajai, K. Implementation of a monocular ORB SLAM for an indoor agricultural drone. In Proceedings
+of the 2023 3rd International Symposium on Instrumentation, Control, Artificial Intelligence, and Robotics (ICA-SYMP), Bangkok,
+Thailand, 18–20 January 2023; pp. 45–48. [CrossRef]
+35.
+Islam, R.; Habibullah, H.; Hossain, M.T. AGRI-SLAM: A real-time stereo visual SLAM for agricultural environment. Auton. Robot.
+2023, 47, 649–668. [CrossRef]
+36.
+MacGregor, J.F. Optimal choice of the sampling interval for discrete process control. Technometrics 1976, 18, 151–160. [CrossRef]
+37.
+Merzlyakov, A.; Macenski, S. A Comparison of Modern General-Purpose Visual SLAM Approaches. In Proceedings of the 2021
+IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Prague, Czech Republic, 27 September–1 October
+2021; pp. 9190–9197. [CrossRef]
+38.
+Erniati; Suhardiyanto, H.; Hasbullah, R.; Supriyanto. Artificial neural network models to estimate growth of melon (Cucumis melo
+L.) at vegetative phase in greenhouse with evaporative cooling. IOP Conf. Ser. Earth Environ. Sci. 2022, 1038, 012011. [CrossRef]
+39.
+Patil, D.V.; Bhagat, K.P.; Saha, S. Effect of water stress at critical growth stages in drip irrigated muskmelon (Cucumis melo L.) of
+semi-arid region of western Maharashtra, India. Plant Arch. 2014, 14, 161–169.
+40.
+Das, J.; Cross, G.; Qu, C.; Makineni, A.; Tokekar, P.; Mulgaonkar, Y.; Kumar, V. Devices, systems, and methods for automated
+monitoring enabling precision agriculture. In Proceedings of the 2015 IEEE International Conference on Automation Science and
+Engineering (CASE), Gothenburg, Sweden, 24–28 August 2015; pp. 462–469. [CrossRef]
+41.
+Revanasidda; Belavadi, V.V. Floral biology and pollination in Cucumis melo L., a tropical andromonoecious cucurbit. J. Asia-Pac.
+Entomol. 2019, 22, 215–225. [CrossRef]
+42.
+Gao, A.; Tian, Z.; Ma, W.; Song, Y.; Ren, L.; Feng, Y.; Qian, J.; Xu, L. Fruits hidden by green: An improved YOLOV8n for detection
+of young citrus in lush citrus trees. Front. Plant Sci. 2024, 15, 1375118. [CrossRef] [PubMed]
+43.
+Liu, Q.; Lv, J.; Zhang, C. MAE-YOLOv8-based small object detection of green crisp plum in real complex orchard environments.
+Comput. Electron. Agric. 2024, 226, 109458. [CrossRef]
+https://doi.org/10.3390/drones10030205
+[p.23]
+Drones 2026, 10, 205
+23 of 23
+44.
+Rousseeuw, P.J. Silhouettes: A graphical aid to the interpretation and validation of cluster analysis. J. Comput. Appl. Math. 1987,
+20, 53–65. [CrossRef]
+45.
+Tjørve, K.M.; Tjørve, E. The use of Gompertz models in growth analyses, and new Gompertz-model approach: An addition to the
+Unified-Richards family. PLoS ONE 2017, 12, e0178691. [CrossRef]
+46.
+Zhai, Y.; Zhang, L.; Hu, X.; Yang, F.; Huang, Y. A dynamic Kalman filtering method for multi-object fruit tracking and counting in
+complex orchards. Sensors 2025, 25, 4138. [CrossRef]
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+https://doi.org/10.3390/drones10030205
+=== END ===

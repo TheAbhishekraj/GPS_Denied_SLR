@@ -1,0 +1,1885 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0705.pdf
+sha256: 77BFEBE320C6A3A65F13D08F808486FF5DE8A14C90625A3E1F96F41A703F8B66
+library: pymupdf (fitz) v1.28.2
+pages: 13
+=== BEGIN ===
+[p.1]
+2574
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 2, 15 JANUARY 2026
+Recursive Extended Finite-Memory Positioning
+Algorithm for Robust UAV Positioning in
+GNSS-Denied Environment
+Sang Su Lee , Jung Min Pak , Peng Shi , Life Fellow, IEEE, and Choon Ki Ahn , Senior Member, IEEE
+Abstract—Recently, the operational domain of uncrewed aerial
+vehicles (UAVs) has expanded from outdoor environments to
+indoor spaces such as factories, power plants, and tunnels.
+In these environments, where the Global Navigation Satellite
+Systems (GNSS) is unavailable, and the risk of collision with
+surrounding structures is high, a positioning system with high
+accuracy and fast update rates is essential. In this article, we
+propose a novel 3-D positioning algorithm for UAVs operating in
+a GNSS-denied environment. The proposed algorithm is based
+on sensor fusion of the inertial measurement unit (IMU) and
+ultra-wideband-based wireless sensor network (UWB-WSN). The
+proposed algorithm, referred to as the recursive extended ﬁnite-
+memory positioning (REFMP), features a unique ﬁnite-memory
+(FM) structure that estimates the current position using only
+a limited set of recent information. This FM structure endows
+the algorithm with robustness against measurement model errors,
+linearization errors, and uncertainties in initial position informa-
+tion. We evaluated the performance of the proposed algorithm
+through both simulations and real-world experiments under
+various challenging conditions, including UAV collisions with
+walls, aggressive maneuvers inducing sensor measurement errors,
+and scenarios with uncertain initial position information. By
+comparing the proposed algorithm with state-of-the-art UAV
+positioning algorithms based on IMU and sensor fusion, we
+demonstrate the superior positioning accuracy and robustness
+of REFMP under harsh conditions.
+Index Terms—Finite-memory (FM) structure, inertial measure-
+ment unit (IMU), uncrewed aerial vehicle (UAV), wireless sensor
+network (WSN).
+I. INTRODUCTION
+U
+NMANNED aerial vehicles (UAVs) have been widely
+used for various purposes, including surveillance, aerial
+photography, package delivery, spraying pesticides, and drone
+light shows. While UAVs have traditionally operated in open
+Received 7 June 2025; revised 29 September 2025; accepted 3 November
+2025. Date of publication 6 November 2025; date of current version 8 January
+2026. This work was supported in part by the National Research Foundation
+of Korea (NRF) grant funded by Korean Government (MSIT) under Grant
+RS-2025-00555064. (Corresponding authors: Choon Ki Ahn; Jung Min Pak.)
+Sang Su Lee and Choon Ki Ahn are with the School of Electrical
+Engineering, Korea University, Seoul 13391, Republic of Korea (e-mail:
+physism@korea.ac.kr; hironaka@korea.ac.kr).
+Jung Min Pak is with the Department of Artiﬁcial Intelligence, Korea
+National University of Transportation, Uiwang 16106, Republic of Korea
+(e-mail: destin11@ut.ac.kr).
+Peng Shi is with the School of Electrical and Mechanical Engineering,
+The University of Adelaide, Adelaide, SA 5005, Australia, and also with the
+Research and Innovation Centre, Obuda University, 1034 Budapest, Hungary
+(e-mail: peng.shi@adelaide.edu.au).
+Digital Object Identiﬁer 10.1109/JIOT.2025.3629868
+skies, small multicopter-type UAVs are now being used for
+exploration and surveillance in indoor spaces, such as power
+plants, factories, and tunnels [1], [2], [3]. In these envi-
+ronments, the Global Navigation Satellite Systems (GNSS)
+is not available for UAV navigation, and the narrow and
+complex environment increases the risk of UAV collisions
+[4]. Therefore, it is essential to develop a positioning system
+that can accurately determine the position of UAV with a fast
+update in GNSS-denied environments.
+Various sensors have been considered for UAV positioning
+in GNSS-denied environments. Cameras can provide a suﬃ-
+cient update rate of more than 30 Hz, but their performance
+varies greatly depending on lighting conditions, making it
+diﬃcult to provide consistent performance [5], [6]. Light
+detection and ranging (LiDAR) is widely used for position-
+ing in uncrewed ground vehicles, but its heavy weight and
+high power consumption make it diﬃcult to mount on small
+UAVs [5]. Real-time locating systems (RTLSs) based on ultra-
+wideband-based wireless sensor networks (UWB-WSNs) have
+a similar principle to GNSS [7], [8]. At least four anchor
+devices are installed at ﬁxed locations, a mobile device with
+low power consumption and lightweight is mounted on UAV
+to transmit and receive wireless signals to estimate the position
+based on distance measurements. However, in complex indoor
+environments, wireless signals can be dropped or delayed in
+non-line-of-sight (NLOS) situations, and methods are needed
+to overcome this.
+Since inertial measurement units (IMUs) are internal sensors
+that obtain acceleration and angular velocity measurements
+regardless of the external environment, they can compensate
+for the problems of external sensors that obtain measurements
+through interaction with the environment [9], [10], [11]. In
+addition, the update rate of IMU is very high, which is suit-
+able for positioning UAVs ﬂying fast in complex trajectories.
+Therefore, the sensor fusion using IMUs for UAV positioning
+has been studied a lot, and among them, there have been
+specialized algorithms such as learning-based and graph-based
+algorithms, but they require a lot of input data and are compu-
+tationally expensive [6], [12]. State estimation algorithms, such
+as Kalman ﬁlters (KFs) and particle ﬁlters (PFs), have long
+been used for sensor fusion and positioning. State estimation
+algorithms require a state-space model of the system, and in
+IMU-based 3-D positioning, due to a large number of state
+variables and a high degree of nonlinearity, nonlinear ﬁlters
+2327-4662 © 2025 IEEE. All rights reserved, including rights for text and data mining, and training of artiﬁcial intelligence and
+similar technologies. Personal use is permitted, but republication/redistribution requires IEEE permission.
+See https://www.ieee.org/publications/rights/index.html for more information.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:48 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+LEE et al.: REFMP ALGORITHM FOR ROBUST UAV POSITIONING
+2575
+that are computationally eﬃcient are required. There have been
+various nonlinear ﬁlters. The extended KF (EKF) is based on
+the linearization of a nonlinear system model through a Taylor
+series expansion [13]. In contrast, the unscented KF (UKF) and
+PF are based on the approximation of probability distributions
+using sigma points and random samples, respectively [14],
+[15]. Although EKF is vulnerable to system nonlinearity
+compared with UKF and PF, it is computationally eﬃcient in
+systems with many state variables due to its simplicity and is
+superior in real-time processing. Therefore, algorithms based
+on EKF with improved performance have been developed and
+applied to UAV positioning in recent years.
+The error-state EKF (ESEKF) [16] has recently attracted
+attention in IMU-based positioning. It has been demonstrated
+to be eﬀective for dealing with the orientation expressed in
+quaternions and the angular velocity measurements from IMU.
+In the ESEKF algorithm, the true state is decomposed into
+the nominal state and the error state deﬁned in the local
+space around the nominal state. Based on this decomposition,
+the error-state system is formulated. Subsequently, the true
+state can be obtained through the composition of the nominal
+state and the estimated error state. This approach oﬀers many
+advantages over traditional EKFs in IMU-based positioning,
+including a reduction of linearization errors and overcoming
+the singularity problem in the estimation error covariance
+matrix when utilizing quaternions [17], [18]. Iterated ESKF
+(IESKF) [19] also uses the error-state model, although it
+performs the iterative correction using measurements. Since
+IESKF is highly dependent on measurements, it can outper-
+form ESEKF when the measurements are accurate. However,
+it can be inferior to ESEKF when the measurements are
+inaccurate. Most EKFs assume that the measurement noise is
+Gaussian distributed. However, the G-forces from the UAV’s
+rapid maneuvers and the shocks from collisions introduce non-
+Gaussian noise into the IMU measurements. This leads to
+errors in the measurement noise model, which degrades the
+position estimation performance. To address the uncertainty of
+the noise model, a tightly coupled adaptive EKF (TC-AEKF)
+[20] that estimates the variation of noise statistics for UAV
+positioning was proposed.
+Recursive Bayesian estimators, including EKFs, UKFs, and
+PFs, update the previous estimate to produce the next estimate,
+and they have an inﬁnite memory (IM) structure where past
+information accumulates. In the IM structure, errors due to
+incorrect noise models accumulate and degrade estimation
+performance. In addition, the ﬁlters with an IM structure
+require an initial value to be set at the beginning of the
+estimation, and if the initial value is signiﬁcantly diﬀerent from
+the true value, the estimation will take a long time to get closer
+to the true value. To address this issue, we propose a novel 3-D
+positioning algorithm with a ﬁnite memory (FM) structure
+based on the error-state system model. The FM structure can
+prevent the error accumulation by using only a ﬁnite window
+of recent information [21], [22], [23], [24]. The proposed
+algorithm fuses IMU and UWB-WSN sensor measurements,
+which enables the position estimation at a very fast rate and
+is available even in GNSS-denied environments. The ﬁlter
+gain in the proposed algorithm is derived by reducing the
+Frobenius norm of the error term, which makes the algorithm
+robust against various errors that degrade positioning accuracy.
+Moreover, the proposed algorithm is designed to have a recur-
+sive FM structure, which makes it computationally eﬃcient
+and enables real-time processing. The proposed algorithm,
+termed recursive extended FM positioning (REFMP), has
+superior robustness against various uncertainties that degrade
+positioning accuracy compared with state-of-the-art UAV posi-
+tioning algorithms, such as ESEKF, IESKF, and TC-AEKF.
+Simulations and experiments on the 3-D positioning of a
+UAV using IMU and UWB-WSN demonstrate the superior
+performance of the proposed REFMP.
+The rest of this article is organized as follows. In Section II,
+we describe the system models for UAV 3-D positioning using
+IMU and UWB-WSN. In Section III, we describe the proposed
+REFMP algorithm and the observability analysis. Section IV
+presents the results of the UAV 3-D positioning simulation
+and experiment to validate the performance of the proposed
+REFMP. Finally, the conclusion and future work are discussed
+in Section V.
+Notations: Operations tr[·], ∥·∥, ∥·∥F, and E[·] denote trace,
+Euclidean norm, Frobenius norm, and expectation, respec-
+tively. Accents¯andˆindicate the nominal and estimated values,
+respectively. [·]×, exp(·), and Jr(·) denote skew-symmetric
+matrix conversion [25], matrix exponential [26], and right
+Jacobian [27], respectively. A quaternion qw + qxi + qyj + qzk
+is expressed in vector form as q = [qw qT
+v ]T = [qw qx qy qz]T ∈
+R4, which follows the Hamilton convention. Operator ⊗
+denotes the quaternion multiplication.
+II. UAV POSITIONING SCHEME AND PROBLEM
+FORMULATION
+UWB-WSN provides high resolution, allowing for precision
+down to tens of centimeters, which has led to its extensive
+use in indoor RTLS. The fusion of UWB-WSN with an
+IMU in indoor environments has the potential to enhance the
+positioning accuracy. We considered a system that fuses UWB-
+WSN and IMU, the most commonly used sensors for indoor
+UAV positioning. In a manner analogous to the utilization
+of state estimation algorithms, including KFs, in GNSS and
+INS fusion, a state estimation algorithm was also employed
+for the fusion of UWB-WSN and IMU. In order to estimate
+the position of UAV through the implementation of a state
+estimation algorithm, it is necessary to employ a state-space
+model that incorporates the position (coordinates) as a state
+variable. The state-space model for position estimation com-
+prises a motion model, which delineates the time-dependent
+transition of the target’s position and velocity, and a measure-
+ment model, which articulates the relationship between sensor
+measurements and position. This section ﬁrst delineates the
+process of fusing UWB-WSN and IMU measurements with a
+state estimation algorithm to estimate the indoor position of a
+UAV. Subsequently, we formulate the problem to be solved in
+UAV localization based on state estimation algorithms.
+A. State Vector
+The state vector and its components for UAV 3-D position-
+ing using IMU and UWB-WSN measurements are described
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:48 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+2576
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 2, 15 JANUARY 2026
+Fig. 1. Sensors for positioning and frames considered in the UAV system.
+as follows:
+x =
+
+xT
+n xT
+b
+T ∈R16
+(1)
+where xn = [G
+IqT
+GpIT
+GvIT]T ∈R10 is the navigation state
+and xb = [bT
+g bT
+a ]T ∈R6 is the IMU bias state. The quaternion
+G
+Iq represents the rotation from the sensing frame of IMU {I}
+to the global frame {G}. Frame {I} is attached to UAV’s IMU,
+while frame {G} is a ﬁxed local-vertical reference frame [28]
+(see Fig. 1). Vectors GpI and GvI in R3 are the position and
+velocity of {I} in {G}, respectively. Vectors bg and ba in R3
+are the gyroscope and accelerometer bias of IMU, respectively,
+which satisfy
+ωm = Iω + bg + ng
+(2)
+am = Ia + ba + na
+(3)
+where ωm and am are the gyroscope and accelerometer mea-
+surements, respectively. Iω and Ia are the rotational velocity
+and the linear acceleration in {I}, respectively. ng and na are
+the zero-mean white Gaussian noises.
+The true state of the system can be expressed as a decom-
+position into the nominal state ¯x and error state δx, as follows:
+x = ¯x ⊞δx =
+2
+66664
+G
+I ¯q ⊗δq
+G ¯pI + δp
+G ¯vI + δv
+¯bg + δbg
+¯ba + δba
+3
+77775
+(4)
+where ⊞is the generic composition operator and δx
+=
+[δθT δpT δvT δbT
+g δbT
+a ]T ∈R15. The angle error δθ ∈R3
+corresponds to the quaternion error δq = ¯q−1 ⊗q, which can
+be approximated as δq ≈
+
+1 1
+2δθTT for small errors [29].
+In the equivalent rotation matrix representation, δθ satisﬁes
+G
+IR = G
+I ¯R exp(δθ) ≈G
+I ¯R(I3 +[δθ]×), where the rotation matrix
+G
+IR ∈SO(3) is related to G
+Iq.
+B. Motion Model
+The continuous-time motion model of the system is repre-
+sented as follows:
+G
+I ˙q = 1
+2Ω
+ Iω
+ G
+Iq,
+G ˙pI = GvI,
+G ˙vI = G
+IR Ia −Gg
+˙bg = nwg, ˙ba = nwa
+(5)
+where Ω(Iω) =
+ 0
+−IωT
+Iω −[Iω]×
+
+and nwg and nwa are the
+zero-mean white Gaussian noises. Gg = [0 0 9.8]T is a
+constant vector representing gravitational acceleration in {G}.
+The integration of (5) over the time interval [k, k + 1] derives
+the relationship between the discrete-time states at k and k+1
+as follows [26]:
+G
+Ik+1R = G
+IkR∆Rk
+(6)
+GpIk+1 = GpIk + GvIk δtk + G
+IkR∆pk −1
+2
+Gg δt2
+k
+(7)
+GvIk+1 = GvIk + G
+IkR∆vk −Gg δtk
+(8)
+bg,k+1 = bg,k +
+Z tk+1
+tk
+nwg dτ
+(9)
+ba,k+1 = ba,k +
+Z tk+1
+tk
+nwa dτ
+(10)
+where k, Ik, and δtk = tk+1 −tk are the time step index,
+{I} at k, and the sampling time, respectively. In (6)–(10),
+inertial values Iω and Ia are embedded within the integration
+quantities ∆Rk =
+Ik
+Ik+1R, ∆pk, and ∆vk, which satisfy
+∆Rk = exp
+Z tk+1
+tk
+Iτω dτ
+
+(11)
+∆pk =
+Z tk+1
+tk
+Z s
+tk
+Ik
+IτR Iτa dτ ds
+(12)
+∆vk =
+Z tk+1
+tk
+Ik
+IτR Iτa dτ.
+(13)
+Assuming that the nominal values of Iτω and Iτa remain
+constant at Ik ¯ω = ωm,k −¯bg,k and Ik ¯a = am,k −¯ba,k, respectively,
+within time interval [k, k + 1], and deﬁning Ik ˜ω = Ikω −Ik ¯ω,
+Ik ˜a = Ika −Ik ¯a, and ∆¯θk = Ik ¯ω δtk, (11)–(13) are linearized as
+follows:
+∆Rk = ∆¯Rk∆˜Rk
+∆pk = ∆¯pk + ∆˜pk, ∆vk = ∆¯vk + ∆˜vk
+(14)
+where
+∆¯Rk = exp
+ ∆¯θk
+
+, ∆˜Rk = exp
+ Jr
+ ∆¯θk
+ Ik ˜ω δtk
+
+(15)
+∆¯pk = ¯Ξ2
+Ik ¯a, ∆˜pk = −Ξ4
+Ik ˜ω + Ξ2
+Ik ˜a
+(16)
+∆¯vk = ¯Ξ1
+Ik ¯a, ∆˜vk = −Ξ3
+Ik ˜ω + Ξ1
+Ik ˜a
+(17)
+and the deﬁnitions of integrated components Ξ1, Ξ2, Ξ3, and
+Ξ4 can be found in [26]. Considering the state decomposition
+in (4) and using Ik ˜ω = −δbg,k −ng,k and Ik ˜a = −δba,k −na,k,
+the discrete-time error-state dynamics is obtained from the
+linearization of (6)–(10) around the nominal state ¯xk, as
+follows:
+δxk+1 ≃Φk,k+1δxk + wk
+(18)
+wk = Lknk
+(19)
+Φk,k+1 =
+Φnn
+Φnb
+06×9
+I6
+
+, Lk =
+Φnb
+09×6
+06×6
+δtkI6
+
+(20)
+Φnn =
+2
+64
+∆¯RT
+k
+03
+03
+−G
+Ik ¯R
+
+∆¯pk
+
+×
+I3
+δtkI3
+−G
+Ik ¯R [∆¯vk]×
+03
+I3
+3
+75
+(21)
+Φnb =
+2
+4
+−Jr
+ ∆¯θk
+
+δtk
+03
+G
+Ik ¯R ¯Ξ4
+−G
+Ik ¯R ¯Ξ2
+G
+Ik ¯R ¯Ξ3
+−G
+Ik ¯R ¯Ξ1
+3
+5
+(22)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:48 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+LEE et al.: REFMP ALGORITHM FOR ROBUST UAV POSITIONING
+2577
+where Φk,k+1 denotes the state transition matrix from time
+step k to k + 1, 0p is a p × p square zero matrix and nk =
+[nT
+g,k nT
+a,k nT
+wg,k nT
+wa,k]T refers to the discrete-time IMU noises.
+C. Measurement Model
+The general measurement equation can be represented as
+follows:
+zk = hk (xk) + vk
+(23)
+where zk
+∈Rqk is the measurement at time step k and
+vk denotes the measurement noise which is white Gaussian.
+Assuming E[δxk−1] = δˆxk−1 and using (18), a priori estimate
+δˆx−
+k = δˆxk|k−1 satisﬁes δˆx−
+k = Φk−1,kδˆxk−1. The linearized form
+of the measurement equation (23) can be obtained as follows:
+zk = hk (¯xk ⊞δxk) + vk
+≃ˆzk|k−1 + Hk
+ δxk −δˆx−
+k
+
++ vk
+(24)
+where ˆzk|k−1 = hk(¯xk ⊞δˆx−
+k ) is the predicted measurement
+and Hk = (∂hk)/(∂x)(∂x)/(∂δx)|¯x=¯xk,δx=δˆx−
+k is the measurement
+Jacobian. Nominal state ¯xk is propagated from time step
+k −1 to k using (6)–(10). Deﬁning the auxiliary measurement
+˜zk = zk −hk(¯xk ⊞δˆx−
+k ) + Hkδˆx−
+k induces
+˜zk ≃Hkδxk + vk.
+(25)
+In the UAV system, IpT, the position of the UWB tag
+frame {T} in {I} and the stationary positions of the anchors
+in {G}, GpA1, GpA2, . . . , GpAna are known constants, where
+na is the number of UWB anchors. Considering the UWB
+tag–anchor distances and magnetometer measurements, hk in
+(23) is represented as follows:
+hk (xk) =
+(
+d1 d2, . . . , dna
+T ,
+k ∈κ1
+Ik
+GR Gm,
+k ∈κ2
+(26)
+where da = ∥GpTk −GpAa∥= ∥GpIk + G
+IkR IpT −GpAa∥is the
+tag–anchor distance and Gm ∈R3 is the Earth’s magnetic
+ﬁeld vector in {G}, which is known. κ1 and κ2 denote the
+sets of time steps at which the UWB tag–anchor distance and
+magnetometer measurements are received, respectively.
+Using equalities (∂)/(∂ζ)∥ζ∥= ζT/∥ζ∥, [Rζ]× = R[ζ]×RT,
+and (∂)/(∂ζ){[ζ]×η} = −[η]× for ζ, η ∈R3 and R ∈SO(3), Hk
+is obtained as follows:
+Hk =
+8
+<
+:
+Dk
+h
+−G
+Ik ¯R
+IpT
+
+× I3 03 03 03
+i
+,
+k ∈κ1
+h
+G
+Ik ¯RT Gm
+
+×
+G
+Ik ¯R 03 03 03 03
+i
+,
+k ∈κ2
+(27)
+where Dk = [d1 d2, . . . , dna]T, da = (G ¯pTk −GpAa)/(∥G ¯pTk −
+GpAa∥) ∈R3 is the nominal unit direction vector from each
+anchor to tag. The observability analysis of the positioning
+system described above is provided in the Appendix.
+Remark 1: If the tag and anchors are all located on the same
+plane, Dk is rank deﬁcient. To achieve a better observability
+property of the system, we place the anchors so that they
+do not lie on the same plane, ensuring that Dk is of full
+rank. The minimum number of anchors required to satisfy this
+condition is four (see [10]). With a larger number of anchors,
+the probability of avoiding NLOS situations increases, and the
+accuracy of positioning improves, but the cost and communi-
+cation burden also increase. Finding the optimal number and
+placement method for anchors is a separate research topic, and
+the results can be found in [30] and [31].
+D. Problem Formulation
+Given a motion model (18) and a measurement model
+(24), which are state-space models based on error states, the
+UAV’s position can be estimated by applying state estimation
+algorithms such as ESEKF, IESKF, and TC-AEKF. These
+algorithms are based on the EKF, and recursive Bayesian
+ﬁlters like EKF, UKF, and PF all have an IM structure.
+The state estimation algorithm for the IM structure sets
+an initial estimate and then iteratively performs prediction
+and correction steps at each time step, using the state-space
+model and sensor measurements to update the state estimation.
+Therefore, past information is fully reﬂected in the current
+estimate, and the inﬂuence of various errors, such as modeling
+errors or measurement errors, accumulates over time, poten-
+tially decreasing the estimation accuracy or even causing the
+estimate to diverge. Also, in the IM structure, initial estimates
+need to be set, and if this information signiﬁcantly diﬀers from
+the actual values, the error will continuously aﬀect subsequent
+time steps, degrading the estimation performance. In the case
+of UAVs, they are easily aﬀected by wind in the air, and
+indoors, and they can collide with objects or cause errors in
+sensor readings when making rapid, high-speed maneuvers.
+These disturbances, sensor errors, and others introduce errors
+into the state-space model for UAV position estimation, and
+these errors can accumulate, degrading position estimation
+performance. In summary, existing algorithms for 3-D UAV
+localization are not robust to errors arising from the IM
+structure in UAV ﬂight environments, as well as errors in
+initial estimates. In this study, we develop a new FM structure-
+based localization algorithm based on error states to solve
+this problem. The algorithm being developed is robust to
+initial position estimation errors, motion model errors caused
+by wind or collisions with objects, and sensor measurement
+errors. It maintains consistent position estimation accuracy
+under various conditions and has a computational load that
+allows for real-time processing.
+III. REFMP ALGORITHM
+This section proposes the REFMP algorithm for the UAV
+3-D positioning. Suppose the approximation errors and uncer-
+tainties occurred in linearized equations (18) and (25) as µ and
+ν, respectively. Then, the linearized state-space equations for
+the error state can be written as follows:
+δxk+1 = Φk,k+1δxk + wk + µk
+(28)
+˜zk = Hkδxk + vk + νk.
+(29)
+Considering information within a ﬁnite-time interval (i.e.,
+horizon) [i, k], where the horizon size is deﬁned as Nhorizon =
+k−i, the error state and the augmented auxiliary measurement
+at time step k are represented using δxi, as follows:
+δxk = Φi,kδxi + Ci,k−1
+ Wi,k−1 + Mi,k−1
+
+(30)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:48 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+2578
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 2, 15 JANUARY 2026
+˜Zi,k = Ai,kδxi + Bi,k
+ Wi,k−1 + Mi,k−1
+
++ Vi,k + Ni,k
+(31)
+where
+Ci,k−1 =
+
+Φi+1,k Φi+2,k, . . . , Φk,k
+
+Ai,k =
+2
+6664
+HiΦi,i
+Hi+1Φi,i+1
+...
+HkΦi,k
+3
+7775
+Bi,k =
+
+βi+1 βi+2, . . . , βk
+
+βj =
+0(qi+qi+1+···+qj−1)×n
+Aj,k
+
+and
+Wi,k−1
+=
+[wT
+i
+wT
+i+1,
+. . . ,
+wT
+k−1]T,
+Mi,k−1
+=
+[µT
+i
+µT
+i+1,
+. . . , µT
+k−1]T, ˜Zi,k = [˜zT
+i
+˜zT
+i+1,
+. . . , ˜zT
+k ]T, Vi,k =
+[vT
+i
+vT
+i+1,
+. . . , vT
+k ]T, and Ni,k = [νT
+i
+νT
+i+1,
+. . . , νT
+k ]T are
+augmented vectors.
+Based on the measurements within the horizon, we propose
+an estimate of the error state in the batch form
+δˆxk|[i,k] = Ψi,k ˜Zi,k
+(32)
+where Ψi,k denotes the batch gain, and its closed form will be
+derived. Subscript k|[i, k] indicates the value at time step k,
+which is derived based on the information within the horizon
+[i, k]. Using (30)–(32), the error of the batch form estimate
+ek|[i,k] = δˆxk|[i,k] −δxk can be represented as follows:
+ek|[i,k] =
+ Ψi,kAi,k −Φi,k
+
+δxi
++
+ Ψi,kBi,k −Ci,k−1
+  Wi,k−1 + Mi,k−1
+
++ Ψi,k
+ Vi,k + Ni,k
+
+.
+(33)
+To formulate the adverse impact of the linearization error
+and uncertainty on error-state estimation, we introduce the
+Frobenius norm of the expectation of a weighted uncertainty
+ρi,k−1 = ∥E
+h
+Θ
+1
+2
+i,k−1Mi,k−1
+i
+∥F
+(34)
+σi,k = ∥E
+h
+Ξ
+1
+2
+i,kNi,k
+i
+∥F
+(35)
+where Θi,k−1 = diag(θiI15, θi+1I15, . . . , θk−1I15) and Ξi,k =
+diag(ξiIqi, ξi+1Iqi+1, . . . , ξkIqk) which are user-deﬁned param-
+eters. If the estimator gains satisfy the constraint
+Ψi,kAi,k −Φi,k = 0
+(36)
+the upper bound of ∥E[ek|[i,k]]∥F is obtained as follows:
+∥E
+
+ek|[i,k]
+
+∥F ≤∥
+ Ψi,kBi,k −Ci,k−1
+
+Θ
+−1
+2
+i,k−1∥Fρi,k−1
++ ∥Ψi,kΞ
+−1
+2
+i,k ∥Fσi,k.
+(37)
+We then introduce a cost function for determining Ψi,k, as
+follows:
+Jk|[i,k] = 1
+2α∥
+ Ψi,kBi,k −Ci,k−1
+
+Θ
+−1
+2
+i,k−1∥2
+F
++ 1
+2 (1 −α) ∥Ψi,kΞ
+−1
+2
+i,k ∥2
+F
+(38)
+where α denotes a scalar weighting factor that satisﬁes 0 <
+α < 1. As shown in (37), the upper bound of ∥E[ek|[i,k]]∥F is
+inﬂuenced by ρi,k−1 and σi,k, which are the Frobenius norms
+related to the uncertainties. By minimizing (38), we can design
+Ψi,k to reduce the adverse impact of the linearization error
+and uncertainty on the error-state estimation. Furthermore, the
+diagonal entries of the matrices Θi,k−1 and Ξi,k, which are
+design parameters, correspond to the elements of the approx-
+imation error vectors µ and ν at each time step. Providing
+these matrices appropriately allows for targeted reduction of
+the adverse eﬀects caused by speciﬁc elements at particular
+time steps. Finally, the optimization problem is presented as
+follows:
+minimize
+Ψi,k
+Jk|[i,k]
+subject to
+(36).
+(39)
+Theorem 1 provides the solution of (39).
+Theorem 1: The closed-form solution of Ψi,k that satisﬁes
+(39) is as follows:
+Ψi,k =
+ αS i,k + Λi,kAT
+i,k
+
+Σ−1
+i,k
+(40)
+where
+S i,k = Ci,k−1Θ−1
+i,k−1BT
+i,k
+(41)
+Λi,k =
+ Φi,k −αS i,kΣ−1
+i,k Ai,k
+  AT
+i,kΣ−1
+i,k Ai,k
+−1
+(42)
+Σi,k = αBi,kΘ−1
+i,k−1BT
+i,k + (1 −α) Ξ−1
+i,k .
+(43)
+Proof: To minimize Jk|[i,k] while satisfying the provided
+equality constraint (39), we employ the Lagrange multiplier
+method. The Lagrangian function is deﬁned as follows:
+Lk|[i,k] = Jk|[i,k] −λTvec
+ Ψi,kAi,k −Φi,k
+
+(44)
+where λ ∈R152 is the Lagrange multiplier. For a square matrix
+Λ ∈R15×15 that satisﬁes vec(Λ) = λ, (44) can be rewritten as
+follows:
+Lk|[i,k] = Jk|[i,k] −vec (Λ)T vec
+ Ψi,kAi,k −Φi,k
+
+= Jk|[i,k] −tr
+
+ΛT  Ψi,kAi,k −Φi,k
+
+.
+(45)
+The partial derivative of (45) with respect to Ψi,k yields
+∂Lk|[i,k]
+∂Ψi,k
+= α
+ Ψi,kBi,kΘ−1
+i,k−1BT
+i,k −Ci,k−1Θ−1
+i,k−1BT
+i,k
+
++ (1 −α) Ψi,kΞ−1
+i,k −ΛAi,k.
+(46)
+Under the condition that the partial derivative is a zero matrix,
+the following holds:
+Ψi,kΣi,k = αS i,k + ΛAT
+i,k
+(47)
+where Σi,k
+=
+αBi,kΘ−1
+i,k−1BT
+i,k + (1 −α)Ξ−1
+i,k
+and S i,k
+=
+Ci,k−1Θ−1
+i,k−1BT
+i,k. From (36), Φi,k
+=
+Ψi,kAi,k
+=
+(αS i,k +
+ΛAT
+i,k)Σ−1
+i,k Ai,k. Therefore,
+Λ =
+ Φi,k −αS i,kΣ−1
+i,k Ai,k
+  AT
+i,kΣ−1
+i,k Ai,k
+−1 .
+(48)
+Substituting Λ into Λi,k induces (40), completing the proof.□
+The system matrices of the error-state system (28) and
+(29) are evaluated based on the state estimation. We derive
+the recursive form of (32) to enable the evaluation of the
+system matrices and the update of the error-state estimation
+by incorporating the measurements within the horizon [i, k].
+The result is shown in Theorem 2.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:48 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+LEE et al.: REFMP ALGORITHM FOR ROBUST UAV POSITIONING
+2579
+Theorem 2: Consider a ﬁxed-size horizon that moves for-
+ward over time, including the current time step index as its
+ﬁnal value. For each horizon [i, k], the error-state estimation
+(32) using gain (40) is obtained through the following recur-
+sions for l ∈[ j + 1, k], where j ∈[i, k −1] ensures AT
+i,jΣ−1
+i, j Ai,j
+is invertible
+δˆx−
+l = Φl−1,lδˆxl−1|[i,l−1]
+(49)
+δˆxl|[i,l] = δˆx−
+l + Kl
+ zl −ˆzl|l−1
+
+(50)
+where
+Kl =
+ αTl−1 + Φl−1,lGl−1ΦT
+l−1,l
+
+HT
+l Γl
+×
+ I + HlΦl−1,lGl−1ΦT
+l−1,lHT
+l Γl
+−1
+(51)
+Γl =
+ (1 −α) ξ−1
+l I + αHlTl−1HT
+l
+−1
+(52)
+Tl−1 = Φl−1,l
+ I −αTl−2HT
+l−1Γl−1Hl−1
+
+Tl−2ΦT
+l−1,l
++ θ−1
+l−1I
+(53)
+Gl−1 =
+ I −αTl−2HT
+l−1Γl−1Hl−1
+
+×
+ I + Gl−2ΦT
+l−2,l−1HT
+l−1Γl−1Hl−1Φl−2,l−1
+−1
+× Gl−2
+ I −αTl−2HT
+l−1Γl−1Hl−1
+T
+(54)
+with initial conditions
+Tj = Φj,j+1Ci,j−1Θ−1
+i, j−1CT
+i,j−1ΦT
+j, j+1 + θ−1
+j I
+−αΦj, j+1S i,jΣ−1
+i, j S T
+i, jΦT
+j,j+1
+(55)
+G j =
+ Φi, j −αS i, jΣ−1
+i,j Ai, j
+  AT
+i,jΣ−1
+i, j Ai,j
+−1
+×
+ Φi,j −αS i, jΣ−1
+i,j Ai, j
+T .
+(56)
+Proof: Since Ai, j is the observability matrix within time
+step interval [i, j], Σi, j is positive deﬁnite, and AT
+i, jΣ−1
+i,j Ai, j is
+invertible if the system is observable within [i, j]. Solution
+(40) can be rewritten as follows:
+Ψi,k = (Ψ1)i,k + (Ψ2)i,k (Ψ3)i,k (Ψ4)i,k
+(57)
+where (Ψ1)i,k = αS i,kΣ−1
+i,k , (Ψ2)i,k = Φi,k−αS i,kΣ−1
+i,k Ai,k, (Ψ3)i,k =
+(AT
+i,kΣ−1
+i,k Ai,k)−1, and (Ψ4)i,k = AT
+i,kΣ−1
+i,k , respectively. Since
+Bi,k =
+
+Bi,k−1
+0
+HkΦk−1,kCi,k−2 Hk
+
+(58)
+Ci,k−1 =
+
+Φk−1,kCi,k−2 I
+
+(59)
+we ﬁnd
+S i,k =
+
+Φk−1,kS i,k−1 Ωk−1HT
+k
+
+(60)
+Σi,k =
+Σi,k−1
+0
+0
+(1 −α) ξ−1
+k I
+
++ α
+
+0
+S T
+i,k−1ΦT
+k−1,kHT
+k
+HkΦk−1,kS i,k−1
+HkΩk−1HT
+k
+
+(61)
+where Ωk−1 = Φk−1,kCi,k−2Θ−1
+i,k−2CT
+i,k−2ΦT
+k−1,k + θ−1
+k−1I. For two
+invertible square matrices X and Y of the same dimension,
+(X + Y)−1 = X−1(I + YX−1)−1 is satisﬁed by the matrix
+inversion lemma. Applying
+X =
+Σi,k−1
+0
+0
+(1 −α) ξ−1
+k I
+
+Y = α
+
+0
+S T
+i,k−1ΦT
+k−1,kHT
+k
+HkΦk−1,kS i,k−1
+HkΩk−1HT
+k
+
+induces
+I + YX−1
+=
+
+I
+α
+1−αξkS T
+i,k−1ΦT
+k−1,kHT
+k
+αHkΦk−1,kS i,k−1Σ−1
+i,k−1
+I +
+α
+1−αξkHkΩk−1HT
+k
+
+.
+(62)
+Using the Schur complement of I on the right-hand side of
+(62), which is denoted as C = I+(1)/(1−α)ξkHkTk−1HT
+k , where
+Tk−1 = Ωk−1 −αΦk−1,kS i,k−1Σ−1
+i,k−1S T
+i,k−1ΦT
+k−1,k, the inversion of
+(61) can be represented as follows:
+Σ−1
+i,k =
+Σ−1
+i,k−1 + X TΓkX −X TΓk
+−ΓkX
+Γk
+
+(63)
+where X = αHkΦk−1,kS i,k−1Σ−1
+i,k−1 and Γk = (1)/(1 −α)ξkC−1 =
+((1 −α)ξ−1
+k I + αHkTk−1HT
+k )−1. Based on (58)–(60), (63), and
+equality Ai,k =
+ Ai,k−1
+HiΦi,k
+
+, the gains (Ψ1)i,k, (Ψ2)i,k, (Ψ3)i,k, and
+(Ψ4)i,k can be represented as follows:
+(Ψ1)i,k
+=
+ I −αTk−1HT
+k ΓkHk
+
+Φk−1,k (Ψ1)i,k−1 , αTk−1HT
+k Γk
+
+(64)
+(Ψ2)i,k =
+ I −αTk−1HT
+k ΓkHk
+
+(Ψ2)i,k−1
+(65)
+(Ψ3)i,k =
+
+I + (Ψ3)i,k−1 (Ψ2)T
+i,k−1
+×ΦT
+k−1,kHT
+k ΓkHkΦk−1,k (Ψ2)i,k−1
+−1 (Ψ3)i,k−1
+(66)
+(Ψ4)i,k
+=
+
+(Ψ4)i,k−1 −(Ψ2)T
+i,k−1 ΦT
+k−1,kHT
+k ΓkHkΦk−1,k (Ψ1)i,k−1 ,
+(Ψ2)T
+i,k−1 ΦT
+k−1,kHT
+k Γk
+
+.
+(67)
+Using (64)–(67) and (I+AB)−1A = A(I+BA)−1 by the matrix
+inversion lemma
+(Ψ1)i,k + (Ψ2)i,k (Ψ3)i,k (Ψ4)i,k
+=
+
+(I −KkHk) Φk−1,k
+×
+ (Ψ1)i,k−1 + (Ψ2)i,k−1 (Ψ3)i,k−1 (Ψ4)i,k−1
+
+Kk
+
+=
+
+(I −KkHk) Φk−1,kΨi,k−1
+Kk
+
+(68)
+where
+Kk =
+ αTk−1HT
+k Γk + Φk−1,kGk−1ΦT
+k−1,kHT
+k Γk
+
+×
+ I + HkΦk−1,kGk−1ΦT
+k−1,kHT
+k Γk
+−1
+(69)
+Gk−1 = (Ψ2)i,k−1(Ψ3)i,k−1(Ψ2)T
+i,k−1.
+(70)
+Using Ωk−1 = Φk−1,kΩk−2ΦT
+k−1,k + θ−1
+k−1I, (60) and (64)–(67)
+induces
+Tk−1 = Φk−1,k
+ I −αTk−2HT
+k−1Γk−1Hk−1
+
+Tk−2ΦT
+k−1,k
++ θ−1
+k−1I
+(71)
+Gk−1 =
+ I −αTk−2HT
+k−1Γk−1Hk−1
+
+×
+ I + Gk−2ΦT
+k−2,k−1HT
+k−1Γk−1Hk−1Φk−2,k−1
+−1
+× Gk−2
+ I −αTk−2HT
+k−1Γk−1Hk−1
+T
+(72)
+which validate (53) and (54). Using (68), the batch form
+estimate (32) can be represented as follows:
+δˆxk|[i,k] = (I −KkHk) Φk−1,kΨi,k−1 ˜Zi,k−1 + Kk˜zk
+(73)
+which is the result of (49) and (50). Substituting any value
+within the interval [ j, k] instead of k in (73) still holds provided
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:48 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+2580
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 2, 15 JANUARY 2026
+Algorithm 1 REFMP Algorithm
+(Ψ3)i,k is feasible (i.e., AT
+i,jΣ−1
+i, j Ai,j is invertible). Therefore, by
+applying the recursion rules (49) and (50) for all l within the
+interval [j, k] through similar processes, the solution remains
+the same. Since Tj
+= Ωj −αΦj, j+1S i,jΣ−1
+i, j S T
+i, jΦT
+j, j+1 and
+G j = (Ψ2)i,j(Ψ3)i, j(Ψ2)T
+i, j, (55) and (56) can be obtained. This
+completes the proof.□
+The proposed REFMP algorithm is summarized as shown
+in Algorithm 1 and Fig. 2. The algorithm utilizes the measure-
+ments within the horizon [i, k] and the initial state estimation
+x0 = [qT
+0 pT
+0 vT
+0 bT
+g,0 bT
+a,0]T for initialization. During the
+initialization stage, we compute Ti−1 and Gi−1, which are the
+initial values of the matrices that will be recursively updated
+throughout the horizon. Considering time step index i −1,
+where ti −ti−1 is suﬃciently close to 0, we have Φi−1,i = I15.
+Assuming that x0 is given with zero error state at i−1, we have
+˜zi−1 = 0 and Hi−1 = H0 := (∂x)/(∂δx)|¯x=x0,δx=0 =
+Hδθ 0
+0
+I12
+
+,
+where Hδθ = ML(q0)(∂δq)/(∂δθ)|δx=0 = 1/2ML(q0)
+01×3
+I3
+
+and ML(·) denotes the left quaternion product matrix [32]. The
+initial iterative matrices Ti−1 and Gi−1 can be now computed
+using (55) and (56). The rest of the algorithm consists of
+iteratively applying Theorem 2 to compute the current state
+estimation ˆxk.
+It should be noted that the ﬁnal estimate ˆxk only depends on
+the user-deﬁned initialization value x0 and the measurements
+within the interval [i, k] and is independent of any information
+prior to time step i. The algorithm is executed at each time
+step based on the values within the current horizon, which
+moves forward with each step.
+IV. VALIDATION
+To validate the performance of the proposed positioning
+algorithm, we considered three scenarios: 1) hovering; 2) col-
+lision; and 3) complex maneuvers. The UAV collision with
+a structure was only simulated to avoid damaging UAV, and
+the complex maneuver scenario was only experimented with.
+The hovering scenario was both simulated and experimented
+with to validate the reliability of the results through cross
+comparison.
+We compar the proposed REFMP algorithm with state-of-
+the-art algorithms: ESEKF [16], IESKF [19], and TC-AEKF
+[20]. The design parameters for the comparison algorithms
+were set as follows.
+1) Covariance of ng (23): 0.002 I3.
+2) Covariance of na (23): 0.05 I3.
+3) Covariance of nwg (23): 0.0001 I3.
+4) Covariance of nwa (23): 0.001 I3.
+5) Covariance of vk (23) and (26): 0.01 I3 for k ∈κ1 and
+0.05 I4 for k ∈κ2.
+The design parameters of REFMP were set as Nhorizon = 50,
+α = 0.5, θn = 1 for n ∈[i, k −1], and ξn = 1/(k −n + 1)0.5 for
+n ∈[i, k].
+To compare the positioning performance of the algorithms,
+the positioning error for each time step, ek, and the averaged
+positioning error (APE) were calculated as follows:
+ek =
+q
+(xk −ˆxk)2 + (yk −ˆyk)2 + (zk −ˆzk)2
+(74)
+APE = 1
+n f
+nf
+X
+k=1
+ek
+(75)
+where (xk, yk, zk) and (ˆxk, ˆyk, ˆzk) are the true and estimated
+3-D coordinates, respectively, and n f is the ﬁnal time step. All
+coordinates and distances used in this article are in meters.
+A. Simulation
+The simulation was performed with software in the loop
+(SITL) supported by the open-source project PX4 Autopilot.
+As a simulator, we used Gazebo, which has a realistic physics
+engine and sensor models. Robot Operating System 2 (ROS2)
+was used to send and receive sensor data and control inputs.
+UAV used in the simulation was a quadcopter. Four anchor
+devices were used in UWB-WSN, and their coordinates in
+the global coordinate system are (−4.5, 4.5, 2), (−4.5, −4.5, 0),
+(4.5, −4.5, 2), and (4.5, 4.5, 0) m. For the distance measure-
+ments between the UWB tag (mobile device) and the anchors,
+we generate a measurement noise that follows a polynomial
+function, referring to [8]. UAV was not ﬂown on a preplanned
+path but rather reacted in real time to the user’s manual
+maneuvers.
+1) Hovering: In the ﬁrst scenario, the algorithms started
+positioning when the UAV was hovering after takeoﬀ. Posi-
+tioning without knowing the initial position is called the global
+localization problem, which is a more challenging problem
+compared with position tracking, where an initial position is
+given [33]. Since the initial position is not known, the initial
+position input to the positioning algorithms is usually set to be
+the origin of the coordinate system. In this scenario, the actual
+coordinate of UAV is (−3.5, −2, 1.25). Fig. 3 shows the true
+and estimated 3-D trajectories of UAV in a simulation with a
+hovering scenario. Fig. 4 shows the changes in the x-, y-, and
+z-coordinates over time. Since UAV is hovering, each coordi-
+nate remains nearly constant; however, slight ﬂuctuations are
+observed in the y-coordinate. The initial estimated positions
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:48 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+LEE et al.: REFMP ALGORITHM FOR ROBUST UAV POSITIONING
+2581
+Fig. 2.
+Overview of the proposed REFMP algorithm. P and C inside the
+squares represent state propagation (6)–(10) and composition operation (4),
+respectively. Each recursive process block refers to (49), (50), (53), and (54).
+Fig. 3.
+3-D trajectory resulting from UAV positioning simulation with the
+hovering scenario.
+of the three comparison algorithms (ESEKF, IESKF, and TC-
+AEKF) were set at the origin, and they gradually approached
+the actual position (ground truth) over time. It can be observed
+that it takes approximately 20 s for the estimated positions of
+the comparison algorithms to converge near the actual position.
+Fig. 5 presents the positioning error over time. The three
+conventional algorithms exhibit large initial positioning errors,
+and it takes more than 20 s for their errors to decrease close to
+0. Notably, TC-AEKF shows the largest error, indicating that
+while TC-AEKF is robust to uncertainties in noise statistics, it
+is vulnerable to inaccuracies in the initial position information.
+In contrast, the proposed REFMP demonstrates highly accurate
+positioning from the beginning, which veriﬁes its superior
+performance in global localization scenarios where the initial
+position is uncertain. The reason REFMP is robust to initial
+errors is that the ﬁlter gain is derived to minimize terms
+directly and indirectly aﬀected by initial estimation errors, and
+REFMP has an FM structure, so the eﬀects of errors do not
+persist.
+2) Collision:
+In the second scenario, UAV started at
+approximately (−1, −2, 3), collided with a wall at (−2.5, −1, 3),
+and then resumed ﬂight to reach its ﬁnal position at
+(2, −1.5, 3). Fig. 6 shows scenes from the Gazebo simulation
+using this collision scenario. Fig. 7 illustrates that when the
+collision occurs (around 12 s), the IMU measurements exhibit
+signiﬁcant disturbances, leading to large positioning errors.
+Fig. 8 presents the UAV’s 3-D trajectory under the collision
+Fig. 4.
+Trajectories resulting from UAV positioning simulation with the
+hovering scenario. (a) X-, (b) Y-, and (c) Z-coordinates.
+Fig. 5. Positioning error resulting from UAV positioning simulation with the
+hovering scenario.
+Fig. 6.
+Simulation of a collision between a UAV and a wall in Gazebo
+simulator.
+scenario, and Fig. 9 shows the corresponding positioning error.
+Prior to the collision, which occurs around 12 s, the positioning
+errors of the three comparison algorithms were initially large
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:48 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+2582
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 2, 15 JANUARY 2026
+Fig. 7. Changes in IMU measurements at the time of collision (around 12 s).
+(a) Angular velocity. (b) Linear acceleration.
+Fig. 8. 3-D trajectory of the UAV in the simulation with the collision scenario.
+Fig. 9. Positioning error of UAV in the simulation with the collision scenario.
+but gradually decreased over time. Before the collision, the
+positioning error decreased more rapidly than in the hovering
+scenario. This was because, in the hovering scenario, the
+UAV’s position remained mostly stationary, resulting in little
+variation in the UWB-WSN-based distance measurements,
+which slowed the error correction process. In contrast, in the
+Fig. 10. Setup for the UAV positioning experiments.
+collision scenario, the UAV continued to move, leading to
+richer variations in UWB-WSN distance measurements and
+thus enabling faster error reduction. However, at around 12 s,
+a collision occurred, causing signiﬁcant disturbances in the
+IMU measurements and resulting in a sharp increase in the
+positioning error. As a result, ESEKF and TC-AEKF failed to
+converge their estimated positions to the true position by the
+time the UAV reached its ﬁnal destination. Although IESKF
+temporarily degraded positioning performance due to the colli-
+sion, it recovered and achieved relatively accurate convergence
+after the collision event. In contrast, the proposed REFMP
+maintained a positioning error of less than 0.2 m throughout
+the simulation under the collision scenario, demonstrating its
+robustness under such challenging conditions.
+B. Experiment
+The experimental setup is displayed in Fig. 10. The pro-
+posed algorithm was designed for GNSS-denied environments,
+such as indoor spaces; however, the experiment was conducted
+outdoors in order to obtain ground truth data using real-time
+kinematics positioning GNSS (RTK-GNSS) for evaluating
+the positioning error. The UAV used in the experiment was
+equipped with the Pixhawk 6C Mini ﬂight controller, which
+incorporates a nine-degree of freedom (DOF) IMU. UAV was
+equipped with a companion computer (Raspberry Pi 4B). The
+remote PC featured a quad-core Intel CPU from the 11th
+generation i7 series, with 16-GB RAM. Both the remote
+PC and companion computer ran on Ubuntu 22.04 with the
+ROS2 Humble distribution. The UWB tag and anchors were
+conﬁgured using the Decawave DWM1000. The horizontal
+ground truth position was obtained from RTK-GNSS data,
+oﬀering an accuracy of 0.01 m. For the vertical ground truth
+position, a time-of-ﬂight (ToF)-based range sensor mounted on
+the UAV and facing the ground was used, which also provided
+an accuracy of 0.01 m. The measurements from the gyroscope,
+accelerometer, magnetometer, UWB, RTK-GNSS, and range
+sensor were recorded at rates of 30, 30, 10, 10, 10, and
+10 Hz, respectively. The positioning algorithms were imple-
+mented and run on the remote PC using MATLAB 2023a.
+The coordinates of the four anchors in the global coordinate
+system were (2.3, 3.5, 0.2), (−2.3, 3.5, 2), (−2.3, −3.5, 0.2), and
+(2.3, −3.5, 2) m.
+1) Hovering: The ﬁrst experimental scenario was hovering.
+This scenario is nearly identical to that used in the simulation,
+with the only diﬀerence being the hovering position, which
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:48 UTC from IEEE Xplore.  Restrictions apply. 
+[p.10]
+LEE et al.: REFMP ALGORITHM FOR ROBUST UAV POSITIONING
+2583
+Fig. 11. 3-D trajectory resulting from UAV positioning experiment with the
+hovering scenario.
+Fig. 12.
+Trajectories resulting from UAV positioning experiment with the
+hovering scenario. (a) X-, (b) Y-, and (c) Z-coordinates.
+was changed to (−0.5, −2, 1). Fig. 11 shows the estimated
+3-D trajectory of the UAV and the trajectory obtained from
+RTK-GNSS while the UAV is hovering. Fig. 12 presents the
+time-series variations of the estimated x-, y-, and z-coordinates
+Fig. 13. Positioning error resulting from UAV positioning experiment with
+the hovering scenario.
+Fig. 14. 3-D trajectory resulting from the UAV positioning experiment with
+the complex maneuver scenario.
+Fig. 15.
+Positioning error resulting from the UAV positioning experiment
+with the complex maneuver scenario.
+during the hovering experiment, and Fig. 13 illustrates the
+corresponding positioning error. The results obtained from the
+hovering experiment were consistent with those from the hov-
+ering simulation. As shown in Figs. 12 and 13, the comparison
+algorithms (ESEKF, IESKF, and TC-AEKF) exhibited large
+initial positioning errors and required a relatively long time
+to converge. In particular, TC-AEKF achieved near-zero error
+only around 15 s, which corresponds to the end of the ﬂight.
+In contrast, the proposed REFMP consistently demonstrated
+low positioning errors from the beginning to the end of the
+experiment. The similarity between the experimental and sim-
+ulation results veriﬁes the reliability of both the experimental
+setup and the simulation environment.
+2) Complex Maneuvers: The second experimental scenario
+involves the UAV performing complex turning maneuvers
+that induce abnormal errors in the IMU due to high G-
+forces. Fig. 14 shows the UAV’s 3-D ﬂight trajectory along
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:48 UTC from IEEE Xplore.  Restrictions apply. 
+[p.11]
+2584
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 2, 15 JANUARY 2026
+TABLE I
+APE (UNIT: m)
+TABLE II
+VARIANCE OF POSITIONING ERROR (UNIT: m2)
+TABLE III
+COMPARISON OF REFMP PERFORMANCE WITH
+DIFFERENT HORIZON SIZES
+with the trajectories estimated by each algorithm during the
+experiment. The UAV took oﬀnear (−1, −3, 0), ﬂied along
+a ﬁgure-eight path, and landed near (−0.5, −3, 0). Fig. 15
+presents the positioning errors of each algorithm over time
+for this experiment. As observed in previous simulations
+and experiments, the three comparison algorithms exhibited
+large initial positioning errors and slow convergence rates.
+Under this highly dynamic maneuvering scenario, where the
+IMU measurements were continuously aﬀected by abnor-
+mal disturbances, the conventional algorithms showed even
+larger positioning errors compared with the hovering scenario.
+Notably, TC-AEKF failed to accurately estimate the UAV’s
+position, with its error diverging over time. Despite these harsh
+conditions, the proposed REFMP consistently maintained very
+low positioning errors throughout the entire ﬂight, from takeoﬀ
+to landing.
+C. Comparative Analysis
+Tables I and II list the comaprsion of the APE and variance
+over time, respectively. In simulations and experiments for
+a total of three scenarios, the proposed algorithm, REFMP,
+showed signiﬁcantly lower APE compared with existing algo-
+rithms, demonstrating REFMP’s superior positioning accuracy.
+Furthermore, in terms of positioning error variance, REFMP
+showed signiﬁcantly lower values compared with existing
+algorithms, indicating less variability in positioning accu-
+racy and demonstrating consistent and reliable positioning
+capabilities.
+The average computation time per time step for fusing
+UWB-WSN and IMU measurements for each algorithm was
+as follows: ESEKF: 0.22 ms, IESKF: 0.45 ms, TC-AEKF:
+0.20 ms, and REFMP: 7.4 ms. In the REFMP algorithm, the
+horizon size aﬀects the number of recursive process iterations
+and thus inﬂuences the average computational cost. Table III
+shows the average computation time and APE for various
+horizon sizes.
+From the results in Table III, it is observed that a horizon
+size of 50 yields the lowest APE. In this setting, the average
+computation time is 7.4 ms, which, although higher than that
+of the comparison algorithms, is suﬃcient to process sensor
+data with an update rate over 100 Hz. When the horizon
+size is reduced to 20, the average computation time drops to
+3.3 ms, allowing for fusion with sensors operating at around
+300 Hz. Although APE slightly increases at Nhorizon = 20
+compared with Nhorizon = 50, REFMP still outperforms the
+comparison algorithms in terms of accuracy. The relationship
+between computation time and horizon size for REFMP can be
+approximated as T(Nhorizon) ≈0.143N + 0.438 (in ms), which
+follows a time complexity of O(Nhorizon) in Big-O notation.
+V. CONCLUSION
+In this article, we propose the REFMP algorithm, which
+enables robust UAV positioning even in GNSS-denied envi-
+ronments such as indoor spaces by fusing UWB-WSN and
+IMU data. REFMP was designed to maintain high accuracy
+by leveraging the advantages of the FM structure, even under
+conditions with inaccurate initial information or high uncer-
+tainty in the system model—both of which are commonly
+encountered during UAV operation. The performance of the
+proposed algorithm was evaluated and compared against state-
+of-the-art methods (ESEKF, IESKF, and TC-AEKF) through
+both simulations and real-world UAV experiments. REFMP
+achieved improvements in APE of at least 82.38 %, 40.07%,
+and 91.99 % over ESEKF, IESKF, and TC-AEKF, respectively.
+In addition to accuracy, the proposed algorithm is capable of
+real-time operation by fusing high-rate IMU measurements,
+supported by an error-state system model and a recursive
+solution structure. This recursive formulation is the ﬁrst of
+its kind among FM-based estimation algorithms that rely on
+linearization. Experimental results demonstrated the feasibility
+of integrating high-frequency sensor data, conﬁrming the real-
+time capability of REFMP. Therefore, the proposed algorithm
+has been validated in terms of accuracy, robustness, and
+computational eﬃciency. We plan to extend this research to
+address robot localization and multi-UAV positioning in harsh
+environments.
+APPENDIX
+ANALYSIS OF THE POSITIONING SYSTEM
+Theorem 3 presents the results of the observability analysis
+for the UAV system.
+Theorem 3: With generic motions (i.e., ω , 0 and a ,
+0) [28], the linearized error-state system based on (18) and
+(25)–(27) is observable.
+Proof: From the state transition matrices and measurement
+Jacobians in time step interval [i, j], the observability matrix
+O is constructed as follows:
+O =
+2
+6664
+Oi
+Oi+1
+...
+O j
+3
+7775 =
+2
+6664
+Hi
+Hi+1Φi,i+1
+...
+HjΦi,j
+3
+7775 .
+(76)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:48 UTC from IEEE Xplore.  Restrictions apply. 
+[p.12]
+LEE et al.: REFMP ALGORITHM FOR ROBUST UAV POSITIONING
+2585
+For l ∈[i, j], the block row Ol can be represented as follows:
+Ol =
+(
+Dl [Γ1 I3 ∆t I3 Γ2 Γ3] ,
+l ∈κ1
+[Γ4 03 03 Γ5 03] ,
+l ∈κ2
+(77)
+where
+Γ1 = −
+
+G
+Il ¯R IpT + G ¯pIl −G ¯pIi −G ¯vIi ∆t + 1
+2
+Gg ∆t2
+
+×
+× G
+Ii ¯R
+Γ2 = G
+Il ¯R
+IpT
+
+× Jr
+ ∆¯θ
+
+∆t + G
+Il ¯R ¯Ξ4
+Γ3 = −G
+Il ¯R ¯Ξ2
+Γ4 = G
+Il ¯RT Gm
+
+×
+G
+Ii ¯R
+Γ5 = −G
+Il ¯RT Gm
+
+×
+G
+Il ¯R Jr
+ ∆¯θ
+
+∆t
+∆t = tl −ti, ∆¯θ = Pl−1
+k=i
+Ik ¯ω δtk, and the integrated components
+¯Ξ2 and ¯Ξ4 are integrated from ti to tl. In the case of l ∈
+κ1, if UAV has a ﬁxed nominal global tag position G ¯pT =
+G
+Il ¯R IpT +G ¯pIl as degenerate motion, an unobservable direction
+is obtained by ﬁnding the right nullspace of Ol∈κ1 as follows:
+Ol∈κ1Nl∈κ1 = 0
+⇒Nl∈κ1 =
+2
+66664
+Ii
+G ¯R Gg
+G ¯pT −G ¯pIi
+
+×
+Gg
+G ¯vIi
+
+×
+Gg
+03×1
+03×1
+3
+77775
+.
+(78)
+In the case of l ∈κ2, Nl∈κ1 cannot be the unobservable direction
+since Ol∈κ2Nl∈κ1 = Γ4
+Ii
+G ¯R Gg = Il
+G ¯R[Gm]× Gg , 0 as the Earth’s
+magnetic ﬁeld Gm and the gravitational acceleration Gg do not
+have the same or opposite direction. Therefore, if j is selected
+such that O is a tall matrix and there exist l1 ∈κ1 and l2 ∈κ2
+with l1, l2 ∈[i, j], then O has an empty nullspace, completing
+the proof.□
+REFERENCES
+[1]
+L. Yi, Y. Wu, A. Tolba, T. Li, S. Ren, and J. Ding, “SA-MLP-mixer:
+A compact all-MLP deep neural net architecture for UAV navigation
+in indoor environments,” IEEE Internet Things J., vol. 11, no. 12,
+pp. 21359–21371, Jun. 2024.
+[2]
+N. Hossein Motlagh, T. Taleb, and O. Arouk, “Low-altitude unmanned
+aerial vehicles-based Internet of Things services: Comprehensive sur-
+vey and future perspectives,” IEEE Internet Things J., vol. 3, no. 6,
+pp. 899–922, Dec. 2016.
+[3]
+H. Li and A. V. Savkin, “Wireless sensor network based navigation of
+micro ﬂying robots in the industrial Internet of Things,” IEEE Trans.
+Ind. Informat., vol. 14, no. 8, pp. 3524–3533, Aug. 2018.
+[4]
+C.
+Tang,
+Y.
+Wang,
+L.
+Zhang,
+and
+Y.
+Zhang,
+“GNSS/inertial
+navigation/wireless station fusion UAV 3-D positioning algorithm
+with urban canyon environment,” IEEE Sensors J., vol. 22, no. 19,
+pp. 18771–18779, Oct. 2022.
+[5]
+M. Simsek, A. Boukerche, B. Kantarci, R. Bitirgen, M. Hancer, and
+I. Bayezit, “Dynamic artiﬁcial neural network-assisted GPS-less naviga-
+tion for IoT-enabled drones,” IEEE Internet Things Mag., vol. 7, no. 3,
+pp. 92–99, May 2024.
+[6]
+X. Liu, B. Zhou, Z. Wu, A. Liang, and Q. Li, “An indoor 3-D quadrotor
+localization algorithm based on WiFi RTT and MEMS sensors,” IEEE
+Internet Things J., vol. 9, no. 21, pp. 20879–20888, Nov. 2022.
+[7]
+D. Feng et al., “An adaptive IMU/UWB fusion method for NLOS indoor
+positioning and navigation,” IEEE Internet Things J., vol. 10, no. 13,
+pp. 11414–11428, Jul. 2023.
+[8]
+J. Tian, M. Yang, and T. Chao, “Optimal deployment of target localiza-
+tion with distance-dependent noise,” IEEE Internet Things J., vol. 12,
+no. 12, pp. 20959–20972, Jun. 2025.
+[9]
+V. Brunacci and A. De Angelis, “Fusion of UWB and magnetic ranging
+systems for robust positioning,” IEEE Trans. Instrum. Meas., vol. 73,
+pp. 1–12, 2024.
+[10] H. A. Hashim, A. E. E. Eltoukhy, and K. G. Vamvoudakis, “UWB
+ranging and IMU data fusion: Overview and nonlinear stochastic ﬁlter
+for inertial navigation,” IEEE Trans. Intell. Transp. Syst., vol. 25, no. 1,
+pp. 359–369, Jan. 2024.
+[11] Y. Yang, X. Liu, W. Zhang, X. Liu, and Y. Guo, “Multilayer low-cost
+sensor local–global ﬁltering fusion integrated navigation of small UAV,”
+IEEE Sensors J., vol. 22, no. 18, pp. 17550–17564, Sep. 2022.
+[12] J. Luo, K. Wu, Y. Wang, T. Wang, G. Zhang, and Y. Liu, “An
+improved UKF for IMU state estimation based on modulation LSTM
+neural network,” IEEE Trans. Intell. Transp. Syst., vol. 25, no. 9,
+pp. 10702–10711, Sep. 2024.
+[13] D. Feng, C. Wang, C. He, Y. Zhuang, and X.-G. Xia, “Kalman-ﬁlter-
+based integration of IMU and UWB for high-accuracy indoor positioning
+and navigation,” IEEE Internet Things J., vol. 7, no. 4, pp. 3133–3146,
+Apr. 2020.
+[14] C. Luo et al., “An improved particle-ﬁlter-based hybrid optimization
+algorithm for IoT positioning in uncertain WSNs,” IEEE Internet Things
+J., vol. 10, no. 15, pp. 13673–13685, Aug. 2023.
+[15] L.-F. Shi, B.-L. Feng, Y.-F. Dai, G.-X. Liu, and Y. Shi, “Pedestrian
+indoor localization method based on integrated particle ﬁlter,” IEEE
+Trans. Instrum. Meas., vol. 72, pp. 1–10, 2023.
+[16] D. He, W. Xu, and F. Zhang, “Symbolic representation and toolkit devel-
+opment of iterated error-state extended Kalman ﬁlters on manifolds,”
+IEEE Trans. Ind. Electron., vol. 70, no. 12, pp. 12533–12544, Dec.
+2023.
+[17] J. He, C. Sun, B. Zhang, and P. Wang, “Adaptive error-state Kalman
+ﬁlter for attitude determination on a moving platform,” IEEE Trans.
+Instrum. Meas., vol. 70, pp. 1–10, 2021.
+[18] R. V. Vitali, R. S. McGinnis, and N. C. Perkins, “Robust error-state
+Kalman ﬁlter for estimating IMU orientation,” IEEE Sensors J., vol. 21,
+no. 3, pp. 3561–3569, Feb. 2021.
+[19] X. Gao, T. Xiao, C. Bai, D. Zhang, and F. Zhang, “Anderson acceleration
+for on-manifold iterated error state Kalman ﬁlters,” IEEE Robot. Autom.
+Lett., vol. 7, no. 4, pp. 12243–12250, Oct. 2022.
+[20] B. Yang, E. Yang, L. Yu, and C. Niu, “Sensor fusion-based UAV local-
+ization system for low-cost autonomous inspection in extremely conﬁned
+environments,” IEEE Sensors J., vol. 24, no. 14, pp. 22144–22155, Jul.
+2024.
+[21] H. H. Kang and C. K. Ahn, “Distributed ﬁnite memory online learning
+strategy for multi-UAV systems with neural networks,” IEEE Trans. Ind.
+Electron., vol. 72, no. 1, pp. 919–927, Jan. 2025.
+[22] H. H. Kang and C. K. Ahn, “Two-stage iterative ﬁnite-memory neural
+network identiﬁcation for unmanned aerial vehicles,” IEEE Trans.
+Circuits Syst. II, Exp. Briefs, vol. 71, no. 3, pp. 1336–1340, Mar. 2024.
+[23] J. Y. Ko, J. M. Pak, D. H. Kim, and C. K. Ahn, “Secure event-
+triggered distributed ﬁnite-memory localization for multiple mobile
+robots under cyberattacks,” IEEE Trans. Ind. Electron., vol. 71, no. 10,
+pp. 12931–12941, Oct. 2024.
+[24] S. S. Lee, D. H. Lee, D. K. Lee, and C. K. Ahn, “Improved nonlin-
+ear ﬁnite-memory estimation approach for mobile robot localization,”
+IEEE/ASME Trans. Mechatronics, vol. 27, no. 5, pp. 3330–3338, Oct.
+2022.
+[25] K. Wen, K. Yu, Y. Li, S. Zhang, and W. Zhang, “A new quater-
+nion Kalman ﬁlter based foot-mounted IMU and UWB tightly-coupled
+method for indoor pedestrian navigation,” IEEE Trans. Veh. Technol.,
+vol. 69, no. 4, pp. 4340–4352, Apr. 2020.
+[26] Y. Yang, P. Geneva, X. Zuo, and G. Huang, “Online self-calibration
+for visual-inertial navigation: Models, analysis, and degeneracy,” IEEE
+Trans. Robot., vol. 39, no. 5, pp. 3479–3498, Oct. 2023.
+[27] C. Forster, L. Carlone, F. Dellaert, and D. Scaramuzza, “On-manifold
+preintegration for real-time visual-inertial odometry,” IEEE Trans.
+Robot., vol. 33, no. 1, pp. 1–21, Feb. 2017.
+[28] J. A. Hesch, D. G. Kottas, S. L. Bowman, and S. I. Roumeliotis,
+“Consistency
+analysis
+and
+improvement
+of
+vision-aided
+inertial
+navigation,” IEEE Trans. Robot., vol. 30, no. 1, pp. 158–176, Feb. 2014.
+[29] A. T. Erdem and A. ¨O. Ercan, “Fusing inertial sensor data in an extended
+Kalman ﬁlter for 3D camera tracking,” IEEE Trans. Image Process.,
+vol. 24, no. 2, pp. 538–548, Feb. 2015.
+[30] S. Monica and G. Ferrari, “UWB-based localization in large indoor
+scenarios: Optimized placement of anchor nodes,” IEEE Trans. Aerosp.
+Electron. Syst., vol. 51, no. 2, pp. 987–999, Apr. 2015.
+[31] S. Haigh, J. Kulon, A. Partlow, and C. Gibson, “Comparison of
+objectives in multiobjective optimization of ultrasonic positioning anchor
+placement,” IEEE Trans. Instrum. Meas., vol. 71, pp. 1–12, 2022.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:48 UTC from IEEE Xplore.  Restrictions apply. 
+[p.13]
+2586
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 2, 15 JANUARY 2026
+[32] S. Qin, X. Zhang, H. Xu, and Y. Xu, “Fast quaternion product units
+for learning disentangled representations in SO3,” IEEE Trans. Pattern
+Anal. Mach. Intell., vol. 45, no. 4, pp. 4504–4520, Apr. 2023.
+[33] S. Thrun, D. Fox, W. Burgard, and F. Dellaert, “Robust Monte
+Carlo localization for mobile robots,” Artif. Intell., vol. 128, nos. 1–2,
+pp. 99–141, May 2001.
+Sang Su Lee received the B.S. degree in electrical
+engineering from Korea University, Seoul, Republic
+of Korea, in 2017, where he is currently pursuing
+the Ph.D. degree in electrical engineering.
+He was a Researcher with Twinny, Daejeon,
+Republic of Korea, an autonomous robotics com-
+pany, from 2021 to 2023. His research interests
+include robust estimation, distributed algorithms,
+system identiﬁcation, and their application to net-
+worked multirobot systems.
+Jung Min Pak received the B.S., M.S., and Ph.D.
+degrees in electrical engineering from Korea Univer-
+sity, Seoul, Republic of Korea, in 2006, 2008, and
+2015, respectively.
+He was an Assistant Professor with the Depart-
+ment of Electrical Engineering, Wonkwang Univer-
+sity, Iksan, Republic of Korea, from 2016 to 2020,
+and an Associate Professor from 2020 to 2023.
+He is currently an Associate Professor with the
+Department of Artiﬁcial Intelligence, Korea National
+University of Transportation, Uiwang, Republic of
+Korea. His research interests include state estimation, localization, and target
+tracking.
+Peng Shi (Life Fellow, IEEE) received the Ph.D.
+degree in electrical engineering from The Univer-
+sity of Newcastle, Newcastle, NSW, Australia, in
+1994, the second Ph.D. degree in mathematics from
+the University of South Australia, Adelaide, SA,
+Australia, in 1998, the Doctor of Science degree
+from the University of Glamorgan, Pontypridd, U.K.,
+in 2006, and the Doctor of Engineering degree from
+The University of Adelaide, Adelaide, in 2015.
+He is currently a Professor with The University of
+Adelaide. His research interests include systems and
+control theory and applications to autonomous and robotic systems, network
+systems, and cyber-physical systems.
+Dr. Shi is a fellow of Institution of Engineering and Technology, Inter-
+national Engineering and Technology Institute, Institution of Engineers,
+Australia, and Chinese Association of Automation, and a member of the
+Academy of Europe. He is the Editor-in-Chief of IEEE TRANSACTIONS
+ON CYBERNETICS, the Senior Editor of IEEE ACCESS, the Distinguished
+Lecturer of IEEE SMC Society, and the President of the International
+Academy for Systems and Cybernetic Science.
+Choon Ki Ahn (Senior Member, IEEE) received
+the Ph.D. degree from the School of Electrical
+Engineering and Computer Science, Seoul National
+University, Seoul, South Korea, in 2006.
+He is currently a Distinguished Chair Professor
+with the School of Electrical Engineering, Korea
+University, Seoul.
+Dr. Ahn received the Presidential Young Scientist
+Award from the President of South Korea in 2017.
+In 2020, 2021, and 2023, he received the Best
+(Outstanding) Associate Editor Award for IEEE
+TRANSACTIONS ON NEURAL NETWORKS AND LEARNING SYSTEMS, IEEE
+TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS, and
+IEEE TRANSACTIONS ON CIRCUITS AND SYSTEMS—I: REGULAR PAPERS,
+respectively. From 2019 to 2025, he received Korea University Research
+Excellence Award. In 2023, he was inducted into Korea University Hall of
+Fame as the World’s Top Researcher. He was a recipient of the 2019-2025
+Highly Cited Researcher Award in engineering by Clarivate Analytics (for-
+merly, Thomson Reuters). He was a Senior Editor of IEEE TRANSACTIONS
+ON NEURAL NETWORKS AND LEARNING SYSTEMS, IEEE TRANSACTIONS
+ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS, and IEEE SYSTEMS
+JOURNAL. He was an Associate Editor of IEEE TRANSACTIONS ON
+FUZZY SYSTEMS, IEEE TRANSACTIONS ON AUTOMATION SCIENCE AND
+ENGINEERING, IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION
+SYSTEMS, IEEE TRANSACTIONS ON CIRCUITS AND SYSTEMS—I: REG-
+ULAR PAPERS, IEEE Systems, Man, and Cybernetics Magazine, and other
+ﬂagship journals.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:48 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

@@ -1,0 +1,963 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0444.pdf
+sha256: 68F5514ABC8B86C4323D017B4ADB1F07A02B8D754C33B97D41E97BFEB6FACC73
+library: pymupdf (fitz) v1.28.2
+pages: 7
+=== BEGIN ===
+[p.1]
+Autonomous Aerial Swarming in GNSS-denied Environments
+with High Obstacle Density
+Afzal Ahmad
+, Viktor Walter
+, Pavel Petr´aˇcek
+, Matˇej Petrl´ık
+,
+Tom´aˇs B´aˇca
+, David ˇZaitl´ık
+and Martin Saska
+Abstract— The compact ﬂocking of relatively localized Un-
+manned Aerial Vehicles (UAVs) in high obstacle density areas
+is discussed in this paper. The presented work tackles realistic
+scenarios in which the environment map is not known apriori
+and the use of a global localization system and communication
+infrastructure is difﬁcult due to the presence of obstacles. To
+achieve ﬂocking in such a constrained environment, we propose
+a fully decentralized, bio-inspired control law that uses only
+onboard sensor data for safe ﬂocking through the environment
+without any communication with other agents. In the proposed
+approach, each UAV agent uses onboard sensors to self-localize
+and estimate the relative position of other agents in its local
+reference frame. The usability and performance of the proposed
+approach were veriﬁed and evaluated using various experiments
+in a realistic robotic simulator and a natural forest. The pre-
+sented experiments also validate the utility of onboard relative
+localization for autonomous multi-UAV applications in the ab-
+sence of global localization information and communication.
+Index Terms— Multi-Robot Systems, Aerial Systems: Percep-
+tion and Autonomy, Field Robotics
+I. INTRODUCTION
+Recent developments in the miniaturization of computa-
+tional resources and sensors have led to signiﬁcant progress
+in the ﬁeld of UAVs. These developments make it increas-
+ingly less challenging to manufacture large numbers of small,
+lightweight UAV units at low cost. Such units are typically
+not equipped with great computational or sensory resources,
+often due to costs, payload capacity, or unavailability of the
+desired form factor. However, these simple, low-cost UAVs
+lend themselves remarkably well for applications that require
+multiple units to be deployed simultaneously. For example,
+such applications include the measurement of spatially dis-
+tributed time-dependent variables [1], [2], collaborative data
+collection [3], and applications where redundancy is needed
+due to various environmental hazards [4]. They also have
+the potential to be used for environmental monitoring and
+Search and Rescue (SAR) applications [5], [6] where large-
+scale teams usually provide signiﬁcant advantages in area
+coverage. More importantly, a team of small-scale UAVs can
+easily operate in environments with a high obstacle density,
+where larger, well-equipped aerial vehicles cannot operate.
+The presented work has been supported by the Czech Science Foundation (GA ˇCR)
+under research project no. 20-10280S, by CTU grant no. SGS20/174/OHK3/3T/13,
+by the Technology Innovation Institute - Sole Proprietorship LLC, UAE, under the
+Research Project Contract No. TII/ATM/2032/2020, and by OP VVV funded project
+CZ.02.1.01/0.0/0.0/16 019/0000765 ”Research Center for Informatics”.
+The authors are with the Faculty of Electrical Engineering, Czech Technical Uni-
+versity in Prague, Technick´a 2, Prague 6
+{ahmadafz|viktor.walter|pavel.petracek|matej.petrlik|
+tomas.baca|david.zaitlik|martin.saska}@fel.cvut.cz.
+Fig. 1: A compact aerial swarm of three UAVs ﬂocking in a complex
+outdoor environment.
+Although these applications are highly beneﬁcial, multi-
+UAV systems are still only used in limited cases due to
+numerous technological challenges in such environments.
+Primarily, the lack of reliable global localization and mutual
+communication becomes a signiﬁcant bottleneck for the safe
+operation of UAV teams as the Global Navigation Satellite
+System (GNSS) signal and wireless communication links
+often experience disturbances by occlusions and reﬂections
+from obstacles. In this article, we propose a compact col-
+lective motion approach entirely based on onboard sensory
+information. This approach can be used as a back-up safety
+mechanism for high-level planning systems where even tem-
+porary global localization or communication failure would
+have fatal consequences. The proposed ﬂocking behavior
+takes inspiration from biological systems [7], which can
+maintain a compact group by only using ”onboard” sensory
+organs and without any explicit communication. In these
+systems, a small number of individuals with goal information
+are sufﬁcient to navigate the entire group towards the goal.
+Thus, a multi-UAV system using the proposed approach can
+continue its mission with reduced capabilities or navigate to-
+wards an area where global localization and communication
+capabilities can be restored to obtain full performance.
+A crucial piece of information for any cooperative motion
+is the knowledge of the relative state of other agents in the
+environment. However, due to the lack of global localization
+and communication in the discussed case, the members of
+the multi-UAV system cannot use a common global reference
+frame to localize themselves and other agents. Thus, a mutual
+relative localization system is required to estimate the states
+of other agents in a way similar to how animals use their
+organs to observe neighbors to achieve collective behav-
+978-1-7281-9077-8/21/$31.00 ©2021 IEEE
+2021 IEEE International Conference on Robotics and Automation (ICRA 2021)
+May 31 - June 4, 2021, Xi'an, China
+570
+2021 IEEE International Conference on Robotics and Automation (ICRA) | 978-1-7281-9077-8/21/$31.00 ©2021 IEEE | DOI: 10.1109/ICRA48506.2021.9561284
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:51 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+ior. In addition to the localization of other agents, obstacle
+avoidance is another major challenge when cooperating in an
+environment with a high density of obstacles. Since a prior
+map for an unknown real-world environment such as a forest
+is unavailable, we use onboard sensing for obstacle avoid-
+ance. To achieve ﬂocking in cluttered real-world environ-
+ments without using GNSS and communication, we propose
+a framework based on a planar LIDAR based Simultaneous
+Localization and Mapping (SLAM) and the relative localiza-
+tion system UltraViolet Direction And Ranging (UVDAR),
+which has been speciﬁcally designed for such applications
+(see Fig. 1). In the proposed ﬂocking control law, information
+obtained from these onboard sensors is fused together using
+bio-inspired ﬂocking principles. The method uses speciﬁcally
+designed self-aggregation to cope with the inherent uncer-
+tainty of cluttered real-world environments. The proposed
+ﬂocking control law places high emphasis on safety and
+overcoming the unforeseen challenges encountered during
+multi-UAV interaction with a complex environment.
+The presented swarming framework is decentralized and
+infrastructure-independent as each UAV agent only uses in-
+formation from on-board sensors. The method is validated
+by performing self-aggregation and ﬂocking experiments in
+a natural environment with a high density of obstacles.
+II. RELATED WORK
+Decentralized robotic swarms have been extensively stud-
+ied in recent years [8], but most of the research is still
+limited to laboratory-like conditions [9]–[12]. Previous work
+presented in [13] and [14] demonstrate a swarm in an outdoor
+environment. However, they use GNSS which is unavailable
+in many real-world scenarios involving UAVs. A scalable
+swarm of UAVs is presented in [15] for GNSS-denied out-
+door environments, but it relies on inter-agent communica-
+tion and does not account for obstacles in the environment.
+This paper proposes a framework to overcome these issues
+such that the UAV swarm can be used in an arbitrary outdoor
+environment without any dependence on external infrastruc-
+ture and communication.
+The presented framework uses mutual relative localiza-
+tion, which has been achieved in the literature using various
+methods. In [16], distance information from Ultra Wide Band
+(UWB) modules is combined with the on-board localization
+method to obtain a relative state estimate of other agents. [17]
+uses computer vision to detect the surrounding agents and
+then fuses this information with on-board UWB and local-
+ization estimate. These approaches obtain a precise relative
+position of other agents, but they rely on communication
+between the agents.
+Alternatively, computer vision based methods such as [18],
+[19] use Convolutional Neural Networks (CNNs) to estimate
+relative position from on-board cameras. They do not re-
+quire inter-agent communication, but they depend on light-
+ing conditions, which reduces their reliability for real-world
+deployment as tested by our team in [20]. In order to work
+in an arbitrary complex environment without communication
+constraints, we use the UVDAR system [21]–[23], which was
+speciﬁcally developed to improve swarm usability in outdoor
+environments.
+The ﬂocking method proposed in this work is based on the
+rules of bio-inspired ﬂocking introduced in [24], which have
+been used for many applications involving robot swarms. To
+use these rules in real-world environments with high obstacle
+density, it is crucial to design a reliable collision avoidance
+method. A common solution found in the literature is to
+model the obstacles as agents or as a group of agents [13],
+[14], [25], [26] and to use the agent repulsion law to prevent
+collisions. This approach is easy to implement, but relies
+on precise obstacle positions and shape estimates which are
+not trivial to obtain in complex environments. Furthermore,
+such an approach can often create a virtual deadlock when
+the UAV agent is surrounded by several obstacles, as is
+common in cluttered real-world environments. An alternative
+approach is to design a specialized control barrier function
+to avoid the observed obstacles [27]. Taking inspiration from
+these methods, we propose a new approach for ﬂocking that
+uses different methods to avoid collisions with agents and
+obstacles with a high emphasis on safety for the UAV. This
+method enabled us to navigate through a complex real-world
+environment safely.
+III. SELF-AGGREGATION AND FLOCKING
+Self-aggregation and ﬂocking is achieved by controlling
+the motion of each UAV agent using a control law. Consider-
+ing each UAV as a double-integrator system, the control law
+is used to generate the desired acceleration of the agent. Each
+agent uses the same control law, and the ﬂocking emerges
+from their collective motion. The proposed control law is
+a combination of several components responsible for con-
+trolling the distance to other agents, collision avoidance to
+obstacles, and navigating the agents towards a goal. The se-
+lection of these components is motivated by the bio-inspired
+ﬂocking presented in [24]. The resulting control law can be
+expressed as
+f = p + n + c,
+(1)
+where f ∈R3 denotes the ﬁnal control vector used to
+generate the desired acceleration of the UAV agent. Vectors
+p, n, c ∈R3 represent the proximal, navigation, and colli-
+sion control vectors, respectively, and are described in the
+following subsections.
+A. Proximal Control Vector
+The proximal control vector is used to control the distance
+to the surrounding agents. For successful ﬂocking and reli-
+able performance of relative localization, each UAV agent
+must maintain a particular distance from other agents. UAV
+agents close to each other should recede to avoid inter-agent
+collisions, while agents far away should move towards the
+rest of the agents to maintain a cohesive group. This is
+implemented as repulsion and attraction to other agents. The
+571
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:51 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+proximal control vector is obtained as
+p =
+1
+Nα
+Nα+Nβ
+X
+i=1
+
+α(∥xa
+i ∥)ˆxa
+i
+
++ 1
+Nβ
+Nα+Nβ
+X
+i=1
+
+β(∥xa
+i ∥)ˆxa
+i
+
+,
+(2)
+where xa
+i ∈R3 is the current relative position of the ith
+agent. The function α(·) ∈R realizes the attraction and
+β(·) ∈R realizes the repulsion effects (see Fig. 2). Nα
+and Nβ are the number of observed agents with a non-zero
+attraction or repulsion value.
+1) Attraction Function: The attraction α(·) is a piece-
+wise function designed such that the agents are attracted to
+each other only if they are separated by a distance greater
+than a parameter d0. This parameter describes the distance
+at which the agent experiences no attraction or repulsion
+effects. To prevent the agents from going far apart from
+each other, α(·) increases rapidly as the inter-agent distance
+grows greater than d0. However, if the agents are farther
+apart than a threshold distance df, the attraction is primarily
+used to approach an agent, rather than maintain the distance
+d0. Thus, α(·) converges to a constant value as the distance
+increases beyond df. The attraction function is expressed as
+α(∥xa
+i ∥) =
+
+
+
+
+
+0,
+0 ≤∥xa
+i ∥≤d0
+kα(∥xa
+i ∥−d0)2,
+d0 < ∥xa
+i ∥≤df
+λα tan−1(∥xa
+i ∥−0.9df),
+df < ∥xa
+i ∥
+(3)
+where kα ∈R is a constant that controls the rate of change
+of attraction as the inter-agent distance grows beyond d0 and
+λα = kα(df −d0)2
+tan−1(0.1df)
+(4)
+is a scaling factor used to make the piece-wise function
+continuous.
+2) Repulsion Function: The repulsion β(·) is also a piece-
+wise function and is used to prevent inter-agent collisions.
+The repulsion function is designed to increase slowly when
+the agents get closer than the parameter d0. However, when
+the inter-agent distance is smaller than a threshold parameter
+dc, the agents are considered critically close. As such a
+situation would require rapid and immediate separation to
+avoid collisions, β(·) increases rapidly for a distance smaller
+than dc. The agents beyond the distance d0 are considered
+sufﬁciently far away, so the repulsion function converges to
+zero beyond d0. The function β(·) is expressed as
+β(∥xa
+i ∥) =
+
+
+
+
+
+
+
+−λβ
+
+1
+√
+∥xa
+i ∥−
+1
+√d0
+
+,
+0 < ∥xa
+i ∥≤dc
+−kβ(∥xa
+i ∥−d0)2,
+dc < ∥xa
+i ∥≤d0
+0,
+d0 < ∥xa
+i ∥
+(5)
+where kβ ∈R is a constant that controls the rate of change of
+repulsion as the inter-agent distance decreases below d0 and
+λβ = kβ(dc −d0)2√dcd0
+√d0 −√dc
+(6)
+is a scaling factor used to make the piece-wise function
+continuous.
+The motion of the agents is strongly inﬂuenced by the
+parameters d0, df, and dc. The parameter dc represents the
+distance after which the agents should not approach any
+closer. This can be selected on the basis of the safety dis-
+tance required between the UAVs. Similarly, df describes
+the distance after which the attraction is primarily used for
+forming a cohesive group, thus df can be selected based on
+task and environment speciﬁcations.
+B. Navigation Control
+All agents in a swarm might not have the goal information.
+An agent with goal information is called an informed agent.
+These informed agents collectively guide the swarm to the
+desired goal. The navigation control vector steers the motion
+of an informed agent towards this desired goal. It uses a path
+planner (see Section IV-C) to obtain a path P to the desired
+goal. This path P is a set of points in R3, which describe
+the desired trajectory of the agent. The navigation control
+vector n is computed using this path as
+n = knϕ(µd)ˆxn,
+(7)
+where kn ∈R is a constant that controls the effect of
+navigation control vector on the motion of the agent, xn is
+the relative position of the nearest point on path P, and the
+nonlinear function
+ϕ(µd) =
+
+
+
+1 −
+
+µd
+dmax
+2
+,
+0 ≤µd ≤dmax
+0,
+dmax < µd
+(8)
+prevents the informed agent from leaving the ﬂock under
+the inﬂuence of the navigation control vector. As the rel-
+ative mean distance of the observed agents µd increases,
+ϕ(·) decreases and converges to zero after a distance dmax.
+Parameter dmax is selected such that the informed agent can
+still detect other agents using its relative localization system.
+Since the navigation control is only used by the informed
+agents, other agents do not require any path planning.
+C. Collision Control
+Collision avoidance is essential to any agent for safe mo-
+tion through an obstacle-rich environment, such as a forest.
+The collision control vector c is obtained using the relative
+position estimate of nearby obstacles from the local online
+0
+2
+4
+6
+8
+10
+−1
+0
+1
+∥xa
+i ∥(m)
+P
+P = β(∥xa
+i ∥)
+P = α(∥xa
+i ∥)
+d0
+dc
+df
+Fig. 2: Attraction and repulsion functions of the proximal control
+vector. The vertical lines show the values of the control vector
+parameters speciﬁed in Table I.
+572
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:51 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+map (see Section IV-C) and is expressed as
+c = 1
+Nc
+No
+X
+i=1
+φ(∥xo
+i ∥)ˆxo
+i ,
+(9)
+where No is the total number of currently detected obstacles
+and xo
+i ∈R3 is the relative position of the ith obstacle. Nc
+is the number of obstacles with a non-zero value of function
+φ(∥xo
+i ∥) =
+
+
+
+ko
+
+1
+√
+∥xo
+i ∥−
+1
+√dr
+
+,
+0 < ∥xo
+i ∥≤dr
+0,
+dr < ∥xo
+i ∥.
+(10)
+Since the agent only needs to avoid nearby obstacles, φ(·)
+decreases to zero after a threshold distance dr from the
+obstacle. The parameter dr is selected taking into account
+the dynamics of the UAV agent, such that it has enough time
+to react to obstacles.
+IV. SYSTEM ARCHITECTURE
+The method described in Section III only requires the
+position of the UAV agent in an arbitrary reference frame
+and the relative position of neighboring agents and obstacles.
+The framework proposed in this section (see Fig. 4) retrieves
+this position information using only on-board sensors. As
+our framework does not need any external infrastructure or
+communication, the resulting swarm is strictly decentralized.
+A. UVDAR
+Each UAV agent is equipped with the UVDAR system to
+estimate the relative position and orientation of neighboring
+agents. This system uses UV LED markers to detect objects
+in its surroundings. Since the sun (the primary light source
+in natural environments) emits less radiation in the UV spec-
+trum than visible light, the UV LEDs are distinctly visible
+even in broad daylight. Each UAV in the swarm is equipped
+with UV LEDs that act as markers and a pair of UV cameras
+(greyscale camera with a UV-ﬁlter) for detection. UVDAR
+UV Camera
+UV LEDs
+90◦
+90◦
+70◦
+X-axis
+LIDAR
+Fig. 3: The quadrotor platform highlighting the UV LEDs and
+the UV camera assembly used by the UVDAR system. The planar
+LIDAR was used for localization.
+MPC Tracker
+& Controller
+Attitude Rate Controller
+UAV actuators
+State Estimation
+Path Planner
+Hector SLAM
+Occupancy Grid Map
+Sensory data
+UV-sensitive
+Stereo Camera
+UV LEDs
+Image Processing
+UV irradiation
+UV emission
+Trajectory
+Generator
+Proximal Control
+Collision Control
+Navigation Control
++
+ωd
+Td
+x
+f
+D
+Stabilization & Low-Level Control
+Localization & Planning
+UVDAR
+Swarm Motion
+Control
+Fig. 4: The interconnected high-level system pipeline of a single
+UAV agent.
+uses computer vision to localize the observed UV markers,
+retrieve the poses of neighbors, and tracks them using a linear
+Kalman ﬁlter.
+The UVDAR system presented in [23] uses a single UV
+camera with a limited Field Of View (FOV) for detection
+of markers, which is not sufﬁcient when the agent needs to
+observe more than one UAV. To use UVDAR for ﬂocking with
+a swarm of UAVs, we propose the camera setup shown in
+Fig. 3, which signiﬁcantly increases the FOV of the system
+and allows the UAV to react to neighboring agents. The
+cameras are aligned such that the setup has a 320◦horizontal
+and a 110◦vertical FOV with a 40◦horizontal overlap in
+the frontal direction of the UAV. The resulting stereoscopic
+effect allows the system to make high-precision distance esti-
+mates from frontal observations. This alignment also creates
+a 40◦blind spot at the back of the UAV. To avoid losing
+agents in this blind spot, each UAV continuously adjusts
+its orientation such that the cameras observe most of the
+neighboring agents. It was experimentally veriﬁed that this
+setup is sufﬁcient for reliable pose estimation and ﬂocking,
+and adding another camera would not increase system per-
+formance. Each UAV has a pair of UV LEDs mounted (see
+Fig. 3) to each leg, which blinks with a pre-assigned unique
+frequency. The unique frequency allows UVDAR to easily
+distinguish and track the individual UAV agents in a swarm.
+B. Control
+The desired acceleration of the UAV agent is obtained
+using the ﬁnal control vector f. A Trajectory Generator
+(see Fig. 4) uses this acceleration to generate the desired
+trajectory D as
+rj+1 = rj + v j
+R0
++ 1
+2kff
+ j
+R0
+2
+,
+(11)
+where j ∈Z and rj ∈R3 is the jth trajectory point. v ∈R3
+is the current velocity of the UAV, kf is a scaling constant,
+and R0 ∈R is the sampling rate of the trajectory. Since
+the UAVs are moving continuously, we only calculate the
+trajectory for the next 1 second, i.e. j ∈{1, 2, ..., R0}.
+In order to maintain the maximum number of UAVs in
+the FOV of the UVDAR, the heading direction ψd needs to
+change continuously. It is obtained as the average of angles
+made by the relative position vectors of neighboring agents
+w.r.t the body X-axis (see Fig. 3).
+573
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:51 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+The
+Trajectory
+Generator
+supplies
+the
+sequence
+D
+=
+{(r0, ψd), (r1, ψd), ..., (rR0, ψd)} as input to
+the control pipeline, as shown in Fig. 4. A linear MPC
+controller and tracker is used for safe and robust control
+of the UAV. This controller is part of the generic control
+pipeline developed by our group [28] for various single and
+multi robot applications.
+C. Localization and Path Planning
+A combination of LIDAR-based Hector SLAM [29] and
+a laser range ﬁnder for height estimation was employed for
+3D localization and navigation. Hector SLAM is computa-
+tionally inexpensive compared to other SLAM approaches
+and can work with a lightweight LIDAR, which makes it
+a suitable choice for small aerial vehicles. It does not use
+pose graph optimization for loop closures, which reduces the
+long-term precision of the UAV pose estimate. However, our
+ﬂocking method only uses local map information for motion
+control, thus the Hector-provided estimate is sufﬁciently pre-
+cise for reliable navigation.
+Hector SLAM generates a 2D occupancy grid map of
+the environment. To account for the safety of the UAV, the
+obstacles in the map are inﬂated w.r.t the UAV size. This grid
+map is used by the A-star [30] algorithm to ﬁnd the shortest
+path to the goal. We use the sum of euclidean distance to
+the goal and the closest obstacle as a heuristic function. The
+unknown cells in the grid are considered free, so that the
+algorithm can generate a path towards a goal point that is not
+yet seen by the UAV. The generated path P is used by the
+navigation control vector, as described in Section III-B. Since
+path planning inherently incorporates obstacle avoidance, it
+adds another layer of safety to UAV motion through complex
+environments.
+V. EXPERIMENTAL ANALYSIS
+All the UAVs used in the experiments are homogeneous,
+i.e., they have identical hardware and software, and use the
+same parameters in the ﬂocking method (see Table I). The
+localization and control pipeline developed by our research
+group [28] was used for the simulation, as well as real-
+world evaluations. Since the pipeline is designed to ease the
+simulation-to-real-world transition of robotic software, it was
+extremely helpful while working with such a complex real-
+world system.
+The
+experiments
+are
+supported
+by
+multimedia
+ma-
+terials, which are available at https://youtu.be/
+HH78AheC-DM.
+Control Vectors
+Proximal
+Navigation
+Collision
+d0
+df
+ka
+dc
+kr
+dmax
+kn
+dr
+ko
+(m)
+(m)
+(-)
+(m)
+(-)
+(m)
+(-)
+(m)
+(-)
+4.00
+5.85
+0.16
+1.93
+0.07
+8.00
+1.20
+2.00
+2.00
+TABLE I: Control vector parameters used for the experiments.
+A. Validation in a Simulated Forest
+The simulation was used to analyze the performance of the
+proposed ﬂocking approach and verify the readiness for real-
+world testing. It was also beneﬁcial for the initial tuning of
+the parameters. The simulated UAVs have the same system
+architecture as described in Section IV. A simulated version
+of UVDAR is used for mutual relative localization and the
+UAVs do not communicate any information to other agents.
+The simulation is performed in the Gazebo robot simulator
+using the Robot Operating System (ROS). To minimize as-
+sumptions about the environment, a recorded 3D model of a
+natural forest (see Fig. 5), also published online, is used in
+the simulation.
+As shown in Fig. 5, the simulated experiments successfully
+verify the qualitative performance of the proposed method
+for self-aggregation and ﬂocking in a complex environment.
+Initially, the UAVs self-aggregate to form a cohesive group,
+after which an informed UAV navigates the swarm to a
+particular goal position. It is possible to provide all the UAVs
+with the same goal, which can potentially increase the speed
+of the group. However, only a single UAV is used in the ex-
+periments to verify the ﬂocking performance with minimum
+possible information. The simulations for a higher number
+of informed agents can be found at https://youtu.be/
+2QV9bDumznE. Although only one of the UAVs is pro-
+vided with the goal information in the experiment, the entire
+group moves towards the desired goal in order to maintain
+the cohesion of the swarm. The swarm deforms when mov-
+ing around obstacles to avoid possible collisions with the
+environment and with neighboring agents. The deformation
+and re-organization emerge as a direct result of the ﬂocking
+control law and signiﬁcantly helps when navigating through
+the complex environment. The simulated ﬂights validate the
+usability of the proposed method for autonomous navigation
+in complex, obstacle-rich environments, such as a forest.
+B. Natural Forest Experiments
+A quadrotor platform based on the DJI f450 frame with
+an arm length of 22.5 cm (shown in Fig. 3) is used for the
+real-world experiments. Each UAV has a Pixhawk 4 ﬂight
+controller unit and an Intel NUC8i7BEH as an on-board
+computer. The UAVs are also equipped with a Slamtec RP-
+LIDAR A3 for SLAM and a Garmin LIDAR-Lite v3 line-of-
+sight range ﬁnder, which is used to measure the height of the
+UAV from the ground. A fully equipped UAV unit has a mass
+of 2.6 kg and is powered by a 14.8 V LiPo battery. Although
+we use a relatively high-end on-board computer, the pre-
+sented self-aggregation and ﬂocking method does not require
+any heavy computation and a microcontroller can easily be
+used to perform ﬂocking, even when using smaller platforms.
+A group of three fully equipped UAVs was deployed in
+a natural forest (see Fig. 1) to analyze and validate the
+feasibility of the proposed ﬂocking method in a complex
+real-world environment. The UAVs used the UVDAR system
+for mutual relative localization and did not communicate any
+information to other agents.
+574
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:51 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+−5
+0
+5
+10
+15
+20
+25
+30
+35
+40
+−5
+0
+5
+10
+[0s −10s]
+[125s −135s]
+[190s −200s]
+[330s −340s]
+Goal
+Start
+x (m)
+y (m)
+Obstacles
+MAV1 (informed)
+MAV2
+MAV3
+MAV4
+t = 0s
+Fig. 5: Flight trajectories from the simulation. The blue square is the initial position of red UAV (goal-informed) and the purple square is
+the goal position for red UAV. The blue, green, and orange UAVs do not have any goal information (uninformed). The trailing line with
+each UAV denotes the recorded trajectory for the time interval speciﬁed in the ﬁgure.
+Although a simple control law governs the swarm, it was
+able to navigate through the forest as a cohesive group as
+shown in Fig. 6. In the initial phase of the experiment,
+the UAVs self-aggregate to form a group, after which the
+informed UAV starts moving towards the goal under the
+inﬂuence of its navigation control vector. Other UAV agents
+react to this motion and try to maintain the cohesion while
+simultaneously avoiding collisions. This simple act of main-
+taining the group cohesion results in the collective motion of
+the entire group towards the goal. Once the informed agent
+reaches the goal, the other agents self-organize around it.
+The informed UAV then moves back to its initial position,
+which moves the swarm back to its initial location.
+The high obstacle density in the forest and measurement
+noise in the real-world made the deployment extremely chal-
+lenging. Occasional detection of UAVs or incorrect measure-
+ments of trees by the LIDAR would often become a part of
+the Hector SLAM generated map. Since the collision control
+vector uses this map for obstacle avoidance, it would result in
+a disturbed motion until subsequent measurements. To avoid
+these disturbances, the maximum obstacle avoidance distance
+dr was reduced to react only to nearby trees. While navigat-
+ing the forest, the UAVs would also get occluded by nearby
+trees and other agents. This affected the estimation accuracy
+of UVDAR and posed a major challenge in the highly-dense
+forest. The pose estimate would improve as the UAVs moved
+and became visible again. However, the UAVs needed to
+be sufﬁciently far apart to prevent any collisions, while the
+estimate was poor. We were able to provide the UAVs with
+more inter-agent space by increasing the d0 parameter of the
+proximal control vector, but it was not sufﬁcient in all the
+cases. Improving the detection and estimation of occluded
+objects in outdoor environments is an open research problem
+and is a topic for our future work. However, even a simple
+technique inspired by biological ﬂocking, as presented in this
+work, proved to be sufﬁcient for robust and safe ﬂight of a
+swarm of UAVs.
+VI. CONCLUSION
+An approach for fully autonomous and decentralized
+multi-UAV ﬂocking in a complex environment was presented
+in this paper. The performance of the proposed approach has
+been validated by numerous experiments in a realistic robot
+simulator and real-world experiments in a natural forest.
+Such experimental deployment is crucial for understanding
+the challenges of using multi-UAV systems in real-world
+scenarios. It is, to the best of our knowledge, the ﬁrst work
+to design a fully decentralized framework to achieve ﬂock-
+ing in a real-world environment without communication or
+an external source of localization. The ﬂocking control law
+is designed to overcome the challenges of deployment in
+natural environments with a high obstacle density. Since the
+deployment of the proposed approach does not depend on
+external infrastructure, it has the potential to become a safety
+back-up mechanism for multi-UAV systems in applications,
+such as SAR scenarios or in forest ﬁre-ﬁghting where the loss
+of GNSS signal and communication connectivity is likely to
+occur.
+−10
+−5
+0
+5
+10
+−5
+0
+5
+10
+15
+x (m)
+y (m)
+−10
+−5
+0
+5
+10
+−5
+0
+5
+10
+15
+x (m)
+y (m)
+−10
+−5
+0
+5
+10
+−5
+0
+5
+10
+15
+x (m)
+y (m)
+−10
+−5
+0
+5
+10
+−5
+0
+5
+10
+15
+x (m)
+y (m)
+[35s −45s]
+[165s −175s]
+[185s −195s]
+[215s −225s]
+Fig. 6: Flight trajectories from the real forest experiment shown
+in the video https://youtu.be/HH78AheC-DM. The goal-
+informed UAV (red triangle) navigates the uninformed UAVs (green
+and blue crosses) through an obstacle-rich forest (black circles). The
+blue square is the initial position and the purple square is the goal
+position of the red UAV. The trailing line with each UAV denotes
+the recorded trajectory in the time interval speciﬁed in the ﬁgure.
+575
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:51 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+REFERENCES
+[1] M. Almeida et al., “Distributed UAV-swarm-based real-time geomatic
+data collection under dynamically changing resolution requirements,”
+The International Archives of Photogrammetry, Remote Sensing and
+Spatial Information Sciences, vol. 42, p. 5, 2017.
+[2] P. ˇStibinger, T. B´aˇca, and M. Saska, “Localization of Ionizing Radia-
+tion Sources by Cooperating Micro Aerial Vehicles With Pixel Detec-
+tors in Real-Time,” IEEE RAL, vol. 5, no. 2, pp. 3634–3641, 2020.
+[3] P. Petr´aˇcek, V. Kr´atk´y, and M. Saska, “Dronument: System for Re-
+liable Deployment of Micro Aerial Vehicles in Dark Areas of Large
+Historical Monuments,” IEEE RAL, vol. 5, no. 2, pp. 2078–2085, 2020.
+[4] A. Chamseddine, Y. Zhang, and C. A. Rabbath, “Trajectory planning
+and re-planning for fault tolerant formation ﬂight control of quadrotor
+unmanned aerial vehicles,” in 2012 ACC, 2012, pp. 3291–3296.
+[5] M. Petrl´ık, T. B´aˇca, D. Heˇrt, M. Vrba et al., “A Robust UAV System
+for Operations in a Constrained Environment,” IEEE RAL, vol. 5, no. 2,
+pp. 2169–2176, 2020.
+[6] R. D. Arnold et al., “Search and rescue with autonomous ﬂying robots
+through behavior-based cooperative intelligence,” Journal of Interna-
+tional Humanitarian Action, vol. 3, no. 1, p. 18, 2018.
+[7] C. C. Ioannou, M. Singh, and I. D. Couzin, “Potential leaders trade
+off goal-oriented and socially oriented behavior in mobile animal
+groups,” The American Naturalist, vol. 186, no. 2, pp. 284–293, 2015,
+pMID: 26655156. [Online]. Available: https://doi.org/10.1086/681988
+[8] S. Chung, A. A. Paranjape, P. Dames, S. Shen, and V. Kumar, “A
+Survey on Aerial Swarm Robotics,” IEEE Transactions on Robotics,
+vol. 34, no. 4, pp. 837–855, 2018.
+[9] C. K. Verginis, Z. Xu, and D. V. Dimarogonas, “Decentralized motion
+planning with collision avoidance for a team of UAVs under high level
+goals,” in 2017 IEEE ICRA, pp. 781–787.
+[10] R. Cotsakis, D. St-Onge, and G. Beltrame, “Decentralized collabora-
+tive transport of fabrics using micro-UAVs,” in 2019 IEEE/ICRA.
+[11] A. Kushleyev et al., “Towards A Swarm of Agile Micro Quadrotors,”
+Auton. Robot., vol. 35, no. 4, pp. 287–300, Nov 2013.
+[12] M. Saska, V. Von´asek, J. Chudoba, J. Thomas, G. Loianno, and V. Ku-
+mar, “Swarm Distribution and Deployment for Cooperative Surveil-
+lance by Micro-Aerial Vehicles,” Journal of Intelligent & Robotic
+Systems, vol. 84, no. 1, pp. 469–492, 2016.
+[13] G. V´as´arhelyi, C. Vir´agh, G. Somorjai, T. Nepusz, A. E. Eiben, and
+T. Vicsek, “Optimized ﬂocking of autonomous drones in conﬁned
+environments,” Science Robotics, vol. 3, no. 20, 2018.
+[14] P. Petr´aˇcek, V. Walter, T. B´aˇca, and M. Saska, “Bio-inspired compact
+swarms of unmanned aerial vehicles without communication and
+external localization,” Bioinspiration & Biomimetics, vol. 16, no. 2,
+p. 026009, dec 2020. [Online]. Available: https://doi.org/10.1088/
+1748-3190/abc6b3
+[15] A. Weinstein, A. Cho, G. Loianno, and V. Kumar, “Visual Inertial
+Odometry Swarm: An Autonomous Swarm of Vision-Based Quadro-
+tors,” IEEE RAL, vol. 3, no. 3, pp. 1801–1807, 2018.
+[16] K. Guo, X. Li, and L. Xie, “Ultra-Wideband and Odometry-Based
+Cooperative Relative Localization With Application to Multi-UAV
+Formation Control,” IEEE Trans. on Cyber., vol. 50, no. 6, pp. 2590–
+2603, 2020.
+[17] H. Xu, L. Wang, Y. Zhang, K. Qiu, and S. Shen, “Decentralized Visual-
+Inertial-UWB Fusion for Relative State Estimation of Aerial Swarm,”
+in 2020 IEEE ICRA, pp. 8776–8782.
+[18] M. Vrba and M. Saska, “Marker-Less Micro Aerial Vehicle Detection
+and Localization Using Convolutional Neural Networks,” IEEE RAL,
+vol. 5, no. 2, pp. 2459–2466, April 2020.
+[19] Y. Tang, Y. Hu, J. Cui, F. Liao, M. Lao, F. Lin et al., “Vision-
+Aided Multi-UAV Autonomous Flocking in GPS-Denied Environ-
+ment,” IEEE Trans. on Ind. Electronics, vol. 66, no. 1, pp. 616–626,
+2019.
+[20] M. Vrba et al., “Onboard Marker-Less Detection and Localization
+of Non-Cooperating Drones for Their Safe Interception by an Au-
+tonomous Aerial System,” IEEE RAL, vol. 4, no. 4, pp. 3402–3409,
+2019.
+[21] V. Walter, M. Saska, and A. Franchi, “Fast Mutual Relative Localiza-
+tion of UAVs using Ultraviolet LED Markers,” in 2018 ICUAS, 2018.
+[22] V. Walter, N.Staub, M. Saska, and A. Franchi, “Mutual Localization
+of UAVs based on Blinking Ultraviolet Markers and 3D Time-Position
+Hough Transform,” in CASE, 2018.
+[23] V. Walter, N. Staub et al., “UVDAR System for Visual Relative Local-
+ization With Application to LeaderFollower Formations of Multirotor
+UAVs,” IEEE RAL, vol. 4, no. 3, pp. 2637–2644, July 2019.
+[24] C. W. Reynolds, “Flocks, Herds and Schools: A Distributed Behavioral
+Model,” in Proceedings of the 14th Annual Conference on Computer
+Graphics and Interactive Techniques, ser. SIGGRAPH ’87, New York,
+NY, USA, 1987, p. 2534.
+[25] R. Olfati-Saber, “Flocking for multi-agent dynamic systems: algo-
+rithms and theory,” IEEE Transactions on Automatic Control, vol. 51,
+no. 3, pp. 401–420, 2006.
+[26] D. Sakai, H. Fukushima, and F. Matsuno, “Flocking for multirobots
+without distinguishing robots and obstacles,” IEEE Transactions on
+Control Systems Technology, vol. 25, no. 3, pp. 1019–1027, 2017.
+[27] H. Zhao, H. Liu, Y. Leung, and X. Chu, “Self-Adaptive Collective
+Motion of Swarm Robots,” IEEE Transactions on Automation Science
+and Engineering, vol. 15, no. 4, pp. 1533–1545, 2018.
+[28] T. Baca, M. Petrlik, M. Vrba, V. Spurny, R. Penicka, D. Hert, and
+M. Saska, “The MRS UAV System: Pushing the Frontiers of Repro-
+ducible Research, Real-world Deployment, and Education with Au-
+tonomous Unmanned Aerial Vehicles,” 2020.
+[29] S. Kohlbrecher, O. von Stryk, J. Meyer, and U. Klingauf, “A ﬂexible
+and scalable SLAM system with full 3D motion estimation,” in 2011
+IEEE ISSSR Robotics, pp. 155–160.
+[30] P. E. Hart, N. J. Nilsson, and B. Raphael, “A formal basis for the
+heuristic determination of minimum cost paths,” IEEE Transactions
+on Systems Science and Cybernetics, vol. 4, no. 2, pp. 100–107, 1968.
+576
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:16:51 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

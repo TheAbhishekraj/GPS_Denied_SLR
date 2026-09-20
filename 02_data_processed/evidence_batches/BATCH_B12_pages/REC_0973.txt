@@ -1,0 +1,890 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0973.pdf
+sha256: 1A1A2C5C83D372DB44FEBB3D569ABBFEA29B745DA849793512F6CC7E949D07B1
+library: pymupdf (fitz) v1.28.2
+pages: 7
+=== BEGIN ===
+[p.1]
+Landmark Placement for Localization in a GPS-denied Environment
+Kaarthik Sundar†, Shriram Srinivasan†, Sohum Misra∗, Sivakumar Rathinam‡, Rajnikant Sharma∗
+Abstract— Path planning algorithms for unmanned aerial
+or ground vehicles, in many surveillance applications, rely on
+Global Positioning System (GPS) information for localization.
+However, disruption of GPS signals, by intention or otherwise,
+can render these plans and algorithms ineffective. This article
+provides a way of addressing this issue by utilizing stationary
+landmarks to aid localization in such GPS-disrupted or GPS-
+denied environment. In particular, given the vehicle’s path,
+we formulate a landmark-placement problem and present
+algorithms to place the minimum number of landmarks while
+satisfying the localization, sensing, and collision-avoidance con-
+straints. The performance of such a placement is also evaluated
+via extensive simulations on ground robots.
+Index Terms— localization; unmanned vehicles; GPS-denied;
+estimation; interval covering problem
+I. INTRODUCTION
+Unmanned Vehicles (UVs) are routinely used in civilian
+and military applications pertaining to surveillance and data
+gathering missions in civil infrastructure management, trafﬁc
+management, crop monitoring [3], [9], to name a few. Over
+the past decade, a wide range of path planning, routing,
+and motion planning algorithms have been developed for
+UVs to handle heterogeneity [6], [18], [20], [21], resource
+constraints [10], fuel constraints [17], [19], [22], [23] etc.
+Most of these algorithms rely on GPS information to aid
+the vehicles to stay on its route. Disruption of the GPS
+signals, deliberate or otherwise can render these algorithms
+ineffective. For instance, entire cities in the states of Arizona
+and California experienced unintentional GPS interference
+[2], [4] for a period of ﬁve and thirty seven days respectively.
+This article presents a technique to aid localization of UVs in
+such GPS-denied/GPS-restricted environments. Localization
+entails the determination of the position and heading of a UV
+from the available measurements. Our approach assumes that
+routes for the UVs are decided apriori using various path
+planning and routing algorithms and cannot be changed.
+The routes for the UVs are rendered useless without
+localization capability, i.e., knowledge of its position and
+heading. The usual practice is to combine GPS and mea-
+surements obtained from Inertial Measurement Units (IMUs)
+† Center for Nonlinear Studies, Los Alamos National Laboratory, NM.
+∗Dept. of Aerospace Engg., University of Cincinnati, OH.
+‡ Dept. of Mechanical Engg., Texas A&M University, College Station,
+TX.
+with traditional ﬁltering techniques to estimate the position
+and heading of the UVs. In GPS-denied environments, range
+and bearing sensors yield relative position and bearing mea-
+surements from known landmarks which are in turn used to
+estimate the states (position and heading) of the UVs; the
+state-estimation problem is then solved using an Extended
+Kalman Filter (EKF) or its information counterpart, the
+Extended Information Filter (EIF). It is known that the state
+estimates obtained using the estimation algorithm would
+provide consistent and bounded estimates only if enough
+measurements are available [15] or rather, in the parlance of
+control theory, if the the system is observable. If the system
+is observable and linear, a bound on the uncertainty in the
+estimation error can be related to the the eigenvalues of the
+observability grammian [15]. For the problem of localization
+of UVs, authors in [14] have shown that each UV requires
+bearing measurements from two distinct landmarks for ob-
+servability of the system; the observability of the system is
+shown using Lie derivative theory. An important problem that
+arises in this context is that of landmark placement, i.e., given
+a route for the UV, to place landmarks so that the system is
+always observable; this would in turn ensure the error in state
+estimates of the position and heading of the UV, obtained
+using the estimation algorithms, remain bounded [15]. It is
+trivial to do so by placing ﬁnely-spaced landmarks on a grid
+of the area that the UV is monitoring. Nevertheless, if the
+area is large, then this can result in too many landmarks being
+placed. Furthermore, the sensor on the vehicle that measures
+the bearing from a given landmark is usually a camera which
+has its own restricted ﬁeld of view. This article considers
+such a landmark placement problem that aims to place the
+minimum number of landmarks to ensure observability of
+the system at all times, while taking into account a collision
+avoidance constraint and the restricted ﬁeld of view of the
+camera. The Fig. 1 shows the path taken by the UV and
+the placement of landmarks to ensure observability of the
+vehicle while accounting for the restricted ﬁeld of view of
+the bearing sensor (a camera).
+A. Related Work
+The idea of using landmarks to aid in localization has
+been addressed previously in [14], [16]. There are also a
+number of techniques that use so-called proxy landmarks
+arXiv:1802.07652v2  [math.OC]  10 Jul 2018
+[p.2]
+Landmark
+Target
+Field of view
+of the camera
+Fig. 1.
+A placement of landmarks to facilitate observability, and hence,
+accurate localization for the UV.
+for localization. Proxy landmarks can refer to either the use
+of additional localization vehicles or radio signals received
+from suitably positioned neighbouring vehicles [5], [12],
+[13]. In [11], the authors develop a fast 13-approximation
+algorithm to place landmarks to make the system observable
+given the path for the UVs. They assume that the bearing
+sensor’s (camera’s) ﬁeld of view is circular and formulate
+the problem as a generalization of a unit-disc cover problem
+[1], [8]. To the best of our knowledge, the previous works
+in the literature either neglect the constraints imposed by
+the bearing sensor [14] or assume that the ﬁeld of view is
+circular [11], both of which are unrealistic. While there is
+theoretically the possibility of achieving a circular ﬁeld of
+view using multiple cameras, obtaining bearing information
+from them can signiﬁcantly increase the overhead on the
+image processing algorithms required to do so.
+We aim to remedy these shortcomings and accordingly,
+we rule out the possibility of having multiple cameras (and
+circular ﬁeld of view) right at the outset and instead take
+into account the constraints imposed by the bearing sensor.
+The other major point of difference from previous work is
+that we assume a given discrete set of potential landmark
+locations rather than allowing the landmarks to be placed
+anywhere in the area of interest. Practically, our assumption
+is more realistic because there are often regions in the area
+of interest where terrain restrictions prevent placement of
+landmarks. In the following section we formally deﬁne the
+problem and detail the main contributions of this article.
+B. Landmark Placement Problem (LPP)
+As mentioned in Sec. I, for observability, a UV requires
+bearing measurements from at least two distinct landmarks
+at any point in time. In this article, this condition is enforced
+as a graph-theoretic requirement to place the landmarks in
+the following landmark placement problem (LPP):
+Given: A UV equipped with a camera possessing a viewing
+range of R units and viewing angle of α(⩽180◦), a set of
+targets and a path taken by the UV from a source target to
+the destination target that visits every target exactly once,
+and a set of potential landmark locations where landmarks
+can be placed.
+Objective: Placement of landmarks in a subset of potential
+locations such that the following conditions are satisﬁed –
+(1) at least two landmarks have to be in the ﬁeld of view of
+the UV’s camera at any point in the UV’s path, (2) two
+landmarks cannot be coincidental from the point of view
+of the camera, (3) the distance between the UV and any
+landmark should be greater than p units, and (3) the number
+of landmarks placed is a minimum.
+A feasible solution to the LPP is shown in Fig. 1. The
+condition (1) enforces observability of the system and hence
+guarantees convergence of any estimation algorithm (EKF or
+EIF) to estimate the position and heading of the UV while
+the condition (2) and (3) are collision-avoidance constraints.
+C. Contributions
+The contributions of this article are as follow: (1) the
+LPP is formulated as a graph theoretic problem, (2) a de-
+composition of the problem into smaller sub-problems (one
+for each edge) in the UV’s path is presented, (3) a greedy
+algorithm is then developed for optimal solution of each sub-
+problem, and ﬁnally (4) the solutions to the sub-problems
+are put together to construct a feasible solution to the LPP.
+The ﬁnal placement of landmarks obtained via the proposed
+algorithm is subjected to extensive simulation experiments.
+In subsequent sections, we present the algorithm to solve the
+LPP followed by simulation on ground robots.
+II. ALGORITHMS AND ANALYSIS
+Any point in the path of the UV is said to be covered
+by a landmark k if k is in the ﬁeld of view of the UV’s
+camera. Let L = {ℓ1, . . . , ℓm} denote the set of potential
+landmark locations and T = {t1, . . . , tn}, the set of targets.
+We remark that the set L is the reduced set of potential
+landmark locations after preprocessing out those locations
+which do not satisfy the collision avoidance constraints.
+Without loss of generality, we assume that t1 and tn are the
+source and destination targets where the UV’s path begins
+and ends, respectively. Also, let the UV’s path be denoted by
+{(t1, t2), (t2, t3), . . . , (tn−1, tn)}, where (ti, ti+1) is the ith
+edge in the path. The number of edges in the UV’s path is
+(n−1). We shall say that a set of landmarks L1 ⊆L covers
+[p.3]
+an edge (ti, ti+1) if for any point on the edge, there exist
+at least two landmarks that cover the point. The objective of
+the LPP is to cover every edge in the UV’s path. This allows
+for an edgewise decomposition. Hence, we will ﬁrst present
+an algorithm to ﬁnd the optimal number of landmarks and
+their placements to cover a given edge in the path of the UV.
+A. An optimal landmark placement for an edge
+Let e = (ti, ti+1) denote any edge in the UV’s path. The
+objective is to solve the LPP for this edge e. To that end, let
+(xi, yi) and (xi+1, yi+1) denote the coordinates of the targets
+ti and ti+1, respectively. Without loss of generality, we
+assume that (xi, yi) = (0, 0) and (xi+1, yi+1) = (d, 0). This
+is possible by a suitable rigid-body transformation (transla-
+tion & rotation) of the coordinate axes Ri. For the sake of
+completeness, we present the coordinate transformations for
+this particular case.
+1) Translate the coordinate axis so that the origin co-
+incides with (xi, yi). This would result in the new
+coordinates of ti and ti+1 being the origin and (xi+1−
+xi, yi+1 −yi), respectively.
+2) Rotate the coordinate axis by an angle
+θ = tan−1 yi+1 −yi
+xi+1 −xi
+;
+such that the rotation aligns the positive direction
+of the X-axis with the edge (ti, ti+1) and let the
+new reference axes be denoted by Rf. Also, let the
+coordinate of ti+1 with respect to the new reference
+axes Rf be denoted by (d, 0) where, d is the length
+of the edge.
+The coordinates of every potential landmark location ℓ∈L
+with respect to the new reference axes Rf is also computed.
+Now, given that the edge is aligned along the positive X-axis
+of Rf with ti = (0, 0) and ti+1 = (d, 0), and the coordinates
+of every ℓ∈L in Rf, we present an algorithm to check if a
+landmark placed at a location ℓk ∈L for any k = 1, . . . , m,
+would be within the camera’s ﬁeld of view for some part of
+the edge the UV traverses, and if so, compute that part of
+the edge. The following lemma gives a necessary condition
+for a landmark placed at a location ℓk ∈L to be within the
+ﬁeld of view of the camera as the UV traverses some part
+of the edge e.
+Lemma 1. Consider any potential landmark location ℓk ∈
+L. ℓk would be in the ﬁeld of view of the camera as the UV
+traverses some part of the edge from ti to ti+1 only if the
+coordinates, (xk, yk), of ℓk in the new reference axes Rf lie
+within the region deﬁned by
+1) |yk|⩽R sin(α/2),
+2) xk > 0,
+R
+R
+ti = (0, 0)
+ti+1 = (d, 0)
+α
+UV’s path
+Fig. 2.
+The region deﬁned by the conditions in Lemma 1.
+3) −α/2 ⩽tan−1(yk/xk) ⩽α/2, and
+4) if xk ⩾d, then (xk −d)2 + y2
+k ⩽R2
+where, R is the camera’s viewing range and α is the
+camera’s viewing angle.
+Proof. The proof is direct by making the observation that
+the constraints deﬁne the region in Fig 2. We shall refer to
+this region as the “region of inﬂuence”. If the landmark ℓk
+is placed within this region of inﬂuence, then it will be in
+the ﬁeld of view of the UV’s camera as the vehicle traverses
+some part of the edge.
+The next lemma gives the interval for which a landmark
+placed in the region of inﬂuence would be in the camera’s
+ﬁeld of view.
+Lemma 2. Consider a potential landmark location ℓk ∈L
+whose coordinate with respect to Rf, (xk, yk), is within the
+region of inﬂuence, as deﬁned by Lemma 1. Then ℓk would
+be in the camera’s ﬁeld-of-view as the UV travels from the
+point ts to td, where the coordinates of ts and td in Rf are
+given by
+ts =
+
+max
+
+xk −
+q
+R2 −y2
+k, 0
+
+, 0
+
+,
+(1)
+td =
+
+min
+n
+xk −|yk|cot
+α
+2
+
+, d
+o
+, 0
+
+.
+(2)
+Proof. Let (xs, 0) be the position of the UV when the
+landmark placed at the location ℓk ∈L enters the ﬁeld
+of view of the camera. The Fig. 3 illustrates this case.
+Then, it is clear from 3 that the distance between the points
+R
+R
+(xs, 0)
+ti = (0, 0)
+ti+1 = (d, 0)
+ℓk
+α
+Fig. 3.
+ℓk entering the camera’s ﬁeld of view.
+(xs, 0) and (xk, yk) is exactly R units, which yields xs =
+[p.4]
+xk −
+p
+R2 −y2
+k. Hence, the position of the vehicle ts when
+the landmark at ℓk enters the camera’s ﬁeld of view is given
+by the Eq. (1).
+Similarly, let (xd, 0) be the position of the UV when the
+landmark placed at the location ℓk ∈L leaves the ﬁeld of
+view of the camera. The Fig. 4 illustrates this case. For ease
+of exposition, we shall refer to (xd, 0) as A and (xk, 0) as
+B. The perpendicular distance between ℓk and the edge is
+given by |yk|. Then, the length of the segment from A to B
+is |yk|cot(α/2). This in turn implies that xd = xk −|AB|=
+xk −|yk|cot(α/2), proving the claim.
+R
+(xd, 0)
+ti = (0, 0)
+ti+1 = (d, 0)
+ℓk = (xk, yk)
+α
+(xk, 0)
+Fig. 4.
+ℓk leaving the camera’s ﬁeld of view.
+Corollary 1. If the ﬁeld of view of the camera is circular
+then,
+ts =
+
+max
+
+xk −
+q
+R2 −y2
+k, 0
+
+, 0
+
+,
+(3)
+td =
+
+min
+
+xk +
+q
+R2 −y2
+k, 0
+
+, 0
+
+.
+(4)
+The Lemmas 1 and 2 together give the conditions under
+which a landmark placed at a location ℓk ∈L for any
+k = 1, . . . , m can cover some part of the edge and if so,
+allows the computation of the interval (part of the edge) that
+it can cover. This computation can be repeated for every
+potential landmark location ℓ∈L to obtain the interval
+deﬁning a part of the edge that can be covered by a landmark
+placed at ℓ; let Iℓdenote the interval deﬁned by Lemma
+2 for the landmark location ℓ∈L. We remark that Iℓ
+can be empty if the coordinates of ℓdoes not satisfy the
+necessary condition of Lemma 1. Given these intervals, we
+now develop a greedy algorithm to ﬁnd the minimal set
+of locations L1 ⊆L, where landmarks can be placed to
+cover the entire edge. This is a generalization of the well-
+studied “Interval Covering” problem and is formally stated as
+follows: given an interval [a, b] and a set of intervals [ai, bi],
+for i ∈{1, . . . , n}, choose a minimal subset S ⊂{1, . . . , n}
+such that [a, b] = S
+i∈S[ai, bi]. The problem of covering an
+edge with a set of landmarks can be considered as a 2-interval
+covering problem that seeks a subset of intervals to enclose
+all the points in the edge at least twice. A pseudocode of the
+algorithm is given in Algorithm 1.
+Algorithm 1 Greedy algorithm
+Input: Iℓ= [aℓ, bℓ] ∀ℓ∈L and edge e = (ti, ti+1)
+Output: L1 ⊆L such that L1 covers the edge e
+1: I ←S
+ℓ∈L Iℓ
+2: L1 ←∅
+3: c ←0
+▷x-coordinate of ti in Rf
+4: ˆL ←two intervals that contain c with the largest and
+second largest endpoint
+5: c ←min{bℓ, ℓ∈ˆL}, c1 ←max{bℓ, ℓ∈ˆL}
+6: L1 ←L1
+S ˆL and I ←I \ ˆL
+7: while c < d do
+▷check if the edge is covered
+8:
+ℓ1 ←argmaxIℓ∈I{bℓ: Iℓcovers c},
+9:
+If Step 8 is infeasible; exit
+▷problem infeasible
+10:
+L1 ←L1
+S{ℓ1} and I ←I \ {ℓ1}
+11:
+c ←min(c1, bℓ1), c1 ←max(c1, bℓ1)
+The Algorithm 1 is a greedy algorithm for a 2-interval
+covering problem which is also optimal. The intuition behind
+the algorithm is as follows: We shall use that analogy that the
+edge is a tunnel with an entrance and and exit and intervals
+as lamps with the length of the interval denoting its lighting
+range. The goal of the 2-interval cover problem is then to
+light the tunnel using the minimum number of lamps such
+that each point in the tunnel falls in the lighting range of
+at least two lamps. The algorithm ﬁrst chooses two lamps
+which cover the entrance of the tunnel and has the longest
+and the second longest lighting range into the tunnel. Then,
+it continuously choose the lamp which overlaps the smaller
+of the two current lighting ranges and has the longest range
+further into the tunnel, until the exit is reached.
+Proposition 1. The greedy algorithm presented in Algorithm
+1 is optimal for the 2-interval covering problem.
+Proof. Consider an optimal set of intervals L1 for the 2-
+interval covering problem and let the set Lt1 ⊆L1 denote
+the set of intervals covering the point t1 = (0, 0) (the starting
+point) in the edge. Clearly, |Lt1|= 2. If both these intervals
+from Lt1 are replaced with two other intervals [ai, bi] and
+[aj, bj] from L whose endpoint bi and bj are the maximal
+and second maximal, the remaining uncovered part of the
+edge, (bj, d], would be covered of the remaining intervals
+in the optimal solution i.e. L1 \ Lt1. Hence, the remaining
+uncovered part of the edge can be covered with no more
+intervals than the analogous uncovered part from the optimal
+solution. Therefore, a solution constructed using the intervals
+[ai, bi] and [aj, bj] and the optimal solution for the remaining
+[p.5]
+uncovered part of the edge, L1 \ Lt1 will also be optimal,
+proving the claim.
+B. Landmark placement for the entire path
+The potential set of locations on which landmarks can be
+placed so that the UV can be localized at all time instants
+as it traverses its path can be solved by decomposing the
+problem over the edges. We remark that, despite the fact
+that the LPP is being solved to optimality over each edge,
+a solution obtained for the LPP for the entire path using
+the optimal solutions for each edge in the path need not be
+optimal for the entire path. This makes the algorithm for
+the entire UV path a heuristic approach. The solution to the
+LPP for the entire path is computed by taking a union of
+the potential locations obtained for every edge in the UV’s
+path. In the next section, we evaluate the effectiveness of the
+proposed landmark placement with extensive simulations.
+We remark that the landmark placement for the entire
+path would not ensure complete observability at the corners.
+For instance consider the Fig. 5. Here, the UV would be
+Landmark
+Target
+Field of view
+of the camera
+Fig. 5.
+Observability at the intersection of two edges
+observable only at the beginning of the turn and then at the
+end of the turn; this is assuming that the UV is a ground
+robot or a quadracopter that can make a turn around its
+axis while remaining stationary at a point. This is reasonable
+from a localization perspective because when the UV makes
+a turn, it remains stationary and the position of the UV
+does not change. This issue is averted if we assume the
+camera’s ﬁeld of view is circular (see Corollary 1), which
+is not practical. Nevertheless, if needed, the algorithm can
+be modiﬁed suitably to make the UV observable at all times
+in a corner. Due to page limitations, this modiﬁcation to the
+algorithm is not discussed here and is delegated to future
+work.
+III. RESULTS
+A. Simulation Results
+For the simulation experiments, two cases, one with 6
+targets and another with 7 targets were considered. For both
+the cases, the path taken by the vehicle was computed a
+priori using the Lin-Kernighan-Helsgaun (LKH) heuristic
+[7]. The way points were generated randomly in a grid of
+size 4 × 8 . The viewing angle and range of the camera
+was set to 50◦and 2 meters (m), respectively. A viewing
+angle and range were chosen to keep the simulation setup
+practical. A high controller gain was chosen to ensure a high
+turn rate for the vehicle. The set of grid points in a grid of
+size 0.5 × 0.5 was chosen as the set of potential landmark
+locations. The vehicle’s velocity was kept constant at 0.2
+m/s. A p value of 0.05 m (collision avoidance distance) was
+used for the separation distance between the vehicle and any
+location where the landmarks were to be placed. Although
+this distance can be increased, a small value was chosen to
+make the instances feasible. The greedy algorithm presented
+in Sec. II is then used to compute the subset of locations
+where landmarks are to be placed. Using the landmarks at
+the locations obtained from the algorithm, an EIF was used
+to estimate the position and heading of the vehicle using the
+bearing measurements. The results of both the simulations
+are shown in Fig. 6 and Fig. 7.
+-0.5
+0
+0.5
+1
+1.5
+2
+2.5
+3
+3.5
+4
+4.5
+X-Axis
+0
+1
+2
+3
+4
+5
+6
+7
+8
+Y-Axis
+1
+2
+3
+4
+5
+6
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+Start Point
+Filter Data
+True Data
+Waypoints
+Landmarks
+Fig. 6.
+True and estimated trajectories of the vehicle with 6 targets (way
+points) and 22 landmarks.
+The error in the position and the heading of the vehicle
+corresponding to Fig. 6 and Fig. 7 are shown in Fig. 8 and
+Fig. 9, respectively. It can be seen that the error lies within
+the 3σ bound most of the time, hence ensuring that the
+placement of landmarks obtained from the greedy algorithm
+is sufﬁcient for localization of the vehicle.
+B. Performance of the greedy algorithm
+In this section, we run the greedy algorithm on 9 randomly
+generated instances with 5, 6, or 7 targets. The procedure for
+generating the instances is similar to that of the instances
+generated for simulation. The Table I shows the number
+of potential locations chosen by the algorithm for landmark
+placement.
+[p.6]
+-0.5
+0
+0.5
+1
+1.5
+2
+2.5
+3
+3.5
+4
+X-Axis
+0
+1
+2
+3
+4
+5
+6
+7
+8
+Y-Axis
+1
+2
+3
+4
+5
+6
+7
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+Start Point
+Filter Data
+True Data
+Waypoints
+Landmarks
+Fig. 7.
+True and estimated trajectories of the vehicle with 7 targets (way
+points) and 31 landmarks.
+0
+10
+20
+30
+40
+50
+60
+70
+Time(s)
+-1
+0
+1
+Error in X (m)
+Errorx
++3σx
+-3σx
+0
+10
+20
+30
+40
+50
+60
+70
+Time(s)
+-1
+0
+1
+Error in Y (m)
+Errory
++3σy
+-3σy
+0
+10
+20
+30
+40
+50
+60
+70
+Time(s)
+-0.2
+0
+0.2
+Error in ψ (rad)
+Errorψ
++3σψ
+-3σψ
+Fig. 8.
+Error in X, Y and ψ (heading) of the vehicle with 6 targets (way
+points) and 22 landmarks.
+Instance #
+1
+2
+3
+4
+5
+6
+7
+8
+9
+# targets
+5
+5
+5
+6
+6
+7
+7
+7
+7
+# landmarks
+21
+22
+12
+24
+22
+20
+31
+21
+12
+TABLE I
+NUMBER OF LANDMARKS PLACED BY THE ALGORITHM.
+IV. CONCLUSION
+This article develops a greedy algorithm for a landmark
+placement problem to aid localization of vehicles in GPS-
+denied environment with collision avoidance constraints
+while taking into account the ﬁeld of view of the camera
+ﬁxed to the vehicle. This is the ﬁrst approach to consider
+these constraints. The algorithm presented is optimal for each
+edge the vehicle traverses. Through simulations, it is shown
+that the landmark placement obtained using our algorithm
+0
+10
+20
+30
+40
+50
+60
+70
+80
+90
+Time(s)
+-1
+0
+1
+Error in X (m)
+Errorx
++3σx
+-3σx
+0
+10
+20
+30
+40
+50
+60
+70
+80
+90
+Time(s)
+-1
+0
+1
+Error in Y (m)
+Errory
++3σy
+-3σy
+0
+10
+20
+30
+40
+50
+60
+70
+80
+90
+Time(s)
+-0.2
+0
+0.2
+Error in ψ (rad)
+Errorψ
++3σψ
+-3σψ
+Fig. 9.
+Plot showing the error in X, Y and ψ (heading) of the vehicle with
+7 targets (way points) and 31 landmarks.
+can aid the vehicle to estimate its position and heading
+with a high degree of accuracy. Future work would focus
+on hardware experiments and jointly optimizing the path
+and the placement along with the constraints considered in
+this article; this would result in a path for the UV and a
+corresponding landmark placement that would yield a lower
+number of landmarks.
+V. ACKNOWLEDGEMENT
+This work was in part supported by the U.S. Department
+of Energy through the LANL/LDRD program and the Center
+for Nonlinear Studies, and in part by the U.S. National Sci-
+ence Foundation (NSF) through NSF-IIS Robust Intelligence
+Award 1736087.
+REFERENCES
+[1] Ahmad Biniaz, Anil Maheshwari, Michiel HM Smid, and Paul Liu.
+A faster 4-approximation algorithm for the unit disk cover problem.
+In CCCG, 2015.
+[2] James V Carroll. Vulnerability assessment of the us transportation
+infrastructure that relies on the global positioning system. The Journal
+of Navigation, 56(2):185–193, 2003.
+[3] CE Corrigan, GC Roberts, MV Ramana, D Kim, and V Ramanathan.
+Capturing vertical proﬁles of aerosols and black carbon over the indian
+ocean using autonomous unmanned aerial vehicles.
+Atmospheric
+Chemistry and Physics Discussions, 7(4):11429–11463, 2007.
+[4] David Hoey and Paul Benshoof.
+Civil gps systems and potential
+vulnerabilities. Technical report, TEST GROUP (46TH) HOLLOMAN
+AFB NM, 2005.
+[5] Ryo Kurazume and Shigeo Hirose. Study on cooperative positioning
+system: optimum moving strategies for cps-iii.
+In Robotics and
+Automation, 1998. Proceedings. 1998 IEEE International Conference
+on, volume 4, pages 2896–2903. IEEE, 1998.
+[6] David Levy, Kaarthik Sundar, and Sivakumar Rathinam. Heuristics
+for routing heterogeneous unmanned vehicles with fuel constraints.
+Mathematical Problems in Engineering, 2014, 2014.
+[7] Shen Lin and Brian W Kernighan. An effective heuristic algorithm for
+the traveling-salesman problem. Operations research, 21(2):498–516,
+1973.
+[p.7]
+[8] Paul Liu and Daniel Lu. A fast 25/6-approximation for the minimum
+unit disk cover problem. arXiv preprint arXiv:1406.3838, 2014.
+[9] Satyanarayana G Manyam, David W Casbeer, and Kaarthik Sundar.
+Path planning for cooperative routing of air-ground vehicles.
+In
+American Control Conference (ACC), 2016, pages 4630–4635. IEEE,
+2016.
+[10] Sivakumar Rathinam, Raja Sengupta, and Swaroop Darbha. A resource
+allocation algorithm for multivehicle systems with nonholonomic con-
+straints. IEEE Transactions on Automation Science and Engineering,
+4(1):98–104, 2007.
+[11] Sivakumar Rathinam and Rajinikant Sharma.
+A multiple vehicle
+path covering problem with localization constraints: Formulation and
+algorithms.
+In American Control Conference (ACC), 2015, pages
+3746–3751. IEEE, 2015.
+[12] Stergios I Roumeliotis and George A Bekey. Collective localization: A
+distributed kalman ﬁlter approach to localization of groups of mobile
+robots.
+In Robotics and Automation, 2000. Proceedings. ICRA’00.
+IEEE International Conference on, volume 3, pages 2958–2965. IEEE,
+2000.
+[13] Arthur C Sanderson. A distributed algorithm for cooperative naviga-
+tion among multiple mobile robots. Advanced Robotics, 12(4):335–
+349, 1997.
+[14] Rajnikant Sharma, Randy W Beard, Clark N Taylor, and Stephen
+Quebe. Graph-based observability analysis of bearing-only cooperative
+localization. IEEE Transactions on Robotics, 28(2):522–529, 2012.
+[15] Yongkyu Song and Jessy W Grizzle. The extended kalman ﬁlter as
+a local asymptotic observer for nonlinear discrete-time systems. In
+American Control Conference, 1992, pages 3365–3369. IEEE, 1992.
+[16] Kaarthik Sundar, Sohum Misra, Sivakumar Rathinam, and Rajnikant
+Sharma. Routing unmanned vehicles in GPS-denied environments. In
+Unmanned Aircraft Systems (ICUAS), 2017 International Conference
+on, pages 62–71. IEEE, 2017.
+[17] Kaarthik Sundar and Sivakumar Rathinam. Route planning algorithms
+for unmanned aerial vehicles with refueling constraints. In American
+Control Conference (ACC), 2012, pages 3266–3271. IEEE, 2012.
+[18] Kaarthik Sundar and Sivakumar Rathinam. A primal-dual heuristic
+for a heterogeneous unmanned vehicle path planning problem. Inter-
+national Journal of Advanced Robotic Systems, 10(10):349, 2013.
+[19] Kaarthik Sundar and Sivakumar Rathinam.
+Algorithms for routing
+an unmanned aerial vehicle in the presence of refueling depots. IEEE
+Transactions on Automation Science and Engineering, 11(1):287–294,
+2014.
+[20] Kaarthik Sundar and Sivakumar Rathinam. An exact algorithm for a
+heterogeneous, multiple depot, multiple traveling salesman problem. In
+Unmanned Aircraft Systems (ICUAS), 2015 International Conference
+on, pages 366–371. IEEE, 2015.
+[21] Kaarthik Sundar and Sivakumar Rathinam.
+Algorithms for hetero-
+geneous, multiple depot, multiple unmanned vehicle path planning
+problems. Journal of Intelligent & Robotic Systems, pages 1–14, 2016.
+[22] Kaarthik Sundar, Saravanan Venkatachalam, and Sivakumar Rathinam.
+Formulations and algorithms for the multiple depot, fuel-constrained,
+multiple vehicle routing problem. In 2016 American Control Confer-
+ence (ACC), pages 6489–6494, July 2016.
+[23] Kaarthik Sundar, Saravanan Venkatachalam, and Sivakumar Rathinam.
+Analysis of mixed-integer linear programming formulations for a fuel-
+constrained multiple vehicle routing problem.
+Unmanned Systems,
+2017.
+=== END ===

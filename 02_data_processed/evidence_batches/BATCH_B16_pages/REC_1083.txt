@@ -1,0 +1,1300 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1083.pdf
+sha256: 17AAAC243D02ED39E63F18185719A9B275BF74ECBC9E05BE196065B9CEDBE97A
+library: pymupdf (fitz) v1.28.2
+pages: 26
+=== BEGIN ===
+[p.1]
+Academic Editor: Pablo
+Rodríguez-Gonzálvez
+Received: 13 March 2026
+Revised: 24 April 2026
+Accepted: 28 April 2026
+Published: 2 May 2026
+Copyright: © 2026 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license.
+Article
+GNSS-Denied UAV Terrain Matching Navigation Based on the
+Autoencoder Network with Contrastive Learning
+Yao Jiang, Qiang Miao *, Dewei Wu, Jing He and Chenhao Zhao
+Information and Navigation School, Air Force Engineering University, Xi’an 710077, China;
+jiangyao19980206@163.com (Y.J.); wudewei74609@126.com (D.W.); hejing_78@163.com (J.H.);
+14291024@bjtu.edu.cn (C.Z.)
+* Correspondence: mqmiaoqiang@126.com
+Highlights
+What are the main findings?
+•
+A Global–Local Dual-branch Feature Extraction Network is proposed to integrate
+Convolutional Neural Network (CNN)-based local details with Swin Transformer-
+based global dependencies for multi-scale terrain feature representation.
+•
+An Autoencoder Contrastive Learning Model is developed to jointly optimize reconstruc-
+tion and contrastive losses, enhancing feature robustness against noise and rotational
+disturbances in Global Navigation Satellite System (GNSS)-denied environments.
+What are the implications of the main findings?
+•
+The proposed method outperforms traditional terrain matching algorithms in posi-
+tioning accuracy, anti-interference capability, and real-time performance.
+•
+It provides a reliable terrain-aided navigation solution for Unmanned Aerial Vehicle
+(UAV) operating under GNSS-denied conditions.
+Abstract
+Reliable navigation is critical for UAVs operating in GNSS-denied environments, where
+conventional Inertial Navigation System/Global Navigation Satellite System (INS/GNSS)
+integrated navigation struggles to meet the requirements of high-reliability and long-
+endurance missions. As a passive and autonomous approach, terrain-aided navigation
+(TAN) offers strong concealment and a high degree of autonomy. However, most existing
+TAN methods rely on handcrafted features, which limit their ability to fully exploit multi-
+level terrain information, while sensitivity to elevation noise and attitude variations further
+degrades matching accuracy and robustness. To address these issues, this paper proposes a
+GNSS-denied UAV terrain matching navigation method based on an autoencoder network
+with contrastive learning. A Global–Local Dual-branch Feature Extraction Network (GL-
+DualNet) is designed to combine the local detail extraction capability of CNNs with the
+global dependency modeling ability of the Swin Transformer, enabling effective multi-scale
+terrain representation. In addition, an Autoencoder Contrastive Learning Model (ACLM)
+is developed to jointly optimize reconstruction and contrastive objectives, enabling unsu-
+pervised learning of terrain features with improved discriminability and robustness against
+noise and rotational disturbances. Experiments on a public terrain dataset show that the
+proposed method outperforms conventional terrain matching approaches under different
+noise levels, rotational disturbances, and search ranges, demonstrating its effectiveness and
+robustness for UAV navigation in complex GNSS-denied environments.
+Drones 2026, 10, 339
+https://doi.org/10.3390/drones10050339
+[p.2]
+Drones 2026, 10, 339
+2 of 26
+Keywords: GNSS-denied navigation; terrain-aided navigation; unmanned aerial vehicle;
+autoencoder; contrastive learning; feature extraction
+1. Introduction
+Unmanned aerial vehicles (UAVs) have become indispensable in modern applications
+such as reconnaissance, infrastructure inspection, disaster response, and logistics, where
+autonomous flight and precise task execution are critical. The performance and safety of
+these platforms rely heavily on accurate navigation and positioning systems. However,
+UAVs often operate in challenging environments, such as mountainous regions, urban
+canyons, or areas under electronic warfare, where GNSS signals may be unavailable or
+severely degraded, posing significant challenges to mission continuity [1].
+In practice, the Strapdown Inertial Navigation System/Global Navigation Satellite
+System (SINS/GNSS) integration remains the primary navigation solution for UAVs, effec-
+tively mitigating inertial drift and providing high accuracy. Nevertheless, in GNSS-denied
+scenarios, the performance of SINS/GNSS deteriorates, making long-term, high-precision
+navigation for UAVs difficult to sustain [2–9]. To overcome these limitations, alternative
+navigation methods, such as Terrain-aided navigation, have been developed to serve as
+autonomous backup or supplementary systems, enhancing the reliability and robustness of
+UAV navigation in all-time, all-area operations [10–12].
+TAN enables UAVs to maintain accurate positioning by matching real-time terrain
+elevation measurements with pre-stored digital elevation maps (DEM). This capability
+is particularly critical for UAVs operating in GNSS-denied or contested environments,
+supporting autonomous, covert, and continuous missions in complex terrains [13–15].
+However, conventional terrain-matching algorithms face significant challenges when ap-
+plied to UAV platforms. Classic methods such as Terrain Contour Matching (TERCOM)
+determine position by minimizing the difference between measured and reference terrain
+profiles, providing robustness but showing sensitivity to terrain rotation [16,17]. Iterative
+Closest Contour Point (ICCP) improves accuracy through rigid transformations but remains
+vulnerable to large initial errors [18]. Maximum Likelihood Estimation (MLE) maximizes
+observation likelihood, but its performance degrades under strong interference [19,20]. Re-
+cursive Bayesian approaches, including Sandia Inertial Terrain-Aided Navigation (SITAN)
+with Extended Kalman Filter and the Unscented Kalman Filter, improve navigation by
+correcting INS errors and avoiding linearization, yet they are still prone to divergence or
+lack robustness in complex noise conditions [21–24]. Particle Filters handle nonlinearities
+effectively, but their high computational cost limits real-time UAV operation [25–27].
+Most of these approaches rely on handcrafted features or direct elevation matching,
+which fail to fully exploit the high-dimensional structural information in terrain data,
+making it difficult to balance accuracy, robustness, and real-time performance for UAV
+missions. To address these limitations, deep learning-based TAN methods have been
+introduced. For example, Fan’s self-distillation framework and Yang’s TMP-Net leverage
+unsupervised or self-supervised learning to extract terrain features and perform matching-
+based localization [28,29]. Despite their promise, existing deep-learning methods remain
+insufficiently optimized for UAV applications, as feature extraction and robustness under
+noise, rotational disturbances, and varying terrain conditions are still limited.
+As an unsupervised learning approach, an autoencoder can effectively extract repre-
+sentative features from raw data. It is an unsupervised learning model that automatically
+learns data features and performs dimensionality reduction by mapping input data to a
+compressed latent representation through an encoder and then reconstructing the original
+https://doi.org/10.3390/drones10050339
+[p.3]
+Drones 2026, 10, 339
+3 of 26
+input via a decoder. Currently, enhanced architectures such as the sparse autoencoder,
+denoising autoencoder, and variational autoencoder have been widely studied to improve
+the robustness and diversity of feature extraction [30–32]. For instance, the variational
+autoencoder learns a probability distribution in latent space, strengthening generative
+capability [33]; the denoising autoencoder injects noise into the input and trains the model
+to recover the original data, thereby improving robustness to noise [34].
+Meanwhile, contrastive learning has achieved significant progress. By pulling together
+similar samples and pushing apart dissimilar ones, it markedly improves discriminability
+in the feature space [35–38]. Classic methods such as MoCo and SimCLR substantially
+improve training efficiency and feature consistency by combining a momentum encoder
+and a queue mechanism with data augmentation. MoCo enhances training by constructing
+a large-scale dictionary of negative samples, whereas SimCLR systematically demonstrates
+the importance of augmentation combinations and a nonlinear projection head for visual
+representation learning. Later methods, including BYOL, SwAV, and Barlow Twins, further
+introduce innovations in negative-free learning, online clustering, and reducing feature
+redundancy [39–43].
+The integration of autoencoders with contrastive learning has also been investigated
+to combine the strengths of both paradigms. For example, Cao proposed ContrastNet,
+an unsupervised framework for remote sensing image classification that uses different
+autoencoder variants to generate multiple feature views of the same input and then ap-
+plies contrastive learning to enhance feature discriminability [44]. Inspired by this ap-
+proach, the present work extends the autoencoder–contrastive learning paradigm to UAV
+terrain-aided navigation.
+These approaches offer new insights for feature extraction in UAV terrain-aided
+navigation under GNSS-denied and challenging environments. Accordingly, this paper
+integrates an autoencoder and contrastive learning for terrain matching, aiming to extract
+effective features and enhance robustness. The goal is to build a system that achieves high
+accuracy, strong robustness, and good terrain adaptability. The main contributions are
+as follows:
+1.
+GL-DualNet is proposed, integrating CNN-based local detail capture with the Swin
+Transformer’s ability to model global dependencies. This design enables compre-
+hensive extraction and fusion of multi-level terrain features. The local branch stacks
+Local Residual Spatial Attention (LRSA) modules, combining CNNs with adaptive
+spatial attention to focus on fine-grained texture details. The global branch is built
+on Swin Transformer Blocks (STB), which establish long-range dependencies via
+window partitioning, shifted windows, and self-attention, thereby capturing terrain
+macro-structure and trends accurately.
+2.
+An Autoencoder–Contrastive Learning Model (ACLM) is proposed. By jointly opti-
+mizing reconstruction and contrastive losses, ACLM enables self-supervised learning
+of terrain features under unsupervised conditions and strengthens invariance to noise
+and rotational interference. The autoencoder is trained end-to-end, using the raw
+DEM as the reconstruction target to perform terrain feature extraction and recon-
+struction, forcing the encoder to learn interference-invariant representations while
+preserving key terrain structural information. The contrastive learning task takes the
+dual-branch features extracted by the encoder as samples and trains on constructed
+positive and negative pairs, improving robustness to interference and enhancing the
+discriminability of multi-scale features. To the best of our knowledge, this work is
+the first to jointly introduce an autoencoder and contrastive learning into a feature-
+learning framework for terrain-matching navigation.
+https://doi.org/10.3390/drones10050339
+[p.4]
+Drones 2026, 10, 339
+4 of 26
+3.
+Systematic experiments were conducted on the public terrain dataset ASTER GDEM
+V3, with evaluations covering matching accuracy, robustness, performance under
+various noise and rotation disturbances, and adaptability to different search ranges.
+Comparative results show that the proposed method significantly outperforms tradi-
+tional approaches and mainstream retrieval algorithms such as TERCOM, MLE, BOF,
+and Hash in terms of positioning error, localization accuracy, and anti-interference
+capability, thereby validating its effectiveness for robust UAV navigation in GNSS-
+denied conditions.
+2. Methodology
+This section begins with an overview of the terrain-matching navigation system
+architecture and then introduces the GL-DualNet. By fusing local detail with global con-
+tour cues, GL-DualNet enables effective extraction of multi-scale terrain information. To
+further strengthen feature representation, an Autoencoder–Contrastive Learning Model
+(ACLM) is proposed to couple autoencoding with contrastive learning, improving fea-
+ture discriminability and robustness to interference. Finally, the complete localization
+pipeline is described, spanning feature extraction, similarity matching, and multi-source
+information fusion.
+2.1. Overview
+Designed for unmanned platform operating in GNSS-denied environments, the pro-
+posed terrain matching navigation method consists of three main components: the terrain
+matching navigation unit, the inertial navigation unit, and the data fusion unit. The overall
+system framework is shown in Figure 1. To achieve high-precision terrain matching navi-
+gation, the GL-DualNet is introduced as the feature extractor for the terrain matching unit.
+Prior to the UAV mission, this unit performs offline feature extraction on the pre-stored
+DEM, constructing a terrain feature database. During the mission, the onboard encoder ex-
+tracts high-dimensional multi-scale features from real-time terrain measurements obtained
+by the UAV’s altimeter, including laser altimeters and Synthetic Aperture Radar Altimeters.
+These features are then combined with the position estimate from the INS and rapidly
+matched within a confined region of the feature database using cosine similarity, yielding
+the final matching result. Subsequently, a complementary filter performs weighted fusion
+of the position information from both the INS and terrain matching subsystems, producing
+an optimal position estimate and enabling robust, anti-interference autonomous navigation.
+As evident from the above description, terrain matching navigation and positioning are
+primarily achieved through feature extraction and similarity calculation based on terrain
+data. Therefore, the quality of terrain features extracted by the GL-DualNet is crucial to
+achieving accurate localization.
+To enhance the feature quality of the feature extraction network, a joint training strat-
+egy combining autoencoder reconstruction and contrastive learning is proposed. Recon-
+struction constraints improve the network’s capacity to represent original terrain structures,
+while contrastive learning strengthens feature invariance and discriminability against
+noise and rotation disturbances, thereby improving matching accuracy and robustness
+under complex conditions. In the following subsections, the feature extraction network
+architecture, training strategy, and matching process are detailed.
+https://doi.org/10.3390/drones10050339
+[p.5]
+Drones 2026, 10, 339
+5 of 26
+ 
+Figure 1. Flowchart of the proposed unmanned platform terrain matching navigation system.
+2.2. GL-DualNet: Global-Local Dual-Branch Feature Extraction Network
+To enable feature extraction from terrain data, this paper introduces the principles of
+CNN and Swin-Transformer, designing the feature extraction network with two parallel
+branches: one for global features and one for local features. The network structure is
+shown in Figure 2. Both branches take an n × n DEM patch as input. After multi-layer
+feature extraction and fusion, the network outputs a high-dimensional terrain feature that
+integrates both global and local information.
+Figure 2. Global–local dual-branch feature extraction network.
+2.2.1. Local Feature Extraction Branch
+The local feature extraction branch consists of multiple cascaded Local Residual Spatial
+Attention (LRSA) modules. Each LRSA module includes a residual connection layer and
+an adaptive spatial attention layer. The residual connection layer is composed of two
+sequential residual blocks, with each block consisting of three layers: the first and third
+layers are 3 × 3 convolutional layers with a stride of 1 and padding of 1, while the second
+layer is a ReLU activation layer. This design, which employs convolution kernels with a
+small receptive field, is beneficial for extracting fine-grained texture features within the
+https://doi.org/10.3390/drones10050339
+[p.6]
+Drones 2026, 10, 339
+6 of 26
+region. Each residual block uses a skip connection that adds the input directly to the output,
+and the residual connection layer ultimately adds its output to the original input, effectively
+mitigating the gradient vanishing problem during deep network training.
+Building upon this, an adaptive spatial attention layer is introduced to enhance the
+response to key local regions. This layer dynamically generates spatial weight distributions
+based on feature content: the output of the residual connection layer is passed through
+a 3 × 3 convolutional layer with stride 1 and padding 1, adjusting the number of feature
+channels to 9. The features are then globally pooled using average pooling. The resulting
+feature vector is passed through two 1 × 1 convolutional layers with a ReLU activation
+function between them, generating 3 × 3 dynamic convolution kernel parameters. This
+convolution kernel is applied directly to the residual connection layer output, and through
+grouped convolution and Sigmoid normalization, a spatial attention weight matrix is
+obtained. The weight matrix is then element-wise multiplied with the original feature
+map, achieving adaptive enhancement of key local features, thereby further improving the
+discriminability and expressive power of the local features. In the network’s hierarchical
+structure, the output of each LRSA layer serves as input to the next LRSA module and the
+Swin-Transformer Block (STB) in the global feature extraction branch, enabling the fusion
+of local and global information.
+2.2.2. Global Feature Extraction Branch
+The global feature extraction branch consists of multiple cascaded Swin-Transformer
+Blocks (STBs). As input features pass through each STB, they are first divided into non-
+overlapping local windows of fixed size, where self-attention is computed within each
+window. The window shifting mechanism then shifts and reorganizes the windows, and
+attention is computed again within the newly formed windows, allowing for interaction of
+terrain information across different windows. This structure significantly reduces computa-
+tional complexity while effectively modeling global dependencies across regions, enabling
+efficient extraction of macro-level global terrain features. Within the branch, the output of
+each STB serves as input to the next STB.
+The terrain features output by the network are obtained by merging the outputs of
+the local feature extraction branch and the global feature extraction branch, as expressed
+mathematically by:
+F(x) = FL(x) + FG(x)
+(1)
+where F(x), FG(x), and FL(x) denote the local branch features, global branch features, and
+fused features, respectively.
+2.3. ACLM: Autoencoder Contrastive Learning Module
+To train GL-DualNet without labels and improve its robustness to noise and rotational
+offsets, this paper proposes an ACLM as a self-supervised training framework. ACLM uses
+GL-DualNet as the encoder and forms paired original and perturbed samples via noise
+and rotation augmentation. A reconstruction constraint is incorporated to preserve key
+terrain structure, together with contrastive learning: for each branch, the original feature
+and its augmented feature form a positive pair, whereas the original global feature and
+the original local feature form a negative pair, thereby improving interference-consistent
+representations and multi-scale discriminability simultaneously. After joint optimization of
+the reconstruction and contrastive losses, more representative and robust terrain features
+are obtained to support subsequent matching-based localization.
+https://doi.org/10.3390/drones10050339
+[p.7]
+Drones 2026, 10, 339
+7 of 26
+2.3.1. Data Augmentation
+In practical terrain-matching navigation, dynamic changes in the natural environment,
+vehicle motion states, and sensor performance inevitably introduce interference errors
+during measurement. Such interference can be broadly categorized into two types. One
+is noise in the measured elevation values, which is typically modeled as a Gaussian
+distribution with zero mean and variance δ. The other is a rotational offset between the real-
+time terrain data and the reference DEM. These errors disrupt terrain-feature consistency
+and degrade the reliability and accuracy of matching algorithms; therefore, the model must
+be strengthened to cope with such disturbances.
+A data-augmentation module is incorporated during training. By generating diverse
+augmented samples to emulate real disturbances, the model is encouraged to learn ro-
+bust feature representations that are invariant to noise and rotation, thereby improving
+generalization and practical performance in complex environments. The procedure is as
+follows. First, the original terrain data are augmented in parallel by adding elevation
+errors that follow a zero-mean Gaussian distribution with variance δhi ∼N (0, δ), and by
+applying random-angle rotations to simulate measurement noise and geometric deviations
+encountered in practice.Tnoise denotes the operation of adding zero-mean Gaussian noise
+with standard deviation δ, and Trotate denotes the random rotation operation.
+After augmentation, the data are normalized and interpolated to meet the model input
+format. An augmented sample Xaug that contains both noise and rotational offsets is then
+generated, and the original sample X is paired with Xaug. The paired samples are fed into
+the subsequent ACLM for joint training, providing data support for the feature extraction
+network to learn robust representations.
+2.3.2. Training Architecture
+To train GL-DualNet, this paper draws on the training paradigm of the autoencoder
+and constructs an autoencoder-based feature learning framework, using GL-DualNet as
+the encoder to extract multi-scale terrain feature representations. The overall architecture,
+shown in Figure 3, consists of three stages: data augmentation, feature encoding, and
+feature decoding.
+Figure 3. Training architecture of ACLM.
+The raw DEM data are first processed by the data-augmentation module. By injecting
+zero-mean Gaussian noise and applying random rotations, the corresponding augmented
+DEM Xaug is generated from the original DEM X. X and Xaug form paired training samples
+for reconstruction learning, providing the data basis for the model to learn robust features.
+https://doi.org/10.3390/drones10050339
+[p.8]
+Drones 2026, 10, 339
+8 of 26
+Using two parallel branches, the encoder extracts global and local features for each
+input sample. During training, two types of feature pairs are constructed for contrastive
+learning. Positive pairs are formed by features extracted from X and Xaug through the
+same branch, whereas negative pairs are formed by the global and local features extracted
+from the original DEM. Positive pairs encourage feature consistency under disturbances,
+and negative pairs enhance discriminability between multi-scale features.
+The decoder adopts a multi-stage upsampling structure to progressively reconstruct
+terrain details. As shown in Figure 4, the input features are first mapped to 32 channels
+by a 3 × 3 convolution, followed by batch normalization and ReLU activation, and then
+upsampled to a resolution of 200 × 200. A subsequent 3 × 3 convolution expands the
+features to 64 channels, and after the same processing, they are upsampled to 400 × 400.
+The features are then reduced back to 32 channels and upsampled to 800 × 800. Finally,
+a 3 × 3 convolution compresses the features to a single channel, and a Tanh activation
+followed by downsampling restores the original input size of 100 × 100, yielding the
+reconstructed DEM.
+ 
+Figure 4. Decoder architecture.
+2.3.3. Training Loss
+During training, the network is learned by jointly optimizing a reconstruction task
+and a contrastive learning task.
+In the reconstruction task, an end-to-end autoencoder is trained using the original
+DEM X and the augmented DEM Xaug as input samples. Specifically, the model uses X as
+the reconstruction target and performs feature extraction and reconstruction for both the
+original DEM and its augmented version. This training strategy forces the encoder to learn
+disturbance-invariant representations while preserving key terrain structural information,
+thereby improving generalization and feature robustness in real-world environments.
+The contrastive learning task uses the dual-branch features extracted by the encoder
+as samples and is trained by constructing positive and negative pairs. Specifically, the
+fused features output by the encoder for the original DEM and the augmented DEM are
+treated as positive pairs to enhance robustness to disturbances. Meanwhile, the global
+features and local features extracted from the original DEM are treated as negative pairs
+to improve discriminability across scales and increase the separability of features from
+different branches. With this contrastive training scheme, the learned representations
+form a more structured clustering distribution in the embedding space, where similar
+features are pulled together and dissimilar ones are pushed apart, thereby improving
+matching accuracy.
+To achieve the above joint learning objectives, an overall optimization function that
+combines the reconstruction loss and the contrastive loss is defined. The reconstruction loss
+https://doi.org/10.3390/drones10050339
+[p.9]
+Drones 2026, 10, 339
+9 of 26
+is formulated as MSE, which measures the discrepancy between the reconstructed terrain
+and the original terrain:
+Lrecon = 1
+N
+N
+∑
+i=1
+∥Decoder(Encoder(Xi)) −Xi∥2
+2
+(2)
+To enhance the robustness of the extracted features, the loss is computed using the
+augmented data, which can be further written as:
+Lrecon−aug = 1
+N
+N
+∑
+i=1
+
+
+Decoder(Encoder(Xaug,i)) −Xi
+
+
+2
+2
+(3)
+The contrastive loss follows the InfoNCE formulation and involves feature normaliza-
+tion and similarity measurement. L2 normalization is applied to the feature vectors:
+ˆF =
+F
+∥F∥2
+(4)
+The similarity scores for positive and negative pairs are then computed as:
+sneg = ˆFLocal Terrain Features · ˆFGlobal Terrain Features
+spos = ˆFOriginal Terrain Features · ˆFAugmentation Terrain Features
+(5)
+Finally, a cross-entropy loss is used to optimize the structure of the representation space:
+Lcontrast = −log
+exp
+ spos/τ
+
+exp
+ spos/τ
+ + exp
+ sneg/τ
+
+(6)
+where τ is a temperature hyperparameter that controls the concentration of the similarity
+distribution.
+The overall loss is defined as a weighted sum of the two losses:
+Ltotal = α · Lrecon + β · Lcontrast
+(7)
+With the weighting parameters set, training balances reconstruction accuracy and
+feature discriminability, ultimately yielding terrain features that are representative, discrim-
+inative, and robust. This joint training strategy enables self-supervised learning of terrain
+features without external supervision.
+2.4. Navigation and Positioning Process for UAV
+The proposed method achieves accurate localization for UAVs by integrating an
+inertial navigation system with terrain feature matching. The overall workflow is shown in
+Figure 1, and the implementation steps are summarized as follows.
+Step 1: Offline terrain feature database construction
+Before the mission, the preloaded DEM is interpolated to the network input resolution
+and partitioned into grid cells. Each cell is encoded by the GL-DualNet to obtain a high-
+dimensional feature vector, which is stored with its geographic coordinates to form a
+structured database for real-time matching during UAV flight.
+Step 2: Initial search region determination
+After the mission starts, the INS position estimate PINS is used as the center to define
+the matching search region based on INS error characteristics and preset parameters. This
+constraint avoids global exhaustive search and improves matching efficiency.
+Step 3: Real-time terrain acquisition and feature extraction
+https://doi.org/10.3390/drones10050339
+[p.10]
+Drones 2026, 10, 339
+10 of 26
+An onboard elevation sensor collects terrain profile data in real time to form the
+measured terrain matrix Xmeas. After filtering and geometric normalization, Xmeas is fed
+into the encoder to produce the corresponding high-dimensional feature vector:
+Fmeas = Encoder(Xmeas; θ)
+(8)
+where θ denotes the encoder parameters.
+Step 4: Feature similarity matching
+Within the predefined search region, all reference feature vectors Fi
+ref and their cor-
+responding coordinates Pi
+ref are retrieved from the terrain feature database. The cosine
+similarity between the measured feature Fmeas and each reference feature is computed:
+Si =
+Fmeas · Fi
+ref
+∥Fmeas∥
+
+
+Fi
+ref
+
+
+
+(9)
+The candidate location with the highest similarity is selected and used as the observa-
+tion position PTER provided by the terrain-matching unit.
+Step 5: Data fusion and position output
+A Kalman filter fuses the INS position PINS with the terrain-matching observation
+PTAN. With PINS as the prediction and PTAN as the measurement, the Kalman gain K is
+computed from their error covariances, and the state is updated by
+ˆxk|k = ˆxk|k−1 + Kk(zk −Hk ˆxk|k−1)
+(10)
+where H is the observation matrix. The filter outputs a smooth and accurate optimal
+position estimate ˆxk.
+3. Experiments
+To systematically validate the proposed method, this chapter presents a series of exper-
+iments on the public ASTER GDEM V3 terrain dataset. Comparisons with classical terrain
+matching algorithms and retrieval methods demonstrate the advantages of the proposed
+approach. To clarify the contribution of each component, ablation studies investigate the
+effects of the feature extraction branches, data augmentation, and training strategy. The
+method is then quantitatively evaluated under varying elevation noise levels, rotational
+perturbations, and search ranges. Finally, navigation and positioning experiments confirm
+its feasibility and stability in practical navigation environments.
+3.1. Datasets and Evaluation Metrics
+Model training and testing are conducted on the public terrain dataset ASTER GDEM
+V3. For objective evaluation and comparison, the original geographic coordinates are
+converted to Mercator coordinates, and grid-based position indices are assigned with the
+origin set to 0. A terrain data matrix is then constructed, in which each cell stores the
+elevation at the corresponding location in meters.
+The dataset is divided into training set A and test set B. Because terrain diversity
+strongly influences matching performance, representative subsets are constructed to reflect
+practical navigation requirements. Training set A includes 10,368 samples of size 100 × 100,
+covering both rugged areas with pronounced relief (Figure 5a) and relatively flat areas
+(Figure 5b) to improve generalization and feature extraction in feature-scarce terrain. Test
+set B is constructed from gently varying terrain to evaluate and compare different methods
+under more challenging conditions.
+https://doi.org/10.3390/drones10050339
+[p.11]
+Drones 2026, 10, 339
+11 of 26
+ 
+ 
+(a) Flat areas 
+(b) Rugged areas 
+(c) Flat areas 
+ 
+ 
+(d) Rugged areas 
+(e) Flat areas 
+(f) Flat areas 
+Figure 5. Visualization of different terrain data.
+The evaluation metrics used in the experiments are defined as follows.
+(1)
+Positioning error
+Positioning error is defined as the Euclidean distance between the ground-truth coor-
+dinate and the matched coordinate, measured in grids and denoted by δ. It is computed
+as
+δn =
+q
+(xn −ˆxn)2 + (yn −ˆyn)2
+(11)
+where (xn, yn) is the true position and ( ˆxn, ˆyn) is the estimated position from matching. A
+smaller δ indicates a closer match to the true position.
+(2)
+Positioning precision
+Positioning precision evaluates the overall matching performance on a dataset and is
+defined as the mean positioning error, denoted by ε:
+ε =
+N
+∑
+n=1
+δi
+N
+(12)
+where N is the number of samples. A smaller ε indicates higher precision.
+(3)
+Positioning error threshold
+The positioning error threshold E specifies the maximum allowable error, in grids,
+for an acceptable match. If δ ≤E, the match is regarded as successful; otherwise, it is
+considered a failure. The threshold is set according to practical navigation requirements to
+distinguish valid matches from mismatches, where 1 indicates a successful match and 0
+indicates a failed match.
+Success(δ) =
+(
+1, δ ≤E
+0, δ > E
+(13)
+The use of grid units for E directly follows from the grid-based coordinate repre-
+sentation adopted in this study. Because the terrain data are discretized into a regular
+matrix and matching is conducted in grid space, the grid cell serves as the natural unit for
+positional evaluation. Expressing E in grid units therefore allows the intrinsic matching
+performance to be assessed independently of the absolute spatial resolution of a given
+DEM product. Moreover, to account for varying positional tolerance requirements across
+https://doi.org/10.3390/drones10050339
+[p.12]
+Drones 2026, 10, 339
+12 of 26
+applications, matching accuracy is evaluated under multiple threshold settings in the
+subsequent experiments.
+(4)
+Positioning accuracy
+Positioning accuracy measures the proportion of successful matches among all sam-
+ples, denoted by p:
+p = NE
+N
+(14)
+where NE is the number of samples satisfying δ < E and N is the total number of samples.
+A higher p indicates a more reliable matching system.
+(5)
+Positioning search region
+The positioning search region Rsearch is a rectangular area centered on the INS position
+estimate, used to limit similarity matching between measured and candidate terrain data,
+as illustrated in Figure 6. In the experiments, n × n patches are extracted from test set B
+and perturbed to simulate measurements, forming the reference terrain data (RTD). For
+each RTD, the candidate terrain data (CTD) are generated by sliding an n × n window
+within Rsearch with a one-grid step, yielding terrain matrices of the same size. The number
+of CTD samples associated with each RTD is (2Rsearch + 1)2.
+Figure 6. Schematic Diagram of The Positioning Search Region.
+3.2. Experimental Parameter Settings
+The experiments were conducted on an Ubuntu operating system using the PyCharm
+2024.3.3 development platform, with Python 3.9 as the programming environment. The
+model was trained and tested using a single NVIDIA RTX 5080 (24 GB) GPU and a single
+Intel CORE Ultra 9 285K CPU. The batch size was set to 16 and the learning rate to 1 × 10−4.
+The contrastive-learning temperature parameter τ was set to 0.5. Network parameters
+were updated using the Adam optimizer, and the total number of training epochs was 100.
+Figure 7 shows the evolution of the loss function during training.
+To better highlight how network performance varies under different conditions, 2592
+DEM samples with sparse terrain features were selected from Test Set B at a fixed size of
+70 × 70 to form the test set Test1. The matching search radius was set to R = 50. CTD
+were generated with a step size of one grid cell. Gaussian noise with mean 0 and standard
+deviation 10, along with a 10◦rotational bias, was added to the RTD. Unless otherwise
+stated, all subsequent experiments follow these settings.
+https://doi.org/10.3390/drones10050339
+[p.13]
+Drones 2026, 10, 339
+13 of 26
+ 
+ 
+(a) Total loss 
+(b) Contrastive loss 
+(c) Reconstruction loss 
+Figure 7. Training losses of different training modes.
+3.3. Comparative Experiments
+To evaluate the performance of the proposed method, this section conducts compar-
+ative experiments against the classic terrain matching navigation algorithms TERCOM,
+MLE and Normalized Cross-Correlation (NCC), as well as the retrieval methods Bag of
+Features (BOF) and Hash.
+Before testing, the terrain data were transformed using a Mercator projection and then
+gridded. The initial origin was set to (0, 0), and the coordinate system adopted the ENU
+frame. From Test Set B, six groups of test samples were obtained by random translation
+and cropping, with sizes spanning 20 × 20 to 60 × 60 grids; each group contains 100
+RTD samples. Using a step size of 1 grid and a positioning search region of 50, the CTD
+corresponding to each reference sample were generated for subsequent matching tests. To
+assess robustness to interference, sensor measurement errors in real environments were
+emulated by adding zero-mean Gaussian noise with a standard deviation of 10 to all RTD
+samples and applying a random rotational bias between 0◦and 10◦.
+As shown by the quantitative comparison in Table 1, the proposed method delivers
+marked advantages on key metrics for terrain matching navigation. In terms of positioning
+accuracy, it achieves a mean localization error of 1.09 grids, which is clearly lower than those
+of TERCOM, MLE, and NCC, indicating more precise position estimation. With the error
+threshold set to three grids, the matching accuracy of the proposed method reaches 95.2%,
+whereas TERCOM and MLE achieve 62.8% and 64.4%, respectively; all other methods
+remain below 30%. This result suggests that under application scenarios with stringent
+accuracy requirements, the proposed method enables reliable and precise matching for the
+vast majority of test samples. In terms of efficiency, the proposed method requires 0.07 s
+per sample, faster than BoF and Hash; the advantage is even more pronounced compared
+with traditional TERCOM, NCC, and MLE, demonstrating better suitability for real-time
+demands while maintaining high accuracy.
+Table 1. The results of the comparative experiment.
+Method
+Positioning Precision
+(Grids)
+Positioning Accuracy
+Time
+(s)
+≤1 Grids
+(%)
+≤2 Grids
+(%)
+≤3 Grids
+(%)
+≤5 Grids
+(%)
+≤10 Grids
+(%)
+Ours
+1.09
+29
+83.2
+95.2
+99.2
+99.6
+0.07
+Tercom
+12.28
+19.6
+55
+62.8
+65.6
+67.4
+37.24
+MLE
+11.83
+21.6
+56.4
+64.4
+67
+69.2
+35.13
+NCC
+19.27
+0.2
+0.6
+1.1
+3.2
+16.6
+38.25
+BoF
+28.68
+0.5
+2.6
+6.2
+12.8
+23.8
+0.26
+Hash
+24.25
+2.4
+13
+24
+35.6
+41
+0.24
+https://doi.org/10.3390/drones10050339
+[p.14]
+Drones 2026, 10, 339
+14 of 26
+The improvement mainly comes from the proposed GL-DualNet, which captures
+more discriminative information from terrain data. Together with the tailored loss, it is
+robust to noise and rotational offsets, preserving high-quality features under interference.
+Consequently, stable and accurate matching is maintained even with sparse terrain features,
+strong noise, or rotational misalignment, supporting engineering deployment.
+3.4. Ablation Studies
+3.4.1. Ablation on Feature Extraction Branches
+To verify the effectiveness of the GL-DualNet, ablation experiments were conducted
+by building three variants: Model 1 with only the local-feature branch, Model 2 with only
+the global-feature branch, and Model 3 with the GL-DualNet. Test1 was used as the test set,
+with all hyperparameters set to the default configuration. For an objective and comparable
+evaluation, all experimental conditions were kept identical across models, including the
+number of parameters, the training dataset, and the data augmentation strategy; only the
+network architecture was varied. The results are shown in Table 2 and Figure 8.
+Table 2. Positioning precision of different feature extraction branches.
+Feature Extraction
+Network
+Local Feature
+Extraction Branch
+Global Feature
+Extraction Branch
+Positioning Precision
+(Grids)
+Model 1
+√
+×
+5.6277
+Model 2
+×
+√
+2.4345
+Model 3
+√
+√
+1.9194
+Figure 8. Positioning accuracy of different feature extraction branches.
+The results indicate that dual-branch feature fusion markedly improves terrain-
+matching performance. Model 1 achieves a positioning precision of 5.6277 grids; it tends to
+produce false matches in regions with similar terrain and is sensitive to noise, reflecting
+limited robustness. Model 2 reduces the error to 2.4345 grids, showing that global context
+effectively constrains the macroscopic plausibility of matching. However, at a three-grid
+threshold, its accuracy is only 77%, which points to a limited ability to discriminate subtle
+terrain differences. Model 3 further lowers the error to 1.9194 grids, an approximately 21%
+reduction relative to Model 2, and reaches 92% accuracy at the 3-grid tolerance threshold,
+improving by 15 percentage points. Overall, local cues compensate for the weaknesses of
+global representations in subtle terrain discrimination, and their combination substantially
+enhances accuracy and robustness.
+https://doi.org/10.3390/drones10050339
+[p.15]
+Drones 2026, 10, 339
+15 of 26
+3.4.2. Ablation on Data Augmentation
+To evaluate the effectiveness of data augmentation, four model variants were con-
+structed by combining different augmentation schemes for comparison, as listed in Table 3.
+Noise augmentation was implemented by adding random zero-mean Gaussian noise with a
+standard deviation ranging from 0 to 10, whereas rotation augmentation applied a random
+rotation from 0◦to 360◦. All models were trained on Training Set A for 100 epochs. Except
+for the augmentation strategy, the remaining hyperparameters and training settings were
+identical. Test1 was used for evaluation under the default parameter setting. The results
+are shown in Table 3 and Figure 9.
+Table 3. Positioning precision of different data augmentation.
+Data Augmentation
+Noise
+Rotation
+Positioning Precision
+(Grids)
+Model 1
+×
+×
+5.7448
+Model 2
+×
+√
+4.5472
+Model 3
+√
+×
+3.0351
+Model 4
+√
+√
+1.9194
+Figure 9. Positioning accuracy of different data augmentation models.
+As indicated by the results in Table 3 and Figure 9, Model 1 without any data augmen-
+tation yields the lowest matching accuracy, with a positioning precision of 5.7448 grids.
+It requires a tolerance threshold of at least 8.5 grids to exceed 80% accuracy, suggesting
+severely insufficient robustness under interference. Model 2, trained with rotation augmen-
+tation only, improves the positioning precision to 4.5472 and achieves higher accuracy than
+Model 1, showing that rotation augmentation not only enhances robustness to rotation
+but also mitigates noise effects to some extent. Model 3, using noise augmentation only,
+further improves performance, reaching a positioning precision of 3.0351 and better accu-
+racy under small tolerance thresholds. This indicates that noise augmentation strengthens
+adaptability to noise and partly suppresses errors induced by rotation. Model 4, combining
+both noise and rotation augmentation, achieves the best performance across all sizes, with
+a positioning precision of 1.9194. It attains over 80% accuracy when the tolerance threshold
+is no more than 3 grids, and rapidly approaches 100% as the threshold increases.
+These results indicate that even a single augmentation type improves robustness to
+multiple disturbances, while combining noise and rotation yields further gains. Simulating
+https://doi.org/10.3390/drones10050339
+[p.16]
+Drones 2026, 10, 339
+16 of 26
+real-world perturbations during training promotes invariant terrain features, improves
+robustness to both individual and combined disturbances, and delivers higher matching
+accuracy and stability across terrain scales and tolerance levels.
+3.4.3. Ablation on Training Strategies
+To verify the effectiveness of the ACLM, three models were built for comparison:
+Model 1 trained using contrastive learning only, Model 2 trained using an autoencoder
+only, and Model 3 trained using ACLM. All experimental conditions were kept the same
+except for the training scheme. Test1 was used for evaluation under the default parameter
+setting, and the results are listed in Table 4 and Figure 10.
+Table 4. Positioning precision of different training strategies.
+Training Strategy
+Autoencoder
+Contrastive Learning
+Positioning Precision
+(Grids)
+Model 1
+×
+√
+4.9980
+Model 2
+√
+×
+2.8277
+Model 3
+√
+√
+1.9194
+Figure 10. Positioning accuracy of different training strategies.
+Model 1 focuses on enhancing feature discriminability by enlarging the distance
+between heterogeneous features. However, without the reconstruction task to constrain the
+preservation of original terrain information, the network struggles to fully capture critical
+structural characteristics, leading to incomplete feature representation. The results show a
+positioning accuracy of 4.998 grids, and the accuracy falls below 50% when the tolerance
+threshold is under three grids. This indicates that although contrastive learning improves
+feature separability, it sacrifices part of the essential terrain information and thus limits
+matching performance.
+Model 2 optimizes data reconstruction. Driven by the reconstruction loss, the network
+extracts features capable of recovering the original terrain, resulting in relatively complete
+representations that capture both global and local information. However, without con-
+trastive learning to directly structure the feature space, the distance between augmented
+and original samples is not explicitly constrained; their relationship is only indirectly en-
+forced through reconstruction error. As a result, robustness to disturbances remains limited,
+and the features are more susceptible to noise and deformation during matching. The
+https://doi.org/10.3390/drones10050339
+[p.17]
+Drones 2026, 10, 339
+17 of 26
+positioning accuracy decreases to 2.8277 grids, yet the accuracy at a three-grid tolerance
+threshold is only 71%. This suggests that reconstruction features preserve information well
+but lack sufficient discriminative power, leading to reduced stability in similar terrain or
+under interference.
+Model 3 overcomes the limitations of a single training paradigm. The autoencoder
+preserves complete terrain representation, while contrastive learning aligns the representa-
+tions of original and augmented data and enlarges inter-channel feature differences at the
+feature level. This design maintains information integrity at the data level and enhances
+invariance to interference and inter-class separability in the feature space. The effectiveness
+of this strategy is confirmed by the results. The positioning accuracy is further reduced
+to 1.9194 grids, approximately 60% lower than that of Model 1. At a tolerance threshold
+of three grids, the accuracy reaches 92%, representing a 21% improvement over Model
+2. These findings indicate that the joint training strategy, through multi-level consistency
+constraints, substantially improves matching accuracy, robustness, and discriminative
+capability in terrain matching.
+3.5. Performance Evaluation
+3.5.1. Performance Under Different Noise Disturbances
+To evaluate the robustness of the proposed method to elevation measurement noise,
+Test1 was used for testing. Zero-mean Gaussian noise with a standard deviation increasing
+from 1 to 10 was added to simulate different levels of elevation error encountered in
+practical measurements. The results are shown in Figures 11 and 12.
+Figure 11. Positioning accuracy of different noise disturbances.
+The results show that as the standard deviation of the Gaussian noise increases from
+1 to 10, the matching error rises gradually from 0.01 grids to 0.6242 grids, remaining below
+0.7 grids. This demonstrates strong robustness to elevation noise. From the perspective
+of the error threshold, the matching accuracy exceeds 95% at all noise levels when the
+tolerance threshold is set to 1.5 grids. Even when the error threshold is tightened to 1 grid,
+the accuracy remains above 85%. In particular, when the noise level is under 5, the accuracy
+under all tolerance thresholds approaches 100%.
+These findings indicate that the learned terrain features exhibit high invariance to
+elevation noise. Noise perturbations do not cause significant feature confusion or matching
+degradation, ensuring stable and reliable performance under noisy measurement conditions.
+https://doi.org/10.3390/drones10050339
+[p.18]
+Drones 2026, 10, 339
+18 of 26
+Figure 12. Positioning precision of different noise disturbances.
+3.5.2. Performance Under Different Rotation Disturbances
+Using the same test set, Test1, used in the elevation noise experiment, this subsection
+further applies random rotational disturbances from 1◦to 10◦to the reference terrain
+data, while retaining Gaussian noise with a standard deviation of 10, to evaluate the
+adaptability of the proposed method to platform attitude variations. The results are shown
+in Figures 13 and 14.
+Figure 13. Positioning accuracy of different rotation disturbances.
+The results indicate that as the rotation angle increases from 1◦to 10◦, the matching
+error rises progressively. At 1◦, the error is 0.6242 grids, nearly identical to that under noise-
+only conditions; at 10◦, it increases to 1.9194 grids, confirming that rotational disturbance
+degrades matching accuracy. In terms of tolerance accuracy, the accuracy at a three-grid
+threshold is close to 100% for a 1◦rotation. Even at 10◦, the accuracy under the same thresh-
+old remains above 90%, demonstrating stable performance under rotational interference.
+Rotation changes the terrain’s spatial structure and shifts the locations of local features,
+reducing discriminability. Even at 10◦, the positioning precision stays within 2 grids. This
+is mainly because the global branch captures macroscopic trends that are less sensitive to
+rotation, while the local branch uses relative structural cues to compensate for rotation-
+https://doi.org/10.3390/drones10050339
+[p.19]
+Drones 2026, 10, 339
+19 of 26
+induced shifts. Joint autoencoder and contrastive training further improves robustness to
+rotation, supporting stable matching under attitude perturbations.
+Figure 14. Positioning precision of different rotation disturbances.
+3.5.3. Performance Under Different Search Ranges
+To evaluate positioning performance under different search ranges, 100 RTD samples
+of size 50 × 50 grids were generated from Test Set B by random translation and cropping.
+With the step size fixed at 1 grid, the search range was set to 10, 30, 50, 100, 150, and
+200, respectively. To simulate practical measurement errors and attitude disturbances,
+zero-mean Gaussian noise with a standard deviation of 10 was added to all RTD samples,
+together with a rotational offset of 10◦.
+In theory, enlarging the search range increases the number and diversity of CTD,
+raising the probability of similar terrain and potentially weakening feature discrim-
+inability, which may lead to higher error and lower accuracy. However, as shown in
+Figures 15 and 16, when the search range expands from 10 to 200, the positioning precision
+of the proposed method remains within 1.4 grids. At a tolerance threshold of 3 grids, the
+accuracy consistently exceeds 95%. These results indicate that even under large search
+ranges, the method maintains high matching precision, with only a slight and acceptable
+increase in error as the search range grows.
+Figure 15. Positioning accuracy of different search ranges.
+https://doi.org/10.3390/drones10050339
+[p.20]
+Drones 2026, 10, 339
+20 of 26
+Figure 16. Positioning precision of different search ranges.
+Table 5 shows the average positioning time for different search ranges. As the search
+range increases from 10 to 200, the average matching time rises from 0.0088 s to 0.9665 s.
+Even when the search range reaches 200, the proposed method can still keep the positioning
+time within 1 s, demonstrating strong real-time capability. The increased time cost arises
+because a larger search range requires processing more CTD, which imposes a higher
+computational burden. These results indicate that, in practical applications, real-time
+performance can be further ensured by using a higher-precision INS to provide a more
+accurate initial position estimate. This enables a smaller search range during matching,
+effectively controlling computation time while maintaining positioning accuracy.
+Table 5. Average positioning time for different search ranges.
+Positioning Search Range
+10
+30
+50
+100
+150
+200
+Average positioning time (s)
+0.0088
+0.0289
+0.0687
+0.2413
+0.5362
+0.9665
+3.6. Semi-Physical Simulation Experiment
+To further evaluate the proposed method in a setting closer to practical deployment,
+the navigation and positioning experiments were conducted on a semi-physical simulation
+platform. The platform combines physical inertial navigation hardware with simulation
+modules for trajectory generation, scenario configuration, and algorithm execution. In the
+present study, three subsystems were involved: a physical inertial navigation hardware
+module, which provided real-time inertial signals and reproduced representative INS drift
+characteristics; a UAV simulation console, which was used to generate the predefined flight
+trajectory and configure the flight conditions; and a simulation host computer with a data-
+processing terminal, on which terrain matching, error injection, and result recording were
+implemented. During the experiment, all GNSS-related auxiliary positioning devices were
+disabled, so that the proposed method and the comparison method were both evaluated
+under a GNSS-denied condition using the same hardware setup and identical parameter
+settings. Representative photographs of the semi-physical simulation platform are shown
+in Figure 17, with (a) the INS mounted on the turntable and (b) the computer used for
+platform operation.
+https://doi.org/10.3390/drones10050339
+[p.21]
+Drones 2026, 10, 339
+21 of 26
+ 
+(a) The INS mounted on the turntable
+(b) The computer used for platform operation 
+Figure 17. Semi-physical simulation platform.
+The comparative analysis was conducted among INS, MLE and the proposed method
+along a predefined trajectory. Two regions with distinct terrain characteristics were selected.
+The area shown in Figure 18a features dense contour lines and rich terrain variations,
+whereas the area in Figure 18b has sparse contours and relatively limited terrain features.
+All terrain data were transformed into Mercator projection coordinates and gridded. The
+coordinate system follows the ENU convention, with the origin set to (0, 0). In each region,
+a test trajectory was defined as the truth path, with start and end coordinates at (80, 30) and
+(329, 278).
+ 
+ 
+(a) Trajectories in a feature-rich region 
+(b) Trajectories in a feature-sparse region 
+Figure 18. Simulated UAV navigation trajectories of different methods.
+In the experiment, the RTD used for each matching step had a size of 20 × 20 grids,
+with a positioning search region of 50. To emulate realistic navigation conditions, Gaussian
+noise δhi ∼N (0, δ) was added to the reference terrain data to simulate sensor measurement
+errors. For the INS, the initial position error was set to 30 grids in the east direction and
+30 grids in the north direction. The gyroscope constant bias was set to 0.05◦/h with
+a random drift of 0.005◦/
+√
+h, while the accelerometer constant bias was 500 µg with a
+random drift of 50 µg/
+√
+h. Here, µg and µg/
+√
+h are conventional engineering units used to
+characterize the accelerometer bias and random drift, respectively; g denotes the standard
+https://doi.org/10.3390/drones10050339
+[p.22]
+Drones 2026, 10, 339
+22 of 26
+gravitational acceleration (1 g = 9.80665 m/s2). The experimental results are presented in
+Figure 18.
+The navigation trajectories obtained by INS, MLE, and the proposed method in the
+two representative terrain regions are shown in Figure 18. It can be observed that the pure
+INS solution deviates progressively from the true trajectory in both regions due to the
+combined effects of the initial position error and the accumulation of inertial sensor drift.
+Such progressive deviation is mainly attributed to the cumulative nature of standalone INS
+errors, highlighting the importance of external correction in long-duration GNSS-denied
+navigation tasks.
+After terrain-based correction using the MLE method, the overall drift trend is alle-
+viated, indicating that terrain matching can provide useful position updates to constrain
+INS divergence. However, the corrected trajectory still exhibits noticeable fluctuations,
+especially in Region B, where terrain features are relatively sparse and less distinctive.
+Under such conditions, the correction becomes less stable, and the navigation solution
+remains susceptible to terrain noise and weak feature discrimination.
+By contrast, the trajectory generated by the proposed method remains much closer
+to the true path in both Region A and Region B, with consistently smaller deviations
+and smoother tracking behavior. Even in the region with sparse terrain features, the
+proposed method maintains reliable trajectory following and does not show the pronounced
+oscillations observed in the MLE results. These results suggest that the proposed method
+provides more accurate and stable position corrections for the navigation system, thereby
+suppressing INS drift more effectively and leading to a more accurate and stable navigation
+solution under different terrain conditions.
+Table 6 further quantifies the positioning performance of INS, MLE, and the proposed
+method in the east and north directions for both Region A and Region B. It can be seen
+that the proposed method achieves the smallest RMSE values in all cases, indicating
+that it provides the most accurate and stable position updates for the navigation system.
+Specifically, in the feature dense region a, compared to INS, the RMSE in the east and north
+directions is reduced by approximately 98.08% and 98.14%, respectively. Compared to MLE,
+the RMSE is reduced by approximately 93.26% and 93.17%. In the feature-sparse region
+b, despite limited terrain information, the proposed method still significantly improves
+positioning performance. Compared to INS, the RMSE in the east and north directions is
+reduced by approximately 94.44% and 94.73%. Compared to MLE, the RMSE is reduced by
+approximately 90.01% and 91.41%. These results demonstrate that the proposed method
+can provide more reliable position corrections to suppress INS drift under both feature-
+dense and feature-sparse conditions, thereby improving the overall accuracy and stability
+of the UAV navigation system.
+Table 6. RMSE of UAV positioning errors in different terrain regions.
+RMSE of the Experiment (Grids)
+Area A
+Area B
+INS
+x
+36.12
+36.12
+y
+40.23
+40.23
+MLE
+x
+10.24
+20.13
+y
+10.98
+24.67
+Ours
+x
+0.69
+2.01
+y
+0.75
+2.12
+In terrain-aided navigation, the significance of the matching result lies not only in
+the accuracy of a single positioning update, but more importantly in its ability to provide
+https://doi.org/10.3390/drones10050339
+[p.23]
+Drones 2026, 10, 339
+23 of 26
+external correction information for the inertial navigation system and thereby restrain the
+long-term accumulation of INS errors. To further evaluate the influence of the proposed
+method on the navigation system, the error propagation of the corrected INS solution was
+analyzed in the east and north directions in Region A, as shown in Figure 19, respectively.
+Since the initial position error was set to 30 grids in both directions, the INS solution
+exhibits a relatively large deviation at the beginning of the navigation process. As the
+terrain-matching correction provided by the proposed method is continuously incorporated,
+the position errors in both directions gradually decrease, indicating that the accumulated
+drift of the standalone INS is effectively constrained.
+ 
+(a) Eastward Error 
+(b) Northward Error 
+Figure 19. Error propagation of the corrected INS.
+It can be further observed that, after the initial convergence stage, the eastward
+and northward errors remain within a relatively small range and only exhibit bounded
+fluctuations over time, rather than continuing to diverge as in the pure INS case. This
+indicates that the proposed method can provide stable and reliable position updates for
+the INS, through which the accumulated navigation error is continuously corrected and
+the propagation of inertial drift is effectively suppressed, thereby improving the overall
+accuracy and stability of the navigation system.
+In the present study, the practical applicability of the proposed method was supported
+through a semi-physical simulation framework, in which inertial measurements with
+calibrated error characteristics, real-time INS computation, and terrain-matching-based cor-
+rection were integrated within the same navigation framework. In addition, representative
+non-ideal factors, including terrain elevation noise, rotational disturbances, initial offsets,
+and calibrated gyroscope and accelerometer drift, were incorporated to better approximate
+realistic operating conditions. Under this framework, the proposed method was evaluated
+under consistent hardware and algorithmic settings, providing meaningful evidence for its
+applicability to practical UAV navigation systems. At the same time, factors such as timing
+and communication latency, terrain observation uncertainty and DEM mismatch under
+more complex terrain conditions may be further considered in subsequent studies.
+4. Conclusions
+This paper presents a UAV terrain matching navigation method designed for GNSS-
+denied environments based on ACLM. By constructing the GL-DualNet, the method
+effectively combines the local detail representation power of CNNs with the global structure
+modeling advantage of the Swin-Transformer, enabling comprehensive extraction and
+fusion of multi-scale terrain features. To train this network, ACLM integrates autoencoder
+reconstruction learning with contrastive learning, allowing the model to learn terrain
+https://doi.org/10.3390/drones10050339
+[p.24]
+Drones 2026, 10, 339
+24 of 26
+feature representations with strong discriminability and robustness to interference in an
+unsupervised manner. This significantly enhances the robustness of the matching algorithm
+under noise and rotational disturbances.
+Simulation results on public terrain datasets demonstrate that the proposed method
+outperforms traditional matching algorithms, showing high accuracy and stability across
+various noise levels, rotational biases, and search ranges. Ablation experiments confirm the
+effectiveness of the dual-channel structure, data augmentation strategy, and joint training
+framework for UAV applications. Positioning tests further validate the method’s reliable
+tracking performance along UAV flight trajectories.
+Overall, the proposed method offers a robust solution for UAV navigation in com-
+plex GNSS-denied environments, combining strong feature representation with enhanced
+resistance to interference and demonstrating significant potential for real-world missions.
+Author Contributions: Conceptualization, Y.J., Q.M., D.W. and J.H.; Methodology, Y.J., Q.M., D.W.
+and J.H.; Software, Y.J.; Validation, Y.J.; Formal analysis, Y.J.; Data curation, Y.J.; Writing—original
+draft, Y.J.; Writing—review & editing, Q.M., D.W., J.H. and C.Z.; Visualization, Y.J. and C.Z.; Supervi-
+sion, Q.M., D.W., J.H. and C.Z.; Project administration, Q.M.; Funding acquisition, Q.M. All authors
+have read and agreed to the published version of the manuscript.
+Funding: This research received no external funding.
+Data Availability Statement: The data presented in this study are openly available in ASTER GDEM
+V3 at https://www.gscloud.cn/.
+Conflicts of Interest: The authors declare no conflicts of interest.
+References
+1.
+Jarraya, I.; Al-Batati, A.; Kadri, M.B.; Abdelkader, M.; Ammar, A.; Boulila, W.; Koubaa, A. Gnss-denied unmanned aerial vehicle
+navigation: Analyzing computational complexity, sensor fusion, and localization methodologies. Satell. Navig. 2025, 6, 9.
+[CrossRef]
+2.
+Lateef, F.; Kas, M.; Ruichek, Y. From GPS to AI: A comprehensive review of Unmanned Aerial Vehicle (UAV) localization solutions.
+ISPRS J. Photogramm. Remote Sens. 2025, 230, 402–451. [CrossRef]
+3.
+Zhuang, Y.; Sun, X.; Li, Y.; Huai, J.; Hua, L.; Yang, X.; Cao, X.; Zhang, P.; Cao, Y.; Qi, L.; et al. Multi-sensor integrated
+navigation/positioning systems using data fusion: From analytics-based to learning-based approaches. Inf. Fusion 2023, 95, 62–90.
+[CrossRef]
+4.
+Dong, Y.; Wang, D.; Zhang, L.; Li, Q.; Wu, J. Tightly Coupled GNSS/INS Integration with Robust Sequential Kalman Filter for
+Accurate Vehicular Navigation. Sensors 2020, 20, 561. [CrossRef]
+5.
+Wu, Y.; Chen, S.; Yin, T. GNSS/INS Tightly Coupled Navigation with Robust Adaptive Extended Kalman Filter. Int. J. Automot.
+Technol. 2022, 23, 1639–1649. [CrossRef]
+6.
+Rados, K.; Brkic, M.; Begusic, D. Recent Advances on Jamming and Spoofing Detection in GNSS. Sensors 2024, 24, 4210. [CrossRef]
+7.
+Wang, L.; Chen, L.; Li, B.; Liu, Z.; Li, Z.; Lu, Z. Development status and challenges of anti-spoofing technology of GNSS/INS
+integrated navigation. Front. Phys. 2024, 12, 1425084. [CrossRef]
+8.
+Zhang, Z.; Sheng, C.; Pan, S.; Wang, X.; Yu, B.; Zhang, J. A Robust and Reliable Positioning Method for Complex Environments
+Based on Quality-Controlled Multi-Sensor Fusion of GNSS, INS, and LiDAR. Remote Sens. 2025, 17, 3760. [CrossRef]
+9.
+Yang, Y.; Yao, Z.; Mao, Y.; Xu, T.; Wang, D. Resilient satellite-based PNT system design and key technologies. Sci. China-Earth Sci.
+2025, 68, 669–682. [CrossRef]
+10.
+Li, S.; Li, X.; Wang, H.; Zhou, Y.; Shen, Z. Multi-GNSS PPP/INS/Vision/LiDAR tightly integrated system for precise navigation
+in urban environments. Inf. Fusion 2023, 90, 218–232. [CrossRef]
+11.
+Xia, C.; Li, X.; Li, S.; Zhou, Y. Tightly-coupled GNSS/INS/Vision integration with semantic information via hybrid extended-
+unscented Kalman filtering. Measurement 2025, 241, 115757. [CrossRef]
+12.
+Yao, F.; Lan, C.; Wang, L.; Wan, H.; Gao, T.; Wei, Z. GNSS-denied geolocalization of UAVs using terrain-weighted constraint
+optimization. Int. J. Appl. Earth Obs. Geoinf. 2024, 135, 104277. [CrossRef]
+13.
+Carroll, J.D.; Canciani, A.J. Terrain-referenced navigation using a steerable-laser measurement sensor. Navigation 2021, 68, 115–134.
+[CrossRef]
+https://doi.org/10.3390/drones10050339
+[p.25]
+Drones 2026, 10, 339
+25 of 26
+14.
+Kim, T.; Nam, S.; Lee, H.; Oh, J. Verification of Vision-Based Terrain-Referenced Navigation Using the Iterative Closest Point
+Algorithm Through Flight Testing. Sensors 2025, 25, 5813. [CrossRef]
+15.
+Markow, J.; Catherall, A. Drone-Based Radar Terrain-Referenced Navigation Using a Low-Cost Automotive-Class FMCW Radar
+to Enable GNSS-Denied Navigation. Eng. Proc. 2025, 88, 11.
+16.
+Wang, D.; Liu, L.Q.; Ben, Y.Y. Terrain aided navigation algorithm based on improved TERCOM. J. Chin. Inert. Technol. 2023, 31,
+165–170.
+17.
+Han, Y.; Wang, B.; Deng, Z.; Fu, M. An Improved TERCOM-Based Algorithm for Gravity-Aided Navigation. IEEE Sens. J. 2016,
+16, 2537–2544. [CrossRef]
+18.
+Xu, N.; Wang, L.; Wu, T.; Yao, Z. An innovative PSO-ICCP matching algorithm for geomagnetic navigation. Measurement 2022,
+193, 110958. [CrossRef]
+19.
+Peng, D.; Zhou, T.; Li, H.; Zhang, W. Terrain aided navigation for underwater vehicles using maximum likelihood method. In
+Proceedings of the 2016 IEEE/OES China Ocean Acoustics (COA), Harbin, China, 9–11 January 2016; pp. 1–6.
+20.
+Nygren, I.; Jansson, M. Robust terrain navigation with the correlation method for high position accuracy. In Proceedings of
+the Oceans 2003. Celebrating the Past. . . Teaming Toward the Future (IEEE Cat. No. 03CH37492), San Diego, CA, USA, 22–26
+September 2003; pp. 1269–1277.
+21.
+Yuan, G.; Zhang, H.; Yuan, K.; Zhu, L. Improved SITAN algorithm in the application of aided inertial navigation. In Proceedings
+of the 2012 International Conference on Measurement, Information and Control, Harbin, China, 18–20 May 2012; pp. 922–926.
+22.
+Wei, E.; Dong, C.; Yang, Y.; Tang, S.; Liu, J.; Gong, G.; Deng, Z. A robust solution of integrated SITAN with TERCOM algorithm:
+Weight-reducing iteration technique for underwater vehicles’ gravity-aided inertial navigation system. Navig. J. Inst. Navig. 2017,
+64, 111–122.
+23.
+Lu, X.; Jian, S.; Xiaowen, B. Research on Matching Accuracy of Underwater Terrain Matching Algorithm Based on Unscented
+Kalman Filter. In Proceedings of the 2019 4th International Conference on Mathematics and Artificial Intelligence, Chegndu,
+China, 12–15 April 2019; pp. 27–31.
+24.
+Anonsen, K.B.; Hallingstad, O. Sigma point Kalman filter for underwater terrain-based navigation. IFAC Proc. Vol. 2007, 40,
+106–110. [CrossRef]
+25.
+Liu, Y.; Zhang, G.; Huang, Z. Study on the Arctic Underwater Terrain-Aided Navigation Based on Fuzzy-Particle Filter. Int. J.
+Fuzzy Syst. 2021, 23, 1017–1026. [CrossRef]
+26.
+Zhang, J.; Zhang, T.; Liu, S. An outlier-robust Rao-Blackwellized particle filter for underwater terrain-aided navigation. Ocean
+Eng. 2023, 288, 116006. [CrossRef]
+27.
+Zhang, J.; Zhang, T.; Liu, S.; Xia, M. A robust particle filter for ambiguous updates of underwater terrain-aided navigation.
+Mechatronics 2024, 98, 103133. [CrossRef]
+28.
+Fan, G.; Han, Y.; Chen, P.; Liu, Y.; Zhang, W.; Chung, C.; Zhang, Y. A Self-Distillation Contrastive Learning Architecture for Global
+and Local Underwater Terrain Feature Extraction and Matching. IEEE Sens. J. 2024, 24, 20200–20218. [CrossRef]
+29.
+Lu, Y.; Song, A.; Liu, G.; Tan, L.; Xu, Y.; Li, F.; Wang, Y.; Jiang, G.; Yang, L. TMP-Net: Terrain Matching and Positioning Network
+by Highly Reliable Airborne Synthetic Aperture Radar Altimeter. Remote Sens. 2024, 16, 2966. [CrossRef]
+30.
+Li, P.; Pei, Y.; Li, J. A comprehensive survey on design and application of autoencoder in deep learning. Appl. Soft Comput. 2023,
+138, 110176. [CrossRef]
+31.
+Berahmand, K.; Daneshfar, F.; Salehi, E.; Li, Y.; Xu, Y. Autoencoders and their applications in machine learning: A survey. Artif.
+Intell. Rev. 2024, 57, 28. [CrossRef]
+32.
+Almuqhim, F.; Saeed, F. ASD-SAENet: A Sparse Autoencoder, and Deep-Neural Network Model for Detecting Autism Spectrum
+Disorder (ASD) Using fMRI Data. Front. Comput. Neurosci. 2021, 15, 654315. [CrossRef]
+33.
+Singh, A.; Ogunfunmi, T. An Overview of Variational Autoencoders for Source Separation, Finance, and Bio-Signal Applications.
+Entropy 2022, 24, 55. [CrossRef] [PubMed]
+34.
+Lee, W.; Ozger, M.; Challita, U.; Sung, K. Noise Learning-Based Denoising Autoencoder. IEEE Commun. Lett. 2021, 25, 2983–2987.
+[CrossRef]
+35.
+Le-Khac, P.; Healy, G.; Smeaton, A. Contrastive Representation Learning: A Framework and Review. IEEE Access 2020, 8,
+193907–193934. [CrossRef]
+36.
+Ericsson, L.; Gouk, H.; Loy, C.; Hospedales, T. Self-Supervised Representation Learning: Introduction, advances, and challenges.
+IEEE Signal Process. Mag. 2022, 39, 42–62. [CrossRef]
+37.
+Jaiswal, A.; Babu, A.; Zadeh, M.; Banerjee, D.; Makedon, F. A Survey on Contrastive Self-Supervised Learning. Technologies 2021,
+9, 2. [CrossRef]
+38.
+Gui, J.; Chen, T.; Zhang, J.; Cao, Q.; Sun, Z.; Luo, H.; Tao, D. A survey on self-supervised learning: Algorithms, applications, and
+future trends. IEEE Trans. Pattern Anal. Mach. Intell. 2024, 46, 9052–9071. [CrossRef]
+https://doi.org/10.3390/drones10050339
+[p.26]
+Drones 2026, 10, 339
+26 of 26
+39.
+He, K.; Fan, H.; Wu, Y.; Xie, S.; Girshick, R. Momentum Contrast for Unsupervised Visual Representation Learning. In Proceedings
+of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), Seattle, WA, USA, 16–22 June 2020; pp.
+9726–9735.
+40.
+Niizumi, D.; Takeuchi, D.; Ohishi, Y.; Harada, N.; Kashino, K. BYOL for Audio: Self-Supervised Learning for General-Purpose
+Audio Representation. In Proceedings of the International Joint Conference on Neural Networks (IJCNN), Glasgow, UK, 19–24
+July 2021.
+41.
+Caron, M.; Misra, I.; Mairal, J.; Goyal, P.; Bojanowski, P.; Joulin, A. Unsupervised Learning of Visual Features by Contrasting
+Cluster Assignments. In Proceedings of the 34th Conference on Neural Information Processing Systems (NeurIPS), Vancouver,
+BC, Canada, 6–12 December 2020.
+42.
+Zbontar, J.; Jing, L.; Misra, I.; LeCun, Y.; Deny, S. Barlow twins: Self-supervised learning via redundancy reduction. In Proceedings
+of the International Conference on Machine Learning, Shenzhen, China, 26 February–1 March 2021; pp. 12310–12320.
+43.
+Palsson, B.; Ulfarsson, M.; Sveinsson, J. Convolutional Autoencoder for Spectral Spatial Hyperspectral Unmixing. IEEE Trans.
+Geosci. Remote Sens. 2021, 59, 535–549. [CrossRef]
+44.
+Cao, Z.; Li, X.; Feng, Y.; Chen, S.; Xia, C.; Zhao, L. ContrastNet: Unsupervised feature learning by autoencoder and prototypical
+contrastive learning for hyperspectral imagery classification. Neurocomputing 2021, 460, 71–83. [CrossRef]
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+https://doi.org/10.3390/drones10050339
+=== END ===

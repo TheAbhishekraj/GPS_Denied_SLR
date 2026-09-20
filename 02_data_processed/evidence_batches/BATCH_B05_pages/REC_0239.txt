@@ -1,0 +1,947 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0239.pdf
+sha256: C5341FB8E5FA533AA14AC1C7880CF790C17BE9F556C681299C180675246F93D8
+library: pymupdf (fitz) v1.28.2
+pages: 5
+=== BEGIN ===
+[p.1]
+Autonomous Flight Control Design Based on
+Multi-Sensor Fusion for a Low-Cost Quadrotor in
+GPS-Denied Environments
+Jianchuan Guo
+School of Control Science
+and Engineering
+Tiangong University
+Tianjin, China
+gjch@tiangong.edu.cn
+Xu Zhang
+School of Control Science
+and Engineering
+Tiangong University
+Tianjin, China
+2031060779@tiangong.edu.cn
+Zhongfan Huang
+School of Control Science
+and Engineering
+Tiangong University
+Tianjin, China
+1810410213@tiangong.edu.cn
+Baoquan Li
+School of Control Science
+and Engineering
+Tiangong University
+Tianjin, China
+libq@tiangong.edu.cn
+Abstract—This paper presents a fully autonomous and low-
+cost quadrotor helicopter system in GPS-denied environments.
+An extended Kalman ﬁlter (EKF) framework is employed to
+fuse the raw data from inertial measurement unit (IMU), optical
+ﬂow, ultrasonic rangeﬁnder to achieve real-time state estimation
+of the quadrotor. An improved cascaded proportional-integral-
+derivative (PID) control scheme is proposed to achieve high-
+precision ﬂight control for the quadrotor. A lightweight, powerful
+app of DroneKit-Python is integrated to directly guide the ﬂight
+mission of the quadrotor on an onboard computer. The onboard
+computer which communicates with the ﬂight controller using the
+MAVLink protocol augments the performance of the autopilot by
+a low-latency link. Finally, the autonomous quadrotor system is
+justiﬁed by real-world experiments, and the experimental results
+show that the quadrotor can realize high-precision autonomous
+localization in an indoor environment.
+Index Terms—quadrotor helicopter, multi-sensor fusion, ex-
+tended Kalman ﬁlter, cascaded control
+I. INTRODUCTION
+Nowadays, quadrotor helicopters are mainly used in open
+outdoor areas based on airborne GPS receiver. However, GPS
+signals are often weak or even unavailable in many mission
+scenarios [1], such as search and rescue, monitoring and
+tracking, intelligent transportation, etc. Because this traditional
+positioning technology cannot meet the realistic needs, the
+quadrotor is acquired to sense the surrounding environment
+autonomously using onboard sensors. It is essential that the
+quadrotor is capable of achieving high-precision state esti-
+mation and autonomous ﬂight control. Therefore, autonomous
+positioning method based on onboard sensors in GPS-denied
+environments has become a hot topic in academic research
+and practical application. Multi-sensor fusion techonlogy is
+often used in environmental perception, state estimation and
+prediction. Usually, single sensor has limitations in obtaining
+accurate state information. The inertial measurement unit
+We gratefully acknowledge the support of National Natural Science Foun-
+dation of China (No. 61973234), Key Projects of Tianjin National Science
+Foundation (No. 18JCZDJC96700), Scientiﬁc Research Project of Tianjin
+Education Commission (No. 2019KJ013), and Tianjin Research Innovation
+Project for Postgraduate Students (No. 2021YJSO2S07).
+(IMU) will integrate the bias, resulting in the drift of mea-
+surement over time. The measurement noises of ultrasonic
+rangeﬁnder are large, and may lead to loss of control for the
+quadrotor. Optical ﬂow is sensitive to light and ground tex-
+ture. Consequently, different signals from multiple sensors are
+needed to be fused to get accurate information for localization
+and navigation.
+There are some recent papers focus on multi-sensor fusion
+for autonomous ﬂight of quadrotors. Most works [2]–[4]
+realize autonomous localization mainly based on GPS receiver
+in outdoor scenarios, and the localization problems in some
+complex and closed environments are not considered. To
+address the pose estimation problem in an indoor environment,
+an extended Kalman ﬁlter (EKF) for pose fusion based on 3D
+LiDAR is presented in [5]. Visual-inertial system (VINS) [6] is
+a reliable and complete system that integrates a camera and a
+low-cost IMU to achieve high-precision localization for differ-
+ent applications. An improved method which integrates IMU
+data and visual information is proposed to realize accurate
+and robust motion estimation for a quadrotor by simulation
+and real experiments [7].
+In this paper, we present a fully autonomous, low-cost,
+and high-accuracy quadrotor system with multiple sensors
+to perform ﬂight missions in GPS-denied environments. A
+navigation scheme based on multi-sensor fusion algorithm to
+estimate the states of quadrotor is proposed, not depending
+on real-time indoor autonomous vehicle test environments,
+such as OptiTrack system [8] or UWB system [9]. Different
+from the above works, a comprehensive EKF framework with
+low-power computing is designed. Compared with the simple
+complementary ﬁlter, the EKF [10] has better measurement
+error rejection ability and fault tolerance ability by fusing all
+available measurements. The overall control structure consists
+of a lower ﬂight controller and an upper onboard computer.
+An improved cascaded proportional-integral-derivative (PID)
+control method is designed with multi-sensor fusion in the
+ﬂight controller. A fully customized upper control scheme
+is implemented in the embedded computer to accomplish
+2022 7th Asia-Pacific Conference on Intelligent Robot Systems (ACIRS 2022)
+53
+978-1-6654-8519-7/22/$31.00 ©2022 IEEE
+2022 7th Asia-Pacific Conference on Intelligent Robot Systems (ACIRS) | 978-1-6654-8519-7/22/$31.00 ©2022 IEEE | DOI: 10.1109/ACIRS55390.2022.9845557
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 18:58:57 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+autonomous ﬂight missions from take-off, hovering to landing
+less affected by human intervention. Real-time ﬂight exper-
+iments demonstrate the performance and robustness of the
+proposed scheme in an indoor environment.
+II. FLIGHT CONTROL DESIGN
+The main control objectives are to design four control
+inputs u =
+ u1
+u2
+u3
+u4
+T for the autonomous ﬂight
+mission. A cascaded control scheme is applied to the ﬂight
+control design.
+A. Dynamic Model
+In order to develop the motion equations of the quadrotor,
+the inertia frame and the body ﬁxed frame should be deﬁned.
+The directions of the two frames are shown in Fig. 1, where
+Xb represents the forward direction of the quadrotor. For the
+purpose of control, the dynamics model of the quadrotor [11],
+[12] can be simpliﬁed as follows
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+¨x = ˜u1(cosφsinθcosψ + sinφsinψ) −K1 ˙x/m
+¨y = ˜u1(cosφsinθsinψ −sinφcosψ) −K2 ˙y/m
+¨z = ˜u1cosθcosφ −g −K3 ˙z/m
+¨θ = ˜u2 −lK4 ˙θ/I1
+¨φ = ˜u3 −lK5 ˙φ/I2
+¨ψ = ˜u4 −K6 ˙ψ/I3
+,
+(1)
+where (x, y, z) represent position vector in the inertia frame;
+(θ, φ, ψ) represent attitude vector, such as pitch, roll and yaw;
+m represents the quadrotor’s mass; g is the acceleration of
+gravity; l is the distance between the center of the body and
+the rotational axis of motor; Ki for i = 1, 2, 3, 4, 5, 6 are the
+drag coeffcients; Ii for i = 1, 2, 3 are the moments of inertia
+with respect to three rotational axes; eui for i = 1, 2, 3, 4 are
+virtual control inputs, which can be expressed as
+
+
+˜u1
+˜u2
+˜u3
+˜u4
+
+=
+
+
+1/m
+1/m
+1/m
+1/m
+−l/I1
+−l/I1
+l/I1
+l/I1
+−l/I2
+l/I2
+l/I2
+−l/I2
+C/I3
+−C/I3
+C/I3
+−C/I3
+
+
+
+
+f1
+f2
+f3
+f4
+
+,
+(2)
+where C represents the force to moment scaling factor. fi for
+i = 1, 2, 3, 4 represent the thrust generated by each motor,
+which can be expressed as
+fi = bω2
+i ,
+(3)
+where b denotes a constant speed-to-force coefﬁcient, and ωi
+for i = 1, 2, 3, 4 are the rotation speed of each motor.
+B. Control Design
+The quadrotor helicopter is a 6 degree-of-freedom (DOF),
+highly-coupled, nonlinear, and under-actuated system. In order
+to facilitate the control design, it can be divided into an altitude
+subsystem and a horizontal subsystem [13].
+Fig. 1. Coordinate frames of the quadrotor.
+1) Altitude Subsystem: A cascaded control scheme is ap-
+plied in the control design of the altitude subsystem. Three
+control loops are employed, including altitude loop, vertical
+velocity loop and vertical acceleration loop. The estimation of
+altitude and vertical velocity is achieved by fusing accelerom-
+eter and rangeﬁnder data. Let the altitude, vertical velocity,
+and vertical acceleration tracking error signals be deﬁned as
+epz = zr −z,
+evz = vd
+z −vz,
+eaz = ad
+z −az,
+(4)
+where zr represents the reference of altitude, vd
+z and ad
+z denote
+the desired vertical velocity and vertical acceleration signals,
+vz and az denote the vertical velocity and vertical acceleration,
+respectively. To limit the maximum acceleration, the outer loop
+controller combines proportional control method and square-
+root control method, which is designed as follows
+vd
+z =
+( kpzepz,
+epz ≤amax
+k2
+pz
+q
+2amax(epz −amax
+2k2
+pz ),
+epz > amax
+k2
+pz
+,
+(5)
+where kpz is the proportional gain, and amax represents max-
+imum vertical acceleration. The proportional control method
+is adopted to the middle loop, which can be expressed as
+ad
+z = af + kpvzevz,
+(6)
+where af represents feedforward of acceleration, kpvz is the
+proportional gain. The PID control method is employed in the
+inner loop, which can be expressed as
+˜u1 = ˜uth + kpazeaz + kiaz
+Z t
+0
+eaz(τ)dτ + kdaz ˙eaz,
+(7)
+where euth represents the throttle of hovering, kpaz is the
+proportional gain, kiaz is the integral gain, and kdaz is the
+derivative gain.
+2) Horizontal Subsytem: A cascaded control structure is
+also adopted in the horizontal subsystem. The outer loop
+governs the horizontal position, while the inner loop controls
+the attitude. Let the longitudinal and lateral position tracking
+error signals be deﬁned as
+epx = xr −x,
+epy = yr −y,
+(8)
+54
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 18:58:57 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+where xr and yr represent the reference of horizontal position.
+Horizontal position loop combines a proportional controller
+and a square-root controller, which is designed as follows
+vd
+j =
+
+
+
+
+
+kpjepj,
+d ≤ajmax
+k2
+pj
+epj
+r
+2ajmax(d−
+ajmax
+2k2
+pj
+)
+d
+,
+d > ajmax
+k2
+pj
+,
+(9)
+where vd
+j is the desired horizontal velocity signal, j = x, y.
+kpj is the proportional gain, d is the distance to target position,
+ajmax is the maximum acceleration of x-axis or y-axis. Let
+the horizontal velocity tracking error signals be deﬁned as
+evx = vd
+x −vx,
+evy = vd
+y −vy,
+(10)
+where vx and vy are the horizontal velocity. A proportional-
+integral (PI) control method is employed in the horizontal
+velocity controller, which can be expressed as
+(
+ad
+x = afx + kpvxevx + kivx
+R t
+0 evx(τ)dτ
+ad
+y = afy + kpvyevy + kivy
+R t
+0 evy(τ)dτ
+,
+(11)
+where ad
+x and ad
+y denote the desired horizontal acceleration
+signals, afx and afy denote the feedforward of horizontal
+acceleration. kpvx and kpvy are the proportional gains, kivx
+and kivy are the integral gains.
+In order to simplify the analysis, a small angle assumption
+of θ and φ can be made when the quadrotor is in non-
+aggressive ﬂight. Based on the quadrotor dynamics, the desired
+pitch angle and roll angle can be solved as follows
+
+
+
+θd =
+ad
+xcosψ+ad
+ysinψ
+ad
+z+g
+φd =
+ad
+xsinψ−ad
+ycosψ
+ad
+z+g
+.
+(12)
+A cascaded PID controller is designed for the attitude
+dynamics of the quadrotor. Let the attitude tracking error
+signals be deﬁned as
+eθ = θd −θ,
+eφ = φd −φ,
+eψ = ψd −ψ.
+(13)
+The proportional control method is adopted to the angular
+loop, which is designed as follows
+ωd
+x = kpφeφ,
+ωd
+y = kpθeθ,
+ωd
+z = kpψeψ,
+(14)
+where ωd
+x, ωd
+y and ωd
+z represent the desired angular velocity
+signals, kpφ, kpθ and kpψ are the proportional gains. The PID
+control method is applied to the angular velocity loop, which
+can be expressed as
+
+
+
+
+
+˜u2 = ωfy + kpωyeωy + kiωy
+R t
+0 eωy(τ)dτ + kdωy ˙eωy
+˜u3 = ωfx + kpωxeωx + kiωx
+R t
+0 eωx(τ)dτ + kdωx ˙eωx
+˜u4 = ωfz + kpωzeωz + kiωz
+R t
+0 eωz(τ)dτ + kdωz ˙eωz
+,
+(15)
+where ωfx, ωfy, ωfz represent the feedforward of angular
+velocity. kpωx, kpωy and kpωz are the proportional gains, kiωx,
+kiωy and kiωz are the integral gains, kdωx, kdωy and kdωz are
+the derivative gains.
+III. NAVIGATION ALGORITHM
+A single inertial navigation system (INS) will lead to large
+navigation errors of the quadrotor. To solve this problem,
+multiple sensor data are fused through an EKF algorithm
+for precise localization in GPS-denied environments. The
+EKF framework which combines various sensor information
+together has different operation modes. To obtain a reliable
+position and attitude estimation, the raw data of IMU, mag-
+netometer, barometer, ultrasonic rangeﬁnder, PX4FLOW and
+airspeed meter are used to accomplish the multi-sensor fusion.
+The estimation process is shown in Fig. 2.
+Fig. 2. Estimation process of EKF algorithm.
+The minimum set of sensors for the EKF framework consists
+of IMU, magnetometer and barometer. The magnetometer
+assists the IMU to achieve pose estimation, and the barometer
+assists the ultrasonic rangeﬁnder to achieve altitude estimation.
+Ultrasonic rangeﬁnder and optical ﬂow are mainly used for
+localization of the quadrotor. The EKF algorithm uses a total
+of 24 state variables, which can be described as
+x =
+
+qT
+vT
+pT
+bθ
+T
+bv
+T
+Mn
+T
+Mb
+T
+vwT T,
+(16)
+where quaternions q ∈R4 represent the rotation of the IMU
+from the reference frame; v ∈R3 and p ∈R3 are velocity
+vector and position vector in the navigation frame; bθ ∈R3
+and bv ∈R3 are angle bias increments and velocity bias
+increments; Mn ∈R3 and Mb ∈R3 are magnetic ﬁelds
+with respect to the navigation frame and the body frame,
+respectively; vw ∈R2 represents the wind velocity with
+respect to the navigation frame. The EKF algorithm consists
+of prediction process and updating process. More details can
+be found in [14]–[16].
+55
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 18:58:57 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+The Jacobian matrix which transforms the posteriori states
+to the priori states can be expressed as
+F =
+
+
+F qk+1
+qk
+0
+0
+F qk+1
+bθk
+0
+0
+0
+0
+F vk+1
+qk
+I
+0
+0
+F vk+1
+bvk
+0
+0
+0
+0
+F pk+1
+vk
+I
+0
+0
+0
+0
+0
+0
+0
+0
+I
+0
+0
+0
+0
+0
+0
+0
+0
+I
+0
+0
+0
+0
+0
+0
+0
+0
+I
+0
+0
+0
+0
+0
+0
+0
+0
+I
+0
+0
+0
+0
+0
+0
+0
+0
+I
+
+
+T
+.
+(17)
+In the Jacobian matrix, quaternion, velocity and position
+states employ dynamic prediction models, and angle bias,
+velocity bias, magnetic ﬁeld and wind speed states adopt static
+prediction models, which can be expressed as
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+F qk+1
+qk
+= ∂qk+1
+∂qk
+= I + A
+2
+F vk+1
+qk
+= ∂vk+1
+∂qk
+= 2
+
+
+(Q1∆v)T
+(Q2∆v)T
+(Q3∆v)T
+
+
+F pk+1
+vk
+= ∂pk+1
+∂vk
+= I∆t
+F qk+1
+bθk
+= ∂qk+1
+∂bθk = −1
+2Q4
+F vk+1
+bvk
+= ∂vk+1
+∂bvk = −T N
+B
+,
+(18)
+where F qk+1
+qk
+∈R4×4 is the state transition matrix of quater-
+nions, F qk+1
+bθk
+∈R4×3 is the matrix of quaternions relative
+to angular velocity biases, F vk+1
+qk
+∈R3×4 is the matrix of
+velocities relative to quaternions, F pk+1
+vk
+∈R3×3 is the matrix
+of position relative to velocities, F vk+1
+bvk
+∈R3×3 is the matrix
+of velocities relative to acceleration biases. ∆v denotes the
+truth value of velocity increment. T N
+B ∈R3×3 represents a
+rotation matrix from the body frame to the navigation frame.
+Q1 =
+
+
+q0
+−q3
+q2
+q1
+q2
+q3
+−q2
+q1
+q0
+−q3
+−q0
+q1
+
+, Q2 =
+
+
+q3
+q0
+−q1
+q2
+−q1
+−q0
+q1
+q2
+q3
+q0
+−q3
+q2
+
+,
+Q3 =
+
+
+−q2
+q1
+q0
+q3
+q0
+−q1
+−q0
+q3
+−q2
+q1
+q2
+q3
+
+, Q4 =
+
+
+−q1
+−q2
+−q3
+q0
+−q3
+q2
+q3
+q0
+−q1
+−q2
+q1
+q0
+
+,
+A =
+
+
+0
+−θx
+−θy
+−θz
+θx
+0
+θz
+−θy
+θy
+−θz
+0
+θx
+θz
+θy
+−θx
+0
+
+, where θx, θy, θz are angle
+increments.
+IV. INDOOR FLIGHT EXPERIMENTS
+As shown in Fig. 3, a fully customized quadrotor helicopter
+system is built to justify the navigation algorithm and au-
+tonomous ﬂight control design. Low-cost sensors are selected
+to achieve high-precision autonomous positioning tasks in an
+indoor environment.
+A. Hardware Architecture
+The hardware architecture is composed of a quadrotor
+frame, DC brushless motors, electronic speed controllers,
+Fig. 3. Quadrotor helicopter system.
+power system, ﬂight control system, and wireless modules.
+The ﬂight control system which consists of Pixhawk 2.4.8
+autopilot and Raspberry Pi computer is divided into a lower-
+level ﬂight controller and an upper-level task scheduler. The
+autopilot can be connected to the onboard computer via USB
+to TTL module. The onboard sensors of PX4FLOW and
+ultrasonic rangeﬁnder are installed under the quadrotor to
+accomplish the positioning task. The wireless modules connect
+the ﬂight control system with the ground control station (GCS)
+to achieve data transmission. The hardware architecture of the
+quadrotor system is shown in Fig. 4.
+Fig. 4. Hardware architecture of the quadrotor system.
+B. Software Architecture
+An embedded software system is built in the onboard com-
+puter to enhance autonomy of the quadrotor. The software sys-
+tem is based on an Ubuntu system, which integrates DroneKit-
+Python to control the quadrotor based on scripts. DroneKit-
+Python is a powerful app that provides programmatic access to
+the state information of the quadrotor. The onboard computer
+communicates with the ﬂight controller via the MAVLink
+protocol. If the GCS and the onboard computer are on the
+same LAN, we can use GCS to remotely login the IP address
+of the onboard computer via Secure Shell.
+56
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 18:58:57 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+C. Experimental Results
+The process of safety check, unlocking, take-off, hovering,
+and landing is accomplished autonomously by the ﬂight con-
+trol system in an indoor environment. Hovering state of this
+test lasts for about one minute. As can be seen in Fig. 5, the
+horizontal position errors are mostly within ±0.2 m according
+to the scatter ﬁgure and histogram. The altitude and attitude
+trajectories of the quadrotor are shown in Fig. 6, it can be seen
+that the altitude error is within ±0.05 m, whereas the desired
+altitude is 0.5 m during the hovering. The four normalized
+control inputs are shown in Fig. 7, it can be seen that they are
+all with some reasonable values.
+V. CONCLUSIONS
+This paper presents an efﬁcient sensor combination scheme
+to fuse multiple data based on EKF framework for accurate
+localization of the quadrotor in GPS-denied environments.
+An improved cascaded PID controller is adopted to achieve
+the ﬂight control, and the whole process of the autonomous
+ﬂight task is accomplished by the ﬂight control system. The
+indoor ﬂight experiments verify the superior performance of
+the proposed navigation and control algorithms.
+-0.3
+-0.2
+-0.1
+0
+0.1
+0.2
+0.3
+ x/m
+-0.3
+-0.2
+-0.1
+0
+0.1
+0.2
+0.3
+0.4
+0.5
+ y/m
+-0.1
+0
+0.1
+0.2
+ ex/m
+0
+0.1
+0.2
+0.3
+percentage of ex
+-0.2
+0
+0.2
+0.4
+ ey/m
+0
+0.1
+0.2
+0.3
+0.4
+percentage of ey
+Fig. 5. Horizontal position errors of the quadrotor.
+0
+20
+40
+60
+80
+Time/s
+-0.2
+0
+0.2
+0.4
+0.6
+z/m
+0
+20
+40
+60
+80
+Time/s
+-2
+0
+2
+4
+/(°)
+0
+20
+40
+60
+80
+Time/s
+-5
+0
+5
+10
+/(°)
+0
+20
+40
+60
+80
+Time/s
+55
+65
+75
+85
+/(°)
+Fig. 6. Altitude and attitude trajectories of the quadrotor.
+0
+20
+40
+60
+80
+Time/s
+-1
+-0.5
+0
+0.5
+1
+u1
+0
+20
+40
+60
+80
+Time/s
+-1
+-0.5
+0
+0.5
+1
+u2
+0
+20
+40
+60
+80
+Time/s
+-1
+-0.5
+0
+0.5
+ u3
+0
+20
+40
+60
+80
+Time/s
+-1
+-0.5
+0
+0.5
+ u4
+Fig. 7. Normalized control inputs of the quadrotor.
+REFERENCES
+[1] C. Luo, S. I. McClean, G. Parr, L. Teacy, and R. De Nardi, “UAV
+position estimation and collision avoidance using the extended Kalman
+ﬁlter,” IEEE T. Veh. Technol., vol. 62, no. 6, pp. 2749-2762, July 2013.
+[2] S. Shen, Y. Mulgaonkar, N. Michael, and V. Kumar, “Multi-sensor fusion
+for robust autonomous ﬂight in indoor and outdoor environments with
+a rotorcraft MAV,” IEEE Int. Conf. Robot. Autom., Hong Kong, pp.
+4974-4981, June 2014.
+[3] M. Strohmeier and S. Montenegro, “Coupled GPS/MEMS IMU attitude
+determination of small UAVs with COTS,” Electronics, vol. 6, no. 1,
+March 2017.
+[4] L. Fusini, T. I. Fossen, and T. A. Johansen, “Nonlinear observers for
+GNSS- and camera-aided inertial navigation of a ﬁxed-wing UAV,” IEEE
+T. Contr. Syst. T., vol. 26, no. 5, pp. 1884–1891, September 2018.
+[5] M. Karimi, M. Oelsch, O. Stengel, E. Babaians, and E. Steinbach,
+“LoLa-SLAM: Low-latency LiDAR SLAM using continuous scan slic-
+ing,” IEEE Robot. Autom. Let., vol. 6, no. 2, pp. 2248-2255, April 2021.
+[6] T. Qin, P. Li, and S. Shen, “VINS-Mono: A robust and versatile
+monocular visual-inertial state estimator,” IEEE T. Robot., vol. 34, no.
+4, pp. 1004-1020, August 2018.
+[7] Y. Yang, C. Chen, W. Lee, and G. Huang, “Decoupled right invariant er-
+ror states for consistent visual-inertial navigation,” IEEE Robot. Autom.
+Let., vol. 7, no. 2, pp. 1627-1634, April 2022.
+[8] D. Horla, W. Giernacki, J. Cie´slak, and P. Campoy, “Altitude
+measurement-based optimization of the landing process of UAVs,”
+Sensors, vol. 21, no. 4, February 2021.
+[9] Y. Song and L. T. Hsu, “Tightly coupled integrated navigation system
+via factor graph for UAV indoor localization,” Aerosp. Sci. Technol.,
+vol. 108, January 2021.
+[10] L. Sun, O. Seidou, I. Nistor, and K. Liu, “Review of the Kalman-type
+hydrological data assimilation,” Hydrolog. Sci. J., vol. 61, no. 13, pp.
+2348-2366, October 2016.
+[11] M. Idrissi and F. Annaz, “Dynamic modelling and analysis of a quadrotor
+based on selected physical parameters,” International Journal of Mechan-
+ical Engineering and Robotics Research, vol. 9, no. 6, pp. 784-790, June
+2020.
+[12] H. Jeon, J. Song, H. Lee, and Y. Eun, “Modeling quadrotor dynamics
+in a wind ﬁeld,” IEEE-ASME T. Mech., vol. 26, no. 3, pp. 1401-1411,
+June 2021.
+[13] J. Guo, Z. Chen, J. Wang, and P. Zou, “A ground moving target tracking
+system for a quadrotor in GPS-denied environments,” Advances in
+Guidance, Navigation and Control, vol. 644, pp. 2945-2958, 2022.
+[14] Y. Yang, X. Liu, W. Zhang, X. Liu, and Y. Guo, “A nonlinear double
+model for multisensor-integrated navigation using the federated EKF
+algorithm for small UAVs,” Sensors, vol. 20, no. 10, May 2020.
+[15] F. Dong, K. You, and J. Zhang, “Flight control for UAV loitering over
+a ground target with unknown maneuver,” IEEE T. Contr. Syst. T., vol.
+28, no. 6, pp. 2461-2473, November 2020.
+[16] T. Kim, D. Kim, S. Kim, Y. Kim, and S. Han, “Improved optical sensor
+fusion in UAV navigation using feature point threshold ﬁlter,” Int. J.
+Aeronaut. Space, vol. 23, no. 1, pp. 157-168, February 2022.
+57
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 18:58:57 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

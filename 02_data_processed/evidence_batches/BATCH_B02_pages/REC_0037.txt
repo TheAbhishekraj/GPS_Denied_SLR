@@ -1,0 +1,442 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0037.pdf
+sha256: 9B5A7566FBCB4399B5EA5F1E8EE9C60C1DFD6C4565907440200923383447DA51
+library: pymupdf (fitz) v1.28.2
+pages: 4
+=== BEGIN ===
+[p.1]
+GNSS Eri¸siminin Olmadı˘gı Ortamlarda Uydu
+Görüntüleri Kullanarak ˙IHA’lar ˙Için Derin Görsel
+Konumlandırma
+Deep Visual Localization for UAVs in GNSS-Denied
+Environments Using Satellite Imagery
+Engin Öksüz1, Barı¸s Yalçın1, Tolga Demirdal2
+1HAVELSAN A.¸S., Ankara, Türkiye
+eoksuz@havelsan.com.tr; barisyalcin@havelsan.com.tr
+2Computational Science and Engineering, Technical University of Munich, Münih, Almanya
+tolga.demirdal@tum.de
+Özetçe —˙Insansız Hava Araçları (˙IHA) için güvenilir ve otonom görev
+icrası açısından do˘gru mutlak konumlandırma büyük önem ta¸sımaktadır.
+Ancak GNSS tabanlı seyrüsefer sistemleri elektronik harp, fiziksel
+engelleme veya yanıltma gibi ko¸sullarda devre dı¸sı kalabilmektedir. Bu
+çalı¸smada, GNSS eri¸siminin olmadı˘gı ortamlarda ˙IHA kamerasından
+alınan görüntüler açık kaynak uydu görüntüleriyle e¸sle¸stirilerek mutlak
+konum tahmini yapılmakta; kırsal ve dü¸sük doku ko¸sullarında dayanıklılık
+hedeflenmektedir. Önerilen görsel konumlandırma boru hattı, SuperPoint–
+LightGlue ile derin e¸sle¸stirme, homografi ile uydu–kamera hizalama,
+verimli perspektif-n-nokta (EPnP) tabanlı mutlak poz kestirimi ve Kalman
+füzyonu ile optik akı¸s yedek hattını birle¸stirmektedir. Ölcekten ba˘gımsız
+özellik dönü¸sümü (SIFT) ile yönlenmi¸s hızlı FAST ve dönen BRIEF (ORB)
+yöntemlerine kıyasla daha yüksek e¸sle¸sme ba¸sarısı (mAP) ve daha dü¸sük
+yatay konum hatası elde edilmektedir. RTK GNSS ile do˘grulanan gerçek
+uçu¸s testlerinde, yakla¸sık 500 m irtifada X–Y düzleminde 10 m (MAE)
+ve 14 m (RMSE) konum hatası elde edilmi¸s; sistem Jetson Orin Nano
+üzerinde yakla¸sık 5 Hz hızla çalı¸smı¸stır.
+Anahtar Kelimeler—Görsel konumlandırma, ˙IHA, SuperPoint–LightGlue,
+EPnP, GNSS’siz navigasyon.
+Abstract—Accurate absolute localization is essential for the reliable
+and autonomous mission execution of unmanned aerial vehicles (UAVs).
+However, GNSS-based navigation may be disabled under electronic
+warfare, physical obstruction, or spoofing. In this study, absolute position is
+estimated in GNSS-denied environments by matching UAV camera images
+with open-source satellite imagery. The proposed visual localization pipeline
+combines deep matching with SuperPoint–LightGlue, satellite–camera
+alignment via homography, Efficient Perspective-n-Point (EPnP)-based
+absolute pose estimation, and Kalman fusion with an optical-flow backup.
+Compared with SIFT and ORB, it achieves higher matching success (mAP)
+and lower horizontal error. In real flights validated against RTK GNSS,
+a positioning error of 10 m (MAE) and 14 m (RMSE) in the X–Y plane
+is obtained at approximately 500 m altitude, running at approximately
+5 Hz on a Jetson Orin Nano.
+Keywords—Visual localization, UAV, SuperPoint–LightGlue, EPnP,
+GNSS-denied navigation.
+I.
+G˙IR˙I ¸S
+GNSS, modern otonom hava araçlarının seyrüseferi için
+birincil mutlak konum kayna˘gıdır. Ancak sinyal karartma,
+yanıltma ve kentsel kanyon etkisi gibi durumlarda GNSS verisi
+kullanılamaz hale gelmekte; bu da ˙IHA’nın güvenli uçu¸su için
+ciddi bir risk olu¸sturmaktadır [1].
+Bu ba˘gımlılı˘gı azaltmak amacıyla eylemsizlik seyrüse-
+fer sistemleri (INS), görsel odometri (VO), görsel-eylemsel
+odometri (VIO) ve e¸s zamanlı konumlandırma ve haritalama
+(SLAM) yakla¸sımları yaygın olarak kullanılmaktadır. Ancak bu
+yöntemler temelde göreli hareket takibi sa˘glamakta, zamanla
+biriken sürüklenme (drift) nedeniyle uzun menzilli uçu¸slarda
+mutlak konumdan kopmaktadır ve özellikle mevsimsel görünüm
+de˘gi¸simlerine kar¸sı hassas kalmaktadır [2]. Uydu görüntü-
+lerinden derin özellik çıkarımına dayalı yakla¸sımlar [3] bu
+sorunu hafifletmek için önemli bir adım atsa da, karma¸sık
+arazilerde ve gömülü donanım sınırları altında hesaplama yükü
+ve kararlılık açısından sınırlılıklar göstermektedir.
+Bu çalı¸smada, ˙IHA kamerasından alınan anlık görüntüleri
+co˘grafi referanslı uydu haritaları ile e¸sle¸stirerek GNSS’siz
+mutlak konum tahmini yapan yeni bir görsel konumlandırma
+sistemi sunulmaktadır. Önerilen sistemde, kendinden denetimli
+bir kilit nokta tespit ve tanımlama a˘gı olan SuperPoint ile
+hafifletilmi¸s bir e¸sle¸stirme a˘gı olan LightGlue tabanlı derin
+özellikler kullanılarak perspektif ve mevsimsel de˘gi¸simlere
+dayanıklı kilit nokta e¸sle¸stirmesi sa˘glanmakta, ˙IHA duru¸su ve
+irtifasına göre uygulanan homografi tabanlı dönü¸süm ile uydu
+haritası kameraya hizalanmaktadır. Verimli perspektif-n-nokta
+(EPnP) temelli mutlak konum ve yönelim kestirimi, optik akı¸s
+tabanlı yedekleme hattı ile birle¸stirilerek sürekli ve düzgün
+bir poz tahmini elde edilmekte; gerçek ˙IHA uçu¸s testleri ve
+kamera verileriyle gömülü donanım üzerinde do˘grulanan bu
+yapı, GNSS’siz navigasyon için kullanıma hazır bir çözüm
+sunmaktadır.
+Bu do˘grultuda çalı¸smanın temel katkıları ¸sunlardır:
+979-8-3195-1046-4/26/$31.00 ©2026 IEEE
+2026 34th Signal Processing and Communications Applications Conference (SIU) | 979-8-3195-1046-4/26/$31.00 ©2026 IEEE | DOI: 10.1109/SIU71813.2026.11636724
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 16:53:42 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+1. GNSS’siz kırsal senaryoda, gerçek uçu¸s verisiyle saha-
+do˘grulanmı¸s bütünle¸sik görsel konumlandırma boru hattı: ho-
+mografi ile uydu–kamera hizalama, SuperPoint–LightGlue,
+EPnP, Kalman ve optik akı¸s füzyonu.
+2. Aynı protokol ve arka uç altında SIFT/ORB ile derin
+e¸sle¸stirmenin kar¸sıla¸stırılması; mutlak konum (MAE/RMSE)
+ve e¸sle¸sme kalitesi (mAP) ile katkı ayrı¸stırması.
+3. TensorRT ile Jetson Orin Nano üzerinde FPS/latency ile
+gerçek zamanlı da˘gıtılabilirlik; otonom uçu¸s yı˘gınına konum
+girdisi olarak entegrasyon.
+II.
+˙ILG˙IL˙I ÇALI ¸SMALAR
+GNSS’siz konumlandırma literatüründe iki temel yakla¸sım
+öne çıkmaktadır: (i) görsel odometri/SLAM ile göreli hareket
+kestirimi ve (ii) kamera görüntülerini co˘grafi referanslarla
+e¸sle¸stirerek mutlak konum kestirimi [2], [4]. Birinci grup,
+GNSS olmadı˘gında sürüklenme nedeniyle uzun güzergahlarda
+mutlak konumdan koparken, ikinci grup ˙IHA görüntülerini
+uydu/ortofoto haritalarla ili¸skilendirerek bu eksikli˘gi gidermeyi
+amaçlamaktadır [1], [2], [5]–[7]. Shan et al. [8] ise optik akı¸s
+tabanlı dead-reckoning’de biriken 169 m hatanın, harita kayıtlı
+görsel hizalamayla 6,8 m RMSE’ye dü¸stü˘günü göstermi¸stir.
+Son yıllarda bu ikinci grupta derin ö˘grenme tabanlı yak-
+la¸sımlar öne çıkmı¸stır: Kinnari et al. [2], e˘gitilmi¸s evri¸simsel
+a˘glarla mevsimsel de˘gi¸simlere dayanıklı GNSS’siz lokalizasyon
+sa˘glarken; Hou et al. [3] D2-Net ve DEM entegrasyonuyla
+3B arazi noktasından poz kestirimi gerçekle¸stirmekte, Yao et
+al. [1] ise görüntü tabanlı gözlemleri VO ile birle¸stirip arazi
+a˘gırlıklı kısıt optimizasyonu ile poz kestirimini düzeltmektedir.
+Lin ve Chen [9] ise CLIP tabanlı derin özelliklerle hava–uydu
+e¸sle¸stirmesini incelemektedir.
+Prutyanov et al. [10], AdM_UAV veri kümesindeki gerçek
+˙IHA uçu¸s görüntülerini ve birden fazla uydu haritasını kulla-
+narak sıfır-atı¸s derin özellik e¸sle¸stirmeye dayalı 4 DoF görsel
+lokalizasyon sistemi sunmakta ve farklı e¸sle¸stirici kombi-
+nasyonlarını kar¸sıla¸stırmaktadır. Bu çalı¸sma ise, AdM_UAV
+dı¸sında toplanan ba˘gımsız gerçek ˙IHA uçu¸s verileri üzerinde,
+RTK GNSS yer gerçe˘gi ile do˘grulanan GNSS’siz bir görsel
+lokalizasyon sistemi sunmaktadır.
+SuperPoint [11], SuperGlue [12], LightGlue [13] ve dedek-
+törsüz LoFTR [14] gibi derin ö˘grenme tabanlı e¸sle¸stiriciler,
+geni¸s bakı¸s açısı ve mevsimsel de˘gi¸simlere kar¸sı yüksek
+dayanıklılık göstermeleri nedeniyle son dönem ˙IHA lokaliza-
+syon çalı¸smalarında sıkça tercih edilmektedir [1], [10]. Bu
+çalı¸smada SuperPoint–LightGlue ikilisi, GNSS’siz navigasyon
+ve konumlandırma problemi için tasarlanan homografi tabanlı
+uydu harita hizalama ve EPnP+optik akı¸s füzyonlu mimarinin
+derin görsel e¸sle¸stirme omurgası olarak konumlandırılmaktadır.
+III.
+ÖNER˙ILEN YÖNTEM
+Önerilen sistem dört ana a¸samadan olu¸smaktadır (¸Sekil 1):
+(i) görü¸s alanı modelleme ve homografi tabanlı harita sentezi,
+(ii) SuperPoint–LightGlue ile derin görsel e¸sle¸stirme, (iii) EPnP
+tabanlı mutlak poz kestirimi ve Kalman füzyonu, (iv) gömülü
+donanım optimizasyonu [15]. A¸sa˘gıda her a¸sama ayrıntılı olarak
+ele alınmaktadır.
+A. Görü¸s Alanı Modelleme ve Harita Sentezi
+˙IHA’nın bir önceki kestirimden gelen kaba konumu P∈R3
+ve kamera içsel matrisi K kullanılarak, yer düzlemine kar¸sılık
+gelen uydu karo bölgesi belirlenir. Projeksiyon modeli:
+λ u = K
+ RPw +t
+
+,
+(1)
+¸seklindedir; burada λ derinlik ölçe˘gi, Pw∈R3 3B dünya noktası,
+R ve t kameranın dönü¸s ve ötelenmesi, u piksel koordinatlarıdır.
+Görü¸s hacminin yer kesi¸siminden elde edilen sınırlayıcı kutu,
+yüklenecek uydu karolarını belirler.
+Kamera–uydu perspektif farkını azaltmak için seçilen
+karoya homografi H uygulanır:
+uc = H us = K
+
+R−tnT
+d
+
+K−1us,
+(2)
+burada n yer düzlemi normali, d kamera–düzlem uzaklı˘gıdır.
+Dönü¸süm; irtifa, yalpa (roll), yunuslama (pitch) ve sapma
+(yaw) açılarını içerdi˘ginden, sentezlenen harita kameranın bakı¸s
+açısına yakınla¸stırılır ve e¸sle¸stirme ba¸sarımı arttırılır.
+B. Derin Görsel E¸sle¸stirme Hattı
+Görünüm farklılıklarına dayanıklı e¸sle¸stirme için Super-
+Point [11] kilit nokta belirleyici ve tanımlayıcı olarak, Light-
+Glue [13] ise hafif e¸sle¸stirici olarak kullanılmaktadır. Her iki
+görüntüden çıkarılan özellik vektörleri LightGlue’nun dikkat
+modülü ile e¸sle¸stirilir:
+A = softmax
+
+QKTa
+√
+dk
+
+V,
+(3)
+burada Q, Ka, V sırasıyla sorgu, anahtar ve de˘ger matrisleri;
+dk dikkat ba¸sı boyutudur. Klasik SIFT ve ORB yöntemleri sert
+aydınlanma ve mevsimsel de˘gi¸simlerde kararsız kalabilirken,
+derin tabanlı bu hat yapısal tutarlılı˘gı korumaktadır. Giri¸ste
+uygulanan CLAHE ön-i¸slemesi kontrast dengesizliklerini gi-
+dermektedir.
+C. Hibrit Poz Kestirimi ve Füzyon
+E¸sle¸sen 2B–3B nokta çiftlerinden kamera pozu, verimli
+perspektif-n-nokta (EPNP) çözücüsü ile (O(n) karma¸sıklık)
+kestirilir:
+min
+R,t ∑
+i
+
+
+ui −π(K,RPi +t)
+
+
+2,
+(4)
+burada ui piksel koordinatı, Pi 3B harita noktası, π(·) perspektif
+projeksiyondur. Standart PnP algoritmalarına göre O(n) mer-
+tebesinde çözüm sunan EPNP, gömülü kartlarda kritik bir süre
+kazanımı sa˘glamaktadır. RANSAC ile aykırı de˘gerler elendikten
+sonra kalan inlier’lar poz kestiriminde kullanılır.
+E¸sle¸sme kalitesinin dü¸stü˘gü veya homojen bölgelerin
+görüldü˘gü çerçevelerde, Lucas–Kanade optik akı¸sı ve SVD
+tabanlı Procrustes dönü¸sümü ile yedek poz kestirimi yapılır.
+Tüm poz çıktıları lineer Kalman filtresiyle füzyonlanarak
+yörünge süreklili˘gi sa˘glanır ve geçici hata sıçramaları baskılanır.
+Son a¸samada, konum güncelleme frekansını denetleyen bir
+hız sınırlayıcı (rate limiter) uygulanarak ani konumlandırma
+sapmasına kar¸sı koruma sa˘glanır.
+Optik akı¸s hattı, e¸sle¸stirme–EPnP hattının zayıfladı˘gı
+çerçevelerde yedek kanal olarak kullanılmaktadır.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 16:53:42 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+Girdi
+Hizalama & e¸sle¸stirme
+Poz kestirimi
+Füzyon
+˙IHA kamera
+görüntüsü
+Uydu görüntüsü
+(karo)
+Homografi ile
+hizalama
+SuperPoint–
+LightGlue
+EPnP + RANSAC
+mutlak poz
+LK optik akı¸s
+yedek
+Kalman füzyonu
+ˆxNED
+mutlak konum
+M
+karo seçimi (geri besleme)
+¸Sekil 1.
+Önerilen görsel konumlandırma mimarisi: ˙IHA kamera ve uydu görüntülerinin homografi ile hizalanması, SuperPoint–LightGlue ile derin e¸sle¸stirme,
+EPnP poz kestirimi (LK optik akı¸s yede˘gi) ve Kalman füzyonu ile mutlak konum kestirimi.
+¸Sekil 2.
+Sol: LightGlue e¸sle¸stirme çıktısı (kamera–uydu keypoint e¸sle¸smeleri).
+Sa˘g: E¸sle¸smelerin referans uydu haritası üzerindeki konumları.
+D. Gömülü Donanım Uygulaması
+Tüm boru hattı NVIDIA Jetson Orin Nano üzerinde
+gerçek zamanlı çalı¸sacak ¸sekilde optimize edilmi¸stir. Derin
+a˘g modülleri için PyTorch, ONNX Runtime ve TensorRT
+kar¸sıla¸stırılmı¸s; en yüksek uçtan uca kare hızını sa˘glayan
+TensorRT tercih edilmi¸stir. Sistem saniyede yakla¸sık 5 kare
+güncellemekte (∼200 ms gecikme) ve tipik ˙IHA görev profilleri
+için yeterli gerçek zamanlılık sunmaktadır.
+IV.
+DENEYLER VE DE ˘GERLEND˙IRME
+A. Deneysel Kurulum ve Kar¸sıla¸stırma Protokolü
+Kırsal bölgelerde toplanan gerçek ˙IHA uçu¸s verileri (yak-
+la¸sık 20 sorti, ∼12 saat) 50–900 m irtifada dü¸sük doku
+ko¸sullarını içermektedir; yer gerçe˘gi RTK GNSS’tir. Kamera
+girdileri kalibrasyon sonrası kullanılmı¸stır. Ölcekten ba˘gım-
+sız özellik dönü¸sümü (SIFT) ve yönlenmi¸s hızlı FAST ile
+dönen BRIEF (ORB) ile SuperPoint–LightGlue, aynı seg-
+mentler ve aynı arka uç üzerinde yalnızca ön uç de˘gi¸stirilerek
+kar¸sıla¸stırılmı¸stır (mAP, süre, X–Y MAE/RMSE).
+Ufuk normalizasyonu sonrası SuperPoint tipik olarak 800–
+1200 kilit nokta üretmekte, LightGlue ile 80–200 inlier e¸sle¸sme
+elde edilmekte ve EPnP poz kestirimi için 15–40 inlier
+kullanılmaktadır. Tüm e¸sikler ampirik olarak belirlenmi¸s ve
+deneylerde sabit tutulmu¸stur.
+B. Deneysel Sonuçlar
+Tablo I’de SIFT, ORB ve önerilen SuperPoint+LightGlue
+yakla¸sımı için ortalama e¸sle¸stirme ba¸sarısı (mAP), e¸sle¸stirme
+süresi ve e¸sle¸sen nokta sayısı özetlenmektedir. SIFT/ORB’a
+göre yakla¸sık 2–7 kat daha fazla güvenilir e¸sle¸sme ve belirgin
+¸Sekil 3.
+Uydu haritası üzerinde tahmin yörüngesi (mavi), ölçüm noktaları
+(kırmızı) ve e¸sle¸sen keypoint’ler (sarı).
+Tablo I.
+GÖRÜNTÜ E ¸SLE ¸ST˙IRME PERFORMANSI KAR ¸SILA ¸STIRMASI.
+Yöntem
+mAP Süre (s) E¸sle¸sen nokta sayısı
+SIFT
+0.650
+0.043
+24
+ORB
+0.717
+0.036
+78
+Önerilen Sistem (SP+LG) 0.912
+0.340
+249
+Tablo II.
+B˙ILE ¸SEN ÇIKARMA ANAL˙IZ˙I (TEMS˙ILC˙I SEGMENT, RTK
+REFERANSI, X–Y MAE).
+Yapılandırma
+MAE (m)
+Tam sistem (referans)
+10.2
+Homografi olmadan
+23.1
+Optik akı¸s yedeklemesi olmadan
+12.6
+mAP artı¸sı sa˘glanmakta; bu e¸sle¸stirme kalitesi kazanımı,
+önerilen sistemin RTK referansına göre yakla¸sık 10 m MAE
+ve 14 m RMSE konum do˘grulu˘guna ula¸smasını mümkün
+kılmaktadır.
+¸Sekil 3’te tahmin edilen yörünge, veri noktaları ve e¸sle¸sen
+keypoint kümelerinin uydu haritası üzerinde tutarlı bir uzam-
+sal hizalama sa˘gladı˘gı görülmekte, böylece zorlu arazide
+dahi büyük kayma olmadan GNSS’siz konumlandırmanın
+sürdürülebildi˘gi do˘grulanmaktadır.
+Katkı bile¸senlerinin etkisini kısmen ayrı¸stırmak için
+Tablo II’de, aynı deneysel protokol ve temsilci bir uçu¸s
+segmentinde homografi veya Lucas–Kanade optik akı¸s yedek-
+lemesinin devre dı¸sı bırakılmasıyla ölçülen X–Y MAE özetlen-
+mi¸stir (RTK referansı).
+Sonuçlar, homografi hizalamasının konumlandırma do˘gru-
+lu˘guna en büyük katkıyı sa˘gladı˘gını; optik akı¸s yedeklemesinin
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 16:53:42 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+¸Sekil 4.
+NED konum izleri (yatay: s, dikey: m). Mavi: kestirim; turuncu:
+RTK GNSS.
+¸Sekil 5.
+NED konum hatası (yatay: s, dikey: m).
+ise özellik-seyrek ko¸sullarda dayanıklılı˘gı artırdı˘gını göstermek-
+tedir.
+C. Sonuçların Yorumlanması
+Kuzey ve do˘gu eksenlerindeki kestirim de˘gerleri, ¸Sekil 4’te
+görülece˘gi gibi GNSS yer gerçe˘gi ile yüksek oranda paralellik
+göstermektedir. Buna kar¸sılık, hava aracının yüksekli˘gini temsil
+eden Z ekseninde görülen daha yüksek deviasyon, ba¸slıca
+olarak DEM çözünürlü˘gündeki sınırlar ve monoküler derinlik
+kestiriminin do˘gasından kaynaklanan kısıtlarla ili¸skilidir.
+X–Y eksenlerindeki do˘grulu˘gun yanı sıra, ¸Sekil 5’de gös-
+terilen zaman serisi analizinde homojen tarım arazileri gibi az
+dokulu bölgelerde geçici kilit nokta kayıplarının kısa süreli hata
+sıçramalarına yol açtı˘gı görülmektedir. Buna ra˘gmen, Kalman
+filtresi ve Lucas–Kanade optik akı¸sına dayalı yedekleme
+hattı bu atlamaları baskılayarak genel lokalizasyon hatasını
+azaltmaktadır. Yanlı¸s veya dü¸sük güvenli e¸sle¸smeler, dü¸sük
+doku ve gölge geçi¸slerinde daha sık gözlenmi¸s; bu durumlar
+¸Sekil 4’te ve ¸Sekil 5’te izlenmekte olup, ¸Sekil 2 ve ¸Sekil 3
+üzerinde nitel olarak da desteklenmektedir.
+V.
+SONUÇ
+Bu çalı¸smada, GNSS eri¸siminin kısıtlı veya kasıtlı olarak
+kapatıldı˘gı ko¸sullarda ˙IHA kamerasından alınan görüntülerin
+açık kaynak uydu haritalarıyla e¸sle¸stirilmesine dayanan bütün-
+le¸sik bir görsel konumlandırma boru hattı sunulmu¸stur. Önerilen
+mimari; homografi tabanlı uydu–kamera hizalaması, SuperPoint–
+LightGlue derin e¸sle¸stirmesi, EPnP tabanlı mutlak poz kestirimi
+ile Kalman füzyonunu ve optik akı¸s yedek hattını bir araya
+getirmektedir. RTK GNSS yer gerçe˘giyle do˘grulanan saha
+uçu¸slarında, kırsal senaryoda yakla¸sık 500 m irtifada X–Y
+düzleminde ortalama 10 m (MAE) ve 14 m (RMSE) konum
+hatası elde edilmi¸s; SIFT/ORB tabanlı ön uçlara kıyasla
+belirgin mAP artı¸sı sa˘glanmı¸stır (Tablo I–II). Sistem, TensorRT
+ile optimize edilerek NVIDIA Jetson Orin Nano üzerinde
+saniyede yakla¸sık 5 karelik güncelleme hızında çalı¸smakta ve
+otonom uçu¸s yı˘gınına konum girdisi olarak entegre edilebile-
+cek düzeydedir. Elde edilen sonuçlar, elektronik harp ve
+GNSS’siz ortamlarda uydu destekli mutlak konumlandırmanın
+gömülü platformlarda uygulanabilir oldu˘gunu göstermektedir.
+Gelecek çalı¸smada farklı arazi ve mevsim senaryoları, Z
+ekseni do˘grulu˘gunun iyile¸stirilmesi ve LoFTR [14] gibi güncel
+e¸sle¸stiricilerle geni¸sletilmi¸s kar¸sıla¸stırmalar ele alınacaktır.
+TE ¸SEKKÜR
+Bu bildiri, HAVELSAN A.¸S. bünyesinde yürütülen çalı¸s-
+malar kapsamında hazırlanmı¸stır.
+KAYNAKÇA
+[1]
+F. Yao et al., “GNSS-denied geolocalization of UAVs by terrain-weighted
+constraint optimization,” Int. J. Appl. Earth Obs. Geoinf., vol. 135,
+104123, 2024, doi: 10.1016/j.jag.2024.104123.
+[2]
+J. Kinnari, F. Verdoja, and V. Kyrki, “Season-Invariant GNSS-Denied
+Visual Localization for UAVs,” IEEE Robot. Autom. Lett., vol. 7, no. 4,
+pp. 10232–10239, Oct. 2022, doi: 10.1109/LRA.2022.3188976.
+[3]
+H. Hou et al., “UAV Pose Estimation in GNSS-Denied Environment
+Assisted by Satellite Imagery Deep Learning Features,” IEEE Access,
+vol. 8, pp. 6351–6364, 2020, doi: 10.1109/ACCESS.2020.2963827.
+[4]
+I. Lee et al., “Georeferenced UAV Localization in Mountainous Terrain
+Under GNSS-Denied Conditions,” Drones, vol. 9, no. 709, 2025.
+[5]
+A. Nassar, K. Amer, R. ElHakim, and M. ElHelw, “A Deep CNN-
+Based Framework for Enhanced Aerial Imagery Registration with
+Applications to UAV Geolocalization,” in Proc. IEEE/CVF Conf. Comput.
+Vis. Pattern Recognit. Workshops (CVPRW), Salt Lake City, UT, USA,
+2018, pp. 1513–1523.
+[6]
+A. Shetty and G. X. Gao, “UAV Pose Estimation Using Cross-View
+Geolocalization with Satellite Imagery,” in Proc. Int. Conf. Robot. Autom.
+(ICRA), Montreal, QC, Canada, 2019, pp. 1827–1833.
+[7]
+H. Goforth and S. Lucey, “GPS-Denied UAV Localization Using Pre-
+Existing Satellite Imagery,” in Proc. Int. Conf. Robot. Autom. (ICRA),
+Montreal, QC, Canada, 2019, pp. 2974–2980.
+[8]
+M. Shan, F. Wang, F. Lin, Z. Gao, Y. Z. Tang, and B. M. Chen, “Google
+Map Aided Visual Navigation for UAVs in GPS-Denied Environment,” in
+Proc. IEEE Int. Conf. Robot. Biomimetics (ROBIO), 2015, pp. 114–119.
+[9]
+H.-Y. Lin and L.-Y. Chen, “GNSS-denied UAV localization using aerial-
+satellite image matching and CLIP-based deep features,” Results in
+Engineering, vol. 28, 108132, 2025, doi: 10.1016/j.rineng.2025.108132.
+[10]
+V. V. Prutyanov, N. L. Korolev, and A. Y. Romanov, “UAV Visual
+Localization System Empowered by Zero-Shot Deep Feature Matching,”
+in Proc. Int. Russian Automation Conf. (RusAutoCon), 2025.
+[11]
+D. DeTone, T. Malisiewicz, and A. Rabinovich, “SuperPoint: Self-
+Supervised Interest Point Detection and Description,” Proc. IEEE/CVF
+CVPR Workshops, 2018.
+[12]
+P.-E. Sarlin et al., “SuperGlue: Learning Feature Matching with Graph
+Neural Networks,” in Proc. IEEE/CVF Conf. Comput. Vis. Pattern
+Recognit. (CVPR), 2020, pp. 4938–4947.
+[13]
+P. Lindenberger et al., “LightGlue: Local Feature Matching at the Speed
+of Light,” arXiv preprint arXiv:2306.13643, 2023.
+[14]
+J. Sun et al., “LoFTR: Detector-Free Local Feature Matching with
+Transformers,” in Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit.
+(CVPR), 2021, pp. 8922–8931.
+[15]
+E. Öksüz, “Embedded Artificial Intelligence-Based Feature Matching
+Method and Application in Unmanned Aerial Vehicles,” Master’s thesis,
+Istanbul Technical University, June 2023.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 16:53:42 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

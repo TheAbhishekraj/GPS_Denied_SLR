@@ -1,0 +1,1740 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1612.pdf
+sha256: 0067552E187F8CB63A4010E53CDAA7EE3FAC331BA2AFC1BE857735DE789ACB79
+library: pymupdf (fitz) v1.28.2
+pages: 12
+=== BEGIN ===
+[p.1]
+Visual GPS-denied Multi-Agent Localization & Terrain
+Classiﬁcation
+Eve Law
+Draper
+555 Technology Square 
+Cambridge, MA 02139
+John Baillieul
+Department of Mechanical Engineering 
+110 Cummington Mall, ENG 323 
+Boston, MA, 02215
+617-353-9848
+johnb@bu.edu
+Abstract— This paper furthers the state of the art of visual
+localization by harnessing recently developed scene recogni-
+tion and understanding machine learning (ML) algorithms to
+rethink how vision can be used for navigation, particularly
+when combined with a realistic, minimalist, and robust multi-
+agent approach. The focus on visual navigation comes as GPS
+is increasingly unreliable (jammed, spoofed, or disabled), or
+unavailable (indoor, or extraterrestrial environments).
+GPS denial/unreliability is an area of active research in gen-
+eral, with unmanned parafoil systems being one UAV applica-
+tion. The landing locations for parafoil systems must be pre-
+programmed manually with global coordinates, which may be
+inaccurate or outdated, and offer no in-ﬂight adaptability.
+This paper will introduce a novel and minimalist approach to vi-
+sual navigation and multi-agent communication using semantic
+machine learning classiﬁcation and geometric constraints. This
+approach enables localization and landing site identiﬁcation for
+multiple communicating UAV systems deployed in GPS-denied
+environments.
+This is a capability extending beyond single-
+agent localization, as well as a novel landing site classiﬁcation
+approach.
+A mathematical foundation using information theory provides
+the technical grounding for the algorithms presented, and sim-
+ulation results demonstrate how multiple agents using the pro-
+posed algorithms make a signiﬁcant improvement in localization
+accuracy and speed over a single agent.
+Desirable landing sites for UAVs generally, and autonomous
+parafoils in particular, constitute locations where payload sur-
+vivability and accessibility are greatest. An on-board semantic
+representation and understanding of the operating environment
+will allow systems to automatically detect and classify these de-
+sirable and undesirable landing sites, enabling successful land-
+ing in a much larger class of scenarios than currently possible, in
+addition to a fail-safe capability when localization is not feasible.
+This paper will further introduce an algorithm enabling multi-
+ple agents to reproduce this classiﬁcation of their environment
+on-line better and more rapidly than a single agent working
+alone, demonstrating the advantage of multiple agents in this
+context as well. This has applications to general UAV landing,
+whether powered or unpowered, on Earth or in extra-terrestrial
+environments.
+TABLE OF CONTENTS
+1. INTRODUCTION. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1
+2. BACKGROUND . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1
+3. MOTIVATION & PROPOSED APPROACH . . . . . . . . .
+2
+4. MATHEMATICAL FOUNDATION . . . . . . . . . . . . . . . . . .
+4
+5. IN-FLIGHT CAMERA IMAGERY TESTING . . . . . . . .
+5
+6. LANDING SITE IDENTIFICATION . . . . . . . . . . . . . . . . .
+6
+978-1-5386-2014-4/18/$31.00 c⃝2018 IEEE
+7. CONCLUSION . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7
+APPENDICES. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+8
+A. FURTHER MATHEMATICAL DEVELOPMENT . . . .
+8
+ACKNOWLEDGMENTS . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+10
+REFERENCES . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+10
+BIOGRAPHY . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+12
+1. INTRODUCTION
+As GPS becomes increasingly unreliable for future applica-
+tions, localizing without it becomes more and more crucial,
+with computer vision seen as a key way forward.
+This
+work uses recent advances in machine learning (ML) to add
+signiﬁcant capabilities to current autonomous vehicle visual-
+navigation, enabling a host of new possibilities in applica-
+tions ranging from indoor localization to space exploration.
+The algorithms in this paper focus on improvements in visual
+navigation made possible by combining two notions: (1) se-
+mantically understanding the environment, and (2) leveraging
+multiple agents with non-overlapping viewpoints.
+Rather
+than focus on vision and multiple agents as complicated
+substitutes for GPS and a more capable single agent, this
+work focuses on demonstrating the true potential of each.
+Section 2 provides background with a brief literature review,
+highlighting some limitations of current approaches.
+The
+general approach pursued is motivated and introduced by
+example in Section 3. Mathematical foundations and intu-
+itions are presented in Section 4.
+Sections 5 and 6 apply
+the proposed approaches to in-ﬂight imagery for a parafoil
+system.
+2. BACKGROUND
+The problem of GPS-denied localization is far from new,
+whether described as the kidnapped or lost robot, or simulta-
+neous localization and mapping (SLAM) problem. Drift-free
+body-frame odometry is demonstrated in [1] and follow-up
+papers e.g. [2], as well as [3], and is a mature and reliable
+capability. The state of the art in single-agent data associa-
+tion is Fast Appearance-Based Mapping (FAB-MAP 2.0) [4]
+showing impressive results for place recognition along streets
+and highways. In [5], GPS-denied localization in an urban
+environment is achieved using a Gaussian mixture model. A
+key idea in both of these works is assuming a discretized
+and structured environment map.
+However, dealing with
+massive maps, different camera viewpoints, branching data
+(i.e. free space, rather than street routes), and environments
+with severe perceptual aliasing remains an open challenge.
+Ensuring multiple agents associate data correctly when over-
+lapping landmarks are observed is addressed in e.g.
+[6]
+[7] using triangulation and consensus, respectively. These
+approaches require sufﬁcient and regular observation overlap
+1
+Authorized licensed use limited to: Harvard University SEAS. Downloaded on April 10,2025 at 20:37:07 UTC from IEEE Xplore.  Restrictions apply. 
+617-258-1247
+evelaw427@gmail.com
+[p.2]
+to disambiguate landmarks reliably. Combining estimates of
+multiple agents with non-overlapping landmark observations
+in a GPS-denied setting has not been widely explored to date.
+Back-end estimation is typically considered for both single
+and multiple agents in a Bayesian framework, such as ex-
+tended Kalman ﬁlters (EKFs) [8] [9] [10] [11] [12] [13] [14]
+[15] [16], factor graphs [17] [18] [19] [6] [20] [21], and
+particle ﬁlters [22] [23]. Factor graph robustness algorithms
+provide an approach to addressing some instances of percep-
+tual aliasing as well, e.g. [24], [25].
+With the exception of particle ﬁlters, all these approaches
+assume Gaussian distributed uncertainty, which is appropriate
+when agents already have a good idea of their location, but is
+less suitable for a completely lost agent.
+Multi-agent statistical consistency (estimators failing to ac-
+count for dependence of estimates among communicating
+agents) is addressed in these approaches by extensive book-
+keeping to accurately track the ﬂow of information and mea-
+surements amongst agents, or conservative covariance inter-
+section and heuristic approaches. Estimation of every other
+agent’s state and receiving labeled measurements from every
+other agent at each time step is often required. Changing
+numbers of agents, intermittent communications, or realistic
+data transmission constraints are rarely considered.
+In summary, the primary contribution of this paper beyond
+previously reported work is providing a clear example of
+multi-agent localization algorithms with realistic communi-
+cation constraints, which demonstrate how multiple agents
+without overlapping views can be more capable than a single
+agent working alone in the scenario where agents are com-
+pletely lost in environments with severe perceptual aliasing.
+3. MOTIVATION & PROPOSED APPROACH
+Minimalist Assumptions
+One of the major issues in both localization and multi-agent
+work is the hidden assumptions.
+Common unstated, but
+substantial, assumptions include having already established
+a common reference frame (such as knowing global head-
+ing), extensive communication capabilities where each agent
+knows each other agent’s complete state every time step, or
+some kind of central processing location, or framework.
+We start with the following minimal assumptions about each
+agent’s capabilities:
+• Reliable body-frame odometry
+• Altitude estimation (scaling)
+• Nadir pose estimation (projection)
+• Radio communication, RF-ranging (scalar distance to other
+agents)
+Thus 3 of the 6 degrees of freedom are known (global altitude,
+pitch, and roll angles), while global 2-D location (latitude
+and longitude) and heading must be estimated. Agents are
+fully decentralized, no central processor or pre-existing local
+communication network, no beacons. These assumptions are
+consistent with current UAV and parafoil system capabilities.
+Key Algorithmic Ideas
+The following two ideas motivate the proposed approach:
+1. Visual localization should be more capable than GPS:
+classify environment using semantic scene recognition and
+understanding
+2. Multiple agents working together should be better than a
+single agent: use scalar geometric distance information be-
+tween agents and share minimalist, statistically independent
+observations
+Scene Recognition / Understanding
+A major challenge for visual localization is perceptual
+aliasing–images of multiple locations look the same, or
+images of same location look different.
+State of the art
+approaches to solving this involve using back-end analysis
+to eliminate spurious measurements, which requires already
+having a fairly good estimate of one’s location. On the front-
+end data association side, high dimensional image descriptors
+of various ﬂavors attempt to capture enough unique detail to
+disambiguate each location. This demands expensive map
+storage, computation, and communication, and assumes all
+locations can be visually distinguished uniquely. Approaches
+such those detailed in [4] rely on approximation tricks to
+structure these high dimensional classiﬁers and Bayesian up-
+dates in ways to make the processes more real-time capable,
+but do not address the fundamental underlying problems.
+These descriptors have no semantic meaning, since there is
+no attempt/ability to comprehend imagery: this is navigation
+by seeing without understanding.
+We propose a different approach predicated on a simple
+notion:
+multiple images of one kind of terrain may be
+indistinguishable from each other, but images of different
+terrain–sand and forest–can be uniquely distinguished. We
+can think of accepting and exploiting perceptual aliasing,
+considering it as a means for image storage compression. If
+we use semantically meaningful visual recognition, we can
+see and understand the environment, and combined with ge-
+ometric constraints (odometry, other agents) we can localize
+by matching a sequence of images with metric information to
+a known map of the environment.
+These ideas can be seen as a method to complement existing
+place recognition algorithms, serving as a fallback for cir-
+cumstances where no reliable GPS is available, in addition to
+providing new capabilities.
+Visual Richness
+To further describe the type of environments where profound
+perceptual aliasing is a structural problem, we introduce a
+new concept termed visual richness (VR) deﬁned as follows:
+VR: M →[0, 1] where M is a map of an environment. VR
+= 0 corresponds to an environment where visual localization
+is impossible (e.g. ocean, desert), while VR = 1 signiﬁes an
+environment where every location is visually unique (labeled
+city map).
+The high dimensional descriptor approaches
+(whether using a visual bag of words [4] or neural network
+layers [26] [27] endeavor to push all environments close to
+VR = 1.
+But numerous real environments often have VR quite far from
+1. Consider an environment of 100 discrete locations catego-
+rized into one of two unique categories A and B, distributed
+evenly (forest clearing). A noise-free image measurement
+narrows one’s location in the environment by half (being
+in the forest, or the clearing): VR =
+1
+2.
+Thus scenarios
+of structural perceptual aliasing are fundamentally different
+from VR →1, and vision alone will always be insufﬁcient
+for localization without more information or constraints.
+This notion of VR is space, scale, and time dependent,
+2
+Authorized licensed use limited to: Harvard University SEAS. Downloaded on April 10,2025 at 20:37:07 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+and may not, in general, be computable. It also does not
+explicitly consider how terrain types ﬁt together within an
+environment. There is a connection to Visual Saliency [28],
+where particular parts of an environment are more distinc-
+tive and informative than others. This VR notion could be
+thought of more broadly as being intrinsic to the environment
+itself, or to the capabilities of any sensor (vision in any
+spectrum, terrain elevation [29], lightning strike triangulation
+[30] etc.)
+to uniquely distinguish observed measurements
+within environments (perception is reality). Using VR as a
+way of describing environments is a topic of future study in
+its own right. Fundamentally, there exist many environments
+where VR is far from 1, motivating a different approach to
+localization.
+Scene Recognition: Convolutional Neural Networks (CNNs)
+Convolutional Neural Networks (CNNs) are state of the art
+approaches to semantic machine learning (ML) for object
+and scene recognition [31] [32], computationally feasible
+by harnessing GPUs. CNNs have been applied to conven-
+tional place recognition/pose estimation [26] [27], but rely
+on higher dimensional network layers, not the semantically
+meaningful output layer–functionally just another high di-
+mensional descriptor approach.
+Google PlaNET [33] is a
+CNN to globally localize, to go from input pixels to location
+directly. However, navigation by scene recognition, rather
+than speciﬁc place recognition, remains an open problem.
+Technically a CNN is a function that takes images (pixels)
+as inputs, outputs category probabilities, and is parameter-
+ized by convolutional ﬁlters found using stochastic gradient
+descent to optimize loss function on training data. Example
+classiﬁcations using the Places-CNN model [32] for images
+of the same location in Eloy, AZ are shown in Figure
+1(a) (satellite imagery) and 1(b) (in-ﬂight imagery), demon-
+strating broadly similar classiﬁcation, computed relatively
+quickly (∼200ms).
+Improving scene recognition via CNNs, or so-called Deep
+Learning more broadly, is an active area of research, fur-
+ther motivating the use of this capability for visual naviga-
+tion. Indeed, substantial developments in real-time semantic
+classiﬁcation and segmentation are released regularly, e.g.
+[34] with increasingly impressive results. The use of these
+tools for navigation and the place recognition problem in a
+semantic sense, however, is not widespread. Moreover, larger
+questions about the robustness of these methods have been
+raised by the vulnerability to adversarial examples [35] which
+alter images nearly imperceptibly to the human eye, but
+result in classiﬁers profoundly breaking and mis-categorizing
+images. These limitations support the considerations of these
+tools as inherently noisy and probabilistic, where constraints
+using odometry and measurements from multiple agents are
+far more robust to overcoming these classiﬁcation failures
+than a single agent operating alone.
+Localization and Landing: General Probabilistic Framework
+Having outlined the general motivation and ideas, we intro-
+duce the following notation to describe the problem using
+random variables and distributions:
+X ≡current agent location
+Y ≡best landing locations
+Z ≡data measurements, e.g. imagery
+P(x, y) ≡joint distribution of current, best landing locations
+P(x, y|z) ≡given measurements (vision+classiﬁcation+other)
+0.232 desert/sand
+0.157 crevasse
+0.100 badlands
+0.069 mountain snowy
+0.068 valley
+0.036 snowf ield
+0.031 trench
+0.030 hot spring
+0.028 volcano
+0.023 desert/vegetation
+(a)
+0.428 crevasse
+0.104 snowf ield
+0.080 mountain snowy
+0.055 volcano
+0.035 valley
+0.029 desert/sand
+0.028 dam
+0.026 mountain
+0.024 iceberg
+0.023 badlands
+(b)
+Figure 1: Examples of CNN classiﬁcation for same loca-
+tion depicted in (a) satellite tile and (b) in-ﬂight image.
+Note the shape of the roadway intersection in both images.
+For more context, the satellite tile in (a) is one tile from the
+larger satellite map depicted in Figure 4(a).
+In general there are K
+≥1 agents, each with its own
+measurements zk, a Markov motion model, communication
+model, and each agent estimates their own location xk and
+best landing location yk every time step t:
+ˆXk(t), ˆYk(t) = arg max
+Xk(t),Yk(t)
+P(Xk(t), Yk(t)|Z)
+While, in general, one could consider solving the problem of
+location and landing together as shown here (since both are
+based on the same measurements), the scenarios simplify to
+two primary cases of interest, where in either case solving the
+problems separately is sensible:
+1. A reliable map is available: localization →landing
+P(yk|xk) = 1, (Yk = Xk)
+2. Map unreliable/unavailable (land solely by classifying
+3
+Authorized licensed use limited to: Harvard University SEAS. Downloaded on April 10,2025 at 20:37:07 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+Figure 2: Representative map environment with 5 differ-
+ent location sets, represented by different colors. (a) A
+single agent, even with perfect measurement of current
+set, may estimate its position far from its actual location.
+(b) Multiple agents, each communicating their own set
+probability (and implicitly scalar distance), can estimate
+position signiﬁcantly more accurately (correct estimates
+indicated by star).
+imagery):
+P(yk|xk) = P(yk) since P(xk, yk) = P(xk)P(yk)
+As an abstraction of semantic classiﬁcation of imagery, con-
+sider classifying locations into sets to capture perceptual
+aliasing, e.g.
+S
+∈{“road”, “ﬁeld”, “forest”, “lake”, ...}.
+Locations are not visually unique, but N similar locations can
+be grouped into M sets of cardinality |Sm| blocks bi each,
+Formally:
+{bi}N
+i=1 ∈{Sm}M
+m=1 , M ≤N, Sm ∩Sl = {∅} ∀S, m̸ = l
+Each agent’s local vision sensor observes set Sl which
+matches true set Sm with probability p, and incorrectly
+classiﬁes the set uniformly (confusion matrix):
+f(Sl, Sm) ≡
+ P(Sl = Sm|Sm) ≡p
+P(Sl̸ = Sm|Sm) ≡
+1−p
+|M−1|
+∀Sl ∈M \ Sm
+(1)
+where p = 1 would deﬁne a perfect sensor, p < 1 deﬁnes
+noisy sensor.
+The landing suitability, or “goodness” gy
+of location y is based on the intrinsic qualities of its set
+(discussed further in Section 6).
+We represent space with a discrete distribution to enable a
+general representation of being completely lost, having an
+equiprobable prior of being anywhere in the environment,
+uniformly distributed. This can be thought of as a general-
+ization of the discretization in FAB-MAP to 2-D branched
+space.
+K agents measure scalar distance dk,h between each other
+(agent k to agent h), and compare this measurement to a
+precomputed distance table which has distances between each
+block of each set to one another in the map.
+Each agent
+begins in xk(0), takes a random walk for t steps, and follows
+a Markov motion model moving to one of at most 8 adjacent
+blocks, or current block (Figure 2). Agents communicate set
+estimates: P(S(ˆxk)) = Σi∈SmP(ˆxk(t) = bi), ∀m ∈M.
+Key idea: use dk,h and set estimates S(ˆxh) ∀h ∈K from
+other agents to geometrically re-weight probability of
+each block. Algorithmically this can be outlined as shown in
+Algorithm 1. Simulation results conducted in an environment
+of 5 different sets (Figure 2) for different sensor ﬁdelities
+p are shown in Figure 3, demonstrating the capability of
+multiple agents to localize more effectively than a single
+agent using this algorithm.
+Algorithm 1 Bayesian Estimation: Multi-Agent Update
+1:
+for all bi do
+2:
+for all h ∈K̸ = k do
+3:
+dk,h ←d(xk, xh)
+4:
+P(xk = bi|S(ˆxh), dk,h) ←0
+5:
+for all Sm, m ∈M do
+6:
+matches ←ﬁnd(|distTable - dk,h| ≤ε)
+7:
+for all matches do
+8:
+P(xk = bi|S(ˆxh), dk,h) += Sm(ˆxh)
+|Sm|
+9:
+end for
+10: end for
+11: end for
+12: P(ˆxk|yk, S(ˆxh), dk,h)
+←
+P(yk|xk)P(ˆxk|S(ˆxh), dk,h)P(ˆxk|yk(t −1))
+13: end for
+14: P(ˆxk|yk, S(ˆxh), dk,h)
+←
+P (ˆxk|yk,S(ˆxh),dk,h)
+ΣxP (yk|xk)P (xk|S(ˆxh),dk,h)P (ˆxk|yk(t−1))
+0.6
+0.8
+1
+0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+Set sensing accuracy p
+˜x
+x
+Correctly Estimated Locations
+ 
+ 
+# Agents
+1
+2
+3
+4
+Figure 3: The percent of accurately estimated locations
+ ˆx
+x
+
+as a function of sensor model (higher is better). MAP
+of P(ˆxk|zk) deﬁnes estimated block ˜xk. Higher sensor
+ﬁdelity increases accuracy across the board. Increasing
+agents signiﬁcantly improves estimation accuracy. With
+4 agents, sensing accuracy p of only 0.6 is more accurate
+than perfect set estimation (p = 1) with a single agent.
+4. MATHEMATICAL FOUNDATION
+The results in Section 3 can be given a mathematical founda-
+tion using Shannon entropy [36] [37]. The following result is
+elaborated upon in Appendix A, but brieﬂy stated:
+Theorem 4.1: In an environment categorized into discrete
+sets Sm, where set elements are deﬁned over a metric space,
+and agents k ∈K have a vision sensor model (5) with equal
+probability of identifying sets correctly p, multiple agents
+working together following Algorithm 1 are guaranteed to
+each have distributions with entropy less than or equal to the
+distribution entropy of a single agent working alone when
+p = 1. Furthermore, a single agent cannot perform any better
+than in the case of p = 1. Hence multiple agents working
+together with p = 1 are guaranteed to reduce entropy as
+much, if not more, than the best a single agent can achieve
+alone.
+Proof:
+Using the grouping, uniform maximum, and
+4
+Authorized licensed use limited to: Harvard University SEAS. Downloaded on April 10,2025 at 20:37:07 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+concavity properties of entropy, we can write expressions
+for single agents and multiple agents following Algorithm
+1, which allows us to demonstrate inequality term by term,
+proving multiple agents will have lower entropy in their
+distributions in this circumstance.
+This theorem is far from surprising as we would expect
+multiple agents working together to reduce uncertainty more
+than a single agent. Other than requiring the environment
+be deﬁned over sets in metric space, no other constraints are
+required. See Appendix A and [38] for further details.
+5. IN-FLIGHT CAMERA IMAGERY TESTING
+To test the multi-agent algorithm more realistically, we con-
+duct simulations for autonomous parafoil systems [39] local-
+izing within a satellite image of a 10.28 x 10.28 km ﬂight
+test area in Eloy, AZ, divided into a 10x10 grid (Figure 4(a)),
+classiﬁed with the Places-CNN descriptor. Real-world im-
+agery often falls into multiple semantic categories–an image
+contains both a road and desert for instance. The Places-
+CNN classiﬁer outputs a distribution of 205 place categories
+for a given image, which is a logical probabilistic way of
+generalizing the notions of sets.
+(a)
+(b)
+Figure 4: Representative map environment with 5 dif-
+ferent location sets, represented by different colors. (a)
+Satellite image of 10.28 x 10.28 km area in Eloy, AZ
+divided into a 10x10 grid. Note the presence of roads,
+mountains (bottom right corner), ﬁelds (bottom left cor-
+ner and left side) and large amount of desert. 100x205
+array represents the entire pre-computed map. (b) Map
+composed of projected camera images.
+Figure 5:
+In-ﬂight camera image (left) projected to
+ground plane tiles (right)
+For comparison with in-ﬂight imagery, camera data from
+multiple ﬂight tests in the Eloy testing area with known coor-
+dinates are projected to the ground-frame, and classiﬁed using
+Places-CNN as well. Some parts of the test area are never
+fully visibly in in-ﬂight imagery, and some landmarks are
+Table 1: Localization summary results using Places-CNN.
+Number of Agents
+1
+2
+3
+4
+% Correct (⇑better)
+3.615
+18.28
+29.34
+32.01
+% Distance Error (⇓)
+37.44
+35.62
+33.04
+32.67
+% Heading Error (⇓)
+29.0
+27.31
+25.23
+24.99
+% Steps to First Match (⇓)
+82.15
+30.48
+12.64
+6.90
+% Entropy remaining (⇓)
+55.55
+12.21
+1.88
+1.02
+MAP conﬁdence (⇑)
+0.11
+0.61
+0.78
+0.83
+classiﬁed into different tiles than the satellite map by virtue
+of coordinate errors, hence the precise tiles are somewhat
+arbitrary, as would be the case in a real ﬂight. Since global
+heading is unknown, the camera images agents see are rotated
+to correspond to their current heading, consistent with altitude
+and IMU information only.
+Parafoil systems are constrained by non-holonomic motion,
+hence geographic locations are discretized into 8 heading
+states (NE, E, SE, S, SW, W, NW, N). Vehicle motion at
+each time step is thus constrained to, at most, a single rotation
+and translation at every step (Figure 6(a)), with agents taking
+random walks through the environment. Local body-frame
+odometry from one step to the next is known, which implic-
+itly enables estimation of both location and heading, despite
+no heading sensor.
+At higher altitudes camera images often contains multiple
+tiles, and since resolution of localization is limited by the
+choice of tile size, adjacent tile sensing is introduced to
+capture the concept of seeing multiple tiles at once. As simu-
+lations proceed, adjacent tile depth sensing decreases (Figure
+6(b)), reducing sensing depth by one level each quarter of
+ﬂight time.
+Figure 6: (a) Depiction of legal moves from a given state.
+There are at most 8 moves possible from each state,
+consistent with unicycle-like nonholonomic motion con-
+straints. (b) Depiction of adjacent tile sensing, depths 0
+(current tile) through 3 (9 additional tiles). This captures
+the effects of varying altitude during ﬂight, as the levels
+of adjacent sensing available recede in consonance with
+ﬂight time to model agents descending.
+Simulation results are shown in Figure 7 and Table 1, with
+multiple agents clearly making a signiﬁcant improvement in
+accuracy in numerous metrics, notably overall accuracy and
+speed to achieve ﬁrst accurate result. The % steps to ﬁrst
+match shows adjacent sensing alone can be confounding for
+a single agent, and the distance and heading are errors not as
+dramatic as accuracy, implying that even a single agent is not
+completely lost using this algorithm. MAP correct estimate
+conﬁdence is deﬁned P(˜x(n))−P(˜x(n−1)), corresponding to
+the distance between the MAP and next highest element in the
+5
+Authorized licensed use limited to: Harvard University SEAS. Downloaded on April 10,2025 at 20:37:07 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+0
+0.05
+0.1
+0.15
+0.2
+0.25
+0.3
+0.35
+˜x
+x
+Correctly Estimated Locations
+ 
+1
+2
+3
+4
+# Agents
+Figure 7: Fraction of accurately estimated locations
+ ˆx
+x
+
+.
+Increasing agents signiﬁcantly improves estimation accu-
+racy.
+Generated for a 10x10 environment each with 8
+headings each (800 possible states) classiﬁed using the
+Places-CNN descriptor of camera imagery compared to
+satellite imagery. Average of 1000 simulations of 400 time
+steps each shown. Results similar to set scenario with 60%
+accurate set sensing (p = 0.6 in Figure 3), consistent with
+noisiness of classiﬁcation of camera vs satellite images.
+distribution. While desirable, assessing performance versus
+existing baseline methods is non-trivial–multi-agent particle
+ﬁlters relying on heuristics to ensure consistency [23] are not
+directly comparable.
+6. LANDING SITE IDENTIFICATION
+State of the art guided parafoil landing relies on pre-
+determining and pre-programming ground targets. Maps may
+be unreliable or unavailable.
+In conﬂict zones or natural
+disaster areas, landscape can change rapidly and dramatically.
+Requiring accurate maps for determining landing sites a
+priori may delay critical supplies in time-sensitive conditions.
+Even with accurate maps, fast-changing landing sites may be
+programmed incorrectly, which commonly happens in real-
+world ﬂight testing.
+Desirable places for parafoil landing sites ensure accessibility
+and survivability of payloads. Undesirable areas (mountains,
+water) must be accurately mapped as well, which currently
+requires global localization.
+Instead, if we use semantic classiﬁcation of environment, we
+can classify both good and bad landing places automatically
+if we choose a weighting w to categorize desirable and unde-
+sirable landing places accordingly. Consider the Places-CNN
+as mapping an input image z to a probability distribution
+dz. The goodness score gy ∈Rn location y with weighting
+w ∈Rn:
+gy = (dz)T w
+(2)
+Most of the 205 Places-CNN categories are irrelevant or
+neutral for outdoor navigation (indoor locations, i.e. show-
+ers, basements), only a fraction of categories are desir-
+able/undesirable, and only some categories appear signiﬁ-
+cantly in observed imagery. Weightings are easily adjusted
+for different applications given their semantic meaning, and
+optimizations could be done to determine the best weightings
+for a general class of environments.
+For simplicity, 53
+categories are weighted either positively or negatively by the
+same amount to demonstrate the principle (Table 2 shows
+some of them), and Figure 8 shows the resulting classiﬁca-
+tion.
+If agents are able to localize in a known map, they can use
+Good (+)
+Bad (-)
+/c/canyon 40’
+/a/aqueduct 6’
+/c/corn ﬁeld 53’
+/s/snowﬁeld 173’
+/d/driveway 67’
+/b/badlands 14’
+/f/forest path 78’
+/b/bayou 22’
+/f/forest road 79’
+/c/coast 47’
+/f/ﬁeld/cultivated 82’
+/c/creek 58’
+/f/ﬁeld/wild 83’
+/d/dam 63’
+/g/golf course 89’
+/d/dock 65’
+/h/highway 92’
+/d/desert/sand 68’
+/p/parking lot 135’
+/h/harbor 90’
+/r/railroad track 148’
+/s/swamp 176’
+/r/runway 160’
+/m/marsh 116’
+/s/shed 164’
+/m/mountain 121’
+/t/train railway 185’
+/m/mountain snowy 122’
+/t/track/outdoor 190’
+/o/ocean 128’
+/v/valley 193’
+/p/pond 144’
+/w/wheat ﬁeld 201’
+/u/underwater/coral reef 192’
+/y/yard 204’
+/r/river 156’
+Table 2: Weighted categories for landing site cost.
+this classiﬁcation of good and bad landing site immediately
+(problem solved). The more challenging scenario is where
+agent(s) are unable to localize.
+Effectively, they have no
+map, and now each agent has its own reference frame. Cre-
+ating a shared frame requires book-keeping for consistency,
+indeﬁnite time for sufﬁcient overlap to build a frame. But
+agents may never have overlapping measurements, and time
+is crucial, particularly for parafoil systems with ﬁnite ﬂight
+time.
+Instead we propose having no shared frame: each agent has
+its own, odometrically built database B of locations b they
+have observed, classiﬁed, and scored having accurate body-
+frame odometry enables each agent to keep track of observed
+and classiﬁed sites, broadcast the raw measurements gyh each
+one observes, and measure the scalar distance dk,h other
+agent’s measurements originate from. Locations in an agent’s
+local database distance dk,h away not yet scored are then pop-
+ulated with the ﬁrst received landing score gyh from agent h.
+If agent observes that location themselves later, overwrite the
+previous score, but future measurements from other agents
+cannot overwrite the existing database elements. The main
+idea is agents rely primarily on their own measurements, and
+rapidly populate their own database for far away locations
+with measurements from other agents.
+Simulations are again conducted with agents following a sub-
+optimal random walk search, and landing score estimates ˜L
+for each agent are compared to the baseline satellite scores
+L to get a raw measurement of how far off the camera-based
+classiﬁcation is at each time step. These are then normalized
+by the norm of the baseline scores L, to get a proportional
+representation of how far off the camera scores are. This takes
+the form of expression (3):
+||˜L −L||
+||L||
+(3)
+To demonstrate the dependence on both time and number of
+agents, Figure 9 shows the normalized landing classiﬁcation
+distance as a function of both. As in Section 5, each scenario
+(combination of agents and time steps) is tested with 1000
+runs.
+The minimum theoretical distance from camera imagery to
+6
+Authorized licensed use limited to: Harvard University SEAS. Downloaded on April 10,2025 at 20:37:07 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+Figure 8: Landing location ranks calculated in satellite
+image space. Lighter hues correspond to more favorable
+locations, darker to less favorable.
+In general, roads
+and ﬁelds are ranked more favorably than desert and
+mountainous areas, though not all roads or ﬁelds are
+designated. This relates to the underlying limitations of
+the Places-CNN classiﬁer, which was not designed with
+this purpose in mind.
+satellite imagery in the 10x10 discretization is calculated
+using expression (3) at 0.1973.
+This value represents the
+overall distance of the Places-CNN classiﬁcation of the satel-
+lite imagery and camera imagery when weighted according
+to expression (2) using Table 2.
+With sufﬁcient time, agents are capable of approaching the
+value of the true classiﬁcation, which makes sense, given
+that they can directly observe more of the environment as
+time proceeds.
+Though a single agent working alone is
+able to generate a landing classiﬁcation that approaches the
+theoretical distance (Figure 9, column 3), it is clear that
+multiple agents are capable of generating closer estimates
+in a rapid amount of time by comparison. The advantage
+of multiple agents shown for localization in Section 5 is
+once again demonstrated here in landing site classiﬁcation,
+as well as the power of semantic classiﬁcation to classify an
+environment visually when no map is available.
+Based on the results in Figure 9, the beneﬁts of additional
+agents after the second are far more muted here as compared
+to those in the localization context (Section 5). This stems
+from a number of factors.
+Most prominently, the greedy
+algorithm used here for landing site classiﬁcation is designed
+to populate a database of locations as rapidly as possible.
+Hence even two agents will be capable of seeing and classi-
+fying the majority of the test area, and will thus substantially
+outperform a single agent lacking this coverage. A single
+agent, even with adjacent sensing, may never observe the
+entire environment since it must individually navigate there
+to get any information about it. As a direct result, there is a
+large disparity between one and two agents.
+In the case of more than two agents, the algorithm described
+is not designed to beneﬁt from additional measurements of
+10
+100
+400
+0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+Total time steps
+|| ˜L−L||
+||L||
+Landing site normed cost distance
+ 
+ 
+1
+2
+3
+4
+# Agents
+Figure 9: Normalized distance away of estimated land-
+ing cost function from camera images compared to true
+landing site cost function of environment from satellite
+imagery as a function of time steps and number of agents.
+Theoretical minimal distance between camera and satel-
+lite imagery is 0.1973. With sufﬁcient time steps even a
+single agent working alone is able to generate a landing
+classiﬁcation that approaches truth, but it is clear that
+multiple agents are capable of generating closer estimates
+in a rapid amount of time by comparison. More agents be-
+yond the second help proportionately less give the greedy,
+no-overwriting nature of the algorithm, but in larger
+environments would have a larger effect.
+the same location coming from other agents, since there is
+no attempt to ﬁnd matching coordinate frames to identify
+which measurements from which agent correspond to the
+same locations. In order to have a ﬁltering approach similar to
+that pursued in Chapter 5, the agents would need to agree on a
+coordinate frame ﬁrst, at which point they could collectively
+build a map that each contributes its measurements to, and
+those measurements would be weighted appropriately. This
+would be similar to work described in Section 2, where
+enough time and measurements are required to accurately
+identify overlapping observed landmarks to build a reference
+frame, at which point a larger map can be constructed and
+then passed through the network.
+All of this is certainly
+possible, and future work could explore those approaches to
+improve upon the performance demonstrated here.
+7. CONCLUSION
+Algorithms for limited multi-agent communication and coor-
+dination have been presented: agents broadcast compressed
+current, independent, observations.
+These algorithms are
+robust to intermittent and dropped messages, as agents pro-
+ceed with all available information, without concern for
+estimating other agents’ states, or keeping track of which
+messages originate from whom. This is crucial for parafoil
+systems, where an unknown number of agents are deployed in
+hazardous environments where malfunctions and interference
+are common.
+The primary limiting factor in performance is the underly-
+ing machine learning techniques used to classify imagery
+from different cameras/viewpoints consistently. A network
+retrained on satellite imagery could potentially function sig-
+niﬁcantly better. The computation of Places-CNN classiﬁer
+and approximate nearest neighbor combined are <300 mil-
+lisecond operations on a consumer grade laptop (Intel Core i7
+with Nvidia 750M GPU), demonstrating real-time feasibility.
+Deep learning remains a burgeoning ﬁeld of active research,
+and as the accuracy and speed of these networks improve, the
+performance of the navigation algorithms presented here will
+as well.
+7
+Authorized licensed use limited to: Harvard University SEAS. Downloaded on April 10,2025 at 20:37:07 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+The goal of this work has been to demonstrate how emerg-
+ing machine learning techniques can make semantic visual
+sensing potentially more capable than GPS for navigation, as
+well as clearly demonstrate how multiple agents can perform
+signiﬁcantly better than single agents with minimal com-
+munication and coordination. These minimalist, relatively
+computationally inexpensive algorithms provide substantial
+information, and can be incorporated within other localiza-
+tion frameworks as well.
+While the application discussed here has been GPS-denied
+guided parafoil systems, these algorithms need not be seen
+as limited to that speciﬁc circumstance. Indeed, even in a
+scenario with GPS available, a parallel semantic analysis of
+imagery could be invaluable in avoiding unmapped obstacles,
+dealing with changing conditions on the ground, and as a fail-
+safe if visual localization fails. Furthermore, any situation
+where GPS is unavailable, whether indoors or extraterrestrial,
+could be aided by a semantic approach, enabling algorithms
+to search for speciﬁc place signatures, rather than relying on
+human operators to identify them, for instance.
+In this scenario a top down camera view has been used,
+but ground-level imagery could be analyzed this way as
+well–both the Places-CNN classiﬁer and general geometric
+constraint approach could be adapted to ground-based cam-
+era imagery compared to Google street view, for instance.
+Autonomous cars traveling through locations with spotty or
+inaccurate GPS (tunnels, overpasses) and with limited data
+signal to download current maps could continue operating
+and navigating safely based on semantic processing of ex-
+its, construction signage, and understanding unmapped haz-
+ards. Possibilities abound. Computer vision and multi-agent
+robotics are promising areas for further enabling autonomous
+navigation and exploration; we do well to remember that our
+imaginations, rather than the sky or GPS satellites, is the
+limit.
+APPENDICES
+A. FURTHER MATHEMATICAL
+DEVELOPMENT
+We show that in the environment with set sensing model
+described in Section 3, multiple agents are guaranteed to have
+the same or less uncertainty when compared against a single
+agent working alone when all agents have perfect sensing
+capabilities. A more thorough treatment can be found in [38].
+Multi-agent Terminology
+We introduce additional terminology based on the develop-
+ment in Section 3 to expand the details of Algorithm 1. As
+in Section 3, the discrete environment is divided into blocks
+(locations) b, each of which is grouped into sets Sm. There
+are M sets, each of which contains |Sm| blocks. In general
+there are K agents, which can measure the scalar distance
+between each other, dk,h being the distance between agent k
+and h. Let:
+bk
+Si
+m(t) ≡Probability of block i in set Sm for agent k at time t
+(4)
+For simplicity we will only include the time t when needed,
+since we will focus exclusively on ﬁrst step analysis here.
+As in Section 3, the vision sensor observes set Sl of image
+zk, which will match the true set of that image Sm with
+some probability p, and incorrectly classify the set uniformly
+among the remaining M −1 sets. Based on equation (5) we
+deﬁne a function f to capture this:
+f(Sl, Sm) ≡
+ P(Sl = Sm|Sm) ≡p
+P(Sl̸ = Sm|Sm) ≡
+1−p
+|M−1|
+∀Sl ∈M \ Sm
+(5)
+This function is the local vision measurement each agent
+makes on its own.
+This is equivalent to deﬁning an M
+dimensional confusion matrix where p are the terms on the
+diagonal and
+1−p
+|M−1| are the off-diagonal terms.
+Each agent k broadcasts the distribution of its location esti-
+mate as a function of sets P k
+Sm, where
+P k
+Sm =
+
+i∈|Sm|
+bk
+Si
+m
+(6)
+In the single agent case, where each block in each set is
+equiprobable, this expression is equivalent to (5) when no
+prior information is available.
+The core concept of how the multi-agent algorithm reduces
+uncertainty is based on constraining the distributions with
+scalar inter-agent distances of agents k and h. We use the
+notation 
+j∈Sl:dk,h to express that.
+With this notation, we are now ready to restate the main
+portion of Algorithm 1. Taking the deﬁnition in expression
+(4):
+bk
+Si
+m(t) = bk
+Si
+m(t −1)
+
+h∈K\k
+
+l∈M
+
+j∈Sl:dk,h
+f(Sl, Sm)
+|Sl|
+bh
+Sj
+l
+(7)
+Restated with explanation of each term:
+bk
+Si
+m(t) = bk
+Si
+m(t −1)
+
+	
+
+prior
+∗
+
+h∈K\k
+ 	 
+Agents
+
+l∈M
+	
+Sets
+
+j∈Sl:dk,h
+
+	
+
+Distance constraint
+f(Sl, Sm)
+|Sl|
+
+	
+
+Vision sensor
+bh
+Sj
+l
+	
+Prob of agent h
+This deﬁnes how the distribution for each block in each
+set is calculated based on incorporation of the prior value,
+its own vision sensing, and distance constraints with other
+agents. For a given measurement between agents k and h,
+the distance constraint dk,h is constant. The normalization
+step to ensure it remains a valid distribution (summing to 1)
+is handled in batch by division by the sum of total bk
+Si
+m blocks.
+When a single agent is working alone, the expression col-
+lapses, since only the prior and instantaneous vision measure-
+ment is available:
+bSi
+m(t) = bk
+Si
+m(t −1)f(Sl, Sm)
+|Sl|
+(8)
+8
+Authorized licensed use limited to: Harvard University SEAS. Downloaded on April 10,2025 at 20:37:07 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+In practice, the prior term bk
+Si
+m(t −1) begins as uniformly
+distributed among the elements B of the environment, hence
+takes value
+P k
+Sm
+|Sm| at the ﬁrst step.
+We now brieﬂy introduce the concept of entropy, which will
+allow us to make some statements about how this multi-agent
+localization approach compares to the single agent case.
+Entropy
+There are numerous ways to describe the uncertainty in a
+probability distribution, and to compare one distribution to
+another. In discrete distributions, the concept of entropy from
+information theory is particularly useful. Deﬁned originally
+by Shannon in his seminal work which effectively created
+the ﬁeld of information theory (originally published in 1948
+in [36] [37], reprinted in [40]), entropy can be stated in
+numerous equivalent ways. For our purposes, the following
+deﬁnition will be sufﬁcient:
+H(X) = −
+
+x∈X
+p(x) log p(x)
+(9)
+Where |X| deﬁnes the number of elements in the range space
+of X. The choice of base for the log can be altered depending
+on the desired interpretation of the value. We will work in
+log2 consistent with Shannon’s approach concerning the bits
+of data needed to represent a distribution (thus, heretofore
+log ≡log2). The raw value will not be of particular interest
+here, but rather the relative values of different distributions.
+In practice, the negative sign is often brought into the log term
+giving
+H(X) =
+
+x∈X
+p(x) log
+1
+p(x)
+(10)
+Entropy has a number of helpful properties that will be useful
+[41].
+H(X) ≥0
+(11)
+H(X|Y ) ≤H(X)
+(12)
+H(X) ≤log |X|
+(13)
+H(p) is concave in p
+(14)
+In words, these properties translate to: non-negativity of
+entropy, conditioning reduces entropy, uniform distribution
+maximizes entropy, and the further from uniform a distribu-
+tion is the lower its entropy function will be. In addition,
+entropy has a grouping property:
+H(p1, p2, ..., pm) =
+H(p1 + p2 + ... + pk, pk+1 + ... + pm)
++ (p1 + p2 + ... + pk) ∗
+H
+
+p1
+p1 + p2 + ... + pk
+, ...,
+pk
+p1 + p2 + ... + pk
+
++ (pk1+1 + ... + pm) ∗
+H
+
+pk+1
+pk+1 + ... + pm
+, ...,
+pm
+pk+1 + ... + pm
+
+(15)
+Together with the notation deﬁned in Section A, we can make
+some statements about how multiple agent localizing with
+Algorithm 1 compare to the single agent case.
+Comparing Single and Multi-agent Entropy
+The goal of this section is to demonstrate that multiple agents
+working together following Algorithm 1 are guaranteed to
+have lower entropy in their respective distributions than a
+single agent, when all agents have identical, perfect set-
+sensing capabilities.
+In the environments deﬁned here we have allowed for variable
+size sets. In the most challenging environments, however,
+not only would the probabilities within sets be uniform, but
+the sets themselves would also be uniformly distributed in
+the environment, meaning they have the same number of
+elements. This corresponds to the deﬁnition of visual richness
+(VR) deﬁned in Section 3. Hence we will let:
+|S1| = |S2| = ... = |SM| ≡|S|
+(16)
+For clarity we will retain the different set notations where
+appropriate.
+We begin by writing down the entropy for the single agent
+case. Combining expressions (8) and (6) with (15) gives:
+H(bS1
+1, ..., bS|S1|
+1
+, bS1
+2, ..., bS
+|SM |
+M
+) =
+H(PS1, PS2, ..., PSM )
++ PS1H
+
+
+bS1
+1
+PS1
+, ...,
+bS|S1|
+1
+PS1
+
++ ...
++ PSM H
+
+
+bS1
+M
+PSM
+, ...,
+bS
+|SM |
+M
+PSM
+
+(17)
+Based on the deﬁnition of bSi
+m, we know that within each
+set, each element is equiprobable, which is the deﬁnition of
+a uniform distribution. From expression (13) we can then
+simplify (17):
+H(bS1
+1, ..., bS|S1|
+1
+, bS1
+2, ..., bS
+|SM |
+M
+) =
+H(PS1, PS2, ..., PSM ) + PS1 log |S1| + ... + PSM log |SM|
+(18)
+Using expression (16), and recalling ΣPSm = 1 we can
+further simplify (18) to:
+H(bS1
+1, ..., bS|S1|
+1
+, bS1
+2, ..., bS
+|SM |
+M
+) =
+H(PS1, PS2, ..., PSM ) + log |S|
+(19)
+This expression reveals some important intuition about the
+single-agent case.
+The ﬁrst term on the right hand side
+corresponds to the entropy associated with the distribution
+of sets, while the second term relates to the entropy of the
+locations within each set. Before any measurement, where
+the sets themselves are equiprobable, expression (19) would
+become:
+H(bS1
+1, ..., bS|S1|
+1
+, bS1
+2, ..., bS
+|SM |
+M
+) = log |M| + log |S|
+= log |B|
+(20)
+where |M| is the number of sets, |S| is the number of
+elements in each set, and B = |M||S| is the total number of
+9
+Authorized licensed use limited to: Harvard University SEAS. Downloaded on April 10,2025 at 20:37:07 UTC from IEEE Xplore.  Restrictions apply. 
+[p.10]
+blocks in the environment. This is exactly what we should
+get for the case where there are B uniformly distributed
+locations.
+Of particular interest is the case where PSm = 1, i.e. in the
+sensor model expression (5) p = 1 (the agent has perfect
+sensing of the set of its current location). This is intuitively
+a bound on how well a single agent could do operating on its
+own. The entropy relating to the distributions of sets becomes
+zero (since the set is known), hence we can immediately
+conclude from expression (20):
+H(bS1
+1, ..., bS|S1|
+1
+, bS1
+2, ..., bS
+|SM |
+M
+) = log |S|
+(21)
+Where all of the uncertainty (and entropy) comes from the
+unknown distribution within the observed set.
+This then
+allows us to state the following:
+Lemma A.1: The lower bound on the entropy function of a
+single agent operating alone in the environment deﬁned here
+is log |S|. A single agent cannot perform any better than in
+the case of p = 1 in (5), when it achieves entropy of log |S|.
+Turning to the multi-agent case, the original expression is
+similar, but now carries the k superscript for agent k since
+we are using expression (7)
+H(bk
+S1
+1, ..., bk
+S|S1|
+1
+, bk
+S1
+2, ..., bk
+S
+|SM |
+M
+) =
+H(P k
+S1, P k
+S2, ..., P k
+SM )
++ P k
+S1H
+⎛
+⎝bk
+S1
+1
+P k
+S1
+, ...,
+bk
+S|S1|
+1
+P k
+S1
+⎞
+⎠
++ ...
++ P k
+SM H
+⎛
+⎝bk
+S1
+M
+P k
+SM
+, ...,
+bk
+S
+|SM |
+M
+P k
+SM
+⎞
+⎠
+(22)
+As in the single agent case, if we assume the agents have
+perfect sensing of their respective sets, the ﬁrst term in this
+expression becomes zero. Hence, in the case where p = 1,
+where p is as deﬁned in expression (5), the entropy for
+multiple agents is:
+H(bk
+S1
+1, ..., bk
+S|S1|
+1
+, bk
+S1
+2, ..., bk
+S
+|SM |
+M
+) =
+P k
+SmH
+
+
+bk
+S1
+m
+P k
+Sm
+, ...,
+bk
+S|Sm|
+m
+P k
+SM
+
+= H
+
+
+bk
+S1m
+P k
+Sm
+, ...,
+bk
+S|Sm|
+m
+P k
+SM
+
+(23)
+where we know P k
+Sm = 1 by virtue of perfect set sensing.
+Recalling that H(X) ≤log |X|, we thus know that
+H
+
+
+bk
+S1
+m
+P k
+Sm
+, ...,
+bk
+S|Sm|
+m
+P k
+Sm
+
+≤log |Sm| ∀m ∈M
+(24)
+Comparing expressions (23) with (24) we can then state our
+result.
+Theorem A.2: In an environment categorized into discrete
+sets Sm (Section 3), where set elements bk
+Si
+m are deﬁned
+over a metric space, and agents k ∈K have a vision sensor
+model (5) with equal probability of identifying sets correctly
+p, multiple agents working together following protocol (7),
+i.e. Algorithm 1, are guaranteed to each have distributions
+with entropy less than or equal to the distribution entropy of
+a single agent working alone when p = 1. Furthermore, a
+single agent cannot perform any better than in the case of
+p = 1. Hence multiple agents working together with p = 1
+are guaranteed to reduce entropy as much, if not more, than
+the best a single agent can achieve alone.
+Proof:
+Using the grouping (15), uniform maximum
+(13), and concavity (14) properties of entropy, we can write
+expressions (24), which allows us to demonstrate inequality
+in expressions (21) and (23) term by term. Hence, we can
+conclude:
+H(bk
+S1
+1, ..., bk
+S|S1|
+1
+, bk
+S1
+2, ..., bk
+S
+|SM |
+M
+) ≤
+H(bS1
+1, ..., bS|S1|
+1
+, bS1
+2, ..., bS
+|SM |
+M
+)
+(25)
+The second statement follows directly from Lemma A.1.
+Other than deﬁning the environment in terms of sets with
+elements in a metric space, no other constraints on the en-
+vironment are required.
+There is an important subtlety to this result.
+While the
+conclusion of Theorem (A.2) is far from surprising, in that
+we would expect multiple agents working together to reduce
+uncertainty more than a single agent if all have the same local
+sensing abilities, when sensing degrades (i.e.
+probability
+p < 1) this will not always hold.
+The intuition for this
+follows from comparing expression (19) and (22).
+While
+we can establish strict inequality for entropy within sets from
+(24), the reweighting procedure could result in the between-
+set entropy increasing. While overall entropy may not strictly
+decrease with the multi-agent algorithm proposed here, the
+within-set entropy reduction enables accurate estimation of
+agent location even if overall entropy may increase. See [38]
+for further illustration and examples.
+ACKNOWLEDGMENTS
+The authors gratefully acknowledge the support of Draper,
+and the Ofﬁce of Naval Research through the Basic Research
+Challenge, Grant Number N00014-17-1-2075.
+REFERENCES
+[1]
+A. I. Mourikis and S. I. Roumeliotis, “A multi-state
+constraint kalman ﬁlter for vision-aided inertial nav-
+igation,” in 2007 IEEE International Conference on
+Robotics and Automation, pp. 3565–3572, IEEE, 2007.
+[2]
+M. Li and A. I. Mourikis, “High-precision, consistent
+ekf-based visual–inertial odometry,” The International
+Journal of Robotics Research, vol. 32, no. 6, pp. 690–
+711, 2013.
+[3]
+L. E. Clement, V. Peretroukhin, J. Lambert, and J. Kelly,
+“The battle for ﬁlter supremacy: A comparative study of
+10
+Authorized licensed use limited to: Harvard University SEAS. Downloaded on April 10,2025 at 20:37:07 UTC from IEEE Xplore.  Restrictions apply. 
+[p.11]
+the multi-state constraint kalman ﬁlter and the sliding
+window ﬁlter,” in 2015 12th Conference on Computer
+and Robot Vision (CRV), pp. 23–30, IEEE, 2015.
+[4]
+M. Cummins and P. Newman, “Appearance-only slam at
+large scale with fab-map 2.0,” The International Journal
+of Robotics Research, vol. 30, no. 9, pp. 1100–1123,
+2011.
+[5]
+M. A. Brubaker, A. Geiger, and R. Urtasun, “Lost!
+leveraging the crowd for probabilistic visual self-
+localization,” in 2013 IEEE Conference on Computer
+Vision and Pattern Recognition (CVPR), pp. 3057–
+3064, IEEE, 2013.
+[6]
+A. Cunningham, K. M. Wurm, W. Burgard, and F. Del-
+laert, “Fully distributed scalable smoothing and map-
+ping with robust multi-robot data association,” in 2012
+IEEE International Conference on Robotics and Au-
+tomation (ICRA), pp. 1093–1100, IEEE, 2012.
+[7]
+E. Montijano, R. Aragues, and C. Sag¨u´es, “Distributed
+data association in robotic networks with cameras
+and limited communications,” IEEE Transactions on
+Robotics, vol. 29, no. 6, pp. 1408–1423, 2013.
+[8]
+S. I. Roumeliotis and G. A. Bekey, “Bayesian estimation
+and kalman ﬁltering: A uniﬁed framework for mo-
+bile robot localization,” in IEEE International Confer-
+ence on Robotics and Automation, 2000. Proceedings.
+ICRA’00, vol. 3, pp. 2985–2992, IEEE, 2000.
+[9]
+N. Trawny, A. I. Mourikis, S. I. Roumeliotis, A. E.
+Johnson, and J. F. Montgomery, “Vision-aided inertial
+navigation for pin-point landing using observations of
+mapped landmarks,” Journal of Field Robotics, vol. 24,
+no. 5, pp. 357–378, 2007.
+[10] A. I. Mourikis, N. Trawny, S. I. Roumeliotis, A. E. John-
+son, A. Ansar, and L. Matthies, “Vision-aided inertial
+navigation for spacecraft entry, descent, and landing,”
+IEEE Transactions on Robotics, vol. 25, no. 2, pp. 264–
+280, 2009.
+[11] S. I. Roumeliotis and G. A. Bekey, “Collective localiza-
+tion: A distributed kalman ﬁlter approach to localization
+of groups of mobile robots,” in IEEE International
+Conference on Robotics and Automation, 2000. Pro-
+ceedings. ICRA’00., vol. 3, pp. 2958–2965, IEEE, 2000.
+[12] S. I. Roumeliotis and G. A. Bekey, “Distributed multi-
+robot localization,” IEEE Transactions on Robotics and
+Automation, vol. 18, no. 5, pp. 781–795, 2002.
+[13] E. D. Nerurkar, S. I. Roumeliotis, and A. Mar-
+tinelli, “Distributed maximum a posteriori estimation
+for multi-robot cooperative localization,” in IEEE Inter-
+national Conference on Robotics and Automation, 2009.
+ICRA’09., pp. 1402–1409, IEEE, 2009.
+[14] L. C. Carrillo-Arce, E. D. Nerurkar, J. L. Gordillo,
+and S. I. Roumeliotis, “Decentralized multi-robot co-
+operative localization using covariance intersection,” in
+2013 IEEE/RSJ International Conference on Intelligent
+Robots and Systems (IROS), pp. 1412–1417, IEEE,
+2013.
+[15] A. Bahr, M. R. Walter, and J. J. Leonard, “Consistent
+cooperative localization,” in IEEE International Con-
+ference on Robotics and Automation, 2009. ICRA’09.,
+pp. 3415–3422, IEEE, 2009.
+[16] D.-G. Sim, R.-H. Park, R.-C. Kim, S. U. Lee, and I.-C.
+Kim, “Integrated position estimation using aerial image
+sequences,” IEEE Transactions on Pattern Analysis and
+Machine Intelligence, vol. 24, no. 1, pp. 1–18, 2002.
+[17] M.
+Kaess,
+H.
+Johannsson,
+R.
+Roberts,
+V.
+Ila,
+J. J. Leonard,
+and F. Dellaert,
+“isam2:
+Incre-
+mental smoothing and mapping using the bayes
+tree,” The International Journal of Robotics Research,
+p. 0278364911430419, 2011.
+[18] M. Kaess, S. Williams, V. Indelman, R. Roberts, J. J.
+Leonard, and F. Dellaert, “Concurrent ﬁltering and
+smoothing,” in 2012 15th International Conference on
+Information Fusion (FUSION), pp. 1300–1307, IEEE,
+2012.
+[19] A. Cunningham, M. Paluri, and F. Dellaert, “Ddf-sam:
+Fully distributed slam using constrained factor graphs,”
+in 2010 IEEE/RSJ International Conference on Intelli-
+gent Robots and Systems (IROS), pp. 3025–3030, IEEE,
+2010.
+[20] A. Cunningham, V. Indelman, and F. Dellaert, “Ddf-sam
+2.0: Consistent distributed smoothing and mapping,” in
+2013 IEEE International Conference on Robotics and
+Automation (ICRA), pp. 5220–5227, IEEE, 2013.
+[21] M. T. Lazaro, L. M. Paz, P. Pinies, J. A. Castel-
+lanos, and G. Grisetti, “Multi-robot slam using con-
+densed measurements,” in 2013 IEEE/RSJ International
+Conference on Intelligent Robots and Systems (IROS),
+pp. 1069–1076, IEEE, 2013.
+[22] F. Dellaert, D. Fox, W. Burgard, and S. Thrun, “Monte
+carlo localization for mobile robots,” in 1999 IEEE
+International Conference on Robotics and Automation,
+1999. Proceedings, vol. 2, pp. 1322–1328, IEEE, 1999.
+[23] D. Fox, W. Burgard, H. Kruppa, and S. Thrun, “A
+probabilistic approach to collaborative multi-robot lo-
+calization,” Autonomous robots, vol. 8, no. 3, pp. 325–
+344, 2000.
+[24] M. C. Graham and J. P. How, “Robust simultaneous
+localization and mapping via information matrix esti-
+mation,” in Proceedings of the 2014 IEEE/ION Position,
+Location and Navigation Symposium - PLANS 2014,
+pp. 937–944, IEEE, 2014.
+[25] M. Pﬁngsthorn and A. Birk, “Generalized graph slam:
+Solving local and global ambiguities through multi-
+modal and hyperedge constraints,” The International
+Journal of Robotics Research, p. 0278364915585395,
+2015.
+[26] N. S¨underhauf,
+F. Dayoub,
+S. Shirazi,
+B. Up-
+croft, and M. Milford, “On the performance of con-
+vnet features for place recognition,” arXiv preprint
+arXiv:1501.04158, 2015.
+[27] A. Rubio, M. Villamizar, L. Ferraz, A. Penate-Sanchez,
+A. Ramisa, E. Simo-Serra, A. Sanfeliu, and F. Moreno-
+Noguer, “Efﬁcient monocular pose estimation for com-
+plex 3d models,” in 2015 IEEE International Confer-
+ence on Robotics and Automation (ICRA), pp. 1397–
+1402, IEEE, 2015.
+[28] L. Itti, C. Koch, E. Niebur, et al., “A model of saliency-
+based visual attention for rapid scene analysis,” IEEE
+Transactions on pattern analysis and machine intelli-
+gence, vol. 20, no. 11, pp. 1254–1259, 1998.
+[29] G. M. Siouris, Missile guidance and control systems.
+Springer, 2004.
+[30] D. Smith, K. Eack, J. Harlin, M. Heavner, A. Jacobson,
+R. Massey, X. Shao, and K. Wiens, “The los alamos
+sferic array: A research tool for lightning investiga-
+tions,” Journal of Geophysical Research: Atmospheres,
+vol. 107, no. D13, 2002.
+11
+Authorized licensed use limited to: Harvard University SEAS. Downloaded on April 10,2025 at 20:37:07 UTC from IEEE Xplore.  Restrictions apply. 
+[p.12]
+[31] Y. Jia, E. Shelhamer, J. Donahue, S. Karayev, J. Long,
+R. Girshick, S. Guadarrama, and T. Darrell, “Caffe: 
+Convolutional architecture for fast feature embedding,” 
+arXiv preprint arXiv:1408.5093, 2014.
+[32] B. Zhou, A. Lapedriza, J. Xiao, A. Torralba, and
+A. Oliva, “Learning deep features for scene recognition 
+using places database,” in Advances in Neural Informa-
+tion Processing Systems, pp. 487–495, 2014.
+[33] T. Weyand, I. Kostrikov, and J. Philbin, “Planet-photo 
+geolocation with convolutional neural networks,” arXiv 
+preprint arXiv:1602.05314, 2016.
+[34] J. Redmon and A. Farhadi, “YOLO9000: better, faster, 
+stronger,” CoRR, vol. abs/1612.08242, 2016.
+[35] C. Szegedy, W. Zaremba, I. Sutskever, J. Bruna, D. Er-
+han, I. J. Goodfellow, and R. Fergus, “Intriguing prop-
+erties of neural networks,” CoRR, vol. abs/1312.6199, 
+2013.
+[36] C. E. Shannon, “A mathematical theory of communi-
+cation,” The Bell System Technical Journal, vol. 27, 
+pp. 379–423, July 1948.
+[37] C. E. Shannon, “A mathematical theory of communi-
+cation,” The Bell System Technical Journal, vol. 27, 
+pp. 623–656, Oct 1948.
+[38] E. Law, GPS-Denied Multi-agent Localization and 
+Terrain Classiﬁcation for Autonomous Parafoil Systems. 
+PhD thesis, Boston University, 2016.
+[39] D. Carter, L. Singh, L. Wholey, S. Rasmussen, T. Bar-
+rows, S. George, M. McConley, C. Gibson, S. Tavan, 
+and B. Bagdonovich, “Band-limited guidance and con-
+trol of large parafoils,” AIAA Paper, vol. 2981, p. 2009, 
+2009.
+[40] C. E. Shannon, “A mathematical theory of commu-
+nication,” ACM SIGMOBILE Mobile Computing and 
+Communications Review, vol. 5, no. 1, pp. 3–55, 2001.
+[41] T. M. Cover and J. A. Thomas, Elements of information 
+theory. John Wiley & Sons, 2012.
+BIOGRAPHY[
+Eve Law is a Senior Member of the 
+Technical Staff in the Perception and 
+Localization Systems group at Draper 
+Laboratory. 
+Her research interests 
+include systems and control theory, and 
+multi-agent and GPS-denied visual 
+navigation. She holds an S.B. in 
+Mechanical Engineering from Harvard 
+University and S.M. and Ph.D. in 
+Mechanical Engineering from Boston 
+University.
+Professor John Baillieul focuses on
+robotics, the control of mechanical sys-
+tems, and mathematical system theory.
+His work in the late 1980’s led to sem-
+inal papers on motion planning for kine-
+matically redundant manipulators. Ear-
+lier work on nonlinear optimal control
+theory foreshadowed much of the cur-
+rent literature on singular Riemannian
+geometry. Current research focuses on
+extending and applying principles from nonlinear control
+theory to complex mechanical systems composed of intercon-
+nected rigid and elastic components. Dr. Baillieul has devel-
+oped a laboratory system for experiments involving real-time
+control of mechanical systems, research fundamental to the
+design of lightweight, high-performance manipulator arms
+and other advanced robotic devices.
+He also investigates
+geometric effects in nonlinear rotational mechanics, with po-
+tential applications in stabilization and vibration suppression
+in rotating machinery, and the theory of control and motion
+planning for mechanical systems with relatively few actuators
+for the control of a large number of degrees of freedom. A
+Fellow of the IEEE, he is the former editor-in-chief of the
+IEEE Transactions on Automatic Control. He is also afﬁliated
+with Boston University’s Center for Information and Systems
+Engineering (CISE)
+12
+Authorized licensed use limited to: Harvard University SEAS. Downloaded on April 10,2025 at 20:37:07 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

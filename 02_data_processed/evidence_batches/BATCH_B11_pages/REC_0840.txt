@@ -1,0 +1,904 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0840.pdf
+sha256: DDB6B16BB3755C118CE5EED83B5202AC7AA5D5B6BD83444840FD9A7E9ABD0B47
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+GPS-DENIED DRONE NAVIGATION VIA CROSS-DOMAIN KEYPOINT MATCHING
+Jun-Wei Hsieh
+National Yang-Ming Chiao-Tung University
+Institute of Computational Intelligence
+Tainan, Taiwan
+Hong-Kai Chen
+National Yang-Ming Chiao-Tung University
+Institute of Intelligent Systems
+Tainan, Taiwan
+ABSTRACT
+Precise cross-domain matching between Unmanned Aerial
+Vehicle (UAV), imagery and satellite maps is essential for
+navigation in GPS-denied environments but remains chal-
+lenging due to drastic variations in scale and rotation. This
+paper proposes a geometry-aware matching framework that
+decouples the process into specialized extraction, descrip-
+tion, and navigation modules. By incorporating a local patch-
+ing strategy and the Grid-based Random Sample Consensu
+(GRANSAC) algorithm, the framework effectively mitigates
+geometric biases and spatial feature clustering. Experimen-
+tal results on the MDAS dataset demonstrate that our method
+significantly outperforms SIFT[10] and SuperPoint[1] in both
+accuracy and robustness, providing reliable localization pre-
+cision for autonomous UAV flight.
+Index Terms— Keypoint Matching, Cross-domain Im-
+agery, Unmanned Aerial Vehicle Navigator.
+1. INTRODUCTION
+Visual geo-localization serves as a critical navigation alter-
+native for Unmanned Aerial Vehicles (UAVs) operating in
+signal-compromised environments.
+By aligning real-time
+aerial observations with georeferenced satellite databases,
+UAVs can estimate their position without relying on GPS.
+However, bridging these heterogeneous domains presents
+substantial challenges due to the fundamental disparity be-
+tween orthographic satellite imagery and perspective UAV
+views.
+Drastic variations in scale, arbitrary flight orienta-
+tions, and appearance heterogeneity (e.g., seasonal changes)
+complicate the establishment of reliable correspondences.
+Traditional handcrafted algorithms, such as SIFT [10],
+often suffer from severe performance degradation under these
+non-linear radiometric differences.
+While deep learning-
+based methods like SuperPoint [1] have advanced feature
+extraction, standard convolution operations often lack the in-
+herent rotation invariance required for omnidirectional UAV
+flight.
+Conversely, detector-free architectures like LoFTR
+[12] increase computational costs that are prohibitive for
+resource-constrained onboard hardware. Furthermore, even
+when valid features are extracted, standard geometric veri-
+fication methods like RANSAC [15] remain susceptible to
+uneven spatial distributions of keypoints, leading to biased
+geometric solutions that fail to represent the entire scene.
+To address these limitations, this paper proposes a mod-
+ular, geometry-aware cross-domain matching framework. By
+decoupling the localization and description stages and intro-
+ducing spatial constraints into the geometric verification pro-
+cess, the proposed system facilitates stable navigation under
+various challenging conditions. Three main contributions of
+this paper are:
+• Geometry-Aware Cross-Domain Descriptor: A de-
+scriptor design incorporating multi-scale feature fusion
+and local patch sampling to enhance stability under sig-
+nificant rotation and scale variations.
+• Grid-based Random Sample Consensus (GRANSAC):
+An enhanced RANSAC [15] algorithm that enforces
+spatial uniformity via grid-based sampling, thereby
+mitigating estimation errors arising from biased dense
+sampling in localized regions.
+• Cross-Domain Navigation Dataset: A heterogeneous
+benchmark dataset constructed by precisely aligning
+Google satellite imagery with the MDAS aerial dataset
+for evaluating navigation robustness.
+2. RELATED WORKS
+2.1. Feature Matching in Cross-Domain
+Feature matching serves as the foundation for visual localiza-
+tion. Early handcrafted algorithms, such as SIFT [10], SURF
+[11], and ORB [7][8][9], rely on low-level gradient statistics.
+While efficient, they suffer severe performance degradation
+when confronting the non-linear radiometric differences and
+appearance heterogeneity inherent in cross-domain imagery
+(UAV vs. Satellite).
+Deep learning has shifted the paradigm towards data-
+driven features. Detector-based methods like SuperPoint [1]
+and SuperGlue [2] leverage Graph Neural Networks (GNNs)
+to enhance context awareness.
+To address computational
+bottlenecks, LightGlue [5] further optimizes efficiency via
+2026 IEEE International Conference on Image Processing (ICIP) | 979-8-3315-5151-3/26/$31.00 ©2026 IEEE | DOI: 10.1109/ICIP61757.2026.11630202
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:14 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+Keypoint Extractor
+Images
+Concatenate
+3 16
+32
+64
+64
+64
+64
+65
+Dustbin
+Softmax
+& Reshape
+Non-Maximum
+Suppression
+Descriptor Generator
+3 16
+32
+56
+120
+208
+C
+desc
+E
+EfficientNet V2-b2
+5
+patch
+F
+4
+patch
+F
+384
+256
+256
+Flatten
+& MLP
+Navigator
+uav
+I
+sat
+I
+uav
+I
+sat
+I
+Similarity
+Matching
+C
+Convolution
+Dustbin
+Heatmap
+Image
+Descriptor
+Descriptor
+Convolution
+uav
+I
+sat
+I
+kp
+E
+kp
+F
+kp
+Z
+,
+kp uav
+,
+kp sat
+uav
+sat
+3
+patch
+F
+Fig. 1: Architecture Overview. The proposed framework establishes cross-domain correspondences through a sequential
+modular pipeline. The Keypoint Extractor first identifies stable coordinates (P) from heterogeneous inputs. Subsequently, the
+Descriptor Generator generates discriminative feature vectors (F) for each detected point. Finally, the Navigator evaluates
+feature similarities to determine the spatial relationship between the UAV and satellite domains.
+adaptive pruning, another lightweight variants like XFeat
+[4] attempt to balance efficiency for edge devices.
+More
+recently, Xie et al.
+[6] proposed a semantic-based regis-
+tration framework, demonstrating that high-level semantic
+features offer significantly greater stability than low-level
+gradients in heterogeneous cross-domain tasks.
+However,
+standard CNN-based descriptors often lack the inherent ro-
+tation invariance required for omnidirectional UAV flight.
+Conversely, detector-free architectures like LoFTR [12] and
+ELoFTR [13] establish dense correspondences directly from
+feature maps. While effective in texture-less regions, they re-
+quire high computational resources and, importantly, cannot
+generate compact, storable descriptors for large-scale satel-
+lite database indexing, making them unsuitable for real-time
+onboard retrieval.
+2.2. Robust Visual Geo-Localization
+UAV navigation demands pixel-level localization accuracy,
+exceeding the capabilities of coarse global retrieval ap-
+proaches such as NetVLAD [14].
+A central challenge in
+keypoint-based localization is achieving robust geometric
+estimation under uneven feature distributions.
+Although
+RANSAC [15] remains the standard for outlier rejection,
+it is sensitive to spatial clustering: keypoints concentrated
+on a dominant structure can bias homography estimation
+and induce trajectory drift.
+Advanced variants, such as
+MAGSAC [16], enhance robustness to noise but do not ex-
+plicitly enforce spatial uniformity. To address this limitation,
+we propose GRANSAC, which introduces grid-based con-
+straints to promote spatially balanced sampling and achieve
+globally consistent geometric verification in GPS-denied en-
+vironments.
+sat
+Localization
+sat
+I
+uav
+I
+Model
+Model
+Database
+Matching
+GPS
+(latitude, longitude)
+uav
+Fig. 2: Dynamic Navigation Workflow. The system com-
+prises an offline phase (top) for indexing georeferenced satel-
+lite descriptors Fsat, and an online phase (bottom) where real-
+time UAV features Fuav are matched via GRANSAC for pre-
+cise localization.
+3. METHODOLOGY
+The primary challenge of UAV navigation in GPS-denied en-
+vironments lies in the domain gap between real-time UAV im-
+ages Iuav ∈RH×W ×3 and satellite maps Isat ∈RH×W ×3.
+As illustrated in Fig. 1, we propose a modular framework that
+decomposes the task into three sequential stages: Keypoint
+Extractor, Descriptor Generator, and Navigator.
+3.1. Keypoint Extractor
+To identify salient points with high repeatability across het-
+erogeneous domains, we employ a decoupled training strat-
+egy that allows the extractor to focus exclusively on geomet-
+ric structure.
+Encoder and Detection Head. Instead of relying on low-
+level textures, the encoder Ekp utilizes a stacked CNN archi-
+tecture to reduce spatial resolution to 1/8, capturing structural
+validity while filtering environmental noise. To avoid conver-
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:14 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+Table 1: Comprehensive comparison of feature matching performance, reporting Precision (Precision@k), Recall (Recall), and
+their respective Area Under the Curve (AUC) metrics on the MDAS dataset. All values are reported in percentage (%).
+Method
+Precision (%)
+AUCPrecision (%)
+Recall (%)
+AUCRecall (%)
+@3px
+@5px
+@10px
+@20px
+@3px
+@5px
+@10px
+@20px
+@3px
+@5px
+@10px
+@20px
+@3px
+@5px
+@10px
+@20px
+SIFT[10]+NN
+0.6711
+1.3319
+2.3765
+3.3580
+0.2787
+0.5772
+1.2376
+2.0593
+0.1939
+0.3843
+0.6837
+0.9606
+0.0807
+0.1667
+0.3565
+0.5911
+ORB[7]+NN
+1.0006
+2.0469
+3.8490
+5.3508
+0.4079
+0.8682
+1.9411
+3.2945
+0.2820
+0.5758
+1.0808
+1.4993
+0.1150
+0.2445
+0.5457
+0.9244
+SuperPoint[1]+NN
+1.1560
+2.3661
+4.5324
+6.4322
+0.4733
+1.0048
+2.2637
+3.9193
+0.3700
+0.7580
+1.4464
+2.0359
+0.1513
+0.3216
+0.7238
+1.2469
+SuperPoint[1]+SuperGlue[2]
+6.7233
+14.0674
+26.9088
+35.9206
+2.7430
+5.9170
+13.4596
+22.7303
+2.3101
+4.8357
+9.2215
+12.0546
+0.9407
+2.0320
+4.6200
+7.7394
+SuperPoint[1]+LightGlue[5]
+6.0423
+12.6991
+24.5043
+32.7517
+2.4581
+5.3250
+12.1974
+20.7115
+2.0365
+4.2619
+8.1428
+10.6621
+0.8297
+1.7914
+4.0757
+6.8396
+ALIKED[3]+LightGlue[5]
+4.3880
+9.6700
+20.5713
+29.5521
+1.7756
+3.9670
+9.7129
+17.7311
+1.1645
+2.5482
+5.3340
+7.4523
+0.4709
+1.0484
+2.5409
+4.5566
+XFeat[4]
+1.1666
+2.7425
+6.7380
+11.0585
+0.4670
+1.0880
+2.9678
+6.0623
+0.3798
+0.8920
+2.1836
+3.5574
+0.1520
+0.3540
+0.9634
+1.9590
+LoFTR[12]
+3.5347
+7.3401
+13.6936
+17.8287
+1.4420
+3.0954
+6.9432
+11.4937
+Detector-Free Method can’t compute recall
+Ours
+8.8955
+20.4740
+49.4276
+77.6841
+3.5650
+8.1976
+21.9054
+43.9055
+2.6157
+5.9986
+14.3625
+22.2626
+1.0492
+2.4062
+6.3924
+12.6914
+gence issues caused by class imbalance in direct upsampling,
+we transform localization into a channel-wise classification
+task. A 1×1 convolution generates logits Zkp ∈R
+H
+8 × W
+8 ×65.
+In this configuration, each feature cell corresponds to an 8×8
+image grid. The first 64 channels represent potential sub-pixel
+positions, while the 65th channel serves as a “dustbin” for
+background pixels. Applying Softmax along the channel di-
+mension yields the probability distribution, preventing back-
+ground dominance during training.
+Localization.
+For inference, the first 64 channels are re-
+shaped into a high-resolution heatmap Hmap ∈RH×W . We
+apply Non-Maximum Suppression (NMS) with a confidence
+threshold τkp to extract discrete keypoint sets Pkp = {pi}N
+i=1
+for both Isat and Iuav, which serve as anchors for the subse-
+quent descriptor generator.
+Grid-based Uniform Sampling.
+Most feature extractors,
+such as SIFT [10] and SuperPoint [1], rely on local image
+gradients, causing keypoints to cluster in high-texture regions
+(e.g., building facades) and resulting in spatial bias that de-
+grades camera pose estimation. To mitigate this issue, we
+adopt a grid-based sampling strategy by partitioning the im-
+age into G×G cells and applying non-maximum suppression
+(NMS) within each cell to ensure spatially balanced feature
+selection.
+This uniform sampling improves robustness in
+UAV navigation and pose estimation.
+3.2. Descriptor Generator
+To bridge the domain gap caused by disparate sensor re-
+sponses and viewpoints, the descriptor module maps het-
+erogeneous features into a shared, domain-invariant latent
+space.
+Multi-scale Patch Sampling.
+Leveraging the hierarchical
+features of an EfficientNetV2-b2 backbone, we adopt a multi-
+stage extraction strategy. For each keypoint pi, we concur-
+rently crop fixed-size local feature patches (5×5) from the fi-
+nal three backbone stages (resolutions 1/8, 1/16, 1/32). This
+hierarchical sampling captures a comprehensive representa-
+tion ranging from fine-grained geometric textures to broad
+semantic context, effectively handling the scale variations be-
+tween UAV and satellite platforms.
+Fusion and Encoding.
+Unlike single-pixel sampling, our
+5 × 5 spatial patches preserve local structural arrangements,
+providing higher discriminative power against environmen-
+tal noise. During fusion, these multi-scale patches are con-
+catenated and processed by a convolutional fusion block to
+enable cross-scale information interaction. Finally, a Multi-
+Layer Perceptron (fMLP ) projects the fused features into a
+unified, geometric-invariant descriptor space fi ∈R256. This
+process yields robust descriptor sets Fuav = {fuav,i}N
+i=1 and
+Fsat = {fsat,j}M
+j=1 capable of withstanding extreme cross-
+domain discrepancies.
+3.3. Navigator
+The Navigator integrates visual perception with motion con-
+trol for precise localization.
+Pipeline and Database. As shown in Fig. 2, to minimize
+onboard computation, we construct an offline georeferenced
+database by processing satellite imagery (Isat) to extract
+descriptors Fsat linked to GPS coordinates.
+During on-
+line flight, the UAV only extracts descriptors for the current
+frame, enabling efficient vector-based retrieval against this
+pre-indexed database.
+Grid-based Random Sample Consensus (GRANSAC).
+Standard RANSAC suffers from geometric biases when key-
+points cluster on dominant structures. We propose GRANSAC
+to enforce spatial uniformity. Instead of random sampling,
+the image plane is partitioned into G × G grid cells. The
+algorithm prioritizes sampling 4 points from distinct non-
+empty cells to form the hypothesis model Mk, ensuring the
+estimated homography covers the global scene geometry.
+Hypotheses are verified via parallelized GPU processing to
+meet real-time latency requirements.
+Dynamic Strategy. The system employs a predict-correct
+mechanism. If the GRANSAC-estimated coordinates align
+with the trajectory prediction, the global position is updated.
+In feature-less regions where visual matching fails, the navi-
+gator automatically switches to inertial dead reckoning, while
+a dynamic cache pre-fetches database sectors to ensure unin-
+terrupted long-range operation.
+3.4. Loss Function
+We adopt a two-stage training strategy to decouple geometric
+localization from semantic description.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:14 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+(a) SIFT[10]+NN
+(b) ORB[7]+NN
+(c) SuperPoint[1]+NN
+(d) SuperPoint[1]+SuperGlue[2]
+(e) SuperPoint[1]+LightGlue[5]
+(f) ALIKED[3]+LightGlue[5]
+(g) XFeat[4]
+(h) LoFTR[12]
+(i) ours
+Fig. 3: Qualitative comparison of feature matching results between the proposed method and various baselines. The images
+show correspondences between UAV aerial views and satellite reference maps. Correct matches (inliers) are denoted by green
+lines, while incorrect matches (outliers) are shown in red. Our method produces significantly denser and more accurate corre-
+spondences, even under the complex geometric distortions of the mixed scenario.
+Stage I: Keypoint Extraction Loss. The first stage opti-
+mizes the encoder and detection head for sub-pixel localiza-
+tion using a grid-based classification task. We employ Cross-
+Entropy (CE) loss:
+Lkp =
+1
+|M|
+X
+(u,v)∈M
+CE(Zkp(u, v), Ggrid(u, v)),
+(1)
+where M is a validity mask that excludes invalid regions
+(e.g., black borders) to ensure stability, and Ggrid denotes the
+ground-truth sub-pixel index (0–63) or background (64).
+Stage II: Descriptor Matching Loss.
+With the extractor
+frozen, we optimize the descriptor latent space. We first es-
+tablish ground-truth correspondences using the homography
+Hgt. A positive pair (i, j) ∈Kpairs is identified if the pro-
+jected UAV keypoint p′
+uav,i = Hgtpuav,i is a spatial nearest
+neighbor (NN) to a satellite keypoint psat,j within a thresh-
+old τdist. Conversely, all other pairs form the negative set
+N, where the total number of negative samples is denoted
+as Nneg. The similarity between descriptors is measured by
+their cosine similarity Sij = Cos(fuav,i, fsat,j). The total
+descriptor loss is defined as:
+Ldesc = Lpos + Lneg all + Lneg hard.
+(2)
+The position loss Lpos maximizes the similarity of matched
+pairs in Kpairs:
+Lpos =
+1
+|Kpairs|
+X
+(i,j)∈Kpairs
+(1 −Sij).
+(3)
+To separate non-matched regions, Lneg all constrains all
+negative pairs:
+Lneg all =
+1
+Nneg
+X
+(i,j)/∈Kpairs
+max(Sij, 0).
+(4)
+Finally, we incorporate hard negative mining to specifically
+penalize the top-k hardest samples in N that are visually sim-
+ilar but spatially distinct:
+Lneg hard = 1
+k
+X
+(i,j)∈top-k(N )
+max(Sij, 0).
+(5)
+4. EXPERIMENTS
+4.1. Setup and Implementation
+Datasets. We pre-train keypoints on COCO [18] and learn
+descriptors using the MDAS [17] 3K RGB subset.
+The
+experimental data comprise manually aligned 800 × 600
+UAV–satellite image pairs from Augsburg, Germany.
+The
+dataset is split evenly: 50% for training/testing (focused on
+architectural structures) and 50% reserved for system-level
+navigation evaluation in unseen environments.
+Implementation Details. All models are implemented in Py-
+Torch on an NVIDIA Tesla V100 GPU.
+Stage I (Keypoint): Pre-trained on COCO for 500 epochs
+(batch size 20, lr 10−4) with random homography augmenta-
+tion (±45◦rotation, scale 0.85 ∼1.25) with a NMS threshold
+τkp = 0.1.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:14 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+Stage II (Descriptor): Optimized on MDAS using Hard
+Negative Mining. To simulate flight attitudes, we apply ag-
+gressive augmentation (±180◦rotation, scale 0.85 ∼1.5).
+Training runs for 200 epochs (batch size 10) with a matching
+threshold τdist = 16, and loss top-k is 100.
+Navigation: The model is simulated using GRANSAC (G =
+8) for real-time localization.
+4.2. Evaluation Metrics
+To evaluate the proposed framework, we utilize six metrics
+covering visual perception, geometric accuracy, and system-
+level navigation.
+Repeatability (Repeat@k): Measures the keypoint extrac-
+tor’s ability to consistently re-detect features across domains
+within k ∈{3, 5, 10, 20} pixels.
+Precision (Precision@k): Evaluates the purity of matches,
+defined as the ratio of correct matches (reprojection error ≤
+k ∈{3, 5, 10, 20}) to the total predicted matches. We report
+AUCPrecision to capture aggregate stability.
+Recall (Recall@k): Measures the completeness of matching,
+defined as the ratio of correct matches to the total ground-truth
+correspondences.
+Homography Estimation (Homography@k): Represents
+the geometric success rate. A task is successful if the average
+corner error ≤k ∈{3, 5, 10, 20} pixels.
+Average Cross-Track Error (ACTE): Quantifies flight sta-
+bility by measuring the mean Euclidean distance between the
+UAV’s trajectory and the planned path.
+Final Goal Distance (FGD): Measures the terminal position-
+ing accuracy at the end of a mission.
+4.3. Results and Analysis
+Quantitative Analysis.
+Experimental results demonstrate
+that our framework significantly outperforms state-of-the-
+art baselines. In terms of visual perception (Table 1), our
+method achieves a Precision@20px of 77.68%—more
+than double the SuperPoint [1] + SuperGlue [2] baseline
+(35.92%)—alongside the highest Recall@20px (22.26%).
+This ”high-precision, high-recall” characteristic provides a
+robust foundation for geometric solving, as shown in Table 2,
+leading to a dominant Homography Accuracy of 71.68% at
+the 20px threshold.
+These perceptual advantages translate directly to naviga-
+tion performance. As shown in Table 3, our system achieves
+a Success Rate of 83% in the GPS-denied simulator, far sur-
+passing the SuperPoint [1] + LightGlue [5] baseline (54%).
+While active visual re-localization introduces minor trajec-
+tory corrections, it effectively suppresses the cumulative drift
+inherent in dead reckoning, resulting in the lowest Final Goal
+Distance (FGD = 1.46◦× 10−3). Notably, LoFTR [12] was
+unable to perform the navigation task due to its inability to
+generate storable descriptors for the offline satellite database.
+Qualitative Visualization.
+Visual comparisons in Fig.
+3
+further validate these metrics. Handcrafted methods (SIFT
+[10], ORB [7]) and standard deep matchers (XFeat [4]) strug-
+gle with the domain gap, producing sparse correspondences.
+While GNN-based methods (SuperGlue [2], LightGlue [5])
+improve density, they remain prone to outliers (red lines) un-
+der drastic rotation and scaling. In contrast, our method re-
+trieves a dense and spatially uniform set of correct inliers
+(green lines) across the entire field of view, confirming that
+the decoupled descriptor successfully learns domain-invariant
+features essential for stable autonomous flight.
+Table 2: Quantitative evaluation of homography estimation
+accuracy (Homography@k) and the corresponding Area Un-
+der the Curve (AUCHomography) across various pixel thresholds
+on the MDAS dataset.
+Method
+Homography (%)
+AUCHomography (%)
+@3px
+@5px
+@10px
+@20px
+@3px
+@5px
+@10px
+@20px
+SIFT[10]+NN
+0.0000
+0.0000
+0.0147
+0.0735
+0.0000
+0.0000
+0.0067
+0.0315
+ORB[7]+NN
+0.0000
+0.0147
+0.1324
+0.3529
+0.0000
+0.0025
+0.0361
+0.1513
+SuperPoint[1]+NN
+0.1618
+1.3824
+4.0000
+7.3382
+0.0404
+0.3824
+1.6070
+3.7248
+SuperPoint[1]+SuperGlue[2]
+0.7059
+5.2647
+21.2941
+32.6176
+0.2059
+1.4093
+7.6738
+17.8754
+SuperPoint[1]+LightGlue[5]
+0.6618
+4.4853
+18.7353
+29.1176
+0.1838
+1.2206
+6.7634
+15.8662
+ALIKED[3]+LightGlue[5]
+0.2206
+2.3088
+12.0441
+23.1029
+0.0588
+0.5833
+3.9813
+11.1765
+XFeat[4]
+0.0441
+0.4706
+3.4118
+9.3676
+0.0110
+0.1054
+1.0120
+3.8193
+LoFTR[12]
+0.4853
+3.6618
+12.6765
+19.8529
+0.1397
+1.0074
+4.7968
+10.7885
+Ours
+0.4412
+5.0441
+33.9853
+71.6765
+0.1140
+1.2328
+10.5374
+33.1793
+Table 3: System-level autonomous navigation performance
+comparison on the MDAS dataset within the GPS-denied sim-
+ulator environment. The navigation errors (FGD and ACTE)
+are computed in the geographic coordinate system and ex-
+pressed in decimal degrees (◦).
+Method
+ACTE (×10−3) ↓
+FGD (×10−3) ↓
+Success Rate ↑
+SuperPoint[1]+SuperGlue[2]
+0.925◦± 1.091◦
+4.823◦± 5.198◦
+39%
+SuperPoint[1]+LightGlue[5]
+0.522◦± 0.722◦
+3.106◦± 4.486◦
+54%
+ALIKED[3]+LightGlue[5]
+0.685◦± 0.974◦
+3.183◦± 4.293◦
+51%
+XFeat[4]
+1.940◦± 1.849◦
+7.912◦± 5.442◦
+13%
+LoFTR[12]
+Detector-Free Method can’t run in this task
+Ours
+0.647◦± 0.710◦
+1.463◦± 3.402◦
+83%
+5. CONCLUSION
+This work presents a geometry-aware matching framework
+for robust UAV navigation in GPS-denied environments. By
+decoupling feature extraction from description and incorpo-
+rating Hard Negative Mining, the system bridges the domain
+gap caused by drastic scale and rotation. Crucially, the multi-
+scale descriptor filters out outliers, providing reliable visual
+anchors even under significant appearance shifts.
+Experiments on the MDAS dataset confirm that our
+method outperforms baselines, achieving an 83% success
+rate in unseen environments.
+Active visual re-localization
+effectively suppresses inertial drift, while the proposed
+GRANSAC algorithm ensures globally consistent geomet-
+ric verification, offering a reliable solution for autonomous
+localization under significant flight attitude changes.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:14 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+6. REFERENCES
+[1] Daniel DeTone, Tomasz Malisiewicz, and Andrew Ra-
+binovich,
+“Superpoint: Self-supervised interest point
+detection and description,” in Proceedings of the IEEE
+conference on computer vision and pattern recognition
+workshops, 2018, pp. 224–236.
+[2] Paul-Edouard Sarlin, Daniel DeTone, Tomasz Mal-
+isiewicz, and Andrew Rabinovich, “Superglue: Learn-
+ing feature matching with graph neural networks,” in
+Proceedings of the IEEE/CVF conference on computer
+vision and pattern recognition, 2020, pp. 4938–4947.
+[3] Xiaoming Zhao, Xingming Wu, Jinyu Miao, Weihai
+Chen, Peter CY Chen, and Zhengguo Li, “Alike: Ac-
+curate and lightweight keypoint detection and descriptor
+extraction,” IEEE Transactions on Multimedia, vol. 25,
+pp. 3101–3112, 2022.
+[4] Guilherme Potje, Felipe Cadar, Andr´e Araujo, Renato
+Martins, and Erickson R Nascimento, “Xfeat: Acceler-
+ated features for lightweight image matching,” in Pro-
+ceedings of the IEEE/CVF Conference on Computer Vi-
+sion and Pattern Recognition, 2024, pp. 2682–2691.
+[5] Philipp Lindenberger, Paul-Edouard Sarlin, and Marc
+Pollefeys, “Lightglue: Local feature matching at light
+speed,” in Proceedings of the IEEE/CVF international
+conference on computer vision, 2023, pp. 17627–17638.
+[6] Housheng Xie, Yukuan Zhang, Junhui Qiu, Xiangshuai
+Zhai, Xuedong Liu, Yang Yang, Shan Zhao, Yongfang
+Luo, and Jianbo Zhong, “Semantics lead all: Towards
+unified image registration and fusion from a semantic
+perspective,” Information Fusion, vol. 98, pp. 101835,
+2023.
+[7] Ethan Rublee, Vincent Rabaud, Kurt Konolige, and
+Gary Bradski, “Orb: An efficient alternative to sift or
+surf,” in 2011 International conference on computer vi-
+sion. Ieee, 2011, pp. 2564–2571.
+[8] Michael Calonder, Vincent Lepetit, and Pascal Fua,
+“Keypoint signatures for fast learning and recognition,”
+in European conference on computer vision. Springer,
+2008, pp. 58–71.
+[9] Michael Calonder, Vincent Lepetit, Christoph Strecha,
+and Pascal Fua, “Brief: Binary robust independent ele-
+mentary features,” in European conference on computer
+vision. Springer, 2010, pp. 778–792.
+[10] David G Lowe, “Object recognition from local scale-
+invariant features,”
+in Proceedings of the seventh
+IEEE international conference on computer vision. Ieee,
+1999, vol. 2, pp. 1150–1157.
+[11] Herbert Bay, Tinne Tuytelaars, and Luc Van Gool,
+“Surf: Speeded up robust features,” in European confer-
+ence on computer vision. Springer, 2006, pp. 404–417.
+[12] Jiaming Sun, Zehong Shen, Yuang Wang, Hujun Bao,
+and Xiaowei Zhou,
+“Loftr: Detector-free local fea-
+ture matching with transformers,” in Proceedings of the
+IEEE/CVF conference on computer vision and pattern
+recognition, 2021, pp. 8922–8931.
+[13] Yifan Wang, Xingyi He, Sida Peng, Dongli Tan, and Xi-
+aowei Zhou, “Efficient loftr: Semi-dense local feature
+matching with sparse-like speed,” in Proceedings of the
+IEEE/CVF conference on computer vision and pattern
+recognition, 2024, pp. 21666–21675.
+[14] Relja Arandjelovic, Petr Gronat, Akihiko Torii, Tomas
+Pajdla, and Josef Sivic, “Netvlad: Cnn architecture for
+weakly supervised place recognition,” in Proceedings
+of the IEEE conference on computer vision and pattern
+recognition, 2016, pp. 5297–5307.
+[15] Martin A Fischler and Robert C Bolles, “Random sam-
+ple consensus: a paradigm for model fitting with appli-
+cations to image analysis and automated cartography,”
+Communications of the ACM, vol. 24, no. 6, pp. 381–
+395, 1981.
+[16] Daniel Barath, Jiri Matas, and Jana Noskova, “Magsac:
+marginalizing sample consensus,” in Proceedings of the
+IEEE/CVF conference on computer vision and pattern
+recognition, 2019, pp. 10197–10205.
+[17] Jingliang Hu,
+Rong Liu,
+Danfeng Hong,
+Andr´es
+Camero, Jing Yao, Mathias Schneider, Franz Kurz, Karl
+Segl, and Xiao Xiang Zhu, “Mdas: A new multimodal
+benchmark dataset for remote sensing,” Earth System
+Science Data Discussions, vol. 2022, pp. 1–26, 2022.
+[18] Tsung-Yi Lin, Michael Maire, Serge Belongie, James
+Hays, Pietro Perona, Deva Ramanan, Piotr Doll´ar, and
+C Lawrence Zitnick, “Microsoft coco: Common objects
+in context,” in European conference on computer vision.
+Springer, 2014, pp. 740–755.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:14 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

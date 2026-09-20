@@ -1,0 +1,900 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0656.pdf
+sha256: 23BE60362E1D29CB2AD1DF5A92814183A3075EF63B15C1AD28FC6A8682B833DA
+library: pymupdf (fitz) v1.28.2
+pages: 10
+=== BEGIN ===
+[p.1]
+Received 11 March 2026, accepted 14 April 2026, date of publication 16 April 2026, date of current version 23 April 2026.
+Digital Object Identifier 10.1109/ACCESS.2026.3684630
+Vision-Based UAV Localization by Aerial and
+Satellite Image Matching
+HUEI-YUNG LIN
+1,2, (Senior Member, IEEE), PO-HSUN CHEN1, AND CHI-WEI YEH1
+1Department of Computer Science and Information Engineering, National Taipei University of Technology, Taipei 106, Taiwan
+2Department of Electrical Engineering, National Chung Cheng University, Chiayi 621, Taiwan
+Corresponding author: Huei-Yung Lin (lin@ntut.edu.tw)
+This work was supported in part by the Ministry of Science and Technology of Taiwan under Grant NSTC 113-2221-E-027-092.
+ABSTRACT The deployment of Unmanned Aerial Vehicles (UAVs) in tasks such as urban surveillance,
+disaster assessment, and logistics necessitates enhanced autonomous navigation capabilities. Traditionally,
+the localization of UAVs relies on Global Navigation Satellite Systems (GNSS). However, in urban canyons,
+indoor environments, or bad weather conditions, GNSS signals are prone to obstruction and interference,
+leading to degraded navigation performance. To overcome the limitations, the development of GNSS-denied
+alternative localization techniques has become an important topic. In this paper we present an UAV visual
+localization and heading estimation in GNSS-denied environments by matching the UAV overhead imagery
+with satellite maps. The proposed NavCLIP constructs an image database using satellite data and retrieves
+the best-matched by querying with aerial images. A homography matrix is then employed to estimate the
+UAV location and yaw angle. Due to the lack of publicly available datasets, this work collects an aerial and
+satellite image dataset (UAV-Satellite Dataset) for training and validation. The experimental results show
+strong localization performance on the Google Earth dataset, while UAV flight experiments exhibit larger
+localization errors under the real-world conditions. In addition, the proposed technique improves over the
+GeoCLIP baseline and achieves low heading estimation error. Code and dataset are available on GitHub at
+https://github.com/PHChenGit/NavCLIP
+INDEX TERMS Unmanned aerial vehicle, GNSS-denied localization, visual positioning, satellite-aerial
+image matching.
+I. INTRODUCTION
+Unmanned aerial vehicles (UAVs) have been deployed
+across a wide range of application scenarios, including
+military reconnaissance, agricultural monitoring, emergency
+responses, and infrastructure inspection. The abilities to
+hover and maneuver at low altitude in constrained space
+makes lightweight multirotor platforms particularly attractive
+for these tasks. In many outdoor missions, the UAV naviga-
+tion usually relies on the Global Navigation Satellite System
+(GNSS) due to its low payload burden, cost efficiency,
+and widespread availability. However, GNSS signals are
+susceptible to intentional interference and might become
+unavailable under environmental occlusion. The scenarios
+are commonly considered as GNSS-denied environments,
+The associate editor coordinating the review of this manuscript and
+approving it for publication was Xin Sun
+.
+where satellite visibility is reduced and signal quality is often
+degraded.
+To address unavailability and interference of GNSS, prior
+studies have explored multi-sensor fusion using inertial mea-
+surement units (IMUs), visual odometry (VO), visual inertial
+odometry (VIO), and LiDAR. IMUs provide high-rate motion
+estimates, yet inevitably accumulate drifts over time. VO and
+VIO mitigate long-term drifts by tracking visual features
+across frames. However, the performance generally degrades
+under lighting changes, adverse weather, and scene changes,
+while requiring robust feature correspondences. LiDAR can
+generate accurate environmental maps. Nevertheless, in out-
+door high altitude operation the UAV is often far from static
+structures such as buildings and roadside trees, which limits
+the amount of geometric information. More importantly, the
+energy of active laser emission poses a serious challenge
+for onboard power management. Beyond these, building
+a robust fusion pipeline often involves calibration and
+61452
+ 2026 The Authors. This work is licensed under a Creative Commons Attribution 4.0 License.
+For more information, see https://creativecommons.org/licenses/by/4.0/
+VOLUME 14, 2026
+[p.2]
+H.-Y. Lin et al.: Vision-Based UAV Localization by Aerial and Satellite Image Matching
+synchronization across sensors, which might increase system
+complexity and hinder reliable deployment across diverse
+environments.
+Due to challenges of multi-sensor integration, recent stud-
+ies have attracted much attention to pure-vision UAV navi-
+gation, where cameras such as monocular and stereo systems
+form the core for data acquisition. These methods rely solely
+on the images captured by onboard cameras to perceive the
+environment, and perform image registration between UAV
+imagery and satellite maps using computer vision algorithms
+or deep neural networks to derive UAV pose and geographic
+location. This offers clear cost advantages and substantially
+reduces system complexity. In addition, it can mitigate error
+accumulation introduced by cross-sensor integration, making
+visual navigation a promising alternative for GNSS-denied
+environments [1].
+Despite the benefits, the UAV visual navigation also faces
+inherent difficulties. Rapidly changing outdoor illumination,
+seasonal transition, and dynamic objects such as vehicles can
+significantly affect the perception and processing. A common
+and effective strategy is to treat the collected satellite imagery
+as a large-scale database and match real-time UAV images to
+infer the geographic location. Although this multi-modal and
+cross-view matching paradigm has broad potential, it remains
+challenging in practice due to the discrepancy with the
+low-altitude UAV images. The viewpoint, scale, and level of
+detail can be substantially different, and the mismatch often
+leads to incorrect correspondences when using traditional
+feature-based methods.
+In this paper, we propose NavCLIP, a CLIP-based visual
+localization framework that integrates MapGlue [2] for UAV
+heading estimation in GNSS-denied environments. It consists
+of two modules, for localization and orientation, respectively.
+For efficient retrieval under the hardware constraints, satellite
+maps are partitioned into tiles to form an image database.
+The localization module, inspired by GeoCLIP, employs
+a CLIP-like architecture to align geo-coordinates with
+satellite maps via contrastive learning, and retrieves the
+most relevant tile for given UAV queries based on the
+cosine similarity [3]. The orientation module then applies
+MapGlue for establishing the correspondences between the
+retrieved tile and query images, and estimates homography
+via RANSAC. The heading angle derived from homography
+is combined with the localization output to provide a unified
+estimate of location and heading.
+For training and evaluation, we recorded real-world flights
+with a camera mounted on the UAV in a nadir-facing config-
+uration. Each image is paired with its corresponding satellite
+tile and precise geographic coordinates. We also constructed
+a large-scale UAV-to-satellite matching dataset, covering
+urban and campus scenes and providing geo-coordinates
+with ground-truth heading direction. The dataset serves as
+benchmarking for cross-view localization for GNSS-denied
+UAV navigation. The contributions of this paper are as
+follows.
+• A vision system combining retrieval-based localiza-
+tion with feature-based orientation is proposed for
+GNSS-denied UAV navigation.
+• Using a single camera, the proposed method achieves
+strong localization performance on the Google Earth
+dataset and improves upon GeoCLIP in real-world UAV
+flight experiments.
+• A large-scale UAV-satellite image matching dataset
+with precise geo-coordinates and ground-truth heading
+is established for training and validation, and made
+available publicly.
+II. RELATED WORK
+Autonomous navigation and localization for UAVs in
+GNSS-denied environments remains a critical challenge [4].
+In such scenarios, a navigation stack must provide globally
+consistent position estimates for task planning, safety, and
+long-horizon autonomy. Recently, visual localization has
+attracted increasing attention, serving either as a primary
+positioning source or complement to other onboard sensors.
+In particular, cross-view localization estimates the UAV’s
+pose by incorporating onboard imagery with geo-referenced
+satellite maps. Satellite images providing wide coverage
+with an explicit geographic reference are suitable for global
+positioning when GNSS is unreliable or unavailable. Many
+techniques adopt a two-stage pipeline: first performing
+retrieval over a satellite database to obtain a set of regions,
+followed by refining the estimates via local alignment by
+image-level correspondences [5].
+The difficulty of cross-view localization is the domain
+gap between viewpoints. UAV imagery is usually captured
+at low altitude with oblique or near-ground views, whereas
+satellite imagery is typically nadir and orthorectified. This
+mismatch induces large differences in scale and content,
+which affects correspondences of local structures. In addition
+to geometric discrepancy, the appearance variation caused
+by illumination, weather, and long-term change further
+complicates matching by altering textures, shadows, and
+scene layouts. The existing methods follow two directions,
+one integrating complementary sensors to provide motion
+priors and reduce ambiguity, and the other focusing on
+learning visual representations to improve invariance to
+viewpoint and appearance changes [6].
+A. UAV VISUAL LOCALIZATION
+Visual localization methods can be broadly categorized
+into relative and absolute approaches [7], [8], [9]. The
+relative localization, including VO, VIO, and visual SLAM,
+estimate UAV trajectories by tracking features across several
+image frames. These techniques are suited for short-term
+motion estimation because they exploit temporal continuity
+and operate at high frequency. A significant drawback,
+however, is their susceptibility to the cumulative drifts,
+which can lead to unbounded position errors over long-range
+flights.
+VOLUME 14, 2026
+61453
+[p.3]
+H.-Y. Lin et al.: Vision-Based UAV Localization by Aerial and Satellite Image Matching
+FIGURE 1. The training pipeline of the proposed NavCLIP for UAV localization. After input the aerial and satellite image pair into the image encoder,
+image embeddings are extracted to align with pixel coordinate features for location computation.
+To mitigate this issue, absolute localization techniques aim
+to register the UAV by matching its current view with a geo-
+referenced map. Early work focused on fusing odometry with
+global data, so that map alignment can provide intermittent
+corrections to the bound drift. Conte et al. [10] fused
+VIO with satellite imagery to for drift correction, and pre-
+sented a map-based mechanism to complement local motion
+estimation. In [11], Mao et al. developed a visual-inertial
+system to register VIO outputs with a 3D pointcloud via
+a pose graph network, effectively suppressing drift through
+global constraints. Other approaches leverage map features
+to reduce the accumulated error, including Hao et al. [12]
+building on VINS-Mono [13], and RVIO [14]. Beyond
+visual cues, non-vision sensors have also been integrated
+to constrain drift. Delama et al. proposed UVIO, which
+incorporated Ultra-Wideband (UWB) anchors to bound VIO
+drift [15].
+While effective, these fusion-based systems can be
+complex in both implementation and deployments. Their
+performance often depends on the quality and coverage of
+available maps, as well as the reliabilities of the underlying
+odometry between global corrections. Moreover, achieving
+robust performance typically requires careful system design,
+including consistent reference frames and stable estimation
+in various operating conditions.
+B. DEEP LEARNING FOR CROSS-VIEW LOCALIZATION
+More recently, deep learning-based techniques have become
+the paradigm for cross-view localization, directly addressing
+the challenges of large viewpoint differences and appear-
+ance variations. Many of these approaches learn compact
+descriptors and formulate localization as retrieval in a
+shared embedding space, where the goal is to maximize
+similarity between matched cross-view pairs while separating
+mismatched pairs. Compared with hand-crafted descriptors,
+learned representations can capture higher-level cues, and
+achieve stronger invariance to nuisance factors that frequently
+occur in outdoor environments.
+Early deep neural networks commonly combined learned
+features with geometric or semantic cues to reduce ambiguity.
+Tian et al. [16] introduced a framework using Faster R-CNN
+to detect buildings as semantic features, and estimated
+the location by matching the detected structures with a
+geo-referenced database. This line of work leverages the
+intuition that semantic entities can be more stable across
+viewpoints than low-level textures, especially under the
+local appearance changes. In a different approach which
+combines geometry with classic features, Viswanathan et al.
+proposed warping ground-level panoramic images into a
+top-down perspective and matching with satellite imagery
+using SIFT descriptors [17]. Such methods highlight the
+value of injecting geometric structure to narrow the cross-
+view gap, although the robustness still depends on the
+warping quality, landmark visibility, and the reliability of
+matching.
+Later deep networks shifted toward end-to-end learning
+of discriminative embeddings that support efficient retrieval.
+A notable example from Zhou et al. linked ground-level
+images to OpenStreetMap tiles by learning shared embed-
+ding spaces [18]. This learned representation proved more
+effective than binary semantic descriptors, enabling faster
+and more accurate localization. In general, embedding-based
+retrieval offers favorable scalability, since candidate regions
+can be indexed and compared efficiently. Nevertheless,
+retrieval alone might be insufficient when multiple satellite
+regions exhibit similar appearance, motivating complemen-
+tary mechanisms such as local verification, re-ranking,
+or geometry-aware refinement.
+The evolution of network architectures has advanced per-
+formance by improving how spatial contexts and cross-view
+correspondence are modeled. To better capture spatial layout,
+61454
+VOLUME 14, 2026
+[p.4]
+H.-Y. Lin et al.: Vision-Based UAV Localization by Aerial and Satellite Image Matching
+Wang et al. [19] introduced Local Pattern Network (LPN),
+which employed a square-ring partitioning strategy to extract
+features from different spatial regions. To handle scale varia-
+tions, Zhuang et al. [20] incorporated a multi-scale attention
+module to integrate global contextual information. Recently,
+Transformer-based architectures have shown strong potential
+for cross-view matching due to their abilities to model
+long-range dependencies and attend to informative regions.
+Fan et al. [21], proposed SSPT, a pyramid transformer which
+refined feature representations through self-attention, and
+employed style transfer as data augmentation to improve the
+robustness under environmental changes.
+C. FEATURE MATCHING AND HOMOGRAPHY ESTIMATION
+The classical feature-based pipelines, such as SIFT and
+ORB, estimate the image-to-image homography from sparse
+correspondences. If there exist sufficient repeatable key-
+points, the homography estimation provides a principled way
+to enforce geometric consistency and supports downstream
+tasks such as alignment, verification, or orientation inference.
+However, reliability often degrades under cross-view settings
+and large appearance gaps, where the local descriptors
+might produce ambiguous or incorrect matches, and visible
+overlap between views can be limited. These issues motivate
+learning-based matching, which is more tolerant to viewpoint
+and radiometric changes.
+Mughal et al. [22] projected the UAV image onto a
+satellite map to infer both position and orientation from map
+coordinates, illustrating how the geometric alignments can
+directly yield the navigation output. Cao et al. introduced the
+Iterative Homography Network (IHN) [23], that employed a
+trainable iterative refinement scheme. It was later extended it
+to the Recursive Homography Warping Framework (RHWF)
+[24] using hierarchical attention for improving accuracy
+and parameter efficiency compared with LocalTrans [25].
+For the detector-free matching, GeoFormer [26] built on
+LoFTR [27] by incorporating RANSAC geometric cues to
+focus attention. Beyond single-modality image matching,
+specialized cross-view settings were explored, including
+thermal-visual UAV-satellite matching via image retrieval
+and domain adaptation, and BEV (bird-eye view) based
+alignment for the geometric consistency improvement.
+D. CLIP-BASED METHODOLOGY
+In recent works, Radford et al. [28] introduced CLIP, which
+aligns image and text representations via contrastive learning
+on large-scale data. This representation is transferable across
+tasks since the contrastive objective encourages the semantic
+grouping and robust features beyond narrow domain-specific
+supervision. Follow-up studies, such as OpenCLIP [29] and
+MetaCLIP [30], further highlighted the importance of data
+quality and scale for representation learning. It indicates that
+the effectiveness of CLIP-style models is closely tied to the
+breadth and cleanliness of the pretraining corpus. Beyond the
+general vision-language tasks, CLIP contrastive pre-training
+has been adopted in remote sensing and geo-localization to
+align the visual observation with geographic signal, enabling
+retrieval and localization through a shared embedding space.
+For
+geo-localization,
+SatCLIP
+constructed
+satellite
+image-text alignment at scale for image retrieval and
+localization from learned embeddings [31]. GeoCLIP then
+extended this idea by aligning images with geographic
+coordinates [3], and demonstrated GPS prediction from
+visual inputs. The CLIP-based formulations motivated
+learning a shared embedding space to support global retrieval,
+This is closely related to our use of CLIP-style alignment
+for UAV-to-satellite localization. It is also suggested to
+use a natural interface between coarse global retrieval
+and subsequent geometric verification, where contrastive
+alignments provide a scalable candidate selection and
+matching modules provide a pose-consistent refinement.
+III. METHODOLOGY
+A. SYSTEM OVERVIEW
+We propose an UAV-satellite visual navigation approach
+that leverages wide-area satellite imagery with aerial images
+captured by an UAV. Inspired by GeoCLIP [3], its core
+contains a localization module which integrates an image
+encoder with the location encoder. The image features
+and geo-coordinate embeddings are then projected to a
+common latent space for retrieval-based geo-localization.
+Finally, MapGlue [2] is used to establish the image-level
+correspondences and estimate the UAV heading angle from
+the geometric alignment.
+The training and inference pipelines are shown in Figures 1
+and 2, respectively. During the training phase, the localization
+module is optimized using the paired drone and satellite
+images. An image encoder first extracts visual features from
+both images. Concurrently, a location encoder generates
+positional embeddings from their corresponding geographic
+coordinates. These feature embeddings are then projected
+into a shared latent space and aligned using contrastive
+learning. The process is to maximize the feature similarity
+for drone-satellite pairs while minimize for non-matching
+pairs. At the inference stage, the proposed NavCLIP takes a
+single, query drone image as input. It first predicts the UAV
+geographic coordinates and retrieves the most likely satellite
+image from a database. The aerial and satellite images are
+then fed into MapGlue to find the heading angle.
+B. IMAGE ENCODER
+The image encoder serves as a foundational component of
+NavCLIP, extracting robust and discriminative feature repre-
+sentations from both UAV and satellite imagery. To leverage
+general-purpose knowledge from visual cues, we employ the
+pre-trained Vision Transformer (ViT-L/14) as our backbone
+for feature extraction. This network is based on CLIP and
+has exceptional ability to learn semantically rich embeddings
+from vast, diverse image-text corpora. It is highly beneficial
+for bridging the significant domain gap between aerial and
+satellite views.
+VOLUME 14, 2026
+61455
+[p.5]
+H.-Y. Lin et al.: Vision-Based UAV Localization by Aerial and Satellite Image Matching
+FIGURE 2. The inference pipeline of the proposed NavCLIP. Given an UAV aerial image, NavCLIP extracts image features and predicts the
+corresponding pixel coordinates in the reference satellite map. The pixel locations are converted to GPS coordinates, and MapGlue is then
+employed to estimate the homography matrix for the heading angle prediction.
+To maintain the computational efficiency by transfer
+learning, the weights of this ViT-L/14 backbone are frozen
+during training. It preserves the potent, pre-learned represen-
+tations while preventing overfitting on our dataset. To adapt
+general features for the cross-view localization task, a feature
+refinement head composed of several multi-head attention
+layers is appended. The head incorporates both self-attention
+layers to refine the intra-image spatial relationships within
+each view, and cross-attention layers to explicitly model the
+inter-image correspondences between the UAV and satellite
+feature maps. Moreover, within the Multi-Layer Perceptron
+(MLP) blocks, we utilize the Gaussian Error Linear Unit
+(GELU) activation function instead of the commonly used
+ReLU. Based on the smooth and non-monotonic nature of
+GELU, it demonstrates to provide the improved training
+dynamics and generalization performance in Transformer-
+based architectures.
+FIGURE 3. The location encoder first normalizes the satellite image
+coordinates to [0, 1] for improving numerical stability and model
+generalization. The normalized coordinates are then encoded using
+multiple sets of Gaussian Random Fourier Features with different scale
+parameters σ. These encoded features are passed through multi-layer
+fully connected neural networks to extract scale-specific semantic
+representations of the coordinates. Finally, the feature vectors from all
+scales are fused through a weighted aggregation to produce a unified
+high-dimensional location representation.
+C. LOCATION ENCODER
+The location encoder of NavCLIP is responsible for gen-
+erating feature embeddings from the Cartesian coordinates
+of a cropped satellite image Isat relative to its position in
+a larger satellite map. The primary objective is to produce
+a location-based representation which can be effectively
+matched with the visual features extracted by the image
+encoder. As shown in Figure 3, the proposed location encoder
+uses a multi-scale encoding strategy, integrating Gaussian
+Random Fourier Features with a deep neural network to
+capture both local and global characteristics of the coordinate
+information. In our method, the location encoder aims to learn
+the discriminative features from pixel coordinates. Hence, the
+prerequisite steps involve converting raw GPS coordinates
+into pixel coordinates within the reference map frame. The
+pixel coordinates are normalized by
+Xnorm = Coordx
+Isat
+H
+(1)
+and
+Ynorm = Coordy
+Isat
+W
+(2)
+This process is crucial for two reasons: it ensures numerical
+consistency across different input sources, and mitigates the
+risk of gradient explosion during training.
+Following the normalization step, the proposed NavCLIP
+adopts a multi-scale architecture for feature extraction. First,
+we define multiple scales governed by a set of distinct σ,
+such as (20, 24, 28), where each scale corresponds to an
+independent encoding sub-module. Within each sub-module,
+the 2D coordinates are then projected to a high-dimensional
+feature space using a Gaussian RFF. This is followed by a
+series of fully-connected (FC) layers with ReLU activation
+functions to refine the features and extract fine-grained
+details. Finally, the feature vectors obtained from each scale
+are aggregated via a learnable weighted summation, yielding
+a single, comprehensive high-dimensional feature vector that
+encapsulates the location’s geospatial properties.
+61456
+VOLUME 14, 2026
+[p.6]
+H.-Y. Lin et al.: Vision-Based UAV Localization by Aerial and Satellite Image Matching
+TABLE 1. The localization results on the Google Earth dataset.
+IV. EXPERIMENTS
+The proposed NavCLIP is validated by different experiments.
+We first evaluate our approach with Google Earth, followed
+by using the images captured by UAVs. Ablation experiments
+are performed to investigate the contribution of each module.
+A. GOOGLE EARTH DATASET AND UAV DATASET
+For evaluation on model performance and generaliza-
+tion capabilities across diverse geographical locations,
+we collected datasets from high-resolution satellite imagery
+obtained from Google Earth. The main training and validation
+sets are the aerial images captured above the NTU campus
+and Taichung Station. From these maps, we generate query
+images by cropping patches and applying random rotations
+to simulate UAV viewpoints with varying yaw angles
+by θ
+∈
+(+180◦, −180◦]. To assess the model’s ability
+to generalize to unseen environments, we introduced a
+challenging zero-shot, cross-domain test set created from
+satellite imagery of UCLA. This location was adopted since
+it features architectural and environmental characteristics that
+are visually distinct from our datasets.
+To validate the system’s effectiveness under practical
+flight conditions, we collected a new aerial dataset for
+evaluation. The images in the dataset were captured at the
+NTU campus using a DJI Mavic Air 2 drone. In the real-world
+evaluation, all UAV routes were collected at a fixed altitude
+of 50 m for consistency and practical flight constraints. The
+effect of altitude variation on cross-view localization will
+be investigated in future work. The image dataset provides
+a paired collection of high-resolution, drone-acquired aerial
+view query, and the corresponding ground-truth satellite map
+references.
+B. UAV POSE ESTIMATION
+The proposed NavCLIP is trained for 150 epochs with a batch
+size of 512. Several core modifications are introduced to the
+configuration to enhance the stability and performance. First,
+we set the initial learning rate to 0.0016 and use the AdamW
+optimizer. Unlike the conventional optimizer, which couples
+the L2 regularization with the adaptive learning rate, AdamW
+decouples weight decay from the gradient update. It prevents
+the regularization from being influenced by adaptive learning
+rates, leading to more stable and effective control over model
+complexity. This approach is able to improve the robustness
+TABLE 2. The orientation results on the Google Earth dataset.
+on overfitting and enhance the model’s overall generalization
+capabilities.
+For the learning rate schedule, we replace the commonly
+used StepLR with CosineAnnealingLR. A StepLR scheduler
+enforces an abrupt, step-wise decay at predefined epochs, that
+can disrupt the training dynamics. In contrast, CosineAnneal-
+ingLR provides a smooth and continuous decay following the
+cosine function, allowing the model to converge more stably,
+particularly during the later stages of training. The learning
+rate ηt at a given iteration t is calculated by
+ηt = ηmin + 1
+2 (ηmax −ηmin)
+
+1 + cos
+ Tcur
+Tmax
+π
+
+(3)
+where ηmax is the maximum value, set to the initial learning
+rate; ηmin is the lower bound, typically a small value close to
+zero; Tmax is the total number of iterations in one cycle; and
+Tcur is the number of iterations elapsed since the beginning
+of the current cycle.
+Motivated by the nature of our learning objective, we adopt
+the cross-entropy loss for model training. Instead of directly
+regressing the geographic coordinates and minimizing errors
+based on the distance (e.g., Euclidean distance) between the
+predicted and ground-truth locations, our NavCLIP is trained
+to learn the similarity between visual and geospatial feature
+embeddings. The cross-entropy loss effectively reframes this
+task as a classification problem. Hence, the network learns
+to maximize the predicted similarity score for the correct
+drone-satellite pair from all image pairs within a batch. This
+method is better suited for our retrieval-based framework as
+the focus lies on on identifying the correct match rather than
+the precise metric error of a regressed coordinate.
+C. EXPERIMENTS ON GOOGLE EARTH DATASET
+The experiments are conducted on matching the UAV aerial
+images with satellite maps. Due to the lack of public datasets,
+we established a new benchmark for training and evaluation.
+It comprises 160,000 aerial images and 160,000 correspond-
+ing satellite patches, focusing on urban environments, includ-
+ing the areas of a campus and a railway station. GeoCLIP [3]
+is used as our baseline for comparison. It should be noted that
+the evaluation on yaw angle is excluded since GeoCLIP does
+not output the orientation information. To further evaluate the
+generalization capabilities of NavCLIP across temporal and
+seasonal variations, we also conduct a cross-domain scenario
+experiment using satellite imagery of UCLA. Three satellite
+maps from different different times: January 2024 (winter),
+July 2023 (summer), and May 2023 (early summer), are used
+in the experiment. The model is trained on imagery from Jan.
+2024 and Jul. 2023, and tested with the query images Iuav
+VOLUME 14, 2026
+61457
+[p.7]
+H.-Y. Lin et al.: Vision-Based UAV Localization by Aerial and Satellite Image Matching
+TABLE 3. The performance evaluation on the campus dataset under affine transformation and Gaussian noise attacks. The errors are reported for image
+coordinates (pixels), real-world coordinates (meters), and yaw angle (degrees).
+FIGURE 4. The histograms of error distribution for model robustness assessment under affine transformation. (a) The heading angle error
+distribution. (b) The distance error distribution.
+FIGURE 5. The histograms of error distribution for model robustness assessment under Gaussian noise. (a) The heading angle error distribution.
+(b) The distance error distribution.
+generated from the May 2023 imagery with random rotations
+θyaw ∈(+180◦, −180◦], while the Jan. 2024 imagery served
+as the reference database. The localization module retrieves a
+matching coordinate and satellite reference image Isat before
+proceeding to yaw angle estimation.
+As the results shown in Table 1, a significant performance
+gap can be observed, with the baseline model exhibiting large
+localization errors. This is caused by two main factors. First,
+GeoCLIP is not originally designed for aerial imagery, which
+often contains less distinctive features than the street-view or
+landscape scene. Second, the performance of the CLIP-based
+models highly depend on training data. The GeoCLIP image
+encoder appends only MLP layers to a frozen backbone, and
+lacks the capacity to learn the task-specific feature refinement
+necessary for this domain. Consequently, its ability to discern
+correct the matches on the similarity feature matrix is
+diminished, even when retrained on our dataset.
+In contrast, our proposed NavCLIP demonstrates robust
+performance. On the challenging cross-season UCLA dataset
+we achieve a localization error of 1.21 pixels (1.17 meters).
+This result demonstrates that our image encoder improves
+the model’s generalization capability. Across most scenes
+in the controlled Google Earth dataset, NavCLIP achieves
+localization errors around 1.5 pixels. It shows that our
+proposed feature extraction architecture is highly effective
+for aerial and satellite images. Under this controlled image-
+to-map scale setting, 1 pixel approximately corresponds
+to 0.97 meters. Nevertheless, we identify failure cases in
+61458
+VOLUME 14, 2026
+[p.8]
+H.-Y. Lin et al.: Vision-Based UAV Localization by Aerial and Satellite Image Matching
+TABLE 4. The localization and heading results of the campus dataset.
+TABLE 5. The ablation experiment on localization.
+FIGURE 6. The UAV localization result of Route 4. The red points are ground-truth location, and the star points are predicted location.
+ambiguous scenes, such as intersections heavily occluded by
+roadside trees in the campus, where localization errors could
+increase to approximately 6 pixels.
+For orientation estimation, we define the north-up satellite
+map as reference. The yaw angle θyaw ∈(+180◦, −180◦] of
+the image simulates the UAV’s heading. Following successful
+localization, the yaw angle is estimated by first establishing
+keypoint correspondences between the query image Iuav and
+the retrieved satellite patch Isat. The homography matrix is
+then computed from the matches to extract the yaw angle.
+As shown in Table 2, our method achieves a mean error of
+0.2 degrees, which indicates that it can estimate the yaw angle
+in feature-rich environments accurately.
+To further evaluate the robustness of NavCLIP, we apply
+geometric affine transformations and Gaussian noise as
+data augmentation to the training set of satellite and UAV
+images. As presented in Table 3, the model maintains robust
+performance under geometric affine transformations, with
+a localization MAE of 28.05 meters and a heading-angle
+MAE of 0.13◦. This indicates that the model exhibits
+high robustness in both the localization and heading angle
+estimation. From the Table 3, we can observe that the RMSE
+values are slightly higher than the MAE values. This suggests
+the majority of prediction errors are concentrated at lower
+levels, but a few outliers with large errors increase the
+RMSE. Nevertheless, a small gap between RMSE and MAE
+indicates that the model prediction are highly stable, without
+catastrophic matching failures. Moreover, the low yaw angle
+error demonstrates that, with MapGlue [2] employed in our
+NavCLIP, matching keypoints can be successfully identified
+to to enable the subsequent yaw angle estimation. The
+histogram of error distribution is show in Figure 4.
+Upon introducing Gaussian noise during the data augmen-
+tation phase, all metrics changed significantly. Notably, MAE
+of the pixel coordinates dramatically increases from 5.6 to
+81.55. It shows that Gaussian noise severely interferes with
+the model’s abilities to learn corresponding features between
+UAV and satellite images. As depicted in Figure 5b, although
+most localization errors are below 80 meters, there also exist
+numerous estimates deviated from the ground truth. Due to
+VOLUME 14, 2026
+61459
+[p.9]
+H.-Y. Lin et al.: Vision-Based UAV Localization by Aerial and Satellite Image Matching
+TABLE 6. The ablation experiment on heading.
+the penalizing nature of RMSE, the overall error has reached
+99.93 meters. Consequently, as depicted in Figure 5, these
+large localization errors lead to the erroneous heading angle
+estimations for many locations.
+In the last experiment, the performance is evaluated using
+real scene aerial images captured by an UAV. We use the pixel
+coordinates in the testing stage, so the GPS coordinates of the
+UAV are first converted to pixel coordinates for localization
+prediction. The experimental results are summarized in
+Table 4. It shows that the model’s best localization result
+has MAE of 37.76 meters and the RMSE of 55.64 meters
+from Route 4. MAE and RMSE of the yaw angle are
+12.14◦and 32.37◦, respectively. The matching result of Route
+4 is illustrated in Figure 6. Compared with the Google
+Earth experiments, the real-world UAV flight experiments
+show substantially larger localization errors. This gap is
+likely caused by the domain discrepancy between real
+UAV imagery and satellite map tiles, including viewpoint
+mismatch, illumination variation, motion blur, background
+clutter, and scene changes that are less pronounced in the
+controlled setting. These factors make cross-view retrieval
+more challenging and may further affect the subsequent
+geometric estimation stage.
+D. ABLATION STUDY
+Ablation experiments are conducted to validate the effective-
+ness of the proposed localization method. First, the inference
+is performed using only the GeoCLIP pretrained model. It is
+followed by testing on different backbone models, including
+SigLIP2 [32]. We then investigate the impact of architectural
+variations, including using only self-attention (SA) in the
+image encoder, and replacing the ReLU activation with
+GELU or Swish in the image and location encoders. The
+experiment results are tabulated in Table 5.
+For the ablation study on heading angle estimation, several
+networks with cross-view image inputs are compared, and
+the best one is employed as our heading angle prediction
+model. The dataset used in this study is collected from the
+DJI Drone Route 1, where each input contains an UAV
+aerial image and a corresponding satellite image retrieved
+from the predicted location. Both images are resized to
+224×224 to match the input requirements of our localization
+module. As the results tabulated in Table 6, the methods such
+as SuperGlue [33] and LightGlue [34] fail to estimate the
+heading angle under cross-view settings. The experiments
+indicate that those matching-based approaches can only
+infer meaningful rotation angles when the true rotation is
+within ±10◦.
+E. FAILURE CASES AND LIMITATIONS
+The failure cases are mainly observed in visually ambiguous
+regions, such as intersections partially occluded by the trees,
+areas with repetitive building patterns, and scenes with lim-
+ited distinctive structures. In these cases, the retrieval stage
+may return a nearby but incorrect satellite tile, which further
+affects the subsequent homography estimation for heading
+prediction. Dynamic scene changes, lighting differences, and
+seasonal appearance variations might also reduce cross-view
+consistency between the UAV image and satellite references.
+Some possible mitigation strategies include stronger domain
+adaptation, model training with more and diverse real-flight
+imagery, multi-scale retrieval refinement, and incorporating
+temporal consistency across consecutive UAV frames.
+V. CONCLUSION
+This paper addresses UAV navigation in GNSS-denied
+environments by presenting a deep neural network for
+localization and heading angle estimation. Our proposed
+end-to-end NavCLIP architecture takes aerial images and
+satellite maps as input for feature matching and UAV’s pose
+estimation. The localization module utilizes a CLIP-based
+image encoder and a multi-scale coordinate encoder for
+constructing a similarity matrix for robust feature matching.
+To validate the feasibility and effectiveness of our approach,
+we conduct experiments on controlled and real-world
+datasets, with the tests across multiple geographic regions and
+time periods to assess spatial and temporal generalization.
+The experimental results demonstrate strong localization and
+heading estimation performance on the controlled Google
+Earth dataset. In the real-world UAV flight experiments,
+the localization error is notably larger, indicating that the
+domain discrepancy between UAV imagery and satellite
+maps remains a major challenge for practical deployment.
+Nevertheless, the proposed method consistently improves
+over the GeoCLIP baseline in real-world evaluation.
+REFERENCES
+[1] H.-Y. Lin and J.-R. Zhan, ‘‘GNSS-denied UAV indoor navigation with
+UWB incorporated visual inertial odometry,’’ Measurement, vol. 206,
+Jan. 2023, Art. no. 112256.
+[2] P. Wu, Y. Yao, W. Zhang, D. Wei, Y. Wan, Y. Li, and Y. Zhang, ‘‘MapGlue:
+Multimodal remote sensing image matching,’’ 2025, arXiv:2503.16185.
+[3] G. K. Nayak, M. Shah, and V. Vivanco Cepeda, ‘‘GeoCLIP: Clip-
+inspired alignment between locations and images for effective worldwide
+geo-localization,’’ in Proc. Adv. Neural Inf. Process. Syst. 36, 2023,
+pp. 8690–8701.
+[4] I. Jarraya, A. Al-Batati, M. B. Kadri, M. Abdelkader, A. Ammar,
+W. Boulila, and A. Koubaa, ‘‘Gnss-denied unmanned aerial vehicle
+navigation: Analyzing computational complexity, sensor fusion, and
+localization methodologies,’’ Satell. Navigat., vol. 6, no. 1, p. 9, Dec. 2025.
+[5] H.-Y. Lin and L.-Y. Chen, ‘‘GNSS-denied UAV localization with
+satellite and aerial image matching,’’ Results Eng., vol. 28, Dec. 2025,
+Art. no. 108132.
+[6] K. Wang, L. Kooistra, R. Pan, W. Wang, and J. Valente, ‘‘UAV-based
+simultaneous localization and mapping in outdoor environments: A
+systematic scoping review,’’ J. Field Robot., vol. 41, no. 5, pp. 1617–1642,
+Aug. 2024.
+61460
+VOLUME 14, 2026
+[p.10]
+H.-Y. Lin et al.: Vision-Based UAV Localization by Aerial and Satellite Image Matching
+[7] Y. Chang, Y. Cheng, U. Manzoor, and J. Murray, ‘‘A review of UAV
+autonomous navigation in GPS-denied environments,’’ Robot. Auto. Syst.,
+vol. 170, Dec. 2023, Art. no. 104533.
+[8] N. Gyagenda, J. V. Hatilima, H. Roth, and V. Zhmud, ‘‘A review of GNSS-
+independent UAV navigation techniques,’’ Robot. Auto. Syst., vol. 152,
+Jun. 2022, Art. no. 104069.
+[9] A. Couturier and M. A. Akhloufi, ‘‘A review on absolute visual localization
+for UAV,’’ Robot. Auto. Syst., vol. 135, Jan. 2021, Art. no. 103666.
+[10] G. Conte and P. Doherty, ‘‘Vision-based unmanned aerial vehicle
+navigation using geo-referenced information,’’ EURASIP J. Adv. Signal
+Process., vol. 2009, no. 1, pp. 1–18, Dec. 2009.
+[11] M. Jun, Z. Lilian, H. Xiaofeng, Q. Hao, and H. Xiaoping, ‘‘A
+2D georeferenced map aided visual-inertial system for precise UAV
+localization,’’ in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS),
+Oct. 2022, pp. 4455–4462.
+[12] Y. Hao, M. He, Y. Liu, J. Liu, and Z. Meng, ‘‘Range–visual–inertial odom-
+etry with coarse-to-fine image registration fusion for UAV localization,’’
+Drones, vol. 7, no. 8, p. 540, Aug. 2023.
+[13] T. Qin, P. Li, and S. Shen, ‘‘VINS-mono: A robust and versatile monocular
+visual-inertial state estimator,’’ IEEE Trans. Robot., vol. 34, no. 4,
+pp. 1004–1020, Aug. 2018.
+[14] J. Wang, P. Gu, L. Wang, and Z. Meng, ‘‘RVIO: An effective localization
+algorithm for range-aided visual-inertial odometry system,’’ IEEE Trans.
+Intell. Transp. Syst., vol. 25, no. 2, pp. 1476–1490, Feb. 2024.
+[15] G. Delama, F. Shamsfakhr, S. Weiss, D. Fontanelli, and A. Fomasier,
+‘‘UVIO: An UWB-aided visual-inertial odometry framework with bias-
+compensated anchors initialization,’’ in Proc. IEEE/RSJ Int. Conf. Intell.
+Robots Syst. (IROS), Oct. 2023, pp. 7111–7118.
+[16] Y. Tian, C. Chen, and M. Shah, ‘‘Cross-view image matching for geo-
+localization in urban environments,’’ in Proc. IEEE Conf. Comput. Vis.
+Pattern Recognit. (CVPR), Jul. 2017, pp. 1998–2006.
+[17] A. Viswanathan, B. R. Pires, and D. Huber, ‘‘Vision based robot
+localization by ground to satellite matching in GPS-denied situations,’’ in
+Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst., Sep. 2014, pp. 192–198.
+[18] M. Zhou, X. Chen, N. Samano, C. Stachniss, and A. Calway, ‘‘Efficient
+localisation using images and OpenStreetMaps,’’ in Proc. IEEE/RSJ Int.
+Conf. Intell. Robots Syst. (IROS), Sep. 2021, pp. 5507–5513.
+[19] T. Wang, Z. Zheng, C. Yan, J. Zhang, Y. Sun, B. Zheng, and Y. Yang, ‘‘Each
+part matters: Local patterns facilitate cross-view geo-localization,’’ IEEE
+Trans. Circuits Syst. Video Technol., vol. 32, no. 2, pp. 867–879, Feb. 2022.
+[20] J. Zhuang, M. Dai, X. Chen, and E. Zheng, ‘‘A faster and more
+effective cross-view matching method of UAV and satellite images
+for UAV geolocalization,’’ Remote Sens., vol. 13, no. 19, p. 3979,
+Oct. 2021.
+[21] J. Fan, E. Zheng, Y. He, and J. Yang, ‘‘A cross-view geo-localization
+algorithm using UAV image and satellite image,’’ Sensors, vol. 24, no. 12,
+p. 3719, Jun. 2024.
+[22] M. H. Mughal, M. J. Khokhar, and M. Shahzad, ‘‘Assisting UAV
+localization via deep contextual image matching,’’ IEEE J. Sel.
+Topics Appl. Earth Observ. Remote Sens., vol. 14, pp. 2445–2457,
+2021.
+[23] S.-Y. Cao, J. Hu, Z. Sheng, and H.-L. Shen, ‘‘Iterative deep homography
+estimation,’’ in Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit.
+(CVPR), Jun. 2022, pp. 1869–1878.
+[24] S.-Y. Cao, R. Zhang, L. Luo, B. Yu, Z. Sheng, J. Li, and H.-L. Shen,
+‘‘Recurrent homography estimation using homography-guided image
+warping and focus transformer,’’ in Proc. IEEE/CVF Conf. Comput. Vis.
+Pattern Recognit. (CVPR), Jun. 2023, pp. 9833–9842.
+[25] R. Shao, G. Wu, Y. Zhou, Y. Fu, L. Fang, and Y. Liu, ‘‘LocalTrans:
+A multiscale local transformer network for cross-resolution homography
+estimation,’’ in Proc. IEEE/CVF Int. Conf. Comput. Vis. (ICCV), Oct. 2021,
+pp. 14870–14879.
+[26] J. Liu and X. Li, ‘‘Geometrized transformer for self-supervised homog-
+raphy estimation,’’ in Proc. IEEE/CVF Int. Conf. Comput. Vis. (ICCV),
+Oct. 2023, pp. 9522–9531.
+[27] J.
+Sun,
+Z.
+Shen,
+Y.
+Wang,
+H.
+Bao,
+and
+X.
+Zhou,
+‘‘LoFTR:
+Detector-free local feature matching with transformers,’’ in Proc.
+IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR), Jun. 2021,
+pp. 8918–8927.
+[28] A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agarwal,
+G. Sastry, A. Askell, P. Mishkin, and J. Clark, ‘‘Learning transferable
+visual models from natural language supervision,’’ in Proc. Int. Conf.
+Mach. Learn., 2021, pp. 8748–8763.
+[29] M. Cherti, R. Beaumont, R. Wightman, M. Wortsman, G. Ilharco, C.
+Gordon, C. Schuhmann, L. Schmidt, and J. Jitsev, ‘‘Reproducible scaling
+laws for contrastive language-image learning,’’ in Proc. IEEE/CVF Conf.
+Comput. Vis. Pattern Recognit. (CVPR), Jun. 2023, pp. 2818–2829.
+[30] H. Xu, S. Xie, X. Ellen Tan, P.-Y. Huang, R. Howes, V. Sharma, S.-W.
+Li, G. Ghosh, L. Zettlemoyer, and C. Feichtenhofer, ‘‘Demystifying CLIP
+data,’’ 2023, arXiv:2309.16671.
+[31] K. Klemmer, E. Rolf, C. Robinson, L. Mackey, and M. Rußwurm, ‘‘Satclip:
+Global, general-purpose location embeddings with satellite imagery,’’ in
+Proc. AAAI Conf. Artif. Intell., vol. 39, 2025, pp. 4347–4355.
+[32] M. Tschannen, A. Gritsenko, X. Wang, M. Ferjad Naeem, I. Alabdul-
+mohsin, N. Parthasarathy, T. Evans, L. Beyer, Y. Xia, B. Mustafa, J.
+Harmsen, A. Steiner, and X. Zhai, ‘‘SigLIP 2: Multilingual vision-language
+encoders with improved semantic understanding, localization, and dense
+features,’’ 2025, arXiv:2502.14786.
+[33] P.-E. Sarlin, D. DeTone, T. Malisiewicz, and A. Rabinovich, ‘‘SuperGlue:
+Learning feature matching with graph neural networks,’’ in Proc.
+IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR), Mali, Jun. 2020,
+pp. 4937–4946.
+[34] P. Lindenberger, P.-E. Sarlin, and M. Pollefeys, ‘‘LightGlue: Local feature
+matching at light speed,’’ in Proc. IEEE/CVF Int. Conf. Comput. Vis.
+(ICCV), Oct. 2023, pp. 17581–17592.
+HUEI-YUNG
+LIN
+(Senior
+Member,
+IEEE)
+received the Ph.D. degree in electrical and
+computer engineering from the State University
+of New York, Stony Brook, USA. He is a
+Professor at the Department of Computer Science
+and Information Engineering, National Taipei
+University of Technology. He also has a joint
+appointment with the Department of Electrical
+Engineering, National Chung Cheng University.
+In 2002, he joined the National Chung Cheng
+University, Taiwan, as an Assistant Professor and was promoted to a Full
+Professor, in 2013. He was the Director of the Research Liaison Division,
+from 2009 to 2013, and the Director of the Academic Development Division,
+from 2012 to 2014, both positions are with the Office of Research and
+Development, National Chung Cheng University. He is an author of over
+200 international conference and journal papers, and five book chapters.
+He holds 11 U.S. and nine Taiwan invention patents. His research interests
+include computer vision, machine learning, robotics, and mechatronics.
+He serves as the organizing committee member and program committee
+member for over 50 international conferences. He was a recipient of the
+Excellent Research Award from the National Chung Cheng University,
+the Outstanding Academic-Industry Cooperation Award from Taiwan
+Association of System and Science and Engineering (TASSE), and the
+Outstanding Robotics Engineer Award from the Robotics Society of Taiwan
+(RST). He is a fellow of IET and RST, and a Senior Member of Optica.
+PO-HSUN CHEN received the B.S. degree in
+computer science and information engineering
+from National Formosa University, Yunlin, Tai-
+wan, and the M.S. degree in computer science and
+information engineering from the National Taipei
+University of Technology, Taipei, Taiwan.
+CHI-WEI YEH received the B.S. degree in civil
+engineering from National Yang Ming Chiao
+Tung University, Hsinchu, Taiwan. He is currently
+pursuing the M.S. degree in computer science and
+information engineering with the National Taipei
+University of Technology, Taipei, Taiwan.
+VOLUME 14, 2026
+61461
+=== END ===

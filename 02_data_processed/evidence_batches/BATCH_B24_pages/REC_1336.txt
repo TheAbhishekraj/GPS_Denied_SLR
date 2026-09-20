@@ -1,0 +1,1790 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1336.pdf
+sha256: C50E46E3BFA9598592CC6C3997992384DE51C9F585499F6C4189CB77865663A0
+library: pymupdf (fitz) v1.28.2
+pages: 9
+=== BEGIN ===
+[p.1]
+Multi-Sensor Robust Relative Estimation Framework
+for GPS-Denied Multirotor Aircraft
+Daniel P. Koch1, Timothy W. McLain2, Kevin M. Brink3
+Abstract— An estimation framework is presented that im-
+proves the robustness of GPS-denied state estimation to chang-
+ing environmental conditions by fusing updates from multi-
+ple view-based odometry algorithms. This allows the vehicle
+to utilize a suite of complementary exteroceptive sensors or
+sensing modalities. By estimating the vehicle states relative to a
+local coordinate frame collocated with an odometry keyframe,
+observability of the relative state is maintained. A description of
+the general framework is given, as well as the speciﬁc equations
+for a multiplicative extended Kalman ﬁlter with a multirotor
+vehicle. Experimental results are presented that demonstrate
+the ability of the proposed algorithm to produce accurate and
+consistent estimates in challenging environments that cause a
+single-sensor solution to fail.
+I. INTRODUCTION
+GPS-denied navigation solutions for unmanned air ve-
+hicles fuse information from two categories of sensors to
+produce an estimate of the vehicle’s global position. Proprio-
+ceptive sensors, such as an inertial measurement unit (IMU),
+measure information that is intrinsic to the vehicle itself.
+Exteroceptive sensors such as cameras and laser scanners, on
+the other hand, obtain information about the vehicle’s state
+through observation of the external environment. The most
+common of these types of observations used in practice are
+measurements from algorithms such as visual odometry and
+laser scan matching. These types of measurements will be
+referred to collectively in this paper as view-based odometry,
+or for brevity simply as odometry.
+A number of algorithms for GPS-denied or GPS-degraded
+navigation have been proposed in the literature. These ap-
+proaches fuse inertial measurements with odometry com-
+puted using a variety of sensors including cameras, laser
+scanners, and RGB-D cameras. The vast majority of pub-
+lished solutions make use of only a single exteroceptive
+sensor or sensing modality. While these algorithms have
+been demonstrated to work well in certain environments,
+they have proven brittle to changes in environmental con-
+ditions. This is a result of limitations of both the sensors
+(e.g. RGB-D cameras cannot measure depth in direct sun-
+light) and the odometry algorithms (e.g. long hallways or the
+2.5D-world assumption for planar laser scanners). In practice
+we have found that no one sensor or odometry algorithm is
+This research was supported in part by AFRL S&T sponsorship.
+1Daniel
+P.
+Koch
+is
+with
+the
+Department
+of
+Mechanical
+Engineering,
+Brigham
+Young
+University,
+Provo,
+UT
+84602,
+USA
+daniel.koch@byu.edu
+2Timothy W. McLain is with the Faculty of Mechanical Engineering,
+Brigham Young University, Provo, UT 84602, USA mclain@byu.edu
+3Kevin M. Brink is with the Air Force Research Laboratory, Munitions
+Directorate, USA
+able to provide sufﬁcient performance in all environmental
+conditions that a multirotor may experience during a single
+real-world mission.
+By carrying a suite of complementary sensors, a vehicle
+will be able to obtain good measurements from at least one
+sensor in a broader range of conditions than if it carried only
+a single sensor. A single sensor may also be used under a
+variety of sensing modalities, such as using the monocular
+image only, depth map only, or the combined modality for
+an RGB-D camera (e.g. [1]).
+Some work has appeared in the recent literature on
+approaches for combining updates from multiple sensing
+modalities. Much of this work (e.g. [2]–[5]) fuses updates
+from view-based odometry algorithms with data from GPS
+and other sensors as each modality is available. Incorporating
+updates from multiple view-based odometry algorithms is
+less common. Separate odometry algorithms are run on the
+three sensing modalities of an RGB-D camera in [1], and
+the estimator heuristically switches between these algorithms
+based on metrics computed on the raw sensor data. In
+[6] vision and laser-scan measurements are combined in
+an EKF SLAM framework. The framework described in
+[5] is able to fuse measurements from multiple view-based
+odometry algorithms along with GPS measurements and
+has good robustness to changing conditions. However, the
+global nature of the estimation scheme has drawbacks in
+environments where GPS measurement updates are degraded,
+unavailable for prolonged periods, or absent entirely. This
+will be discussed in Section II.
+The framework described in this paper is designed to fuse
+measurements from a suite of exteroceptive sensors and their
+associated odometry algorithms to improve the robustness of
+the state estimation in challenging and changing GPS-denied
+environments. It is an extension of the relative navigation
+paradigm presented in [7], and is designed to be general
+enough to incorporate updates from any sensor or algorithm
+that produces relative odometry-like updates. The proposed
+framework will still fail if all exteroceptive sensors drop
+out at the same time, but robustness is greatly improved by
+incorporating measurements from multiple sensors.
+A brief overview of the relative navigation paradigm on
+which this framework is built is given in Section II. A general
+description of the proposed framework is then presented in
+Section III. The details of the speciﬁc implementation of this
+framework for a multirotor vehicle are given in Section IV,
+and experimental results are presented in Section V. Conclu-
+sions and future work are discussed in Section VI.
+2016 International Conference on
+Unmanned Aircraft Systems (ICUAS)
+June 7-10, 2016. Arlington, VA USA
+ThCTT1.2
+978-1-4673-9333-1/16/$31.00 ©2016 IEEE
+589
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:12:11 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+1
+2
+3
+ˆx, P
+ˆx1, P1
+ˆx2, P2
+ˆxglobal, Pglobal
+ˆxL.C., PL.C.
+Fig. 1: Illustration of the relative navigation scheme. Axes
+represent node frames, the green line represents the current
+relative state estimate, and blue lines represent saved edges
+in the pose-graph map. The red line represents a loop closure
+constraint, and the magenta line represents the global state
+estimate obtained by compounding the relative edges.
+II. RELATIVE NAVIGATION SCHEME
+This section contains a brief overview of the relative nav-
+igation approach to state estimation as previously explained
+in [7]. The purpose of this section is to lay the groundwork
+for the extension to this approach that will be presented
+in the following sections. For more details on the relative
+navigation approach itself, the reader is referred to [7].
+View-based odometry, by its nature, provides only a rel-
+ative measurement update that gives the translation and ro-
+tation between the sensor’s current location and the location
+at which a keyframe image or scan was previously captured.
+This distinction has important implications when attempting
+to use these measurements to estimate the vehicle’s global
+state. No information is actually available from the algorithm
+about the keyframe’s location relative to the origin of some
+global coordinate system (the term global here may refer to a
+coordinate system deﬁned either by an absolute measurement
+such as GPS, or by the starting location of the vehicle). As
+a result, the global state of the vehicle is unobservable [8].
+The majority of GPS-denied estimation schemes directly
+estimate the global state of the vehicle. The most common
+approaches for incorporating these relative measurements
+into a global state estimate, such as pseudo-global updates
+[9] or stochastic cloning [5], [10], facilitate the use of these
+measurements but fail to address the underlying lack of
+observability and resulting ﬁlter inconsistency or unbounded
+uncertainty.
+In the relative navigation approach, the vehicle state is
+estimated with respect to a local coordinate frame called
+the node frame. This node frame is deﬁned as the local
+level frame (aligned with the vehicle’s heading, but with
+the down axis parallel to the gravity vector) collocated
+with the odometry algorithm’s keyframe. The horizontal
+translation and the heading of the vehicle are referred to as
+the relative portion of the state, and are measured relative to
+this coordinate frame. As a result, the odometry algorithm
+provides direct measurements of the vehicle state, making
+the state fully observable.
+Figure 1 illustrates how the relative navigation approach
+constructs an estimate of the vehicle’s global state. Each
+time the odometry algorithm declares a new keyframe, the
+estimator passes its current state and covariance estimates
+to a back-end map, then declares a new node frame by
+resetting the relative portions of its state and the associated
+covariance to zero. The resetting is what causes the node
+frame to be identically aligned with the odometry keyframe,
+but with pitch and roll removed. The back-end map chains
+these relative estimates together as edges in a pose-graph
+map, from which the global state can be reconstructed at
+any time. Information such as loop closure constraints or
+GPS measurements can be incorporated as additional edges
+in the pose graph map, and an optimization routine can use
+these constraints to remove global drift from the map. This
+formulation, as well as the decoupling between the front-
+end relative state estimates and the back-end global map,
+provides a number of additional beneﬁts related to estimation
+and control performance that are discussed in [7].
+III. MULTI-SENSOR RELATIVE FRAMEWORK
+The relative navigation scheme described in Section II
+deﬁnes the node frame to be identically aligned with the
+odometry keyframe. As a result, without modiﬁcation this
+framework is only able to accept relative updates from a
+single sensor and odometry algorithm. In this section we
+present the modiﬁcation that allows the framework to accept
+updates from any number of sensors and/or odometry algo-
+rithms while still maintaining observability of the relative
+state and ﬁlter consistency.
+The proposed approach is similar to the stochastic cloning
+approaches in [5], [10] in that it augments the state vector
+with additional information required to apply the measure-
+ment updates received from the odometry algorithms. The
+difference is that these additional states are still relative to
+the current node frame instead of to a global frame as in the
+other examples.
+The following sections present the general formulation of
+the multi-sensor relative estimation framework in the con-
+text of a continuous-propagation, discrete-update extended
+Kalman ﬁlter (EKF). It is assumed that the vehicle state x
+propagates according to the dynamics
+˙x = f (x, u) + η ,
+(1)
+with process noise η ∼N (0, Q). The measurement noise
+on updates from the ith view-based odometry algorithm is
+assumed Gaussian with covariance matrix Ri.
+The relevant equations are in general nonlinear, but sim-
+pliﬁed linear equations are also given to aid understanding
+and intuition. The speciﬁc details for a multirotor vehicle are
+given in Section IV.
+A. Augmenting the State Vector
+The various coordinate frames, states, and measurements
+associated with the multi-sensor framework are illustrated
+in Figure 2. The axes represent the keyframes declared by
+each of the odometry algorithms at different times as the
+vehicle traverses the environment. The node frame is again
+590
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:12:11 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+kf i
+kf j
+node,
+kf k
+x
+xi
+xj
+xk
+zi
+Fig. 2: Depiction of the various states and measurement
+updates in the multi-sensor estimation framework. Axes
+represent either the node frame or keyframes as labeled,
+the green line represents the current relative state, blue lines
+represent the keyframe states, and the magenta line represents
+an odometry measurement.
+deﬁned as a local level frame, but is now collocated with the
+most recent keyframe received from any of the odometry
+algorithms (algorithm k for the example in the ﬁgure).
+Measurements received from this odometry can be applied
+as direct measurements of the relative state, maintaining the
+observability of that state.
+To apply an update from one of the other odome-
+try algorithms, we need to know where that odometry’s
+keyframe is relative to the current node frame. We therefore
+augment the state vector with the keyframe states xI =
+
+x1T
+· · ·
+xNTT, one for each odometry algorithm, as
+˘x =
+
+xT
+x1T
+· · ·
+xNTT ,
+(2)
+where x is the current relative state as described in Section II,
+and ˘x is the augmented state vector. These keyframe states
+encode the position and orientation of the keyframe relative
+to and expressed in the node frame coordinate system. The
+keyframe coordinate frame is aligned with the body frame
+of the vehicle at the instant the keyframe image or scan was
+captured. The covariance is also augmented accordingly as
+˘P =
+⎡
+⎢⎢⎢⎣
+Pxx
+Pxx1
+· · ·
+PxxN
+Px1x
+Px1x1
+· · ·
+Px1xN
+...
+...
+...
+...
+PxNx
+PxNx1
+· · ·
+PxNxN
+⎤
+⎥⎥⎥⎦,
+(3)
+where Pxxi is the cross-correlation between the original state
+x and the keyframe state xi, and so forth.
+The keyframe state for the odometry which also deﬁnes
+the current node frame consists only of the altitude, roll, and
+pitch of the vehicle when the keyframe was declared (the
+non-relative portion of the state) with the relative portion of
+the state (horizontal translation and yaw) identically equal to
+zero.
+B. Prediction Step
+The augmented state estimates propagate according to the
+continuous-time dynamics
+˙ˆ˘x = ˘f
+
+ˆ˘x, u
+
+=
+
+f (ˆx, u)
+0
+
+
+,
+(4)
+where the time derivatives of the keyframe states are zero
+since they are not expected to change.
+Linearizing these dynamics about the current estimate ˆ˘x
+gives the Jacobian
+˘F = ∂˘f
+∂ˆ˘x
+=
+
+F
+0
+
+
+,
+(5)
+where F = ∂f
+∂ˆx. The augmented process noise matrix can be
+written as
+˘Q =
+
+Q
+0
+0
+0
+
+
+,
+(6)
+and the augmented covariance propagates according to
+˙˘P = ˘F˘P + ˘P˘F
+T + ˘Q
+(7)
+=
+
+FPxx + PxxFT + Q
+FPxxI
+PxIxFT
+0
+
+
+.
+(8)
+C. Measurement Updates
+Measurements are processed as they become available
+using the discrete-time update equations. This allows the
+ﬁlter to accept measurements from odometry algorithms with
+independent update rates. The full augmented state, including
+both the normal relative state and the keyframe state, is
+allowed to change during measurement updates. This allows
+the estimates of the keyframe locations to be reﬁned when
+sufﬁcient information is available. Because the covariance
+associated with relative portions of the keyframe state that is
+currently coincident with the node frame is zero, this state
+will not change during updates. This is desirable since those
+portions of the state are zero by deﬁnition to maintain the
+observability of the system.
+Measurement models for sensors besides the view-based
+odometry algorithms, such as IMUs and altimeters, depend
+only on the current relative state and not on the keyframe
+states. As such they can be applied as normal, except that the
+Jacobian of the measurement model with respect to the state
+must be augmented on the right by zeros to account for the
+keyframe states as ˘H =
+
+H
+0
+
+. The full augmented state
+and covariance can then be updated using the normal Kalman
+ﬁlter update equations with this augmented Jacobian.
+The measurement model for odometry updates depends
+on both the current relative state and the keyframe states.
+An odometry measurement gives the current position of the
+vehicle relative to and expressed in the keyframe coordinate
+frame, as illustrated in Figure 2. A simple linear measure-
+ment model for an update from odometry algorithm i could
+be given by
+ˆzi = Γ (ˆxi) (ˆx −ˆxi) ,
+(9)
+where Γ (ˆxi) is a matrix that rotates the compounded relative
+state and keyframe state, ˆx−ˆxi, into the coordinate frame of
+591
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:12:11 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+keyframe i. In practice this compounding and rotation of the
+current and keyframe states may not be a linear operation (as
+in Section IV), in which case we write ˆzi = hodom (ˆx, ˆxi).
+The Jacobian of this model with respect to the augmented
+state is computed as
+˘Hodom,i =
+
+∂hodom
+∂ˆx
+0
+· · ·
+∂hodom
+∂ˆxi
+· · ·
+0
+
+(10)
+and the full augmented state and covariance are then again
+updated using the normal Kalman ﬁlter update equations.
+D. Resetting the Relative State
+Each
+time
+an
+odometry
+algorithm
+declares
+a
+new
+keyframe, the estimator declares a new node frame. There are
+three actions that must be completed each time this occurs: 1)
+reset the relative portion of the current relative state estimate
+ˆx to zero, 2) update each keyframe state estimate ˆxi to be
+relative to and expressed in the new node frame coordinate
+system, and 3) update the augmented covariance matrix ˘P
+accordingly.
+The current relative estimate is reset by zeroing the relative
+portions of the state while not changing the other portions.
+For the linear case, this can be accomplished as
+ˆx+ = Ξˆx
+(11)
+where Ξ is a matrix of zeros with ones on the diagonal for
+each of the non-relative states. For the nonlinear case (as in
+Section IV), we can write ˆx+ = ξ (ˆx). We can then compute
+the Jacobian ∂ξ(ˆx)
+∂ˆx
+that is needed to update the covariance.
+Suppose that odometry algorithm j in Figure 2 declares a
+new keyframe. The new keyframe for algorithm j is deﬁned
+to be identically aligned with the body frame at that instant,
+while the node frame is deﬁned as the current local level
+frame (no pitch or roll). Therefore any discrepancy between
+the node frame and keyframe is in the non-relative portions
+of the state, and is completely deﬁned by the current relative
+state estimate ˆx. We can therefore update the keyframe state
+for odometry j as
+ˆxj
++ = Ξ′ˆx ,
+(12)
+where the matrix Ξ′ is the concatenation of the rows of Ξ
+corresponding to elements of the keyframe state (again, this
+operation may be nonlinear in practice, in which case we
+write ˆxj
++ = ξ′ (ˆx)). We again compute the Jacobian ∂ξ′(ˆx)
+∂ˆx
+for use in updating the covariance.
+The other keyframe states must now be updated to be
+relative to and expressed in the new node frame. This can
+be done for the simpliﬁed linear case as
+ˆxi
++ = Λ (ˆxi) (ˆxi −ˆx)
+(13)
+where Λ (ˆxi) rotates the relative portions of ˆxi −ˆx into the
+coordinate system of the new node frame. For the nonlinear
+case this becomes ˆxi
++ = λ (ˆx, ˆxi) and the appropriate
+Jacobians can be computed.
+From equations (11), (12), and (13) or their nonlinear
+equivalents, we can construct the matrix
+T =
+⎡
+⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎣
+∂ˆx+
+∂ˆx
+0
+0
+· · ·
+0
+0
+∂ˆx1
++
+∂ˆx
+∂ˆx1
++
+∂ˆx1
+0
+· · ·
+0
+0
+∂ˆx2
++
+∂ˆx
+0
+∂ˆx2
++
+∂ˆx2
+· · ·
+0
+0
+...
+...
+...
+...
+...
+...
+∂ˆxj
++
+∂ˆx
+0
+0
+· · ·
+0
+0
+...
+...
+...
+...
+...
+...
+∂ˆxN
++
+∂ˆx
+0
+0
+· · ·
+0
+∂ˆxN
++
+∂ˆxN
+⎤
+⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎦
+,
+(14)
+where odometry algorithm j is the one that has declared
+a new keyframe. The augmented covariance matrix is then
+updated as
+˘P
++ = T˘PTT .
+(15)
+This process correctly accounts for all of the uncertainty in
+the system. Because the relative portions of the keyframe
+state for the odometry that just declared a new keyframe
+are set to zero, the covariance in these states remains
+small as each odometry algorithm continues to declare new
+keyframes.
+Another important result of this approach is that since the
+new keyframe state for an odometry algorithm that has just
+declared a new keyframe depends only on the current relative
+state, updates from an odometry algorithm that has been in a
+failure state and then reinitializes with a new keyframe can
+be seamlessly integrated.
+IV. MULTIROTOR IMPLEMENTATION DETAILS
+This section presents the implementation details of the
+multi-sensor estimation framework for a multirotor vehicle.
+The attitude of the vehicle is represented as a quaternion, and
+the estimator is an indirect multiplicative extended Kalman
+ﬁlter following [11]. The term “multiplicative” refers to the
+deﬁnition of the attitude error as the quaternion multiplica-
+tion of the true and estimated attitude states:
+δq = q ⊗ˆq−1 .
+(16)
+All other non-quaternion error states are deﬁned in the usual
+way as
+δa = a −ˆa .
+(17)
+The current relative state of the vehicle is
+x =
+
+pb
+n
+T
+qb
+n
+T
+vbT
+βT
+αT
+T
+(18)
+where pb
+n is the position relative to the node frame, qb
+n is
+the attitude relative to the node frame, vb is the body-frame
+velocity, β is the rate gyro biases, and α is the x and y
+accelerometer biases.
+The ﬁlter is an indirect ﬁlter, and so the covariance of
+the error state is estimated rather than that of the full state.
+Because attitude has three degrees of freedom, the 4-element
+unit quaternion is an over-constrained representation. There-
+fore rather than estimating the covariance of the quaternion
+directly, the covariance of the attitude error vector δθb
+n is
+592
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:12:11 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+estimated instead, which for small attitude errors is deﬁned
+as
+δq ≈
+ 1
+2δθ
+1
+
+
+.
+(19)
+The current relative error state is then given by
+Δx =
+
+δpb
+n
+T
+δθb
+n
+T
+δvbT
+δβT
+δαT
+T
+.
+(20)
+Each keyframe state is deﬁned as
+xi =
+
+pi
+n
+T
+qi
+n
+TT
+,
+(21)
+where pi
+n is the position of keyframe i relative to the node
+frame, and qi
+n is the attitude of the keyframe relative to the
+node frame. The covariance is again estimated for the attitude
+error vector δθi
+n and the keyframe error state becomes
+Δxi =
+
+δpi
+n
+T
+δθi
+n
+TT
+.
+(22)
+The following sections describe the equations associated
+with the Kalman ﬁlter prediction and measurement update
+steps as well as those associated with resetting the relative
+state when a new keyframe is received.
+A. Prediction
+The state dynamics ˙ˆx = f (ˆx, u) are given by
+˙ˆpb
+n = RT 
+ˆqb
+n
+
+ˆvb
+(23)
+˙ˆqb
+n = 1
+2Ω
+
+ωm −ˆβ
+
+ˆqb
+n
+(24)
+˙ˆv
+b = ˆvb ×
+
+ωm −ˆβ
+
++ R
+
+ˆqb
+n
+
+g −μMˆvb + am
+z e3 (25)
+˙ˆβ = 0
+(26)
+˙ˆα = 0 ,
+(27)
+where ωm is the angular rates measured by the rate gyros,
+am
+z
+is the measured z acceleration, and g is the gravity
+vector. The matrix M is given by M = diag (1/m, 1/m, 0),
+and μ is the rotor drag coefﬁcient as described in [12].
+e3 is the unit vector
+
+0
+0
+1
+T, and R (q) is a rotation
+matrix that is equivalent to the quaternion rotational oper-
+ation qy
+x ⊗v ⊗qy
+x
+−1 that rotates the vector v expressed
+in frame x to frame y [13]. For a quaternion of the order
+q =
+qx
+qy
+qz
+qw
+T, the matrix Ω (ω) is given in [14]
+as
+Ω (ω) =
+⎡
+⎢⎢⎣
+0
+ω3
+−ω2
+ω1
+−ω3
+0
+ω1
+ω2
+ω2
+−ω1
+0
+ω3
+−ω1
+−ω2
+−ω3
+0
+⎤
+⎥⎥⎦.
+(28)
+From these dynamics the linearized error state dynamics
+Δ˙x = FΔx + Gu
+(29)
+can be derived, where the Jacobians with respect to the error
+state F and input G are used to propagate the covariance.
+For details refer to [11].
+node
+keyframe
+body
+current camera
+keyframe camera
+pi
+n, qi
+n
+pb
+n, qb
+n
+podom, qodom
+pc
+b, qc
+b
+pc
+b, qc
+b
+Fig. 3: Transforms associated with an odometry update. Solid
+lines represent transforms we already know, and dashed lines
+represent transforms we wish to construct.
+B. Measurement Updates
+The following sections give the measurement models for
+the accelerometer, altimeter, and odometry updates. The true
+and estimated measurement models (h and ˆh respectively)
+for each update are given, and the analytic residual Δh =
+h −ˆh is derived. The non-zero portions of the Jacobian of
+the residual with respect to the error state ˘H = ∂Δh/∂Δ˘x,
+needed for the Kalman update step, are then given.
+1) Accelerometer Update: Only the x and y accelerometer
+measurements are applied as updates since the z measure-
+ment is used in the propagation. The measurement models
+are given by
+hacc = −μ
+mvb
+(1:2) + α + ηacc
+(30)
+ˆhacc = −μ
+mˆvb
+(1:2) + ˆα
+(31)
+with analytic residual
+Δhacc = −μ
+mδˆvb
+(1:2) + δ ˆα + ηacc .
+(32)
+The non-zero portions of the Jacobian with respect to the
+error state are then
+∂Δhacc
+∂δvb
+= −μ
+mI2×3
+(33)
+∂Δhacc
+∂δα
+= I2×2 .
+(34)
+2) Altimeter Update: The altimeter measurement models
+are given by
+halt = −pd + ηalt
+(35)
+ˆhalt = −ˆpd
+(36)
+with analytic residual
+Δhalt = −δpd + ηalt
+(37)
+and non-zero Jacobian element
+∂Δhalt
+∂δpb
+n
+=
+
+0
+0
+−1
+
+.
+(38)
+593
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:12:11 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+3) Odometry Update: Currently only the translation por-
+tions of the odometry update are applied. The transforms
+associated with a measurement update from a view-based
+odometry are shown in Figure 3. In our formulation an
+odometry update provides the transform from the current
+sensor location to the keyframe sensor location, expressed
+in the current sensor frame. We also take into account
+translation and rotational offsets (pc
+b, qc
+b) of the sensor with
+respect to the body frame. The true measurement model,
+equivalent to podom in Figure 3, is given by
+hodom = −R
+
+qc
+b
+
+pc
+b −R
+
+qc
+b
+
+R
+
+qb
+n
+ 
+pb
+n −pi
+n
+
++ R
+
+qc
+b
+
+R
+
+qb
+n
+
+R
+
+qi
+n
+
+pc
+b + ηodom
+(39)
+and the estimated measurement model by
+ˆhodom = −R
+
+ˆqc
+b
+
+pc
+b −R
+
+ˆqc
+b
+
+R
+
+ˆqb
+n
+ 
+ˆpb
+n −ˆpi
+n
+
++ R
+
+ˆqc
+b
+
+R
+
+ˆqb
+n
+
+R
+
+ˆqi
+n
+
+pc
+b .
+(40)
+The position and orientation of the sensor in the body frame,
+pc
+b and qc
+b, are assumed to be known from calibration. Using
+the facts p = ˆp + δp and q = δq ⊗ˆq
+=⇒
+R (q) =
+R (ˆq) R (δq), identities [14] R (δq) ≈I −⌊δθ⌋× and
+⌊a⌋× b = −a ⌊b⌋× where ⌊·⌋× is the skew symmetric
+matrix operator on a vector, and dropping second-order
+terms, we can calculate the analytic residual Δhodom =
+hodom −ˆhodom as
+Δhodom = −R
+
+qc
+b
+
+R
+
+ˆqb
+n
+ 
+δpb
+n −δpi
+n
+
+−R
+
+qc
+b
+
+R
+
+ˆqb
+n
+ 
+ˆpb
+n −ˆpi
+n −R
+
+ˆqi
+n
+
+pc
+b
+
+× δθb
+n
++ R
+
+qc
+b
+
+R
+
+ˆqb
+n
+
+R
+
+ˆqi
+n
+ 
+pc
+b
+
+× δθi
+n + ηodom .
+(41)
+The non-zero elements of the Jacobian of the residual with
+respect to the current relative error state are then
+∂Δhodom
+∂δpb
+n
+= −R
+
+ˆqc
+b
+
+R
+
+ˆqb
+n
+
+(42)
+∂Δhodom
+∂δθb
+n
+= −R
+
+ˆqc
+b
+
+R
+
+ˆqb
+n
+ 
+ˆpb
+n −ˆpi
+n −R
+
+ˆqi
+n
+
+pc
+b
+
+× ,
+(43)
+and with respect to the keyframe error state are
+∂Δhodom
+∂δpi
+n
+= R
+
+ˆqc
+b
+
+R
+
+ˆqb
+n
+
+(44)
+∂Δhodom
+∂δθi
+n
+= R
+
+ˆqc
+b
+
+R
+
+ˆqb
+n
+
+R
+
+ˆqi
+n
+ 
+pc
+b
+
+× .
+(45)
+C. Resetting the Relative State
+The transforms associated with receiving a new keyframe,
+declaring a new node frame, and resetting the relative state
+are shown in Figure 4. In this example odometry j has
+declared a new keyframe, while odometry i has not.
+We ﬁrst deﬁne (pedge, qedge) as the transform between the
+current node frame and the new node frame:
+pedge ≜
+⎡
+⎣
+
+pb
+n
+
+x
+
+pb
+n
+
+y
+0
+⎤
+⎦
+(46)
+qedge ≜Yaw
+
+qb
+n
+
+(47)
+current node
+body, kf j+
+new node
+kf i, kf i+
+kf j
+pb
+n, qb
+n
+pi
+n, qi
+n
+pj
+n, qj
+n
+pi
+n
++, qi
+n
++
+pb
+n
++, qb
+n
++
+pj
+n
++, qj
+n
++
+pedge, qedge
+Fig. 4: Transforms associated with resetting the relative state
+when a new keyframe is received from odometry j. Solid
+lines represent transforms we already know, and dashed lines
+represent transforms we wish to construct.
+where the operator Yaw (q) returns a quaternion that is
+equivalent to only the yaw portion of the rotation deﬁned
+by q. The new ﬁlter states are then given by
+pb
+n
++ ≜
+⎡
+⎣
+0
+0
+
+pb
+n
+
+z
+⎤
+⎦
+(48)
+qb
+n
++ ≜RollPitch
+
+qb
+n
+
+(49)
+pj
+n
++ ≜pb
+n
++
+(50)
+qj
+n
++ ≜qb
+n
++
+(51)
+pi
+n
++ = RT 
+qedge
+ 
+pi
+n −pedge
+
+(52)
+qi
+n
++ = qedge
+−1 ⊗qi
+n .
+(53)
+The operator RollPitch (q) returns a quaternion that is
+equivalent to only the roll and pitch portions of the rotation
+deﬁned by q.
+We now wish to compute the Jacobians associated with
+each of these transformations for use in the matrix T of
+equations (14) and (15). The Jacobian for pb
+n
++ is trivial.
+Because we represent the covariance of the attitude as the
+attitude error vector δθ, and since we simply zero out the yaw
+but keep the same roll and pitch, the new attitude error vector
+is δθb
+n
++ =
+
+δθb
+n
+
+x
+
+δθb
+n
+
+y
+0
+T
+. This Jacobian then also
+becomes trivial. The non-zero elements of the Jacobian for
+δpb
+n
++ and δθb
+n
++ are then
+∂
+
+δpb
+n
++
+∂
+
+δpb
+n
+
+=
+⎡
+⎣
+0
+0
+0
+0
+0
+0
+0
+0
+1
+⎤
+⎦
+(54)
+∂
+
+δθb
+n
++
+∂
+
+δθb
+n
+
+=
+⎡
+⎣
+1
+0
+0
+0
+1
+0
+0
+0
+0
+⎤
+⎦
+(55)
+∂
+
+δvb+
+∂(δvb)
+= ∂
+
+δβ+
+∂(δβ)
+= ∂(δα+)
+∂(δα) = I .
+(56)
+594
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:12:11 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+The non-zero elements of the Jacobian for δpj
+n
++, δθj
+n
++ are
+similarly trivial and are given by
+∂
+
+δpj
+n
++
+∂
+
+δpb
+n
+
+=
+⎡
+⎣
+0
+0
+0
+0
+0
+0
+0
+0
+1
+⎤
+⎦
+(57)
+∂
+
+δθj
+n
++
+∂
+
+δθb
+n
+
+=
+⎡
+⎣
+1
+0
+0
+0
+1
+0
+0
+0
+0
+⎤
+⎦.
+(58)
+The Jacobians for the error state δpi
+n
++ are computed using
+an argument similar to that used for the odometry update
+equations as
+∂
+
+δpi
+n
++
+∂
+
+δpb
+n
+
+= −R
+
+ˆqedge
+
+⎡
+⎣
+1
+0
+0
+0
+1
+0
+0
+0
+0
+⎤
+⎦
+(59)
+∂
+
+δpi
+n
++
+∂
+
+δθb
+n
+
+= R
+
+ˆqedge
+ 
+ˆpi
+n −ˆpedge
+
+×
+⎡
+⎣
+0
+0
+0
+0
+0
+0
+0
+0
+1
+⎤
+⎦
+(60)
+∂
+
+δpi
+n
++
+∂
+
+δpi
+n
+
+= R
+
+ˆqedge
+
+.
+(61)
+For the rotational portion of the keyframe state δθi
+n
++, we
+begin with δqi
+n
++ = δqedge
+−1 ⊗δqi
+n, and expand it as [14]
+ 1
+2δθi
+n
++
+1
+
+
+=
+−1
+2δθedge
+1
+
+
+⊗
+ 1
+2δθi
+n
+1
+
+
+(62)
+=
+
+I −1
+2
+
+δθedge
+
+×
+−1
+2δθedge
+1
+2δθedge
+T
+1
+  1
+2δθi
+n
+1
+
+
+, (63)
+which after multiplying out and dropping second-order terms
+produces
+δθi
+n
++ = δθi
+n −δθedge .
+(64)
+The non-zero elements of the Jacobian can then be computed
+as
+∂
+
+δθi
+n
++
+∂
+
+δθb
+n
+
+= −
+⎡
+⎣
+0
+0
+0
+0
+0
+0
+0
+0
+1
+⎤
+⎦
+(65)
+∂
+
+δθi
+n
++
+∂
+
+δθi
+n
+
+= I .
+(66)
+This completes the derivation of the equations and Jacobians
+used in the multirotor MEKF implementation.
+V. EXPERIMENTAL SETUP AND RESULTS
+Experimental results were obtained by ﬂying a multirotor
+vehicle in both a motion capture environment and through
+a challenging indoor environment. Visual odometry updates
+were obtained at 15 Hz using the algorithm from [15] with an
+ASUS Xtion Pro Live RGB-D camera. Laser scan matching
+updates were obtained at 20 to 40 Hz using the algorithm
+from [16] with a Hokuyo UTM-30LX planar laser scanner.
+The vehicle also carried a MicroStrain 3DM-GX3-15 IMU
+and a MaxBotix MB1242 ultrasonic altimeter.
+0
+20
+40
+60
+80
+100
+120
+time [s]
+Laser
+RGB-D
+(a) Availability of view-based odometry measurements
+0
+20
+40
+60
+80
+100
+120
+time [s]
+0
+2
+4
+6
+8
+error [m]
+RGB-D only
+Laser only
+Multi-sensor
+(b) Error in global position estimate over time
+Fig. 5: Flight test results for the motion capture environment
+TABLE I: RMS global position estimation error in motion
+capture environment. Error is presented as both an absolute
+measurement and normalized as a percentage of the total
+path length.
+Estimator
+RMS Error (m)
+RMS Error (%)
+RGB-D only
+1.34
+5.12%
+Laser only
+5.02
+25.9%
+Multi-sensor
+0.517
+1.97%
+Three estimators were run on the data from each test ﬂight
+for comparison. Two of the estimators were the single-sensor,
+relative MEKF of [11] using either the RGB-D odometry or
+the laser scan matching odometry. The third was the multi-
+sensor extension of [11] presented in this paper, using both
+sources of odometry. The visual odometry and scan matching
+algorithms ran real-time on the onboard computer, a quad-
+core Intel i7 processor at 2.1GHz. The estimators were run
+ofﬂine on recorded data for ease of development, but would
+easily also run in real-time on the onboard computer.
+A. Motion Capture Environment
+As the vehicle ﬂew in the motion capture volume, each of
+the odometry measurements was turned off at different times
+to simulate failure. The availability of these measurements
+for one test ﬂight is shown in Figure 5a, and the error in
+the estimated global position for the single-sensor and multi-
+sensor approaches is shown in Figure 5b. Table I summarizes
+the root mean square (RMS) error over the entire ﬂight,
+presented both as an absolute value and normalized as a
+percentage of the total path length.
+The estimation error was much lower for the multi-sensor
+approach, as the accuracy of the single-sensor approaches de-
+graded signiﬁcantly during the periods when measurements
+were unavailable. The magnitude of the error for the single-
+sensor approaches was highly dependent on the speciﬁc time
+that the measurements were turned off. While the error using
+only RGB-D was relatively low for the example summarized
+in Table I, for the same path errors above 25% were obtained
+595
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:12:11 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+by turning the off the measurements for the same duration
+but at a different time. The performance of the multi-sensor
+approach, on the other hand, remained consistent as long as
+both odometry sources were not turned off simultaneously.
+B. Challenging Indoor Environment
+The indoor test environment was chosen because it is
+a good example of ﬂight conditions that are of practical
+interest, but in which single-sensor approaches fail. The
+layout of the environment, and the vehicle’s path through
+it, are shown with the estimation results in Figure 6.
+Two aspects of the environment were challenging for the
+single-sensor approaches, and are highlighted in Figure 6.
+The ﬁrst of these was a dark room, shaded in blue, in the
+southwest corner of environment. Visual features could not
+be extracted from images due to the lack of illumination,
+which caused the visual odometry to fail in this region. The
+other challenging feature was the long hallways, shaded in
+red. The laser scan matching produced inaccurate measure-
+ments in these environments because there was not enough
+information to determine how far down the hallway the
+vehicle had moved.
+For the multi-sensor approach, the visual odometry and
+laser scan matching were manually gated in the indicated
+failure regions. Eliminating the need for this manual gating
+is a key objective for future research, as further discussed
+in Section VI. The measurements were not gated for the
+single-sensor approaches because gating resulted in poorer
+estimation results than those presented here.
+Figures 6a and 6b show that the single-sensor approaches
+accumulated large estimation errors in the regions in which
+their respective odometry measurements degraded. This re-
+sulted in signiﬁcant error in the estimated global path. The
+results in Figure 6c for the multi-sensor approach, on the
+other hand, show that the estimated path is very close to
+the true path of the vehicle. The error for this approach is
+consistent with the global drift expected for an estimation
+scheme using only relative measurement updates, and can
+be reduced further using the map optimization techniques
+discussed in Section II. These results demonstrate that the
+proposed approach is able to produce accurate and useful es-
+timates in environments that cause single-sensor approaches
+to fail.
+VI. DISCUSSION AND CONCLUSIONS
+This paper presented a relative estimation framework
+that incorporates measurement updates from any number of
+view-based odometry algorithms running on a collection of
+exteroceptive sensors or sensing modalities. The framework
+is general and can work with any algorithm that provides
+odometry-like relative updates, and is not tied to speciﬁc
+sensors or odometry algorithms. The odometry algorithms
+can also operate independently of each other without the need
+for synchronizing keyframes or update rates. Incorporating
+measurements from multiple sensors in this manner allows
+the estimator to continue producing accurate estimates as
+the vehicle traverses challenging environments that cause
+(a) Single-sensor approach with RGB-D visual odometry
+(b) Single-sensor approach with laser scan matching
+(c) Multi-sensor approach with RGB-D visual odometry and laser
+scan matching
+Fig. 6: Estimation results for an indoor ﬂight with an
+RGB-D camera and laser scanner. The dashed line shows
+the approximate true path of the vehicle overlaid on the
+building ﬂoor plan. The thick green line is the estimated
+path. The black circle represents the starting position. The
+shaded red areas indicate long hallways where the laser scan
+matching performed poorly and was gated for the multi-
+sensor approach. The blue hatched area indicates a dark room
+where the RGB-D odometry failed and was gated.
+596
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:12:11 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+intermittent failure in the various sensing modalities. Exper-
+imental results demonstrate the validity and value of this
+approach.
+The framework outlined in this paper currently produces
+good results when the odometry algorithms either provide
+valid measurement updates, or provide no updates at all when
+they are in a failure state. For the results in this paper, this
+was achieved with manual gating of the updates. Future work
+will investigate methods for automatically detecting and
+rejecting erroneous measurement updates. Additional future
+work will investigate incorporating global measurements
+such as GPS into this framework when they are available.
+REFERENCES
+[1]
+R. C. Leishman, D. P. Koch, T. W. McLain, and R. W.
+Beard, “Robust motion estimation using an RGB-D
+camera,” in AIAA Infotech@Aerospace Conference,
+Boston, 2013.
+[2]
+O. Aboutalib, B. Awalt, A. Fung, B. Thai, J. Leibs,
+T. J. Klausutis, R. Wehling, and M. Iames, “All
+source adaptive fusion for aided navigation in non-
+GPS environment,” Proceedings of SPIE, vol. 6575,
+no. Visual Information Processing XVI, p. 657 509,
+Apr. 2007.
+[3]
+S. D. Bopardikar, S. Zhang, and A. Speranzon, “A
+robust and adaptive framework for localization under
+varying sensor modalities,” in AIAA Guidance, Navi-
+gation, and Control (GNC) Conference, Boston, Aug.
+2013.
+[4]
+A. Chambers, S. Scherer, L. Yoder, S. Jain, S. Nuske,
+and S. Singh, “Robust multi-sensor fusion for micro
+aerial vehicle navigation in GPS-degraded/denied en-
+vironments,” in American Control Conference (ACC),
+2014, pp. 1892–1899.
+[5]
+S. Shen, Y. Mulgaonkar, N. Michael, and V. Kumar,
+“Multi-sensor fusion for robust autonomous ﬂight in
+indoor and outdoor environments with a rotorcraft
+MAV,” in 2014 IEEE International Conference on
+Robotics & Automation (ICRA), 2014, pp. 4974–4981.
+[6]
+D. Magree and E. N. Johnson, “Combined laser
+and vision-aided inertial navigation for an indoor
+unmanned aerial vehicle,” in American Control Con-
+ference (ACC), 2014, pp. 1900–1905.
+[7]
+R. C. Leishman, T. W. McLain, and R. W. Beard,
+“Relative navigation approach for vision-based aerial
+GPS-denied navigation,” Journal of Intelligent and
+Robotic Systems, vol. 74, no. 1, pp. 79–111, 2014.
+[8]
+D. G. Kottas, J. A. Hesch, S. L. Bowman, and
+S. I. Roumeliotis, “On the consistency of vision-aided
+inertial navigation,” Experimental Robotics, pp. 1–15,
+2013.
+[9]
+A. G. Bachrach, “Autonomous ﬂight in unstructured
+and unknown indoor environments,” Master of Sci-
+ence, Massachusetts Institute of Technology, 2009.
+[10]
+S. I. Roumeliotis and J. Burdick, “Stochastic cloning:
+A generalized framework for processing relative state
+measurements,” in Proceedings 2002 IEEE Interna-
+tional Conference on Robotics and Automation, vol. 2,
+May 2002, pp. 1788–1795.
+[11]
+R. C. Leishman and T. W. McLain, “Multiplicative
+extended Kalman ﬁlter for relative rotorcraft naviga-
+tion,” Journal of Aerospace Information Systems, vol.
+12, no. 12, pp. 728–744, 2014.
+[12]
+R. C. Leishman, J. C. Macdonald, R. W. Beard, and
+T. W. Mclain, “Quadrotors and accelerometers: State
+estimation with an improved dynamic model,” Control
+Systems, IEEE, vol. 34, no. 1, pp. 28–41, 2014.
+[13]
+J. B. Kuipers, Quaternions and Rotation Sequences:
+A Primer with Applications to Orbits, Aerospace, and
+Virtual Reality. Princeton: Princeton University Press,
+1999.
+[14]
+N. Trawny and S. I. Roumeliotis, “Indirect Kalman
+ﬁlter for 3D attitude estimation: A tutorial for quater-
+nion algebra,” University of Minnesota, Department
+of Computer Science and Engineering, Minneapolis,
+Tech. Rep. 2005-002, Rev. 57, 2005. [Online]. Avail-
+able: http : / / www - users . cs . umn . edu /
+˜trawny/Publications/Quaternions_3D.
+pdf.
+[15]
+J. Zhang, M. Kaess, and S. Singh, “Real-time depth
+enhanced monocular odometry,” in IEEE International
+Conference on Intelligent Robots and Systems, IEEE,
+Sep. 2014, pp. 4973–4980.
+[16]
+A. Censi, “An ICP variant using a point-to-line met-
+ric,” in IEEE International Conference on Robotics
+and Automation, IEEE, May 2008, pp. 19–25.
+597
+Authorized licensed use limited to: KIIT University. Downloaded on September 18,2026 at 13:12:11 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

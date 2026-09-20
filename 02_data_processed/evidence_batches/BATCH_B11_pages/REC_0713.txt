@@ -1,0 +1,847 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0713.pdf
+sha256: 24B122B4271D2B7CBF70A69D61B941E74AAF20E37C8696F58A035BC8C3BC7EEC
+library: pymupdf (fitz) v1.28.2
+pages: 8
+=== BEGIN ===
+[p.1]
+3692
+IEEE ROBOTICS AND AUTOMATION LETTERS, VOL. 11, NO. 3, MARCH 2026
+Autonomous UAV Pipeline Landing via
+Depth-LiDAR Fusion in GNSS-Denied Reﬁneries
+David Tejero-Ruiz
+, Marco A. Montes-Grova
+, Francisco J. Pérez-Grau
+, Antidio Viguria, and Aníbal Ollero
+Abstract—Autonomous UAV inspection in industrial reﬁneries
+demands precise landing on pipelines under GNSS-denied condi-
+tions. This work presents a complete software architecture that
+integrates LiDAR-based localization with a novel multi-sensor
+framework for pipeline perception and tracking. The proposed
+method processes dual 2D laser scans and fuses them with depth
+data through a temporal ﬁlter. This enables consistent mapping
+and tracking of pipelines, effectively rejecting spurious detec-
+tions and maintaining a reliable scene representation. The system
+is validated both in controlled indoor experiments and through
+fully autonomous landing missions in a real reﬁnery, demonstrat-
+ing robust performance and accurate alignment with the target
+infrastructure.
+Index Terms—Aerial systems: Perception and autonomy, sensor
+fusion, GNSS-denied navigation, autonomous landing.
+I. INTRODUCTION
+A
+UTONOMOUS inspection using Unmanned Aerial Ve-
+hicles (UAVs) is rapidly transforming industrial inspec-
+tion and maintenance operations. In environments such as re-
+ﬁneries, the ability to perform high-precision navigation and
+landing tasks is critical for close-range inspection of com-
+plex infrastructures such as pipelines. However, these scenar-
+ios often pose signiﬁcant challenges due to the absence of
+signals from the Global Navigation Satellite System (GNSS),
+heavy occlusions, metallic interference, and reﬂective surfaces
+that degrade traditional perception systems. Overcoming these
+limitations requires robust localization and perception meth-
+ods capable of operating reliably in GNSS-denied industrial
+environments [1].
+To address these challenges, recent research has explored
+a range of sensor fusion strategies that combine visual, in-
+ertial, and LiDAR data. While visual–inertial odometry has
+shown promise in structured environments, reﬁnery settings
+Received 21 October 2025; accepted 20 January 2026. Date of publication
+6 February 2026; date of current version 16 February 2026. This article was
+recommended for publication by Associate Editor N. Vitzilaios and Editor G.
+Loianno upon evaluation of the reviewers’ comments. This work was supported
+by the SIMAR project, through EU’s Horizon Europe Research and Innova-
+tion Programme under Grant Agreement 101070604. (Corresponding author:
+Francisco J. Pérez-Grau.)
+David Tejero-Ruiz, Marco A. Montes-Grova, Francisco J. Pérez-Grau,
+and Antidio Viguria are with the
+Advanced Center for Aerospace
+Technologies (CATEC), 41309 Seville, Spain (e-mail: dtejero@catec.aero;
+mmontes@catec.aero; fjperez@catec.aero; aviguria@catec.aero).
+Aníbal Ollero is with the
+Advanced Center for Aerospace Technologies
+(CATEC), 41309 Seville, Spain, and also with the Robotics, Vision and
+Control Group (GRVC), University of Seville, 41092 Seville, Spain (e-mail:
+aollero@us.es).
+Digital Object Identiﬁer 10.1109/LRA.2026.3662655
+Fig. 1.
+High-precision autonomous landing and deployment of PEC and X-ray
+inspection systems on a reﬁnery pipeline.
+introduce unfavorable lighting conditions, texture scarcity, and
+dynamic interference from thermal emissions or airborne par-
+ticles. LiDAR, by contrast, offers dense geometric information
+and resilience to changes in illumination, making it a promising
+foundation for precise localization and mapping. Building on
+these advantages, integrating LiDAR data with complementary
+sensing modalities can enhance the UAV’s ability to detect
+and track narrow, elongated targets such as pipelines with high
+reliability. Several works highlight the growing maturity of
+LiDAR-based autonomy frameworks [2], [3], [4].
+However, relying solely on LiDAR data can be insufﬁcient
+for precise target interaction tasks, such as landing on industrial
+structures. Multi-sensor systems combining visual, inertial, and
+LiDAR modalities have shown improved robustness, conﬁrming
+the importance of fusing spatial and perception data for precise
+interaction with industrial assets [5], [6].
+Building upon this foundation, this work proposes a uniﬁed
+software architecture that integrates LiDAR-based localization
+with a novel multi-sensor pipeline perception framework. Sim-
+ilarly to approaches explored in multi-sensor geodata fusion for
+UAV inspection [7], [8], [9], [10], the proposed system fuses
+dual 2D laser scans and depth data through a temporal ﬁlter
+to maintain a stable spatial representation in cluttered reﬁnery
+environments. The proposed architecture extends LiDAR-based
+navigation to the domain of autonomous UAV landing in GNSS-
+denied industrial environments, demonstrating consistent align-
+ment, robust performance, and reliable feature tracking dur-
+ing both laboratory trials and real-world reﬁnery deployments.
+Fig. 1 shows the aircraft during an autonomous operation at
+an Oil&Gas reﬁnery. Therefore, the main contributions can be
+summarized as follows:
+2377-3766 © 2026 IEEE. All rights reserved, including rights for text and data mining, and training of artiﬁcial intelligence and similar technologies.
+Personal use is permitted, but republication/redistribution requires IEEE permission. See https://www.ieee.org/publications/rights/index.html for more information.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:52 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+TEJERO-RUIZ et al.: AUTONOMOUS UAV PIPELINE LANDING VIA DEPTH-LIDAR FUSION IN GNSS-DENIED REFINERIES
+3693
+Fig. 2.
+The custom UAV platform, highlighting the multi-modal sensor suite
+for localization and perception.
+r A robust software architecture that combines global local-
+ization and relative perception for autonomous landing in
+GNSS-denied environments.
+r A pipeline tracking module fusing depth and dual-laser
+data, with a conﬁguration that allows direct 3D pipe pose
+estimations and overcomes single-scan limitations.
+r Comprehensive validation of the entire system in both
+controlled indoor settings and through fully autonomous
+landing missions in a real-world reﬁnery, demonstrating
+sub-3 cm landing precision.
+II. AERIAL ROBOT DESCRIPTION
+The aerial robot presented in this work is an evolution of
+related work from [10]. Instead of remaining attached to the
+pipe during inspection, the new system’s primary role is to
+autonomously deploy and retrieve various inspection crawlers,
+signiﬁcantly enhancing its operational scope and versatility.
+The aerial robot, shown in Fig. 2, is a custom-built plat-
+form designed for autonomous operation in cluttered, GNSS-
+degraded environments such as reﬁneries. Its mechanical design
+features tilted rotors, forming a fully-actuated conﬁguration
+managed by a custom ﬂight controller. This allows the UAV to
+generate lateral forces and maneuver horizontally without sig-
+niﬁcant attitude changes, which is advantageous for maintaining
+stable sensor orientation and enhancing safety during the ﬁnal
+landing approach on pipelines. An integrated VectorNav VN-
+100 Attitude and Heading Reference System (AHRS) provides
+inertial measurements.
+It is equipped with a multi-modal sensor suite, detailed in
+Fig. 2, for robust localization and perception, with all data
+processed in real-time by an onboard Intel NUC 10 computer
+(8 GB of RAM). An Ouster OS1-64 3D LiDAR serves as the
+primary navigation sensor. For pipeline perception, the system
+uses a combination of an Intel RealSense D435 depth camera
+and dual Hokuyo UST-10LX 2D lasers. A Leica prism is also
+mounted to acquire ground-truth data during experiments. The
+coordinate frame shown in the ﬁgure represents the UAV’s body
+axes directions, with RGB corresponding to XYZ.
+III. SOFTWARE ARCHITECTURE SYSTEM
+A. GNSS-Denied Navigation
+Given the presence of large infrastructures in reﬁneries, elec-
+tromagnetic interference may lead to degraded or completely
+unavailable satellite coverage, rendering GNSS-based naviga-
+tion impractical. To achieve safe autonomous drone operations,
+a comprehensive localization system is proposed.
+1) Tightly Coupled LiDAR-Inertial Odometry: This com-
+ponent leverages data from the UAV’s AHRS and a 3D Li-
+DAR to perform tightly coupled LiDAR-inertial odometry. A
+streamlined version of the LIO-SAM architecture [11] is used,
+adapted to operate without GNSS and magnetometer data, and
+initialized from a zero-origin reference frame. Other modiﬁca-
+tions include gravity calibration, continuous pose output without
+loop-closure corrections, and customized sensor transform han-
+dling to accommodate NED/FRD IMU frames. Pose estimates
+are computed at the AHRS rate (200 Hz), providing smooth,
+high-temporal-resolution state information for downstream nav-
+igation modules.
+2) Map-Based Localization: To correct accumulated drift
+and enable global navigation, a map-based localization module
+is used. It aligns the UAV’s current LiDAR observations with
+a pre-built high-deﬁnition map generated using a Leica Total
+Station. This module builds upon a customized version of the
+Direct LiDAR Localization (DLL) algorithm [12], leveraging
+an initial pose guess and non-linear optimization to iteratively
+reﬁne the UAV’s global position within the map frame. The
+algorithm is executed once at the beginning of the mission and
+subsequently at low frequency during ﬂight, enabling long-term
+drift correction. Inspection areas and ﬂight plans are deﬁned
+directly on this map, allowing for accurate mission execution
+and repeatability across different sessions.
+B. Pipeline Detection and Mapping
+Autonomous UAV landing on pipelines requires their precise
+3D pose estimation. Reﬁneries present a challenging environ-
+ment due to the presence of multiple, closely spaced pipelines.
+The diverse materials used in these pipelines can create re-
+ﬂective surfaces that degrade sensor readings, necessitating a
+system designed to operate effectively under such conditions.
+To mitigate these effects, the system combines geometry-based
+ﬁltering (clustering, curvature/size constraints, robust cylinder
+ﬁtting) with association gating and temporal consistency checks
+in mapping/tracking to reject inconsistent detections and retain
+only persistent hypotheses.
+This system must accurately identify each individual pipeline
+and track its characteristics over time. The complete scheme
+will determine the 3D position, direction, radius, and length of
+each pipeline captured by the sensors as shown in Fig. 3. Highly
+accurate direction estimation is particularly important for proper
+alignment of the UAV’s landing gear, ensuring a safe and smooth
+landing.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:52 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+3694
+IEEE ROBOTICS AND AUTOMATION LETTERS, VOL. 11, NO. 3, MARCH 2026
+Fig. 3.
+Overview of the proposed architecture and its real-world application. (a) The software architecture, detailing the global localization system (left, in blue)
+and the pipeline perception system (right, in green). Both streams are fused to generate the landing reference (center, in red). (b) An in-situ visualization from the
+reﬁnery trials, showing the fusion of all sensor inputs into a ﬁnal pipe estimation (purple) and the generated 6-DOF landing reference.
+As introduced in Section II, the UAV uses two types of sensors
+for pipeline detection: a depth camera, which outputs a 3D point
+cloud of the area beneath the aircraft, and 2D lasers, which
+produce cross-sectional proﬁles of planes perpendicular to the
+forward direction of the UAV. Two dedicated software nodes
+processtherawdatafromeachtypeofsensortoidentifypotential
+pipeline segments. Subsequently, a tracking module analyzes
+these detections over time to estimate the complete pipeline
+layout within the operational area.
+1) Cylinder Detection Using a Depth Point Cloud: Cylinder
+parameters are extracted from the 3D point cloud using a ro-
+bust, iterative process, building upon our previous work [13].
+First, Euclidean clustering employing a nearest-neighbor search
+segments the point cloud. Clusters that are too small (below a
+minimum point count) or too large (above a maximum point
+count) are discarded. For each remaining cluster, a RANSAC-
+based algorithm ﬁts a cylindrical model.
+The algorithm iteratively estimates cylinder parameters, in-
+corporatingpointnormals(estimatedusingalocalneighborhood
+search) to enhance ﬁtting accuracy. Candidate cylinders are
+evaluated based on the root-mean-square error (RMSE) between
+the data points and the ﬁtted model. Those exceeding a prede-
+ﬁned distance threshold are rejected. Furthermore, geometric
+constraints are applied: only cylinders with a radius within
+a speciﬁed minimum and maximum range are accepted. This
+ﬁltering process yields a set of pipeline candidates.
+2) Cylinder Detection Using a Single 2D Laser Scanner: In
+this section, a method to obtain a 3D cylinder estimation from 2D
+scan points is presented. The problem consists of retrieving the
+cylinder direction, position, and radius, given the curve depicted
+by the scan points.
+Since obtaining the cylinder’s parameters from 2D scan points
+alone is a high-dimensional problem, the estimation process
+is simpliﬁed by leveraging existing information. Speciﬁcally,
+two key assumptions are made to constrain the optimization
+problem: a known pipeline radius obtained from a pre-existing
+map, and the approximate 3D direction from prior depth camera
+estimations, which serves to resolve the ambiguity introduced
+in the optimization process.
+Fig. 4.
+Geometric model of a horizontal cylinder cross-section generated by
+a 2D laser scan.
+Thus, the 2D laser information reﬁnes the pipe estimations
+initiated with depth camera data, signiﬁcantly enhancing the
+precision and reliability of the ﬁnal estimations.
+Understanding the geometric interpretation of the data pro-
+vided by the 2D laser scan is essential. The scan captures a
+segment of a cylindrical surface, representing a cross-section of
+the cylinder. To accurately describe this section, it is necessary
+to consider the relative orientation between the cylinder and the
+scanner. For this analysis, it was assumed that the aerial robot,
+and consequently the 2D laser device, is positioned within a
+horizontal plane.
+Examples of these cross-sections generated by the 2D laser
+scan and the cylinder are shown in Fig. 4(a) and (b), while (c)
+provides a 3D overview and axis deﬁnition.
+Given that the cylinders represent horizontal pipelines with a
+known radius, the parameters needed to characterize the curve
+of the cylinder’s cross-section are reduced to the angle between
+the pipeline’s axis and the 2D laser’s axis. Eq 1 describes the
+ellipsoid resulting from cutting a cylinder:
+x · cos(α)
+R
+2
++
+ y
+R
+2
+= 1
+(1)
+where x and y denote the Cartesian coordinates in the plane
+of the cylinder’s cross-section, R is the radius of the cylinder
+and α the angle of horizontal deviation of the scan. From the
+equation, several interesting properties can be observed. It can
+be easily inferred that the length of the minor semiaxis of the
+ellipse is R, while the length of the major semiaxis is R/cos(α).
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:52 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+TEJERO-RUIZ et al.: AUTONOMOUS UAV PIPELINE LANDING VIA DEPTH-LIDAR FUSION IN GNSS-DENIED REFINERIES
+3695
+Thus, when the angle α is zero, the equation simpliﬁes to a
+circle. Furthermore, as α approaches 90 degrees, the length
+of the major semiaxis of the ellipse increases without bound,
+eventually resulting in parallel lines at α = 90◦. Notably, since
+cos(α) is an even function, both positive and negative values of
+α will produce the same curve. This introduces an ambiguity
+when determining the 3D direction of the pipe from a single 2D
+laser scan, which will be addressed in next sections.
+To work in a common reference frame, the 2D laser axis will
+be used, introducing a translation factor as is shown in (2):
+(x + xc) · cos(α)
+R
+2
++
+y + yc
+R
+2
+= 1
+(2)
+where (xc, yc) refer to the coordinates of center of the pipe in
+the laser scan plane.
+The 2D laser scan provides a set of points, which are grouped
+into distinct clusters using a Euclidean clustering algorithm.
+Each cluster, P, consists of n points and potentially represents
+a cross-section of one of the curves introduced.
+P = {(xi, yi) | ∀i ∈{1, 2, . . ., n}}
+(3)
+Theseclustersbecomecandidatesfortheoptimizationprocess
+only if they meet minimum requirements for size and curva-
+ture consistency. To quantify this curvature, a metric derived
+from Principal Component Analysis (PCA) is employed. PCA
+identiﬁes the principal axes of variation within a point cloud,
+yielding two orthogonal eigenvectors with their corresponding
+eigenvalues that represent the variance along each axis. The ratio
+between them, as described in (4), provides a robust, normalized
+metric for curvature.
+CP CA = λ2/λ1
+(4)
+where (λ1, λ2, with λ1 ≥λ2) are the eigenvalues obtained
+through PCA. A value approaching zero indicates a linear struc-
+ture (λ1 ≫λ2), characteristic of ﬂat surfaces, while a higher
+value suggests a more distributed, curved cluster. Therefore,
+any candidate where CP CA falls below a given threshold is
+discarded, ensuring that only clusters with signiﬁcant curvature
+proceed to the optimization stage.
+The following cost function is deﬁned by summing the
+squared differences between the coordinate yi of each measured
+point and the y-value of the translated positive semi-ellipse
+equation evaluated at xi.
+C(xc, yc, α) =
+n
+
+i=1
+
+(yi −yse(xi, xc, yc, α))2
+(5)
+From (2), the deﬁnition of the translated positive semi-ellipse
+equation, yse, can be easily obtained:
+yse(xi, xc, yc, α) = −yc +
+	
+(R2 −(xi + xc)2 · cos2(α))
+(6)
+Note that working with only the upper part of the cross-section
+is valid in this use case, as the UAV will always be above the
+pipelines when these algorithms are executed, ultimately aiming
+to land on one of them.
+Thus, the required known data for the optimization process
+are the radius R and the cluster of points P from the scan. The
+unknowns to optimize are the center of the ellipse (xc, yc), and
+Fig. 5.
+Example of the optimization output. The algorithm ﬁts a semi-ellipse
+to a point cluster extracted from a real-world laser scan. The resulting parameters
+for this example are xc = 0.07 m, yc = −0.67 m, and α = 37.5◦.
+the angle deviation α. An efﬁcient nonlinear optimization is
+performed to compute these values.
+Fig. 5 shows an example of the optimization output. By
+knowing the absolute horizontal angle and the 2D center of
+the ellipse, two possible 3D solutions can be reconstructed,
+corresponding to positive and negative angles.
+Leveraging the previously explained localization algorithms,
+both 3D cylinders can be translated into the global frame, where
+the global estimator can select the correct solution based on prior
+depth camera detections and use it to provide reliable pipeline
+estimations.
+3) CylinderDetectionUsingaPairof2DLaserScanners: To
+overcome the limitations of a single-scanner setup, the dual-laser
+approach that was ultimately implemented in the ﬁnal system is
+now presented. By employing two parallel laser scanners, this
+method generates a pair of cross-sections for each pipe. As will
+be detailed, this richer geometric information directly resolves
+the estimation ambiguity and signiﬁcantly enhances detection
+robustness.
+Fig. 6 shows an example of how these sections are generated
+for both scans. Assuming the same conditions as in the previous
+method, both semi-ellipses have the same shape, but they are
+translated along the x-axis in the scan plane.
+The x-offsets for both cross-sections in each scan are given
+by the family of curves described in (7). The front scan (f) and
+rear scan (r) cases are deﬁned in (8) and (9):
+Xk · cos(α)
+R
+2
++
+y + yc
+R
+2
+= 1,
+k ∈{f, r}
+(7)
+Xf(x, xc, α) = x + xc + B
+2 tan(α)
+(8)
+Xr(x, xc, α) = x + xc −B
+2 tan(α)
+(9)
+where B represents the distance between the scan planes along
+their perpendicular axis.
+The x-offset introduced in (8) and (9) shifts the reference
+frame for each scan, leading to a lateral displacement of the
+curves and disrupting the symmetrical behaviour with respect
+to the α angle. The curves no longer exhibit mirror symmetry
+about the value α = 0. Note that in these equations, the addi-
+tional degrees of freedom related to the pipeline position are
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:52 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+3696
+IEEE ROBOTICS AND AUTOMATION LETTERS, VOL. 11, NO. 3, MARCH 2026
+Fig. 6.
+Dual-laser sampling of the pipe surface. Axes and scales are preserved
+for quantitative interpretation.
+preserved by maintaining the (xc, yc) translation introduced in
+the previous (2).
+This deﬁnition also allows expressing the positive semi-
+ellipse function for each scan plane, as shown in (10), which
+will be used to pose the later optimization problem.
+ysek = −yc +
+
+R2 −cos2(α) · Xk
+2,
+k ∈{f, r}
+(10)
+From the 2D laser scans, two coupled subsets of 2D points are
+obtained: one from the front scan (Pf), containing nf points, and
+one from the rear scan (Pr), containing nr points, as described
+in (11). They will potentially correspond to subsections of the
+previously introduced curves.
+Pk = {(xk,i, yk,i) | ∀i ∈{1, 2, . . ., nk}},
+k ∈{f, r}
+(11)
+Therefore, the cost function is composed of two residuals, one
+per set of points, as detailed in (12).
+Resk(xc, yc, α) =
+nk
+
+i=1
+
+yk,i −ysek,i
+2
+,
+k ∈{f, r} (12)
+So, the optimization process is designed to minimize the
+following nonlinear function represented in (13).
+C(xc, yc, α) = Resf + Resr
+(13)
+In this case, the required known data for the optimization
+process are the radius R, the distance between scanners B, and
+the clusters of points Pf and Pr. As in the case of a single
+laser, the unknowns to optimize are the translation applied to the
+ellipse (xc, yc), and the angle deviation α. With this information,
+the 3D cylinder can be retrieved successfully.
+In multi-pipe scenarios, an initial data association is required
+to correctly pair the point clusters from the front (Pf) and
+rear (Pr) scanners. Given that the UAV operates directly above
+the target pipeline during the landing maneuver, the proposed
+system employs a heuristic that associates the pair of clusters
+Fig. 7.
+Conceptual block diagram of the pipeline mapping and tracking
+algorithm.
+Fig. 8.
+Geometric operations employed in the proposed pipeline. Orange
+denotes the shortest link; green denotes the merged axis.
+closest to the drone’s central axis as belonging to the pipe of
+interest, discarding other potential candidates.
+4) Pipeline Mapping and Tracking: The preceding sections
+described methods for detecting partial pipeline segments from
+individual sensor inputs. To construct a complete and reliable
+map of the environment, these detections must be fused and
+tracked over time. This module associates partial detections with
+persistent tracks, ﬁlters out false positives, and produces robust,
+noise-tolerant state estimates.
+This module tracks a set of pipeline instances, where each
+instance Tk is deﬁned by the data structure in (14).
+Tk = [id astart
+aend
+r
+c KFk
+tupdate]
+(14)
+The structure encodes the pipeline’s estimated state—given
+by the endpoints of its central axis, astart, aend ∈R3, and its
+radius r—together with metadata such as a unique identiﬁer id,
+a conﬁdence score c, and the timestamp of its last update.
+Additionally, each instance maintains a linear Kalman Fil-
+ter (KFk) for state estimation. The KF reﬁnes the pipeline
+parameters over time and provides smooth predictions at the
+frequency required by the controller. Its state vector includes
+seven elements: the 3D coordinates of the axis endpoints and the
+radius. Since pipelines are static, the state transition is modeled
+by the identity matrix.
+Fig. 7 shows a conceptual diagram of the pipeline association
+and mapping algorithm.
+To associate a new detection with the closest tracked pipeline,
+two main metrics are considered: geometric proximity and an-
+gular alignment between pipeline segments. The core geometric
+operations used to compute the proximity and perform the
+subsequent merge are illustrated in Fig. 8.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:52 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+TEJERO-RUIZ et al.: AUTONOMOUS UAV PIPELINE LANDING VIA DEPTH-LIDAR FUSION IN GNSS-DENIED REFINERIES
+3697
+Let S1 = (a1,start, a1,end) and S2 = (a2,start, a2,end) denote
+two pipeline segments, with lengths L1 ≥L2. The shorter seg-
+ment S2 is subdivided into N points (N ≥2):
+qj = a2,start + j
+L2
+N −1d2,
+j = 0, . . . , N −1
+(15)
+where di = (ai,end −ai,start)/Li denotes the unit direction vec-
+tor of Si.
+Each point is projected onto the longer segment S1:
+qproj
+j
+= a1,start + clip((qj −a1,start) · d1, 0, L1) d1,
+(16)
+where clip(x, 0, L1) clamps x to the interval [0, L1], ensuring
+that the projection lies within the segment.
+The geometric proximity metric, depicted in Fig. 8(a), is
+deﬁned as the minimum point-to-segment distance:
+δ(S1, S2) = min
+j
+∥qj −qproj
+j
+∥.
+(17)
+This approximation is computationally efﬁcient, and a relatively
+small value of N yields a reliable estimate in practice.
+The angular deviation between two segments is deﬁned as the
+angle between their direction vectors:
+θ = arccos
+
+d1 · d2
+∥d1∥∥d2∥
+
+(18)
+To account for orientation symmetry, the effective deviation is
+taken as min(θ, π −θ).
+If both the geometric proximity and angular deviation fall
+within predeﬁned thresholds, the two segments are considered
+to belong to the same pipeline. Otherwise, the new detection is
+treated as a separate pipeline instance and added to the set of
+tracked elements.
+Once a new detection is associated with an existing track, a
+merge operation is performed, shown in Fig. 8(b). This process
+ﬁts a line segment to the combined endpoints of both the track
+and the new detection.
+Let the existing track be Tk with endpoints (ak,start, ak,end)
+and the new detection be D with endpoints (aD,start, aD,end).
+The aggregate set of four endpoints is denoted as A =
+{ak,start, ak,end, aD,start, aD,end}.
+A 3D line is ﬁtted to the points in A using orthogonal
+regression, which is equivalent to extracting the ﬁrst principal
+component of the set. The resulting line is parameterized as:
+l(s) = ¯a + su,
+s ∈R
+(19)
+where ¯a is the centroid of the points in A, and u is the principal
+eigenvector of their covariance matrix. Each endpoint ai ∈A is
+then projected onto this line to ﬁnd its scalar parameter si:
+si = (ai −¯a) · u
+(20)
+The new endpoints for the merged pipeline axis, anew,start
+and anew,end, are deﬁned by the extremal projections onto the
+ﬁtted line:
+(anew,start, anew,end) = (¯a + sminu, ¯a + smaxu),
+(21)
+where
+smin = min
+i
+si,
+smax = max
+i
+si.
+Finally, the track T k is updated using its Kalman ﬁlter, with
+a measurement vector formed by the merged axis endpoints
+(anew,start, anew,end) and the radius r provided by the de-
+tection. Notably, the measurement noise covariance is selected
+Fig. 9.
+Illustration of the pipeline tracking and mapping module in an experi-
+mental context.
+according to the sensor that originated the detection (e.g., depth
+camera or 2D laser), yielding a reﬁned and temporally consistent
+estimate of the pipeline’s state.
+To manage noisy detections and ensure consistency, each
+pipeline instance is assigned a conﬁdence score c. The con-
+ﬁdence increases whenever the instance is updated with a new
+detection and decreases gradually over time when no supporting
+measurements are received. As a result, false positives disappear
+quickly, while only consistently observed pipelines accumulate
+enough conﬁdence to surpass a threshold and be promoted from
+tentative candidates to stable tracks.
+Once an instance becomes stable, its conﬁdence no longer
+decreases. However, if no updates are received for a prede-
+ﬁned timeout, the instance enters a paused state. This check
+is performed by comparing the current time with its last update
+timestamp metadata, tupdate. In this state, the pipeline is pre-
+served in the database and can be reactivated upon receiving a
+compatible detection. Fig. 9 shows how the system behaves in
+a multi-pipeline scenario.
+Finally, structural plausibility checks are performed to handle
+overlapping or inconsistent pipelines. If two stable pipelines are
+found to be spatially superposed, they are either merged or,
+in the case of large angular discrepancies, the less conﬁdent
+instance is discarded. This mechanism ensures that the resulting
+pipeline map remains both robust to sensor noise and consistent
+with the physical structure of the environment.
+C. Landing Reference Generation
+Given an approximate goal point p0 (selected on the map used
+for localization) and the stable tracked pipelines, the proposed
+system reﬁnes p0 to generate a precise landing reference on the
+surface of the nearest valid pipeline.
+1) Projection and Candidate Selection: For each tracked
+pipeline j, deﬁned by its endpoints (astart,j, aend,j) and radius
+rj, the goal point p0 is projected onto its central axis. Let dj
+be the unit direction vector of the axis and Lj its length. The
+projection onto the line segment is computed as:
+sj = clip((p0 −astart,j)·dj, 0, Lj) ,
+xj = astart,j + sj dj
+(22)
+Assuming the UAV lands on the top surface of a horizontal
+pipe, the landing point pj is found by a vertical offset. As
+all computations are performed in a map frame with a Z-up
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:52 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+3698
+IEEE ROBOTICS AND AUTOMATION LETTERS, VOL. 11, NO. 3, MARCH 2026
+convention, this point is computed as follows:
+pj = xj + (0, 0, rj)⊤
+(23)
+Candidate points are ﬁltered by distance, keeping only those
+satisfying ∥pj −p0∥≤dmax. From this valid set, the closest
+point is selected as the ﬁnal position reference:
+j⋆= arg min
+j
+∥pj −p0∥,
+pref = pj⋆
+(24)
+2) Yaw Selection: To ensure a consistent landing orientation,
+the reference yaw is chosen to be collinear with the pipe’s
+axis, while avoiding large rotations for the UAV. Let ψpipe =
+atan2((dj⋆)y, (dj⋆)x) be the pipe’s yaw and ψuav be the current
+UAV yaw. The ﬁnal reference yaw ψref is chosen to be the
+direction closer to the UAV’s current heading:
+ψref =
+
+
+ψpipe,
+if
+ wrap(ψuav −ψpipe)
+ ≤π/2,
+ψpipe + π,
+otherwise.
+(25)
+where wrap(·) maps any angle to (−π, π]. A standard imple-
+mentation is wrap(φ) = atan2(sin φ, cos φ).
+The resulting landing reference, composed of the position
+pref and yaw ψref, provides the complete 6-DOF target pose
+for the UAV’s ﬂight controller. The effectiveness and accuracy
+of this entire software architecture in a real-world scenario are
+demonstrated and validated in the following Section IV-B.
+IV. EXPERIMENTAL EVALUATION
+A. Setup and Methodology
+The system is evaluated in two settings to assess both con-
+trolled and real-world performance: a VICON-equipped indoor
+testbed (6-DoF ground truth) and an outdoor reﬁnery with a
+Leica total station (3-DoF position ground truth).
+First, LiDAR odometry is evaluated using the Absolute Pose
+Error (APE) and the Relative Pose Error (RPE). Estimated and
+ground-truth trajectories are rigidly aligned at the beginning,
+allowing long-term drift to be consistently measured. Second,
+pipeline perception accuracy is evaluated for three outputs:
+raw depth-camera detections, raw dual-laser detections, and
+the ﬁnal fused tracked estimations. For this purpose, a set of
+complementary metrics is employed. Each is compared against
+the ground-truth pipe axis using the geometric segment distance
+δ (17) and the angular deviation θ (18). Also, the detection
+Availability (A) is reported, deﬁned as the percentage of time
+each component provides a valid estimate, which reﬂects the
+continuity and reliability of the output.
+Direct comparison of estimated pipelines with ground truth is
+affectedbyaccumulateddrift. Toisolateperceptionfromnaviga-
+tionerrors,beforecomputing{δ, θ}ateachtimestamp,estimates
+are aligned to ground truth using the instantaneous UAV offset.
+Indoors a full 6-DoF pose correction is applied. Outdoors a 3D
+translation is applied. After this alignment, perception metrics
+reﬂect the sensing and tracking quality, independent of accumu-
+lated odometry drift.
+B. Results and Discussion
+1) Indoor Evaluation: A speciﬁc ﬂight (Indoor 0) was con-
+ducted to validate the localization before assessing perception
+TABLE I
+LOCALIZATION PERFORMANCE (MEAN / STD. DEV.)
+Fig. 10.
+Localization performance during the Indoor 0 ﬂight.
+performance. As summarized in Table I, the odometry achieves
+centimeter-level position accuracy and maintains low drift over
+time, both in translation and rotation. Fig. 10 shows that the
+APE proﬁle (left) exhibits stable drift throughout the trajectory,
+while the X-Y comparison (right) conﬁrms that the estimated
+path remains globally consistent with ground truth.
+To evaluate the pipeline perception system, four distinct in-
+door ﬂights were conducted. Three ﬂights (Indoor 1-3) targeted
+a single pipeline, each initiated with a different approach angle
+relative to the pipeline’s axis: approximately 0◦, 45◦, and 90◦.
+A fourth ﬂight (Indoor 4) was performed in a multi-pipeline
+environment, where the target pipeline was positioned between
+two others and the trajectory involved multiple viewing angles.
+Each ﬂight culminated in a simulated landing maneuver, where
+the UAV was manually ﬂown to align with the target pipe before
+descending toward its surface.
+The perception accuracy for the indoor ﬂights is summarized
+in Table II. The results show a clear trend across all scenarios: the
+raw dual-laser detections consistently provide higher geometric
+accuracy than the depth camera. However, this high precision
+comes with reduced detection availability (A) in challenging
+orientations, such as 90◦(Indoor 3). In this case, the depth
+camera provides more consistent measurements, highlighting
+the sensors’ complementary nature.
+The tracker exploits the high-accuracy laser data when avail-
+able, while relying on the depth camera for continuity. This
+fusion yields a ﬁnal estimate that is both precise (low geometric
+error δ) and stable (signiﬁcantly reduced standard deviation of
+the angular error θ).
+2) Outdoor Evaluation: The system’s full capabilities were
+validated in a real-world reﬁnery through two autonomous
+missions (Outdoor 1-2), each employing a different inspection
+payload (X-ray and PEC, respectively). Each mission consisted
+of an autonomous ﬂight to a pre-deﬁned area, followed by a
+local search to detect and identify the target pipeline. Once the
+tracker’s conﬁdence in the estimated pipeline was high, the UAV
+performed a fully autonomous landing on its surface.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:52 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+TEJERO-RUIZ et al.: AUTONOMOUS UAV PIPELINE LANDING VIA DEPTH-LIDAR FUSION IN GNSS-DENIED REFINERIES
+3699
+TABLE II
+PIPELINE PERCEPTION ACCURACY (MEAN / STD. DEV.)
+Fig. 11.
+Pipeline tracking accuracy during the Outdoor 1 ﬂight.
+The quantitative results, summarized in Tables I and II,
+demonstrate the system’s high performance in this challenging
+operational environment. The tracker achieves an exceptional
+mean position error (δ) of 2.6–2.9 cm, validating its capacity for
+high-precision tasks. As illustrated in Fig. 11, both the geometric
+and angular errors remain low and stable throughout the search
+and landing maneuvers. Notably, the depth camera’s detection
+availability (A) was signiﬁcantly higher outdoors (80–90% )
+due to the matte surface of the reﬁnery pipelines, providing more
+consistent returns than the reﬂective pipelines used indoors. This
+outcome validates the multi-sensor fusion strategy, as the tracker
+selects the most reliable sensor in any given condition.
+V. CONCLUSION
+This work presented a complete and robust software archi-
+tecture for autonomous UAV landing on industrial pipelines
+in complex, GNSS-denied environments. The proposed system
+effectively addresses the dual challenges of maintaining accu-
+rate global localization and achieving high-precision, relative
+perception of the target infrastructure.
+The main contribution lies in a novel pipeline mapping and
+tracking module that fuses sparse detections from a complemen-
+tary sensor suite, comprising a depth camera and dual 2D laser
+scanners. Jointly processing dual laser scans eliminates single-
+scan geometric ambiguity. Additionally, the tracker’s temporal
+ﬁltering and state management algorithms effectively rejected
+spurious detections and maintained a consistent, high-ﬁdelity
+representation of the environment’s pipelines.
+The system was rigorously validated through controlled in-
+door experiments and fully autonomous missions in a real-world
+reﬁnery. Results demonstrate that the tracker achieves less than
+3 cm geometric accuracy and angular precision of about 1.5◦,
+even during the ﬁnal landing phase.
+Future work will focus on extending the perception module to
+handle non-horizontal and curved pipelines, and on evaluating
+its generalization across different materials, diameters and more
+complex scenarios.
+V. SUPPLEMENTARY MATERIAL
+The accompanying video demonstrates the autonomous land-
+ing system, covering the experiments detailed in Section IV-B.
+It is available at: https://youtu.be/JxQZo2Ybems.
+REFERENCES
+[1] F. J. Perez-Grau, R. Ragel, F. Caballero, A. Viguria, and A. Ollero, “An
+architecture for robust UAV navigation in GPS-denied areas,” J. Field
+Robot., vol. 35, no. 1, pp. 121–145, 2018.
+[2] Y.
+Ren
+et
+al.,
+“A
+survey
+on
+LiDAR-based
+autonomous
+aerial
+vehicles,”
+IEEE/ASME
+Trans.
+Mechatron.,
+Sep.
+10,
+2025,
+doi:
+10.1109/TMECH.2025.3599633.
+[3] D. Lee, M. Jung, W. Yang, and A. Kim, “LiDAR odometry survey: Recent
+advancements and remaining challenges,” Intell. Serv. Robot., vol. 17,
+no. 2, pp. 95–118, 2024.
+[4] V. Pritzl, M. Vrba, P. Št˘epán, and M. Saska, “Cooperative navigation and
+guidance of a micro-scale aerial vehicle by an accompanying UAV using
+3D LiDAR relative localization,” in Proc. Int. Conf. Unmanned Aircr. Syst.,
+2022, pp. 526–535.
+[5] F. V. Frankenberg and S. Nokleby, “Detection of long narrow landing
+features for autonomous UAV perching,” in Proc. 11th IEEE Annu. Inf.
+Technol., Electron. Mobile Commun. Conf., 2020, pp. 565–570.
+[6] W. Kong, T. Hu, and J. Zhang, “Real-time stereo-vision localization system
+for safe landing of unmanned aerial vehicles,” in Proc. IEEE Int. Conf.
+Robot. Biomimetics, 2017, pp. 2366–2371.
+[7] Y. Chang, Y. Cheng, U. Manzoor, and J. Murray, “A review of UAV
+autonomous navigation in GPS-denied environments,” Robot. Auton. Syst.,
+vol. 170, 2023, Art. no. 104533.
+[8] B. Haske, T. Rudolph, M. Pawlik, and C. Kosack, “The necessity of
+multisensorial geodata fusion for UAV-based pipeline inspections,” in
+Proc. 5th EAGE Glob. Energy Transition Conf. Exhib., 2024, vol. 2024,
+no. 1, pp. 1–5.
+[9] M. Irfan, S. Dalai, P. Trslic, M. C. Santos, J. Riordan, and G. Dooly,
+“LGVINS: LiDAR-GPS-visual and inertial system based multi-sensor
+fusion for smooth and reliable UAV state estimation,” IEEE Trans. Intell.
+Veh., vol. 10, no. 7, pp. 3976–3992, Jul. 2025.
+[10] M. A. Montes-Grova et al., “Petrochemical industry aerial robotic inspec-
+tion: A novel concept for landing and deploying robots on pipes,” in Proc.
+Int. Conf. Unmanned Aircr. Syst., 2024, pp. 1377–1384.
+[11] T. Shan, B. Englot, D. Meyers, W. Wang, C. Ratti, and D. Rus, “LIO-SAM:
+Tightly-coupled LiDAR inertial odometry via smoothing and mapping,”
+in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst., 2020, pp. 5135–5142.
+[12] F. Caballero and L. Merino, “DLL: Direct LIDAR localization. A map-
+based localization approach for aerial robots,” in Proc. 2021 IEEE/RSJ Int.
+Conf. Intell. Robots Syst., 2021, pp. 5491–5498.
+[13] M. A. Montes-Grova, F. J. Pérez-Grau, and A. Viguria, “Multi-sensor
+system for pipe inspection using an autonomous hybrid aerial robot,” in
+Proc. Int. Conf. Unmanned Aircr. Syst., 2022, pp. 1367–1374.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:06:52 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

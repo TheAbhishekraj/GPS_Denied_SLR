@@ -1,0 +1,1734 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1167.pdf
+sha256: 99867EF64D1B3C9E04A39C94BE6CE0668F57F92DA484ED5735932BFC4239C41F
+library: pymupdf (fitz) v1.28.2
+pages: 20
+=== BEGIN ===
+[p.1]
+Academic Editor: Fabio
+D’Andreagiovanni
+Received: 5 February 2026
+Revised: 1 March 2026
+Accepted: 11 March 2026
+Published: 13 March 2026
+Copyright: © 2026 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license.
+Article
+APF-Driven Lightweight UAV Swarm Trajectory Optimization in
+GNSS-Denied Air–Terrestrial Navigation
+Ruocheng Guo 1,2
+, Hong Yuan 1,2,*, Xiao Chen 1,*
+and Wen Li 1
+1
+Aerospace Information Research Institute, Chinese Academy of Sciences, Beijing 100094, China;
+guoruocheng21@mails.ucas.ac.cn (R.G.)
+2
+School of Electronic, Electrical and Communication Engineering, University of Chinese Academy of Sciences,
+Beijing 100049, China
+*
+Correspondence: yuanhong@aircas.ac.cn (H.Y.); chenxiao@aircas.ac.cn (X.C.)
+Abstract
+To enable autonomous route planning for UAV swarms in dynamic air–terrestrial coop-
+erative navigation scenarios within GNSS-denied environments, this paper proposes a
+lightweight framework based on the Artificial Potential Field (APF) method. In the con-
+sidered architecture, UAVs act as mobile transit navigation nodes that relay positioning
+information from sparse ground anchors to terrestrial users. For TOA-based cooperative
+positioning, the instantaneous geometric configuration of the UAV swarm significantly
+affects the overall system accuracy. Therefore, the impact of UAV positions on the end-to-
+end navigation performance is rigorously analyzed, yielding a comprehensive Dilution
+of Precision (DOP) matrix for the entire air–terrestrial system. By applying the Schur
+complement, the global performance metric is decomposed, resulting in a scalar evalua-
+tion function that directly reflects the geometric quality of the configuration. In practical
+scenarios involving dynamic and heterogeneous users, real-time trajectory adaptation of
+the UAV swarm is essential to continuously optimize user positioning accuracy. To this
+end, an APF-based autonomous joint route planning approach is developed. The poten-
+tial field is constructed directly from the derived geometric evaluation model, where its
+negative gradient generates virtual forces that autonomously guide the UAV swarm. This
+elegantly bridges high-level navigation performance optimization with low-level motion
+control of the swarm. The simulation results show a 76.1% improvement in the average
+comprehensive GDOP for users compared to the baseline of hovering UAVs, validating the
+effectiveness and real-time capability of the proposed lightweight framework.
+Keywords: GNSS-denied environments; air–terrestrial cooperation navigation; artificial
+potential field; route optimization; lightweight computing
+1. Introduction
+The rapid advancement of near-ground and low-altitude applications has profoundly
+impacted economic and military developments. However, in many operational scenarios,
+the absence of precise position and timing information undermines mission-critical sup-
+port. Navigation, positioning, and timing (PNT) services have thus become indispensable
+infrastructure for modern tasks.
+Existing navigation solutions for near-ground and low-altitude environments face vari-
+ous limitations, lacking a universally effective approach. Global Navigation Satellite Systems
+(GNSSs) provide worldwide coverage but are susceptible to interference, jamming, and signal
+Electronics 2026, 15, 1207
+https://doi.org/10.3390/electronics15061207
+[p.2]
+Electronics 2026, 15, 1207
+2 of 20
+blockage [1]. Inertial navigation systems (INSs) are resilient to external disruptions but suffer
+from error accumulation over time [2], requiring auxiliary absolute measurements for correc-
+tion. Matching-based methods, such as visual navigation, rely on prior fingerprint databases
+and are sensitive to environmental inaccuracies or changes [3,4], leading to significant perfor-
+mance degradation. In contrast, ground-based radio navigation systems, anchored to fixed
+terrestrial stations, offer high positional accuracy and stable timing through synchronization
+or high-precision clocks, delivering reliable PNT services to users [5].
+Despite these advantages, ground-based systems have inherent drawbacks: limited
+coverage due to terrain constraints and obstacles, which further diminish service qual-
+ity. Integrating Unmanned Aerial Vehicles (UAVs) as auxiliary positioning nodes holds
+promising potential. UAVs operate at elevated altitudes with diverse platforms, high
+operational ceilings, and flexible networking capabilities, allowing for on-demand deploy-
+ment [6]. By forming air–terrestrial cooperative navigation systems, UAVs complement
+ground-based setups, significantly alleviating coverage limitations and enhancing overall
+performance [7]. For UAV spatiotemporal referencing in such systems, ground stations
+often provide stronger aerial coverage than terrestrial, enabling UAVs to self-localize us-
+ing ground anchors [8]. Once positioned with sufficient accuracy, UAVs can rebroadcast
+navigation signals to serve ground users or low-altitude peers, establishing a synergistic
+air–ground positioning network [9–13]. This architecture has broad application potentials
+in tasks such as Internet of Things (IoT) integration and intelligent vehicle fleets, etc.
+Among radio measurement techniques suitable for air–terrestrial cooperation, Time
+of Arrival (TOA)-based methods are the most prevalent, alongside velocity and angle
+measurements [14]. A primary challenge in these approaches is the geometric distribution
+of base stations relative to receivers, which amplifies measurement errors into positioning
+inaccuracies. Effective control of this geometry is crucial for users, necessitating thorough
+analysis, evaluation, and optimization. However, three key issues persist: the heterogeneity
+and dynamism of aerial nodes and users, the complexity of network topologies, and the
+computational demands from expanding network scales.
+In precision analysis and geometric evaluation for air–terrestrial cooperative navigation,
+mainstream approaches primarily rely on global modeling techniques. Methods based on the
+Fisher Information Matrix (FIM) and Cramér–Rao Lower Bounds (CRLB) provide rigorous,
+network-wide performance bounds and configuration insights [15,16]. Similarly, Dilution of
+Precision (DOP) analysis decomposes positioning accuracy into geometric factors and User
+Equivalent Range Error (UERE), offering an intuitive metric for evaluating instantaneous con-
+figurations [9,17,18]. While effective for static or small-scale scenarios, these global approaches
+often result in high-dimensional matrices when node counts and observations increase to
+ensure low-altitude coverage and connectivity. The inversion or eigenvalue computation of
+such large matrices incurs substantial computational overhead, hindering real-time evaluation
+in dynamic environments with heterogeneous, mobile nodes. Moreover, the multi-hop error
+propagation inherent in air–ground layered structures further complicates direct applica-
+tion of conventional single-layer models [19]. Therefore, there is a need for a precision and
+light evaluation approach that preserves geometric interpretability while enabling efficient,
+scalable computation—particularly through matrix decomposition techniques that reduce
+dimensionality without sacrificing system-level fidelity.
+Route planning for UAV swarms in air–terrestrial cooperative networks faces sig-
+nificant scalability and dynamism challenges. Heterogeneous and mobile user groups
+require continuous trajectory adaptation to maintain favorable geometries, rendering static
+hovering inadequate. The joint optimization of multiple UAVs inflates the search space and
+computational complexity due to tight coupling in user accuracy determination. Existing
+methods span a wide spectrum, including sampling-based planners, convex optimization,
+https://doi.org/10.3390/electronics15061207
+[p.3]
+Electronics 2026, 15, 1207
+3 of 20
+bio-inspired metaheuristics, and learning-based approaches. Sampling methods like RRT*
+and PRM* excel in high-dimensional exploration but often produce non-smooth paths and
+struggle with real-time replanning in dynamic environments [17,18]. Convex techniques,
+such as ADMM-based configuration optimization and model predictive control (MPC),
+provide rigorous handling of constraints but incur high per-step computation, limiting
+onboard feasibility [15,16]. Metaheuristic algorithms, including NSGA-III variants and
+particle swarm optimization (PSO), offer strong global exploration and multi-objective
+capability [15,20], yet their population-based iterations remain computationally intensive
+and typically offline-oriented [11,21,22]. Learning-based methods, such as reinforcement
+learning (RL) and federated RL, adapt well to uncertainties but demand extensive training
+data and lack provable optimality guarantees [11]. In contrast, gradient-driven reactive
+methods, particularly those based on Artificial Potential Fields (APFs), provide inherent
+advantages for this context: extremely low per-step complexity, and seamless integration of
+real-time feedback from system metrics like GDOP. These properties make gradient-based
+reactive planning particularly suitable for lightweight, autonomous trajectory adaptation
+in resource-constrained UAV platforms under dynamic heterogeneous user demands.
+To address these challenges, this paper proposes a lightweight framework based on the
+Artificial Potential Field (APF) method for autonomous UAV swarm route planning in dy-
+namic air–terrestrial cooperative navigation scenarios within GNSS-denied environments.
+The main contributions are as follows:
+(1)
+The influence of UAV positions on the overall system accuracy is analyzed, forming a
+comprehensive DOP matrix. The Schur complement decomposes the global metric,
+yielding a geometry-configuration-based evaluation model that supports efficient
+gradient computation.
+(2)
+An APF-based method enables autonomous joint route planning for the UAV swarm.
+The derived geometric evaluation model constructs the potential field, with its gra-
+dients serving as virtual forces to guide the swarm, effectively bridging high-level
+navigation performance optimization with low-level motion control.
+(3)
+Simulations demonstrate the framework’s effectiveness in achieving real-time geometry
+optimization and user accuracy improvement under dynamic heterogeneous demands.
+The remainder of this paper is organized as follows: Section 2 presents the precision
+analysis of the air–terrestrial cooperative navigation system, including the system model,
+positioning equations, and the lightweight Schur complement-based decomposition for user
+geometric evaluation. Section 3 details the proposed APF-based UAV swarm route planning
+framework, covering the algorithm principle, construction of the Artificial Potential Field,
+and derivation of virtual forces with finite-difference gradient approximation. Section 4
+evaluates the framework through extensive simulations in static and dynamic scenarios,
+demonstrating convergence, real-time adaptability, and significant improvements in user
+positioning performance. Finally, Section 5 summarizes the conclusions of this paper. An
+appendix provides the analytical gradient derivation of the system precision matrix for
+deeper insight into UAV position sensitivity.
+2. Precision Analysis
+This section presents a detailed analysis of the positioning precision in the air–
+terrestrial cooperative navigation. It first describes the architecture and measurement
+model, and then derives the linearized observation equations and the full precision covari-
+ance matrix. Finally, a lightweight decomposition approach based on the Schur complement
+is introduced to efficiently evaluate the user geometric precision while reducing computa-
+tional complexity for real-time applications.
+https://doi.org/10.3390/electronics15061207
+[p.4]
+Electronics 2026, 15, 1207
+4 of 20
+2.1. Air–Terrestrial Navigation Scenarios
+The air–terrestrial cooperative navigation scenarios consists of three types of nodes:
+ground anchors with precisely known positions, aerial UAVs acting as dynamic transit nodes,
+and ground users requiring positioning service. The fundamental measurement employed
+throughout the system is pseudorange observation, achieved via unidirectional broadcasting.
+The operational sequence is as follows: Ground anchors, whose positions are fixed
+and accurately surveyed in advance, continuously broadcast pseudorange signals. These
+signals embed the anchor’s known position coordinates and timing reference information.
+UAVs in the airspace receive signals from multiple ground anchors simultaneously. The
+UAV then broadcasts its own pseudorange signals, together with its received anchors’
+pseudorange signals, to ground users and potentially to other UAVs in the vicinity. Ground
+users demodulate these broadcasts and apply SPP to determine all of the positions and
+clock offsets relative to the system time [2].
+Notably, UAVs are not limited to serving only ground users; they can also receive
+pseudorange broadcasts from neighboring UAVs. This UAV-to-UAV unidirectional ranging
+enables mutual observation among aerial nodes, which can further enhance swarm-level
+geometric diversity, improve robustness against anchor signal blockage, and support
+cooperative refinement of UAV positions in cases of partial anchor visibility.
+To facilitate subsequent analysis, the system can be abstracted as a directed posi-
+tioning network. Let A = {ai}I
+i=1 denote the I ground anchors with known positions,
+W =
+
+wj
+	J
+j=1 represent the J UAVs, and U = {uk}K
+k=1 represent the K users. Directed
+edges indicate possible unidirectional pseudorange measurements: from anchors to UAVs,
+from UAVs to users, and bidirectionally between UAVs. The schematic of this air–ground
+cooperative scenarios is illustrated in Figure 1.
+ 
+Figure 1. Typical scenario of UAV-PNS. Where the one-way green arrow indicates the observation from
+the ground anchor to the UAVs, the one-way blue arrow indicates the observation from the UAVs to the
+users, and the two-way yellow arrow indicates the mutual observation between the UAVs.
+2.2. The Positioning Model and Geometry Indicator
+In the basic, the pseudorange measurement model in Single-Point Positioning (SPP) [2]
+can be suited as follows:
+eP = P + ε = ρ + c∆tr −c∆tt + ε
+(1)
+https://doi.org/10.3390/electronics15061207
+[p.5]
+Electronics 2026, 15, 1207
+5 of 20
+where eP and P are the measured pseudorange and real pseudorange received by the
+receiver, ρ is the real Euclidean distance between transmitter and receiver, ∆tr and ∆tt are
+the clock offsets compared to the system reference time for the transmitter and receiver,
+respectively, c is the speed of light, and ε is the pseudorange measurement noise. Without
+loss of generality, we assume that all measurement noises follow a Gaussian distribution.
+Thus, we can form all of the observation equations as follows:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ePa1,w1
+= ρa1,w1 + c∆tw1 −c∆ta1 + εa1,w1
+...
+ePaI,wJ
+= ρaI,wJ + c∆twJ −c∆taI + εaI,wJ
+ePw2,w1
+= ρw2,w1 + c∆tw1 −c∆tw2 + εw2,w1
+...
+ePwJ−1,wJ
+= ρwJ−1,wJ + c∆twJ −c∆twJ−1 + εwJ−1,wJ
+ePw1,u1
+= ρw1,u1 + c∆tu1 −c∆tw1 + εw1,u1
+...
+ePwJ,uK
+= ρwJ,uK + c∆tuK −c∆twJ + εwJ,uK
+(2)
+where ePa1,w1, . . . , ePaI,wJ are the pseudorange observations received by UAVs W =
+
+wj
+	J
+j=1
+from ground anchors A = {ai}I
+i=1, ePw2,w1, . . . , ePwJ−1,wJ are the pseudorange observations
+among the UAVs, and ePw1,u1, . . . , ePwJ,uK are the pseudorange observations received by
+users U = {uk}K
+k=1 from UAVs W =
+
+wj
+	J
+j=1. The pseudorange measurement noises are
+distributed as εai,wj ∼N
+
+0, σ2
+ai,wj
+
+, εwj−1,wj ∼N
+
+0, σ2
+wj−1,wj
+
+, εwj,uk ∼N
+
+0, σ2
+wj,uk
+
+. This
+paper adopts the East–North–Up (ENU) coordinate system, where x, y, and z represent the
+east, north, and up coordinates, respectively. A well-defined and simple transformation
+exists between different coordinate systems [3], ensuring that the choice of coordinate
+system does not affect the positioning results.
+The vector to be estimated includes the three-dimensional positions and clock offsets of all
+of the UAVs and users. Since the above measurement models are instantaneous, there are a total
+of 4J + 4K estimable variables at each epoch. The vector to be estimated is shown as follows:
+θ =
+h
+xw1
+yw1
+zw1
+c∆tw1
+. . .
+xwJ
+ywJ
+zwJ
+c∆twJ
+xu1
+yu1
+zu1
+c∆tu1
+. . .
+xuK
+yuK
+zuK
+c∆tuK
+iT
+(3)
+Combining the vector to be estimated, by analogy with SPP, and performing a first-
+order Taylor expansion on the observation equation in the linearized position of θ0 [2], a
+linearized positioning equation can be obtained as follows:
+b + ε = Hdθ
+(4)
+where dθ is the corrections, H is the overall Jacobi matrix, and b is the observation vector,
+the details of these matrices and vectors will be elaborated in the next section. While solving
+the problem with algorithm in minimize the residual sum of squares εTε, then:
+dθ =
+
+HTWH
+−1
+HTWb
+(5)
+https://doi.org/10.3390/electronics15061207
+[p.6]
+Electronics 2026, 15, 1207
+6 of 20
+where the W is the weight matrix, W =
+ εTε
+−1. Therefore, the covariance in the resolution
+estimated ˆθ is:
+cov(δ ˆθ) = E
+ HTWH
+−1HTWε
+ HTWH
+−1HTWε
+T
+= E
+ HTWH
+−1HTWεεTWH
+ HTWH
+−1
+=
+ HTWH
+−1
+(6)
+It can be regarded as a mapping matrix from the noise covariance observed within the
+network to the vector to be estimated, determined the error amplification gain.
+2.3. Lightweight Computing
+This section first details the structure of the Jacobian matrix H and the observation
+vector b. It then proposes a decomposition-based method for evaluating user geometric
+precision, aimed at significantly reducing computational complexity.
+Viewed along its rows and columns, the Jacobian matrix H exhibits a clear block
+structure: the rows represent observations grouped into three categories, anchor-to-UAV,
+UAV-to-UAV, and UAV-to-user, while the columns correspond to the unknown states
+partitioned into UAV positions and user positions. Hence, we split H and b as follows:
+H =
+
+
+HA
+W
+0
+HW
+W
+0
+HU
+W
+HW
+U
+
+, b =
+
+
+bA
+W
+bW
+W
+bW
+U
+
+
+(7)
+where HA
+W denotes the collective Jacobian submatrix corresponding to all anchor-to-UAV
+observations, HW
+W the submatrix for all UAV-to-UAV observations, HW
+U and HU
+W the sub-
+matrices for all UAV-to-user observations, and bA
+W, bW
+W and bW
+U are the corresponding
+measurement residual vectors. The detailed composition of these blocks is given as follows:
+HA
+W =
+
+
+HA1
+w1
+0
+· · ·
+0
+0
+HA2
+w2
+· · ·
+0
+...
+...
+...
+0
+0
+0
+0
+H
+AJ
+wJ
+
+
+, b =
+
+
+bA1
+w1
+bA2
+w2
+...
+b
+AJ
+wJ
+
+
+(8)
+H
+Aj
+wj =
+
+
+x0wj−xa1
+ρ0a1,wj
+y0wj−ya1
+ρ0a1,wj
+z0wj−za1
+ρ0a1,wj
+1
+x0wj−xa2
+ρ0a2,wj
+y0wj−ya2
+ρ0a2,wj
+z0wj−za2
+ρ0a2,wj
+1
+...
+...
+...
+...
+x0wj−xaI
+ρ0aI,wj
+y0wj−yaI
+ρ0aI,wj
+z0wj−zaI
+ρ0aI,wj
+1
+
+
+, b
+Aj
+wj =
+
+
+Pa1,wj −ρ0
+a1,wj + c∆ta1
+Pa2,wj −ρ0
+a2,wj + c∆ta2
+...
+PaI,wj −ρ0
+aI,wj + c∆taI
+
+
+(9)
+where H
+Aj
+wj and b
+Aj
+wj are the Jacobian submatrix and residual vector associated with the
+observations received by the j-th UAV wj from their received anchor set Aj ∈A = {ai}I
+i=1.
+https://doi.org/10.3390/electronics15061207
+[p.7]
+Electronics 2026, 15, 1207
+7 of 20
+Each row of H
+Aj
+wj corresponds to the line-of-sight (LOS) unit vector (augmented with a clock
+bias component) from wj to the respective anchor.
+HW
+W =
+
+
+HW1
+w1
+−hw2
+w1
+· · ·
+−h
+wj
+w1
+−hw1
+w2
+HW2
+w2
+· · ·
+−h
+wj
+w2
+...
+...
+...
+...
+−hw1
+wj
+−hw2
+wj
+· · ·
+H
+Wj
+wj
+
+
+, b =
+
+
+bW1
+w1
+bW2
+w2
+...
+b
+Wj
+wj
+
+
+(10)
+H
+Wj
+wj =
+
+
+x0wj−x0w1
+ρ0w1,wj
+y0wj−y0w1
+ρ0w1,wj
+z0wj−z0w1
+ρ0w1,wj
+1
+...
+...
+...
+...
+x0wj−x0wJ
+ρ0wJ,wj
+y0wj−y0wJ
+ρ0wJ,wj
+z0wj−z0wJ
+ρ0wJ,wj
+1
+
+
+, b
+Wj
+wj =
+
+
+Pw1,wj −ρ0
+w1,wj
+...
+Pwj−1,wj −ρ0
+wj−1,wj
+Pwj+1,wj −ρ0
+wj+1,wJ
+...
+PwJ,wj −ρ0
+wJ,wj
+
+
+(11)
+hwm
+wj =
+
+
+0
+0
+0
+0
+...
+...
+...
+...
+x0wj−x0wm
+ρ0wm,wj
+y0wj−y0wm
+ρ0wm,wj
+z0wj−z0wm
+ρ0wm,wj
+1
+...
+...
+...
+...
+0
+0
+0
+0
+
+
+(12)
+where H
+Wj
+wj and b
+Wj
+wj are the Jacobian submatrix and residual vector for the observa-
+tions received by the j-th UAV wj from the other UAVs, form the set of Wj ∈W =
+
+wj
+	J
+j=1. Each row corresponds to the LOS unit vector from wj to the transmitting UAV
+wm(m ≤J and m̸ = j). The individual row vector hwm
+wj is a sparse row with only the entries
+corresponding to the state of wm being non-zero, and it is identical to the m-th observed
+row within the full block H
+Wj
+wj , form the equation H
+Wj
+wj =
+1,...,j−1,j+1,...,J
+∑
+m
+hwm
+wj .
+HU
+W =
+
+
+−hw1
+u1
+−hw2
+u1
+· · ·
+−h
+wj
+u1
+−hw1
+u2
+−hw2
+u2
+· · ·
+−h
+wj
+u2
+...
+...
+...
+...
+−hw1
+uK
+−hw2
+uK
+· · ·
+−h
+wj
+uK
+
+
+, HW
+U =
+
+
+HW1
+u1
+0
+· · ·
+0
+0
+HW2
+u2
+· · ·
+0
+...
+...
+...
+...
+0
+0
+· · ·
+HWK
+uK
+
+
+, bW
+U =
+
+
+bW1
+u1
+bW2
+u2
+...
+bWK
+uK
+
+
+(13)
+HWk
+uk =
+
+
+x0uk −x0w1
+ρ0w1,uk
+y0uk −y0w1
+ρ0w1,uk
+z0uk −z0w1
+ρ0w1,uk
+1
+x0uk −x0w2
+ρ0w2,uk
+y0uk −y0w2
+ρ0w2,uk
+z0uk −z0w2
+ρ0w2,uk
+1
+...
+...
+...
+...
+x0uk −x0wJ
+ρ0wJ,uk
+y0uk −y0wJ
+ρ0wJ,uk
+z0uk −z0wJ
+ρ0wJ,uk
+1
+
+
+, bWk
+uk =
+
+
+Pw1,uk −ρ0
+w1,uk
+Pw2,uk −ρ0
+w2,uk
+...
+PwJ,uk −ρ0
+wJ,uk
+
+
+(14)
+h
+wj
+uk =
+
+
+0
+0
+0
+0
+...
+...
+...
+...
+x0uk −x0wj
+ρ0wj,uk
+y0uk −y0wj
+ρ0wj,uk
+z0uk −z0wj
+ρ0wj,uk
+1
+...
+...
+...
+...
+0
+0
+0
+0
+
+
+(15)
+https://doi.org/10.3390/electronics15061207
+[p.8]
+Electronics 2026, 15, 1207
+8 of 20
+where HWk
+uk and bWk
+uk are the Jacobian submatrix and residual vector for the observations
+received by the k-th user uk from its received UAVs Wk ∈W =
+
+wj
+	J
+j=1. Each row of
+HWk
+uk represents the LOS unit vector from uk to the corresponding transmitting UAV. The
+individual row vector h
+wj
+uk is sparse, with only the entries corresponding to the state of wj
+being non-zero, and matches the n-th row of HWk
+uk ; thus, we have HWk
+uk =
+J
+∑
+j=1
+h
+wj
+uk .
+Back to Equation (6), it evaluated the global nodes in geometry configurations, but
+sometimes we only need part of the nodes, for users, as an instance. The dimension
+of HTWH ∈R(4J+4K)×(4J+4K) will increase rapidly with the expansion of nodes, and
+the inverse operation will result in a severe computational load. Based on the block
+characteristics of the overall observation matrix H, we have:
+ HTWH
+−1
+=
+
+
+
+
+
+"
+HA
+W
+T
+HW
+W
+T
+HU
+W
+T
+0
+0
+HW
+U
+T
+#
+
+WA
+W
+0
+0
+0
+WW
+W
+0
+0
+0
+WW
+U
+
+
+
+
+HA
+W
+0
+HW
+W
+0
+HU
+W
+HW
+U
+
+
+
+
+
+
+
+−1
+=
+"
+HA
+W
+TWA
+WHA
+W + HW
+W
+TWW
+WHW
+W + HU
+W
+TWW
+U HU
+W
+HU
+W
+TWW
+U HW
+U
+HW
+U
+TWW
+U HU
+W
+HW
+U
+TWW
+U HW
+U
+#−1
+=
+"
+GW
+G12
+G21
+GU
+#
+(16)
+Use the Schur complement to avoid direct large-scale inversion. In most practical
+scenarios, we only need to compute the two main diagonal block matrices in Equation (16)
+as they directly encapsulate the geometric precision factors for the UAVs and the users,
+respectively. The corresponding Schur complement is given by:
+GW =
+
+HA
+W
+TWA
+WHA
+W + HW
+W
+TWW
+WHW
+W + HU
+W
+TWW
+U HU
+W−
+HU
+W
+TWW
+U HW
+U
+
+HW
+U
+TWW
+U HW
+U
+−1
+HW
+U
+TWW
+U HU
+W
+−1
+(17)
+GU =
+
+HW
+U
+TWW
+U HW
+U −
+HW
+U
+TWW
+U HU
+W
+
+HA
+W
+TWA
+WHA
+W + HW
+W
+TWW
+WHW
+W + HU
+W
+TWW
+U HU
+W
+−1
+HU
+W
+TWW
+U HW
+U
+−1
+=
+
+HW
+U
+T
+WW
+U −
+WW
+U HU
+W
+
+HA
+W
+TWA
+WHA
+W + HW
+W
+TWW
+WHW
+W + HU
+W
+TWW
+U HU
+W
+−1
+HU
+W
+TWW
+U
+
+HW
+U
+−1
+(18)
+So, (18) is exactly what we want to evaluate the users’ geometry configurations, and
+GU is defined as the comprehensive DOP matrix. The computational complexity is reduced
+from O
+
+(4J + 4K)3
+to O
+
+(4J)3
+.
+3. UAV Swarm Route Planning
+This section develops the proposed APF framework for autonomous UAV swarm tra-
+jectory planning. It begins with the principle of the algorithm, followed by the construction
+of the composite potential field using the geometric evaluation metric from Section 2 as
+the attractive component and operational constraints as repulsive terms. The derivation
+of the resulting virtual forces, including a lightweight finite-difference approximation for
+gradients, is then presented to enable real-time motion control.
+https://doi.org/10.3390/electronics15061207
+[p.9]
+Electronics 2026, 15, 1207
+9 of 20
+3.1. Principle of Algorithm
+The Artificial Potential Field (APF) method, originally proposed by Khatib in 1986 [23],
+is a classical reactive approach for real-time path planning and motion control of robotic
+agents. By analogy with physical potential fields, the method models the environment
+and task objectives through virtual attractive and repulsive forces. The resultant force,
+computed as the negative gradient of the total artificial potential, directly guides the agent
+toward the goal while avoiding obstacles or undesirable configurations. Over the past
+decades, APF and its numerous variants have been widely applied to multi-agent coordi-
+nation, UAV trajectory planning, and swarm robotics, owing to its conceptual simplicity,
+extremely low computational cost per control cycle, and natural suitability for distributed
+implementation [24,25].
+Despite its advantages, the classical APF suffers from well-known limitations, most
+notably the susceptibility to local minima, oscillations in narrow passages, and goal non-
+reachability under certain configurations [26]. In recent years, various improvements have
+been proposed to mitigate these issues, including harmonic potential fields, virtual force
+hybrid methods, and adaptive repulsive force functions [25,27].
+For the air–terrestrial cooperative positioning problem considered in this paper, the
+classical APF remains highly attractive for the following reasons: First, the primary objective
+is to continuously optimize the geometric configuration of the UAV swarm in response to
+dynamic and heterogeneous user demands, rather than to guarantee convergence to a globally
+optimal static formation. Second, the onboard computational resources of UAVs are strictly
+limited, making lightweight, reactive methods far more practical than global optimization
+techniques such as evolutionary algorithms or convex solvers. Third, the geometric evaluation
+metric derived in Section 2.2 is naturally differentiable and can be directly used to construct
+the potential field, enabling a seamless bridge between high-level positioning performance
+and low-level motion commands. These characteristics make APF particularly well-suited as
+a real-time, trajectory adaptation framework for the UAV swarm in this context.
+Consequently, rather than proposing a new variant to address the local minima issue
+of APF itself, this work focuses on the specific application of the classical APF to the
+UAV swarm route planning problem in air–ground collaborative radio navigation systems.
+The emphasis is placed on how to properly define the potential field using the proposed
+geometry evaluation model so as to achieve effective real-time optimization of user-end
+positioning accuracy under dynamic conditions.
+3.2. Establish of Artificial Potential Field
+The total Artificial Potential Field Utotal is constructed as the superposition of an
+attractive potential Uatt and multiple repulsive potentials Urep,i:
+Utotal = Uatt +
+M
+∑
+i=1
+Urep,i
+(19)
+where M is the number of active constraints (e.g., altitude limits, terrain, inter-UAV sep-
+aration). The virtual force is then derived as F = −∇Utotal (detailed in Section 3.3). This
+formulation ensures that UAVs are continuously pulled toward geometries minimizing
+user positioning error while pushed away from infeasible regions.
+The primary objective is to minimize the users’ comprehensive DOP GU. The attractive
+potential is defined as follows: Uatt = tr(GU)
+Uatt = αtr(GU)
+(20)
+https://doi.org/10.3390/electronics15061207
+[p.10]
+Electronics 2026, 15, 1207
+10 of 20
+where α is the coefficient factor. The negative gradient ∇Uatt naturally guides UAVs
+downhill toward swarm geometries that optimize end-to-end user accuracy, bridging
+high-level precision mapping with reactive control. Unlike discrete DOP-map waypoint
+methods, this continuous, differentiable formulation enables real-time, gradient-based
+swarm adaptation to dynamic heterogeneous users.
+Repulsive potentials address key operational constraints, modeled with the standard
+inverse-distance form to decay rapidly away from hazards:
+Urep,i =
+
+
+
+ηi 1
+di
+2 ,
+di ≤d0,i
+0,
+di > d0,i
+(21)
+where di is the distance to the i-th constraint boundary, d0,i the influence range, and ηi > 0
+the gain. Specific forms include:
+(1)
+Minimum altitude constraint: d1 = z −hmin, where hmin > 0. This ensures z > hmin,
+preventing collisions with uneven ground or obstacles.
+(2)
+Inter-UAV collision avoidance: for UAV j and peer m, d2 = ∥pj −pm∥−rsafe, with
+rsafe of the safety radius.
+(3)
+Boundary of zones: d3 from polygonal boundaries. Parameters {ηi, d0,i} are selected
+empirically to dominate near boundaries.
+Figure 2 illustrates the composite field, where low-DOP valleys attract the swarm
+while repulsive barriers enforce safety. The red and blue contour lines represent the spatial
+variation in the comprehensive DOP levels, and the yellow dashed line is the boundary.
+ 
+Figure 2. APF for UAV swarm.
+https://doi.org/10.3390/electronics15061207
+[p.11]
+Electronics 2026, 15, 1207
+11 of 20
+3.3. Derivation of UAV Virtual Force
+The virtual force acting on each UAV is derived from the negative gradient of the total
+Artificial Potential Field established in Section 3.2. For the j-th UAV, the force is given by:
+Fj = −∇Utotal = −∇Uatt −
+M
+∑
+i=1
+∇Urep,i
+(22)
+where ∇= [∂/∂xj, ∂/∂yj, ∂/∂zj]T denotes the spatial gradient operator. This resultant
+force guides the UAV’s motion via simple kinematic integration (e.g., vj ←vj + ∆t · Fj/mj ,
+followed by position update), enabling reactive trajectory adaptation. Below, we derive the
+gradients for the attractive and repulsive components, prioritizing computational efficiency
+for onboard implementation.
+The attractive potential Uatt is a scalar function of the entire swarm configuration.
+The partial derivation of Uatt to the coordinate of j-th UAV rwj =
+h
+xwj, ywj, zwj
+iT
+is the
+virtual force. While the analytical expression can be obtained by differentiating the GU,
+this would require complex matrix derivatives that increase computational burden in
+high-dimensional settings.
+To maintain the lightweight nature of our framework and ensure real-time feasibility
+on resource-constrained UAV platforms, we employ a finite-difference approximation for
+the gradient:
+∇Uatt ≈
+GU(rwj + ∆r) −GU(rwj −∆r)
+2∆r
+(23)
+where ∆r is a small perturbation along the three axis. The finite-difference approximation
+for gradients is a widely adopted practical approach in APF, as demonstrated in prior
+works for real-time path planning [28,29]. This central difference scheme requires only six
+evaluations of the scalar GU function per UAV per control cycle, preserving low complexity
+while providing sufficient accuracy for trajectory guidance. Numerical stability is ensured
+by adaptive ∆scaling based on UAV speed or DOP magnitude. For offline analysis or
+higher precision, the analytical gradient can be derived as detailed in Appendix A.
+The repulsive gradients are analytically straightforward due to their simple inverse-
+distance form Equation (21). For a general repulsive term Urep,i = ηi/di
+2 (active when
+di ≤d0,i), the gradient is:
+∇Urep,i = −ηi
+ui
+2di
+3
+(24)
+where ui is the unit direction vector from rwj toward the constraint boundary (e.g., upward
+for altitude: u1 = [0, 0, 1]T; toward peer UAV m for collision: u2 = (rwm −rwj)/∥rwm −rwj∥).
+This closed-form expression incurs negligible computation, complementing the attractive
+component’s approximation.
+Figure 3 summarizes the overall UAV swarm route planning algorithm.
+It should be noted that while each UAV computes local forces reactively, the global
+user GDOP scalar is aggregated by a lightweight central coordinator (e.g., lead UAV or
+ground station) and periodically broadcast to the swarm via low-latency links, enabling
+consistent geometry optimization without requiring full observation sharing at every step.
+https://doi.org/10.3390/electronics15061207
+[p.12]
+Electronics 2026, 15, 1207
+12 of 20
+ 
+Figure 3. The flow of the algorithm.
+4. Simulation
+This section evaluates the effectiveness and performance of the proposed framework
+through comprehensive simulations. It first examines a static scenario to verify convergence
+and baseline geometric improvement, and then extends to dynamic scenarios with piece-
+wise linear user motion to demonstrate real-time adaptability and robustness. Comparative
+analyses against non-adaptive baselines highlight the algorithm’s superior user accuracy,
+inter-user balance, and temporal stability under varying conditions.
+4.1. Static Scenarios
+To validate the basic convergence and effectiveness of the proposed APF-based UAV
+swarm route planning framework, a static scenario is first considered. In this setup,
+ground users remain fixed in position throughout the simulation, allowing us to isolate
+the algorithm’s ability to drive the UAV swarm from suboptimal initial configurations
+toward geometries that minimize the user comprehensive GDOP (GU). This serves as a
+baseline verification of the core mechanism: the attractive potential derived from the Schur-
+complement-based metric GU successfully guides the swarm downhill in the potential
+field, while repulsive potentials enforce operational constraints.
+The simulation environment is defined within a cubic spatial region of dimensions
+1200 m × 1200 m × 700 m (i.e., 0 < x < 1200, 0 < y < 1200, 0 < z < 700). Figure 4
+illustrates the initial configuration of the system. Six ground anchors (marked as red
+circles) are deployed at fixed positions on the ground plane (z = 0) to provide a sparse but
+https://doi.org/10.3390/electronics15061207
+[p.13]
+Electronics 2026, 15, 1207
+13 of 20
+sufficient reference network. The six UAVs start from diverse initial positions (represented
+by triangles of different colors) scattered across the airspace, intentionally including some
+poor geometric configurations relative to the users. Three ground users are placed at fixed
+locations (green squares), representing typical static targets in GNSS-denied applications
+such as monitoring stations or emergency response points.
+Figure 4. Initial configuration of the static scenario. Red circles: ground anchors; colored triangles:
+initial UAV positions; green squares: static users.
+Key simulation parameters are selected to reflect realistic UAV platform characteristics
+and to balance the attractive and repulsive forces. Simulation parameters are shown in Table 1.
+Table 1. Simulation parameter settings.
+Simulation Parameter
+Value
+Maximum UAV velocity
+15 m/s
+Maximum acceleration induced by the total virtual force
+8 m/s2
+Repulsive potential influence range (d0,1, d0,2, d0,3)
+100 m, 100 m, 100 m
+Repulsive gain (η1 = η2 = η3)
+8
+Attractive potential scaling factor (α)
+400
+Finite-difference perturbation distance (|∆r|)
+1 m
+These values were tuned empirically through preliminary tests to achieve smooth
+convergence without excessive oscillations or overly aggressive maneuvers. The UAV
+swarm is updated synchronously with a fixed time step of ∆t = 0.1 s, and the simulation
+runs 300 s when most UAVs turn to be converged.
+Figure 5 shows the autonomous planned route of the UAV swarm trajectories during
+the simulation. Starting from the initial poor geometry, the swarm gradually spreads out
+and ascends, forming a more favorable volumetric configuration relative to the user group.
+The corresponding evolution of comprehensive GDOP for each user and GDOP for each
+UAV is plotted in Figure 6.
+https://doi.org/10.3390/electronics15061207
+[p.14]
+Electronics 2026, 15, 1207
+14 of 20
+Figure 5. Autonomous planned route of UAV swarm in the static scenario. Red circles: ground
+anchors; colored triangles and squares: initial UAV positions and final UAV positions in the mission;
+green squares: static users.
+Figure 6. Evolution of the comprehensive GDOP of users and the GDOP of UAVs over time in the
+static scenario.
+The metric decreases monotonically from an initial value of approximately 10 to
+about 3, demonstrating stable and rapid convergence. Notice in Figure 6 that, after most
+UAVs converge, a few still display slow, uniform rectilinear drift. This behavior arises
+because their positions exert only negligible influence on the user comprehensive GDOP,
+resulting in a correspondingly balanced virtual force state. This baseline scenario also
+serves as a reference for subsequent dynamic and comparative experiments, highlighting
+the algorithm’s intrinsic convergence properties under controlled conditions.
+There are two points need to be noted in particular: First, when serving low-altitude
+users, the GDOP characteristics experienced by these users exhibit strong similarity to
+those of the UAVs due to the layered measurement structure and comparable altitudes.
+Second, noise-free and instantaneous access to UAV and user positions for computing the
+global user GDOP metric: In large-scale outdoor regional navigation, this simplification has
+limited impact due to geometric redundancy and spatial scale; however, in indoor or NLOS-
+heavy scenarios, position estimation uncertainties would propagate into the APF gradients
+and require additional mitigation. When such uncertainties are significant, techniques such
+as those proposed by Shin et al. [30]—adding a virtual force term to coordinate estimation
+variance—could be integrated into the total virtual force to enhance robustness.
+4.2. Dynamic Scenarios
+To evaluate the proposed framework’s ability to handle time-varying user demands in
+realistic GNSS-denied environments, a dynamic scenario is designed where ground users
+https://doi.org/10.3390/electronics15061207
+[p.15]
+Electronics 2026, 15, 1207
+15 of 20
+exhibit piecewise constant-velocity motion over a 600 s simulation horizon. This setup tests
+the algorithm’s convergence properties, real-time adaptability to user state changes, and
+overall improvement in user positioning performance compared to a non-adaptive baseline.
+The simulation retains the same spatial bounds and anchor/user placement as the
+static scenario (Figure 4), with six UAVs and three ground users. The total duration of
+600 s is divided into three equal segments of 200 s each. At the beginning of each segment
+(t = 0 s, t = 200 s, t = 400 s), every user is assigned a new constant velocity vector
+vu = [vx, vy, vz]T, where the horizontal components vx and vy are independently drawn
+from a Gaussian distribution N (0, 0.152) m/s, and the vertical component vz is drawn
+from N (0, 0.0052) m/s and then taken as an absolute value (|vz|) to prevent descent below
+ground level (z ≥0). This results in each user following a three-segment piecewise linear
+trajectory (connected broken lines) with sudden velocity changes at the segment bound-
+aries, simulating realistic heterogeneous motion patterns such as pedestrians, vehicles, or
+monitoring equipment in GNSS-denied areas.
+The same APF parameters as in the static case are employed, ensuring consistency
+across experiments. The UAV swarm is updated every ∆t = 0.1 s using the finite-difference
+gradient approximation.
+Figure 7 presents a 3D visualization of the UAV swarm trajectories throughout the 600 s
+simulation, overlaid with the ground anchors (red circles), initial UAV positions (colored
+triangles), and the complete user trajectories (green blocks to show the start and destination).
+The UAVs can be seen dynamically repositioning in response to each user velocity transition,
+spreading out and adjusting altitude to maintain favorable geometric diversity.
+Figure 7. Autonomous planned route of UAV swarm in the dynamic scenario. Red circles: ground
+anchors; colored triangles and squares: initial UAV positions and final UAV positions in the mission;
+green squares: dynamic users.
+Figure 8 compares the time evolution of the average in users’ comprehensive GDOP
+GU (solid blue line) with that of a non-adaptive baseline where the UAVs remain fixed at
+their initial positions (dashed light blue line). Several key observations emerge: (1) The
+proposed algorithm achieves rapid convergence, reducing the GU to values consistently
+below 4, often approaching 2.0–2.5 after user velocity changes. (2) At the velocity transition
+points (t = 200 s and t = 400 s), the GU and UAVs’ GDOP GW experience a brief spike
+in both cases due to sudden geometry degradation; however, the adaptive UAV swarm
+remains stable, while the static baseline shows persistent high GDOP. (3) Across the entire
+600 s, the adaptive method yields a significantly lower mean GU for 2.92 compared to the
+https://doi.org/10.3390/electronics15061207
+[p.16]
+Electronics 2026, 15, 1207
+16 of 20
+static baseline of 12.92, achieved a 76.1% improvement. It is worth noting that the inter-user
+balance (lower variance among the three users), and greater temporal stability (smoother
+curves with fewer fluctuations) are also enhanced.
+Figure 8. Evolution of the comprehensive GDOP of users and the GDOP of UAVs over time in the
+dynamic scenario.
+Figure 9 further illustrates the x (blue), y (red), and z (yellow) position histories of the
+UAV swarm and users over time. The UAV routes’ data have had the initial coordinates
+subtracted to exhibit clear, coordinated adjustments at t = 200 s and t = 400 s, with
+noticeable velocity changes in response to the user motion discontinuities. These plots
+visually confirm the swarm’s self-adaptive capability: when user states change abruptly,
+the attractive potential gradient strengthens, prompting immediate repositioning to restore
+geometric quality.
+Figure 9. Time histories of users and UAVs positions along x, y, z axis.
+The results in this dynamic scenario demonstrate that the proposed framework not
+only converges effectively under time-varying conditions but also exhibits strong robust-
+ness and adaptability to sudden user state changes. Compared to the static baseline, the
+algorithm substantially improves user positioning accuracy, inter-user equity, and temporal
+consistency, validating its suitability for real-world air–terrestrial cooperative navigation
+applications involving heterogeneous and mobile users.
+While the simulation results in static and dynamic scenarios demonstrate strong con-
+vergence and adaptability of the proposed APF framework, it is important to acknowledge
+the inherent limitations of classical Artificial Potential Field methods, including local minima,
+oscillations in narrow passages, and target unreachability. In our specific application—real-
+time geometric configuration optimization for UAV swarms serving dynamic ground users
+in GNSS-denied regional navigation—these defects manifest less severely than in traditional
+https://doi.org/10.3390/electronics15061207
+[p.17]
+Electronics 2026, 15, 1207
+17 of 20
+obstacle-dense path planning tasks. First, the primary objective is continuous, reactive mini-
+mization of user GDOP rather than convergence to a single global optimum position; thus,
+even if a UAV enters a local minimum, the resulting geometry often remains acceptable due
+to the relatively flat and forgiving nature of GDOP landscapes in multi-UAV configurations.
+Second, the operating environment is relatively open (airspace with sparse ground anchors),
+significantly reducing the probability of narrow-channel oscillations. Third, the repulsive
+potentials designed for minimum altitude and inter-UAV separation naturally promote swarm
+diversity, which helps mitigate trap situations by preventing excessive clustering. These char-
+acteristics make the classical APF particularly suitable for our lightweight, onboard-real-time
+requirements, where computational simplicity outweighs the need for guaranteed global
+optimality. Future work may incorporate adaptive gain tuning or random perturbations to
+further enhance robustness in more constrained environments.
+4.3. Analysis of Computational Complexity
+To verify the practical effectiveness of the proposed Schur-complement-based geo-
+metric evaluation model in reducing computational complexity, this section provides a
+quantitative comparative analysis. The simulations were performed on a computing plat-
+form equipped with an AMD Ryzen 7 5800 H CPU and 32 GB RAM. To simulate diverse
+air–terrestrial cooperative navigation scenarios ranging from sparse to dense, the number
+of UAVs was fixed at J = 6, while the number of users (K) was varied from 3 to 50. Each
+experiment was executed 1000 times to obtain the average processing time and eliminate
+random fluctuations. The results are shown in Figure 10.
+Figure 10. Time complexity simulations results.
+As illustrated in the figure, within the range of 3 to 50 users, computational complexity
+is reduced from an exponential growth trend to an approximately linear progression
+following matrix decomposition. Specifically, at a scale of 30 users, the processing time is
+effectively halved, and it further decreases to approximately one-third of the baseline when
+the user count reaches 50. This clearly demonstrates the efficacy of our proposed method,
+particularly its superior scalability in scenarios involving large-scale user populations.
+5. Conclusions
+This paper proposed a lightweight, APF-based framework for autonomous UAV swarm
+route planning in dynamic air–terrestrial cooperative navigation scenarios operating in GNSS-
+denied environments. By integrating a Schur-complement-based geometric evaluation metric
+directly into the attractive potential, the method enables the UAV swarm to continuously
+optimize its configuration in real time so as to minimize user positioning errors while satisfying
+operational constraints such as minimum altitude and inter-UAV separation.
+https://doi.org/10.3390/electronics15061207
+[p.18]
+Electronics 2026, 15, 1207
+18 of 20
+The core innovation lies in decomposing the full system precision covariance ma-
+trix via the Schur complement, yielding a scalar, differentiable user-equivalent GDOP
+function that faithfully captures end-to-end geometric quality. This metric is then used
+to construct the attractive potential, with virtual forces derived via a computationally
+efficient finite-difference approximation, ensuring onboard real-time feasibility even on
+resource-constrained UAV platforms.
+Extensive simulations validated the framework across static and dynamic scenarios.
+In the static case, the algorithm drove the UAV swarm from poor initial geometries to
+near-optimal configurations, reducing the average user GDOP from approximately 10 to
+below 4 within 150 s and maintaining stable convergence. In the dynamic scenario in-
+volving piecewise constant-velocity user motion over 600 s, the swarm exhibited rapid
+adaptive navigation at each velocity transition point. Compared to the baseline of fixed
+UAV positions, the proposed method achieved substantial performance gains: the mean
+user comprehensive GDOP was reduced by 76.1% on average. Moreover, the algorithm
+significantly enhanced inter-user balance and temporal stability, demonstrating its effec-
+tiveness in handling heterogeneous and mobile user demands.
+These results confirm that the framework successfully bridges high-level navigation
+performance optimization with low-level motion control, offering a practical solution for
+real-time UAV swarm coordination in GNSS-denied air–terrestrial positioning networks.
+Author Contributions: Conceptualization, R.G. and H.Y.; methodology, R.G. and H.Y.; software, R.G.;
+validation, R.G.; formal analysis, R.G. and H.Y.; investigation, R.G., H.Y. and X.C.; resources, H.Y., X.C.
+and W.L.; data curation, R.G.; writing—original draft preparation, R.G.; writing—review and editing,
+H.Y.; visualization, R.G.; supervision, H.Y. and X.C.; project administration, H.Y. and X.C.; funding
+acquisition, W.L. All authors have read and agreed to the published version of the manuscript.
+Funding: This research was funded by the National Key R&D Program of China (2025YFF0512301).
+Data Availability Statement: The original contributions presented in this study are included in this
+article Further inquiries can be directed to the corresponding authors.
+Conflicts of Interest: The authors declare no conflicts of interest.
+Appendix A
+In this appendix, the gradient of the overall precision covariance matrix of the air–
+terrestrial cooperative network, which is the (HTWH)−1 in Equation (6), is derived analyti-
+cally with respect to the UAV positions. This explicit form facilitates a deeper understanding
+and analysis of how individual UAV positions influence the geometric precision of each
+nodes and the end-to-end user positioning performance.
+Taking the x-axis as an example, the gradient (partial derivative) is computed as follows:
+∇xwj
+ HTWH
+−1
+=
+∂g
+
+(HTWH)
+−1
+∂xwj
+= −
+ HTWH
+−1 ∂(HTWH)
+∂xwj
+ HTWH
+−1
+= −
+ HTWH
+−1
+
+∂HT
+∂xwj WH + HTW ∂H
+∂xwj
+ HTWH
+−1
+(A1)
+From the structure of the matrix, its fundamental elements are the observation row vectors
+between various types of nodes. Consequently, in H, the partial derivatives are nonzero only for
+the rows corresponding to the unit direction vectors associated with the UAVs.
+H(wj,:) =
+ x −xwj
+ρ
+,
+y −ywj
+ρ
+,
+z −zwj
+ρ
+, 1
+
+(A2)
+https://doi.org/10.3390/electronics15061207
+[p.19]
+Electronics 2026, 15, 1207
+19 of 20
+The derivation to xwj is:
+∂H(wj,:)
+∂xwj
+=
+
+−
+
+y −ywj
+2
++
+
+z −zwj
+2
+ρ3
+,
+
+x −xwj
+
+y −ywj
+
+ρ3
+,
+
+x −xwj
+
+z −zwj
+
+ρ3
+, 0
+
+
+(A3)
+Leveraging the block of H and Schur complement decomposition derived in Section 2.3:
+∂HT
+∂xwj WH + HTW ∂H
+∂xwj =
+
+CW,xwj
+C12,xwj
+C21,xwj
+CU,xwj
+
+,
+CW,xwj = ∂HA
+W
+T
+∂xwj WA
+WHA
+W + ∂HW
+W
+T
+∂xwj WW
+WHW
+W + ∂HU
+W
+T
+∂xwj WW
+U HU
+W
++HA
+W
+TWA
+W
+∂HA
+W
+∂xwj + HW
+W
+TWW
+W
+∂HW
+W
+∂xwj + HU
+W
+TWW
+U
+∂HU
+W
+∂xwj
+C12,xwj = ∂HU
+W
+T
+∂xwj WW
+U HW
+U + HU
+W
+TWW
+U
+∂HW
+U
+∂xwj
+C12,xwj = ∂HW
+U
+T
+∂xwj WW
+U HU
+W + HW
+U
+TWW
+U
+∂HU
+W
+∂xwj
+CW,xwj = ∂HW
+U
+T
+∂xwj WW
+U HW
+U + HW
+U
+TWW
+U
+∂HW
+U
+∂xwj
+(A4)
+So, the attraction virtual force equations in x-axis is:
+Fatt
+wj =
+h
+Fatt
+xwj , Fatt
+ywj , Fatt
+zwj
+iT
+(A5)
+Fatt
+xwj = G21,xwj CW,xwj G12,xwj + GU,xwj C21,xwj G12,xwj
++G21,xwj C12,xwj GU,xwj + GU,xwj C22,xwj GU,xwj
+(A6)
+The derivation for the y- and z-axes is identical in form.
+References
+1.
+Wang, J.; Xiao, Y.; Li, T.; Chen, C.P. A Jamming Aware Artificial Potential Field Method to Counter GPS Jamming for Unmanned
+Surface Ship Path Planning. IEEE Syst. J. 2023, 17, 4555–4566. [CrossRef]
+2.
+Morton, Y.J.; van Diggelen, F.; Spilker, J.J., Jr.; Parkinson, B.W.; Lo, S.; Gao, G. Position, Navigation, and Timing Technologies in the
+21st Century; Wiley: Hoboken, NJ, USA, 2021; Volume 1.
+3.
+Budiyono, A. Principles of GNSS, Inertial, and Multisensor Integrated Navigation Systems—Second Edition Paul D. Groves
+Artech House, 2013, 776 pp ISBN-13: 978-1-60807-005-3. J. Navig. 2014, 67, 191–192.
+4.
+Njima, W.; Bazzi, A.; Chafii, M. DNN-Based Indoor Localization under Limited Dataset Using GANs and Semi-Supervised
+Learning. IEEE Access 2022, 10, 69896–69909. [CrossRef]
+5.
+Dou, Z.; Yao, Z.; Lu, M. Distributed Radio Local Positioning System Spatial Reference Autonomous Establishment Technology.
+Acta Electron. Sin. 2022, 50, 841–848.
+6.
+Zhang, X.; Chen, J.; Xin, B.; Peng, Z. A Memetic Algorithm for Path Planning of Curvature-Constrained UAVs Performing
+Surveillance of Multiple Ground Targets. Chin. J. Aeronaut. 2014, 27, 622–633. [CrossRef]
+7.
+Kim, E. A Coverage Analysis Methodology for APNT Pseudolite Ground Network. In Proceedings of the 24th International
+Technical Meeting of the Satellite Division of the Institute of Navigation (ION GNSS 2011), Portland, OR, USA, 20–23 September
+2011; pp. 495–507.
+8.
+Khalife, J.; Kassas, Z.M. Opportunistic UAV Navigation with Carrier Phase Measurements from Asynchronous Cellular Signals.
+IEEE Trans. Aerosp. Electron. Syst. 2019, 56, 3285–3301. [CrossRef]
+9.
+Yang, X.; Liu, W.; Ye, X.; Li, X.; Wei, S.; Wang, F. A Geometry-Based Method for the Rapid Deployment of a UAV Pseudolite
+Navigation System in a Target Area. J. Geod. 2023, 97, 90. [CrossRef]
+10.
+Tang, X.; Chen, F.; Wang, F.; Jia, Z. Disaster-Resilient Emergency Communication with Intelligent Air–Ground Cooperation. IEEE
+Internet Things J. 2024, 11, 5331–5346. [CrossRef]
+11.
+Ding, T.; Liu, L.; Yan, Z.; Lu, X.; Hu, J. Federated Reinforcement Learning for Intelligent Route Planning in Aerial-Terrestrial
+Network. IEEE Internet Things J. 2024, 12, 43909–43921. [CrossRef]
+12.
+Liu, Q.; Liu, R.; Xu, C. Prospective UAV-Assisted Positioning Architecture and Technologies for 6G Network Edge. IEEE Netw.
+2024, 39, 61–68. [CrossRef]
+https://doi.org/10.3390/electronics15061207
+[p.20]
+Electronics 2026, 15, 1207
+20 of 20
+13.
+Verdone, R.; Mignardi, S. Joint Aerial-Terrestrial Resource Management in UAV-Aided Mobile Radio Networks. IEEE Netw. 2018,
+32, 70–75. [CrossRef]
+14.
+Han, S.; Gong, Z.; Meng, W.; Li, C.; Gu, X. Future Alternative Positioning, Navigation, and Timing Techniques: A Survey. IEEE
+Wirel. Commun. 2016, 23, 154–160. [CrossRef]
+15.
+Cheng, X.; Han, G.; Peng, J.; Jiang, J.; He, Y.; Zhu, W.; Shu, F.; Wang, J. An ADMM-Based Geometric Configuration Optimization in
+RSSD-Based Source Localization by UAVs with Spread Angle Constraint. IEEE Trans. Veh. Technol. 2024, 74, 5504–5516. [CrossRef]
+16.
+Wu, Z.; Yao, Z.; Lu, M. Waypoint Selection for Unmanned Aerial Vehicle-Aided Calibration in Wireless Positioning Networks.
+IET Radar Sonar Navig. 2023, 17, 1088–1099. [CrossRef]
+17.
+Li, H.; Sun, H.; Zhou, R.; Zhang, H. Hybrid TDOA/FDOA and Track Optimization of UAV Swarm Based on A-Optimality. J. Syst.
+Eng. Electron. 2023, 34, 149–159. [CrossRef]
+18.
+Zhou, R.; Sun, H.; Li, H.; Luo, W. TDOA and Track Optimization of UAV Swarm Based on D-Optimality. J. Syst. Eng. Electron.
+2020, 31, 1140–1151. [CrossRef]
+19.
+Chen, M.; Xiong, Z.; Liu, J.; Wang, R.; Xiong, J. Cooperative Navigation of Unmanned Aerial Vehicle Swarm Based on Cooperative
+Dilution of Precision. Int. J. Adv. Robot. Syst. 2020, 17, 1729881420932717. [CrossRef]
+20.
+Deb, K.; Jain, H. An Evolutionary Many-Objective Optimization Algorithm Using Reference-Point-Based Nondominated Sorting
+Approach, Part I: Solving Problems with Box Constraints. IEEE Trans. Evol. Comput. 2013, 18, 577–601. [CrossRef]
+21.
+Huang, J.; Tao, Z.; He, J. Deep Reinforcement Learning Method of UAV Behavior Planning for Optimizing Geometric Dilution
+Precision Distribution. In 2022 5th International Conference on Advanced Electronic Materials, Computers and Software Engineering
+(AEMCSE); IEEE: New York, NY, USA, 2022; pp. 276–280.
+22.
+Ebrahimi, D.; Sharafeddine, S.; Ho, P.-H.; Assi, C. Autonomous UAV Trajectory for Localizing Ground Objects: A Reinforcement
+Learning Approach. IEEE Trans. Mob. Comput. 2020, 20, 1312–1324. [CrossRef]
+23.
+Khatib, O. Real-Time Obstacle Avoidance for Manipulators and Mobile Robots. Int. J. Robot. Res. 1986, 5, 90–98. [CrossRef]
+24.
+Bu, Y.; Yan, Y.; Yang, Y. Advancement Challenges in UAV Swarm Formation Control: A Comprehensive Review. Drones 2024, 8, 320.
+[CrossRef]
+25.
+Kozlov, E.; Muslimov, T. Artificial Potential Field Method for Path and Trajectory Planning of Unmanned Aerial Vehicles: A
+Review. Unmanned Syst. 2025. [CrossRef]
+26.
+Koren, Y.; Borenstein, J. Potential Field Methods and Their Inherent Limitations for Mobile Robot Navigation. In Proceedings of
+the 1991 IEEE International Conference on Robotics and Automation (ICRA), Sacramento, CA, USA, 9–11 April 1991; Volume 2,
+pp. 1398–1404.
+27.
+Hao, G.; Lv, Q.; Huang, Z.; Zhao, H.; Chen, W. UAV Path Planning Based on Improved Artificial Potential Field Method. Aerospace
+2023, 10, 562. [CrossRef]
+28.
+Klanˇcar, G.; Zdešar, A.; Krishnan, M. Robot Navigation Based on Potential Field and Gradient Obtained by Bilinear Interpolation
+and a Grid-Based Search. Sensors 2022, 22, 3295. [CrossRef] [PubMed]
+29.
+Bounini, F.; Gingras, D.; Pollart, H.; Gruyer, D. Modified Artificial Potential Field Method for Online Path Planning Applications.
+In 2017 IEEE Intelligent Vehicles Symposium (IV); IEEE: New York, NY, USA, 2017; pp. 180–185.
+30.
+Shin, Y.; Kim, E. Hybrid Path Planning Using Positioning Risk and Artificial Potential Fields. Aerosp. Sci. Technol. 2021, 112, 106640.
+[CrossRef]
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+https://doi.org/10.3390/electronics15061207
+=== END ===

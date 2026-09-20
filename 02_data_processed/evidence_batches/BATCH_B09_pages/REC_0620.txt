@@ -1,0 +1,1700 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0620.pdf
+sha256: F203F3B397343844B7FC499AC83746F6BEFE17A414968EF944BC2F424EF27315
+library: pymupdf (fitz) v1.28.2
+pages: 18
+=== BEGIN ===
+[p.1]
+IEEE TRANSACTIONS ON GEOSCIENCE AND REMOTE SENSING, VOL. 60, 2022
+4602018
+Terrain Aided Planetary UAV Localization
+Based on Geo-referencing
+Xue Wan
+, Yuanbin Shao
+, Shengyang Zhang, and Shengyang Li
+Abstract—The autonomous real-time optical navigation of
+planetary unmanned aerial vehicle (UAV) is of the key technolo-
+gies to ensure the success of the exploration. In such a GPS-denied
+environment, vision-based localization is an optimal approach.
+In this article, we proposed a terrain aided simultaneous local-
+isation and mapping (SLAM) algorithm, which simultaneously
+reconstructs the 3-D map point of environment and estimates the
+location of a planet UAV based on preexisting digital elevation
+model (DEM). To directly georeference the onboard UAV images
+to the digital terrain model, a theoretical model is proposed to
+prove that topographic features of UAV image and DEM can be
+correlated in the frequency domain via cross power spectrum.
+To provide the six-DOF of the UAV, we developed an optimization
+approach, which fuses the geo-referencing result into an SLAM
+system via local bundle adjustment (LBA) to achieve robust and
+accurate vision-based navigation even in featureless planetary
+areas. To test the robustness and effectiveness of the proposed
+localization algorithm, a new dataset for planetary drone nav-
+igation is proposed based on simulation engine. The proposed
+dataset includes 40 200 synthetic drone images taken from nine
+planetary scenes with related DEM query images. Comparison
+experiments are carried out to demonstrate that over the ﬂight
+distance of 33.8 km, the proposed method achieved an average
+localization error of 0.45 m, compared to 1.32 m by ORB-SLAM2
+and 0.75 m by ORB-SLAM3, with the processing speed of 12 Hz,
+which will ensure real-time performance. We will make our
+datasets available to encourage further work on this topic.
+Index Terms—Frequency, multimodal registration, simultane-
+ous localisation and mapping (SLAM), unmanned aerial vehicle
+(UAV) localization.
+NOMENCLATURE
+x
+Horizontal coordinate in the image space domain.
+y
+Vertical coordinate in the image space domain.
+a
+Amount of translation in the horizontal direction.
+b
+Amount of translation in the vertical direction.
+u
+Horizontal coordinate in the image frequency
+domain.
+v
+Vertical coordinate in the image frequency domain.
+Manuscript received 17 February 2022; revised 16 June 2022; accepted
+27 July 2022. Date of publication 16 August 2022; date of current version
+30 August 2022. This work was supported by the National Natural Science
+Foundation of China (NSFC) under Grant 4217012350. (Corresponding
+author: Yuanbin Shao.)
+Xue Wan and Shengyang Li are with the Key Laboratory of Space
+Utilization and the Technology and Engineering Center for Space Uti-
+lization, Chinese Academy of Sciences, Beijing 100094, China (e-mail:
+wanxue@csu.ac.cn; shyli@csu.ac.cn).
+Yuanbin
+Shao
+and
+Shengyang
+Zhang
+are
+with
+the
+School
+of
+Aeronautics
+and
+Astronautics,
+University
+of
+Chinese
+Academy
+of
+Sciences, Beijing 101408, China (e-mail: shaoyuanbin20@mails.ucas.ac.cn;
+zsy13947168513@163.com).
+Digital Object Identiﬁer 10.1109/TGRS.2022.3198745
+ω
+Radius coordinates in polar coordinates.
+θ
+Angular coordinates in polar coordinates.
+τ
+Azimuth angle of solar radiation.
+σ
+Elevation angle of solar radiation.
+r
+Reﬂectance of terrain.
+δ
+Function of peak value.
+IFT
+Function of inverse Fourier transform.
+Ii
+ith image.
+Fi
+Fourier transforms of the ith image.
+Q
+Cross power spectrum of image.
+VH
+Elevation model.
+FH
+Fourier spectrum of elevation model.
+F∗
+H
+Complex conjugate of FH.
+R
+3-D rotation matrix.
+t
+3-D translation vector.
+T
+3-D transformation matrix.
+mi
+k
+Coordinates of the ith 2-D feature points
+on the image Ik.
+M j
+3-D position of the jth 3-D map point.
+Pk
+Camera 3-D pose at time k.
+tvo
+Camera trajectory in the local reference
+frame.
+St
+k
+True 3-D position in the local reference
+frame at time k.
+tk
+3-D position transformation of camera at
+time k.
+Ik
+Unmanned aerial vehicle (UAV) image
+frame at time k.
+Rk
+Reference terrain shading image at time k.
+τk
+Azimuth of the UAV at time k.
+Tpl
+Planned ﬂight path of UAV.
+SR
+k
+Reference 3-D position of the camera at
+time k.
+Tvo
+Camera trajectory in the global reference
+frame.
+ST
+k
+True 3-D position in the global reference
+frame at time k.
+H
+Height of the UAV to the ground surface.
+w
+Width of the UAV image.
+h
+Height of the UAV image.
+HTt
+Transformation between the local reference
+frame and the global reference frame.
+ei, j
+Reprojection error of 3-D point M j on the
+image Ii.
+wi
+Conﬁdence of observation mi
+k.
+1558-0644 © 2022 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission.
+See https://www.ieee.org/publications/rights/index.html for more information.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+4602018
+IEEE TRANSACTIONS ON GEOSCIENCE AND REMOTE SENSING, VOL. 60, 2022
+eG
+i
+Deviations between geo-referencing and
+visual odometry.
+wG
+i
+Conﬁdence of geo-referencing.
+π(·)
+Projection function from 3-D scene to
+2-D image.
+SE(3)
+3-D special Euclidean group.
+PC(·)
+Phase correlation function.
+GSD
+Ground sample distance.
+DEM(·)
+Terrain evaluation function.
+I. INTRODUCTION
+P
+LANETARY exploration is important to the answers to
+many fundamental questions, including the formation of
+the universe, the evolution of life, and the origin of the
+Earth. Unmanned aerial vehicles (UAVs) can reach places
+and areas where man is unable or very difﬁcult to access.
+For planetary exploration, UAVs can be an effective tool
+for investigation and survey. The National Aeronautics and
+Space Administration (NASA) has led a project titled “BEES
+for Mars,” which utilizes UAVs for Mars exploration [1].
+Ingenuity, the Mars helicopter [2] has succeeded in landing
+on Mars surface together with Perseverance rover and ﬂied
+for 18 times already since December 31, 2021. NASA also
+planned to send a mobile robotic rotorcraft named Dragonﬂy
+to Titan, the largest moon of Saturn [3].
+As one of the key technologies in planetary exploration,
+robust and accurate navigation systems ensure the safety
+and precision of scientiﬁc tasks. Unlike on Earth, GPS
+service is unavailable for planetary exploration, and thus,
+optical-based navigation has become one of the key tech-
+nologies in autonomous navigation [4]. There are several
+beneﬁts in optical-based navigation, including low power
+consumption, lightweight, and small size. Optical sensors
+can be used for multiple purposes, including obstacle avoid-
+ance [5], target area detection [4], and 3-D terrain surface
+reconstruction [6].
+As there is hardly any artiﬁcial architecture on the planetary
+surface, terrain feature becomes one of the fundamental and
+crucial processing units in vision-based navigation on the
+planetary surface. To utilize terrain features for planetary
+navigation, several approaches have been proposed, including
+skyline matching [7], [8], ray tracing [9], and 3-D topography
+matching [10]. However, none of these methods can solve the
+multimodal matching problem between topography and optical
+imagery, and in this article, we aimed to answer the question:
+“How can we ﬁnd the shared features between digital terrain
+model and optical UAV imagery?”
+Directly matching the optical images and digital elevation
+model (DEM) data has the following merits. First, DEM data
+can be acquired from stereo-matching or SAR interference and
+is always available for planetary exploration. Second, as terrain
+feature is important in planetary navigation, DEM data are
+the representation of the terrain model, so terrain features
+can be directly extracted and matched. Third, the illumination
+effect between UAV and satellite can be largely eliminated.
+The reference map can be generated under a similar illumina-
+tion condition as UAV images.
+Fig. 1.
+Geo-referencing-based optical navigation for planetary UAV
+navigation.
+In this article, we propose a terrain aided navigation
+approach based on frequency domain phase correlation (PC),
+which can localize the UAV in a terrain elevation map. The
+global localization results will be fused with visual odome-
+try estimation results via local bundle adjustment (LBA) by
+proposing a new cost function, as shown in Fig. 1.
+The contributions of this article are summarized as follows.
+1) This article proposed a new cross-source planetary UAV
+localization dataset, including 40 200 synthetic drone images
+with ground-truth terrain models taken under nine different
+planetary topography scenes.
+2) We proved via mathematical derivation that the Fourier
+spectrum of optical images can be divided into illumination
+and topography features, and the topography features of the
+terrain model and optical imagery can be correlated via
+frequency-based correlation.
+3) This article proposes a terrain aided optical naviga-
+tion algorithm, terrain-simultaneous localisation and map-
+ping (SLAM), which combined odometry estimation and
+frequency-based geo-referencing via a newly designed LBA
+framework.
+II. RELATED WORK
+One of the key challenges in planetary UAV optical nav-
+igation is to ﬁnd a suitable image matching/image retrieval
+method for multimodal planetary images. All the approaches
+can be divided into ﬁve categories: feature-based matching,
+area-based matching, skyline matching, 2-D–3-D ray tracing,
+and 3-D topography matching.
+Feature matching is one of the most commonly used
+matching algorithms for planetary optical navigation. Fixed-
+point (FP) feature [11] and Shi–Tomasi feature-based image
+matching [12] has been applied in Itokawa asteroid explo-
+ration. Harris corner detection and feature matching are used
+for Mars rover, Curiosity, and Opportunity, in the landing
+process [13]. SIFT feature matching has been applied in the
+CE-3 landing on the moon [14]. Speeded up robust features
+(SURFs) [15] improve feature extraction and description in
+SIFT to become more efﬁcient. With the increasing real-time
+requirements of vision-based navigation, the application of
+faster oriented FAST and rotated BRIEF (ORB) features has
+become widespread and applied in ORB-SLAM2 [16] and
+ORB-SLAM3 [17]. Recently, deep-learning-based matching,
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+WAN et al.: TERRAIN AIDED PLANETARY UAV LOCALIZATION BASED ON GEO-REFERENCING
+4602018
+TABLE I
+SUMMARY OF STATE-OF-THE-ART PLANETARY NAVIGATION APPROACHES
+such as SuperPoint [18], has been introduced in image
+matching. Characteristics, such as self-supervised training,
+homographic adaptation, and cross-domain adaptation in
+SuperPoint, have made great progress in terms of efﬁ-
+ciency and accuracy in visual SLAM for robots. Luigi
+Freda implemented SURF-SLAM and SuperPoint-SLAM
+based on SURF and SuperPoint features in his proposed
+pySLAM,1 respectively. Feature-based matching, which has
+been improved for years in the computer vision soci-
+ety, can cope with relatively large geometric image dis-
+tortions between images. However, they can hardly cope
+with featureless areas that commonly exist on the planetary
+surface.
+Another type of matching algorithm is area- or correlation-
+based algorithms. Typical area-based matching algorithms
+include normalized cross correlation (NCC), mutual infor-
+mation (MI) [19], and local self-similarities (LSSs) [20].
+Sum of absolute difference (SAD) has been used for Mars
+rover obstacle avoidance and further improved by Chilian and
+Hirschmüller [21] using ﬁve matching windows for the task
+of Mars terrain 3-D reconstruction. Compared to feature-based
+algorithms, area-based matching algorithms are more robust to
+the featureless area as they take global gray value distribution.
+However, they are sensitive to camera pose variation, which
+makes them mostly applied in stereo vision instead of optical
+navigation in planetary exploration.
+Another type of solution is to use topography features,
+as they are distinctive and unique and largely exist even in
+featureless areas, and thus, DEM is widely used as a reference
+map for absolute localization for planetary exploration. The
+most common DEM-aided navigation is skyline matching
+[7], [8]. These approaches ﬁrst extract a skyline from the
+rover image, and then, a simulated skyline is rendered at an
+estimated rover position in the DEM. Finally, similarity values
+between the extracted skylines and the simulated skylines
+are calculated. The high similarity value stands for the high
+likelihood of the estimated rover position. Although skyline
+matching is commonly used to localize a rover within a known
+DEM, it is not suitable for planetary UAV navigation as
+the view angle of UAV is nadir and the skyline may not
+be visible. Moreover, the accuracy of skyline matching is
+largely determined by the DEM resolution, which may lead
+to localization errors if the resolution of DEM is not high
+enough.
+Another type of terrain relative navigation approach is
+3-D topography registration between the DEM and the
+1https://github.com/luigifreda/pyslam
+generated point cloud from onboard sensors, such as cameras
+and LiDAR. While dense 3-D point cloud can be directly
+generated from LiDAR scanning, the high-energy requirement
+prevents it from wide utilization in planetary navigation. The
+3-D point cloud can also be generated from stereo matching,
+and however, they may suffer from the featureless areas. Even
+though the 3-D point cloud can be successfully generated, how
+to register it with DEM is another problem. One of the com-
+monly used 3-D point cloud registration algorithms is iterative
+closest point (ICP) [10], [22], but ICP can hardly work with
+occlusion when a rover is facing a small hill. To overcome the
+limitation of ICP, Fang [9] proposed a ray-tracing approach to
+register stereo imagery to a lunar terrain model. This approach,
+however, still suffers from variations between the generated
+3-D point cloud and DEM due to the largely different viewing
+distances and angles.
+The merits and disadvantages of the ﬁve state-of-the-art
+planetary navigation approaches are summarized in Table I.
+As shown in Table I, none of the approaches can cope with the
+multimodal difference between the terrain model and optical
+UAV images.
+In this article, we propose to use frequency information for
+multimodal matching to localize the current view of UAV in
+a digital elevation map. To the best of our knowledge, none
+of the above approaches try to directly match the optical
+image with the DEM. This may be because the features
+extracted from optical images and DEM are so different that
+it becomes really difﬁcult to correlate them. In this article,
+we demonstrated that although it is visually difﬁcult to locate
+the optical image in DEM, their frequency information can be
+correlated via PC, and thus, the multimodal image matching
+can be done in the frequency domain.
+Then, the next question goes to how to iteratively esti-
+mate the six DOF of the planetary UAV. In this article,
+we seamlessly incorporate multimodal registration into an
+LBA algorithm by proposing to use the phase information
+to correlate the topography features between DEM data and
+optical images. Finally, we proposed that a terrain aided
+SLAM is proposed by seamlessly integrating the multimodal
+registration result into a visual odometry estimation.
+III. THEORETICAL ANALYSIS FOR FREQUENCY-BASED
+TERRAIN FEATURE MATCHING
+A. Phase Correlation
+This section will brieﬂy introduce the principle and history
+of PC, a frequency-based image matching algorithm that
+estimates the image shift between two images via the shift
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+4602018
+IEEE TRANSACTIONS ON GEOSCIENCE AND REMOTE SENSING, VOL. 60, 2022
+property of Fourier transform (FT). According to the shift
+property of FT, the translation shift (a, b) in the image spatial
+domain results in a linear phase shift in the Fourier frequency
+domain. Then, PC is deﬁned as the normalized cross power
+spectrum between the FTs of the two images I1(x, y) and
+I2(x, y)
+Q(ω, θ) = F∗
+H(ω, θ)
+Zd
+e−i(au+bv)
+(1)
+where ∗stands for complex conjugate. F1(u, v) and F2(u, v)
+in (u, v) coordinates are the FTs of the two images I1(x, y)
+and I2(x, y), respectively.
+The shifts (a, b) can be resolved at integer level via inverse
+Fourier transform (IFT) to convert Q(u, v) into an approxi-
+mate Dirac delta function as
+IFT(Q(u, v)) = δ(x −a, y −b).
+(2)
+The translation (a, b) can also be solved directly in the
+frequency domain with subpixel accuracy by unwrapping and
+ﬁtting the PC fringes in the cross power spectrum Q(u, v) [23],
+[24], [25] or spatial domain by ﬁtting the peak of function δ
+to a Gaussian function [26]. The peak value of function δ,
+ranging from 0 to 1, indicates the quality of PC matching.
+If the two images are identical, the peak value of δ equals 1.
+When the rotation between I1(x, y) and I2(x, y) is θ0, the
+rotation θ0 can be resolved at an integer level via transforma-
+tion from Cartesian coordinates to polar coordinates and IFT
+to convert Q(u, v) into an approximate Dirac delta function
+as
+IFT(Q(u, v)) = δ(ρ, θ −θ0).
+(3)
+In our previous work, we have proved the robustness of
+PC to sun angle variation and shadow via the PC decom-
+position (PCD) model [27]. Using the illumination-invariant
+property of PC, we applied it to illumination-invariant change
+detection based on pixel-to-pixel matching [28] and UAV
+navigation based on the geo-referencing between UAV image
+and reference satellite images [29]. To enhance the robustness
+of PC toward the complex geometric distortion, we combine
+PC with particle swarm optimization [30]. We demonstrate
+the superior performance of PC toward state-of-the-art image
+matching algorithms in UAV navigation tasks [30]. In this
+article, we will further investigate the robustness of PC to
+multimodal data, including DEM and optical imagery via
+theoretical analysis. While our previous work focused on
+the image matching algorithm, this article will propose a
+fully terrain aided navigation pipeline, which combines geo-
+referencing results and visual odometry results for planetary
+UAV navigation.
+B. Robustness of PC for DEM-Based Geo-referencing
+In this section, we will dig out the relationship between
+UAV optical image and the topography model in the frequency
+domain and then prove via mathematical derivation that the
+terrain feature shared by the optical image and the topography
+model can be extracted and correlated via PC.
+First, we will ﬁgure out the mathematical relationship
+between the optical image UAV image I(x, y) and the topog-
+raphy model VH(x, y) in the spatial domain. As the planetary
+surface is a natural landscape, in this article, it is regarded as
+a Lambertian model. Under a given solar radiation intensity L
+in the direction of azimuth angle τ and elevation angle σ, the
+intensity of UAV image I(x, y) generated from the elevation
+model is VH(x, y) [31]
+I(x, y) = L p cos τ cos σ + q sin τ cos σ + sin σ
+
+p2 + q2 + 1
+r(x, y)
+(4)
+where p = (∂/∂x)VH(x, y) and q = (∂/∂y)VH(x, y) are the
+gradients of VH(x, y) in the x- and y-directions and r(x, y)
+represents the reﬂectance value at position (x, y).
+To analyze their relationship in the frequency domain, the
+UAV image I(x, y) is transformed into the frequency domain
+as
+FI (ω, θ) = L[sin σ + cos σ cos(θ −σ)FH(ω, θ)]
+(5)
+where FI (ω, θ) is the Fourier spectrum of elevation I(x, y)
+and FH(ω, θ) is the Fourier spectrum of elevation VH(x, y).
+It should be noted that here, we use a polar coordinate
+instead of a Cartesian coordinate to better illustrate the illu-
+mination effect on the frequency domain.
+Then, the PC cross power spectrum of optical image
+FI(ω, θ) and DEM FH(ω, θ) is
+Q(ω, θ) = cos σ
+Zd
+cos(θ −τ) + sin σ
+Zd
+F∗
+H(ω, θ)
+(6)
+where Zd = |cos σ F∗
+H(ω, θ) + sin σ cos(θ −σ)|.
+As shown in (6), the cross power spectrum of a UAV optical
+image and reference DEM Q(ω, θ) is mainly altered by two
+terms: the illumination term, cos(θ −σ), and the topography
+term, F∗
+H(ω, θ). The following will investigate the effect of
+each term.
+1) Effect of Illumination Term: To analyze the effect of
+illumination term, cos(θ −τ), on DEM-based geo-referencing,
+we generated a reference image of a DEM shown in Fig. 2(a)
+and a target image of a terrain shading image generated from
+the same DEM data under a small elevation angle σ = 10◦.
+In this case, term cos σ cos(θ −σ) becomes dominant in the
+PC cross power spectrum Q(ω, θ) with other terms that are
+nearly zero, and then, Q(ω, θ), shown in Fig. 2(c), can be
+simpliﬁed as
+Q(ω, θ) = cos σ
+Zd
+cos(θ −τ).
+(7)
+Then, we can consider that there is a shift between I(x, y)
+and VH(x, y), so their cross power spectrum, shown in
+Fig. 2(d), becomes
+Q(ω, θ) = cos σ
+Zd
+cos(θ −τ)e−i(au+bv).
+(8)
+As shown in Fig. 2(d), several fringe patterns are ﬂipped due
+to the term cos(θ−σ). If the value of cos(θ−σ) is negative, the
+fringes will be ﬂipped. However, for both positive and negative
+correlation in the PC, the cross power spectrum remains the
+same, and thus, the fringe density (a2 + b2)1/2 and orientation
+b/a relating to the translation remain the same.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+WAN et al.: TERRAIN AIDED PLANETARY UAV LOCALIZATION BASED ON GEO-REFERENCING
+4602018
+Fig. 2.
+Image pair and their PC result. (a) DEM image and (b) terrain shading optical image generated under the illumination of σ = 10◦and τ = 60◦.
+(c) and (d) PC cross power spectrum Q(ω, θ) without and with image shift. (e) IFT of Q(ω, θ).
+Fig. 3.
+Image pair and their PC result. (a) DEM image and (b) terrain shading optical image generated under the illumination of σ = 5◦and τ = 60◦.
+(c) and (d) PC cross power spectrum Q(ω, θ) without and with image shift. (e) IFT of Q(ω, θ).
+As sin σ, Zd, and cos(θ −σ) are all real numbers, the IFT
+of Q(ω, θ) is still approximate to Dirac delta as shown in
+Fig. 2(e)
+IFT(Q(ω, θ)) = δ(x −a, y −b).
+(9)
+2) Effect of Topography-Dependent Term: When elevation
+angles σ are small, the value of cos σ is close to 0 and the
+term sin σ ≈1, so the PC cross power spectrum Q(ω, θ),
+shown in Fig. 3(c), can be expressed as
+Q(ω, θ) = F∗
+H(ω, θ)
+Zd
+.
+(10)
+Here, Q(ω, θ) becomes illumination independent, which
+means that the phase angle in the PC cross power spectrum
+is determined only by topography, irrelevant of illumination
+condition.
+The cross power spectrum of I(x, y) and VH(x, y) with
+image shift is
+Q(ω, θ) = F∗
+H(ω, θ)
+Zd
+e−i(au+bv).
+(11)
+Different from the effect of illumination term, the effect of
+topography term is not a systematically ﬂipping of the fringe
+patterns, but a randomly ﬂipping of the fringes as shown in
+Fig. 3(d). For a completely ﬂat area, VH(x, y) is a constant
+and its FT F∗
+H(ω, θ) does not affect the PC Fourier spectrum
+Q(ω, θ). For areas with topographic relief, the topographic
+vectors, (∂/∂x)VH(x, y) and (∂/∂y)VH(x, y), are variables
+depending on slope, and the results of F∗
+H(ω, θ) vary with
+topography. In other words, the impact of topography term
+degrades the power spectrum Q(ω, θ), and however, the fringe
+density and orientation relating to the translation remain the
+same.
+The IFT of Q(ω, θ) is an approximation of the Dirac delta
+function, as shown in Fig. 3(e)
+IFT(Q(ω, θ)) = ρHδ(x −a, y −b)
+(12)
+where ρH is determined by the term of FT((F∗
+H(ω, θ))/Zd).
+3) Effect of Terrain Albedo: The above analysis is based
+on the Lambertian model that the albedo r(x, y) of planetary
+terrain surface can be considered as a constant. This is true
+for most planetary exploration case, and however, there still
+contain situations that the terrain albedo cannot be considered
+as constant. This section will discuss the effect of terrain
+albedo on PC.
+In the case terrain albedo values are variant, the PC cross
+power spectrum of optical image FI (ω, θ) and DEM FH(ω, θ)
+becomes
+Q(ω, θ) =
+cos σ
+Zd
+cos(θ −τ) + sin σ
+Zd
+F∗
+H(ω, θ)
+
+R(ω, θ)
+(13)
+where R(ω, θ) is the Fourier spectrum of albedo r(x, y).
+The cross power spectrum of I(x, y) and VH(x, y) with
+albedo becomes
+Q(ω, θ) = F∗
+H(ω, θ)R(ω, θ)
+Zd
+e−i(au+bv).
+(14)
+Similar to the effect of topography-dependent term, the
+variation of albedo does not result in a systematical phase
+shift of the cross power spectrum, as it is mainly determined
+by e−i(au+bv). Thus, the effect of albedo variation degrades the
+power spectrum but will not change the density and orientation
+of the PC fringes.
+In the general case, the negative correlation and ran-
+domly ﬂipping introduced by topography-dependent term and
+illumination-dependent term will coexist in the PC cross power
+spectrum. However, none of the terms generate 2π wrapped
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+4602018
+IEEE TRANSACTIONS ON GEOSCIENCE AND REMOTE SENSING, VOL. 60, 2022
+Fig. 4.
+Cross power spectrum maps and from the image pairs. This demonstrates different illumination conditions. (a) (τ = 60◦, σ = 10◦). (b) (τ = 60◦,
+σ = 40◦). (c) (τ = 60◦, σ = 70◦). (d) (τ = 120◦, σ = 10◦). (e) (τ = 120◦, σ
+= 45◦).
+Fig. 5.
+Comparison between Q(ω, θ) generated from image matching experiments (light blue) and (cosσ/Zd)cos(θ −τ) (dark blue). (a) (τ = 60◦, σ = 10◦).
+(b) (τ = 60◦, σ = 40◦). (c) (τ = 60◦, σ = 70◦). (d) (τ = 120◦, σ = 10◦). (e) (τ = 120◦, σ = 55◦).
+periodic fringe patterns as introduced by image translation
+e−i(au+bv). Therefore, although DEM data and optical images
+have a large difference in the spatial domain, their topography
+similarity can be identiﬁed in the frequency domain. This is
+the key property of PC-based image matching to make it robust
+to multimodal image registration.
+Fig. 4 shows the PC cross power spectrums generated from
+the ﬁve image pairs, one optical image, and one DEM image,
+under different illumination conditions. It can be seen from the
+ﬁve ﬁgures that the whole cross power spectrums are divided
+into two angular parts: positive correlation parts shown by
+orange color and the negative correlation parts shown by blue
+color. This veriﬁed (6) that the value of Q(ω, θ) is determined
+by the term cos(θ −τ). If the value of cos(θ −τ) is negative,
+the cross power spectrum will become negative. As shown
+in Fig. 4, under the same azimuth angle τ, the dividing line
+between positive correlation and negative correlation remains
+the same.
+To further verify the relationship between Q(ω, θ) and
+cos(θ−τ), the cross power spectrums Q(ω, θ) are plotted with
+respect to azimuth angle τ ranges from [−π, π], shown by the
+light blue in Fig. 5(a)–(e). Meanwhile, the theoretical value of
+Q(ω, θ) according to (6) is also plotted to be compared with
+the experiment results.
+It can be concluded from Fig. 5 that, generally, the Q(ω, θ)
+values are in accordance with the illumination term cos(θ −τ),
+as the theoretical relationship between illumination condition
+and cross power spectrum derived in (6) can be proved. There
+appears random noise in the experimental results of Q(ω, θ),
+shown in light blue, and this is because of the existence of
+topography terms. In fact, according to (6), the PC cross power
+spectrum is a sum of both illumination term and topography
+terms weighted by elevation angle σ, and thus, when elevation
+angles σ are small, the illumination term is dominant and
+Fig. 6.
+Pipeline of the proposed terrain aided geo-referencing for planetary
+UAV optical navigation approach.
+the values of Q(ω, θ) are largely determined by the value
+of cos(θ −τ), as shown in Fig. 5(a) and (d). With the increase
+of elevation angle σ, the topography term become dominant,
+and thus, the effect of cos(θ −τ) becomes weak as shown in
+Fig. 5(c) that the blue curves become ﬂat compared with other
+curves shown in Fig. 5.
+IV. TERRAIN AIDED OPTICAL NAVIGATION
+Based on the robustness of PC to multimodal image match-
+ing, a terrain aided optical navigation approach is proposed.
+The pipeline of the proposed optical navigation approach
+is shown in Fig. 6, which can be generally divided into
+three parts: visual odometry, geo-referencing, and backend
+optimization. Visual odometry estimated the six-DOF camera
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+WAN et al.: TERRAIN AIDED PLANETARY UAV LOCALIZATION BASED ON GEO-REFERENCING
+4602018
+pose via feature tracking. Then, keyframes are selected and
+localized to a reference map based on PC image matching. The
+trajectories estimated by visual odometry and geo-referencing
+are aligned and fused into a backend optimization. A new cost
+function is proposed for the LBA algorithm, which fuses the
+relative pose estimation from visual odometry and absolute
+pose estimation from geo-referencing to achieve the optimal
+pose estimation.
+A. Visual Odometry Based on Frame-to-Frame Feature
+Tracking
+Visual odometry is carried out via frame-to-frame feature
+tracking. The 2-D coordinate of feature points is determined
+via ORB features extraction and tracking [32]. Let mi
+k =
+[ui, vi] to be the coordinates of the ith 2-D feature points on
+the image Ik at time k.
+The initial 3-D point M j = [x j, y j, z j] can be reconstructed
+using triangulation from the 2-D corresponding points via
+frame-to-frame matching.
+The relationship between 2-D and 3-D points can be
+obtained via projection function π(·)
+mi
+k = π
+
+Pk, M j
+
+(15)
+where Pk ∈SE(3) is the camera 3-D pose of image Ik
+SE(3) =
+
+T =
+
+R
+t
+0T
+1
+
+∈R4×4|R ∈R3×3, t ∈R3×1
+
+.
+(16)
+The camera pose Pk can be estimated with a known
+3-D map point M j and 2-D feature point mi
+k via efﬁcient PnP
+(EPnP).
+Then, the camera trajectory tvo can be recovered deﬁned as
+a serial of camera coordinate with the increase of time k
+tvo =
+	
+St
+0, St
+1, St
+2, . . . , St
+k
+
+(17)
+where St
+k = [Xt
+k, Y t
+k, Z t
+k] is calculated from camera pose Pk
+as
+St
+k = St
+k−1 + tk.
+(18)
+In visual odometry, the camera trajectory tvo is in the local
+reference frame, which takes the ﬁrst camera frame position
+S0 as coordinate origin. The visual odometry does not solve
+the problem of estimation rover’s position in a global map
+coordinate system, which can be solved via geo-referencing.
+As it is not computationally efﬁcient to take every image
+frame for geo-referencing, several keyframes I i
+k are selected
+for geo-referencing. The keyframe selection is based on the
+following criterion: 1) the time interval for two keyframes
+should not be too small, and otherwise, there is no point for
+the keyframe selection and 2) keyframes are opted to be salient
+with rich features, so as to be matched with a reference map.
+Thus, in this article, we adopted the keyframe selection
+strategy as in ORB-SLAM2.
+1) More than 20 frames have passed from the last keyframe.
+2) There are more than 50 feature points in the current
+frame.
+3) Current frame tracks less than 90% more points than the
+reference keyframe.
+Fig. 7.
+Relationship between the current coordinate system and the map
+coordinate system.
+B. PC for Terrain-Based Geo-referencing
+The main purpose of geo-referencing is to provide the
+absolute position for image frames in a global map coordinate
+system. As proved in Section III, PC is able to correlate
+the topographic feature between multimodal images. Another
+merit of PC for absolute navigation is that PC is a noniterative
+matching algorithm. This means that the image offset can
+be directly calculated without roaming searching even if
+target UAV images and the reference terrain shading images
+only share a small part of the overlapping region. Thus, the
+PC-based image matching can largely shorten the matching
+time, which will ensure real-time optical navigation.
+The offset between the current UAV image frame Ik and
+the reference terrain shading images Rk can be obtained via
+PC-based image matching
+(Xoffk, Yoffk) = PC(Ik, Rk).
+(19)
+Because the current coordinate system of the UAV image
+frame Ik depends on the current azimuth angle τk, it is essential
+to convert the current coordinate system into the global map
+coordinate system, as shown in Fig. 7.
+The offset ( Xk, Yk) between current UAV images and
+the reference terrain shading images can be calculated via the
+following equation:
+ Xk
+ Yk
+
+=
+ −sin τk
+cos τk
+cos τk
+sin τk
+ Xoffk
+Yoffk
+
+.
+(20)
+The reference terrain shading images Rk are generated using
+(4) under presumably illumination conditions of given solar
+radiation intensity L in the direction of azimuth angle τ and
+elevation angle σ. To speed up the image registration, the
+DEM data are cropped to local DEM according to the planned
+ﬂight path Tpl
+Tpl =
+	
+SR
+0 , SR
+1 , SR
+2 , . . . , SR
+k |SR
+k =
+
+X R
+k , Y R
+k , Z R
+k
+
+.
+(21)
+According to the offset ( Xk, Yk) between current UAV
+images and the reference terrain shading images, the cam-
+era trajectory in the global map coordinate system Tvo =
+{ST
+0 , ST
+1 , ST
+2 , . . . , ST
+k |ST
+k = [X T
+k , Y T
+k , Z T
+k ]} can be estimated
+via the following equation:
+X T
+k = X R
+k + GSD · Xk
+Y T
+k = Y R
+k + GSD · Yk
+Z T
+k = DEM
+
+X R
+k , Y R
+k
+
++ H
+(22)
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+4602018
+IEEE TRANSACTIONS ON GEOSCIENCE AND REMOTE SENSING, VOL. 60, 2022
+Fig. 8.
+Illustration of GSD with respect to ﬂight height and topography.
+where DEM(X R
+k , Y R
+k ) is the elevation of the ground surface at
+the X R
+k - and Y R
+k -coordinates and H is the height of the UAV to
+the ground surface. GSD is the ground sample distance. Note
+that the UAV ﬂies relatively low at the Martian surface, the
+GSD will change with the change of ﬂight height and surface
+topography as shown in Fig. 8
+GSD = 2 Z R
+k −Hmin
+s
+tan θ
+(23)
+where Hmin is the lowest altitude position in the ﬁeld of view
+of the camera at this altitude, which is related to the focal
+length of the camera, and s is the size of the UAV image
+deﬁned as
+s = max(w, h)
+(24)
+where w and h are the width and height of the UAV
+images, respectively. For example, if the image size is 720 ×
+480 pixels, the value of s is 720.
+From geo-referencing based on PC matching, the camera
+trajectory Tvo of the keyframe is recovered in the global
+map coordinate system, while in visual odometry, the camera
+trajectory tvo is estimated in the local reference coordinate
+system. The two trajectories are required to be transformed
+into the same coordinate system in order to be fused into an
+LBA. The transformation between the two trajectories can be
+calculated as
+Tvo = HTttvo
+(25)
+where HTt ∈SE(3).
+C. Keyframe Pose Reﬁnement Based on LBA
+The results of visual odometry and geo-referencing are
+complementary. The error accumulation or “trajectory drift”
+can be corrected by the result of geo-referencing via global
+matching, while visual odometry can produce six-DOF camera
+poses compared to three-DOF camera poses estimated from
+geo-referencing. Thus, LBA is performed to fuse the visual
+odometry and geo-referencing results into more reliable and
+accurate camera poses.
+Bundle adjustment (BA) can be deﬁned as the problem
+of simultaneously reﬁning the 3-D coordinates describing the
+scene geometry, the parameters of the relative motion, and the
+optical characteristics of the camera(s) employed to acquire
+the images, according to an optimality criterion involving the
+corresponding image projections of all points [33]. Instead
+of taking all 3-D points and camera poses for optimization,
+Fig. 9.
+Graph network of traditional BA and the proposed geo-referencing-
+based LBA.
+which is time-consuming, LBA takes several adjacent camera
+positions, such as 15 frames, for optimization. This will largely
+increase the optimization speed during real-time navigation.
+LBA can be done for a ﬁxed interval, such as every 15 or
+20 image frames. The problem is that the error propagation in
+SLAM is not a linear increase with the distance. For example,
+the error will propagate faster when the UAV is turning or
+changing direction than keeping straightforward. There might
+also appear large localization errors when few features can be
+extracted from optical images.
+Traditionally, LBA is achieved by minimizing the repro-
+jection error between the image locations of observed and
+predicted image points. Fig. 9(a) shows the network structure
+of four 3-D points 1–4 and three images A–C; 3-D point 1 is
+seen in, point 2 is seen in A, B, and C, point 3 is seen in A
+and C, and point 4 is seen in B and C. Then, the cost function
+f (x) is deﬁned as
+f (x) = 1
+2
+M
+
+
+i=0
+N
+
+
+J=0
+eT
+i, jwiei, j
+(26)
+where ei, j = π(Pk, M j) −mi
+k is the reprojection error of
+3-D point M j on the image Ii and wi is the conﬁdence of
+observation mi
+k.
+In this article, the locations of an image can be estimated
+via geo-referencing, as shown in Fig. 9, and thus, a new cost
+function f (x) is proposed to fuse the geo-referencing result
+into LBA
+f (x) = 1
+2
+M
+
+
+i=0
+N
+
+
+J=0
+
+eT
+i, jwiei, j + eGT
+i
+wG
+i eG
+i
+
+(27)
+where wG
+i
+is the conﬁdence of geo-referencing and eG
+i
+=
+[ex, ey, ez] are deviations between geo-referencing and visual
+odometry in the x-, y-, and z-directions that are deﬁned as
+ex =
+X T
+k −X T ′
+k
+
+ey =
+Y T
+k −Y T′
+k
+
+ez =
+Z T
+k −Z T′
+k
+
+(28)
+where (X T
+k , Y T
+k , Z T
+k ) is the calculated camera position from
+geo-referencing and (X T ′
+k , Y T ′
+k , Z T ′
+k ) is the camera position
+from visual odometry.
+As the cost function f (x) is nonlinear, the Taylor series
+expansion is applied to
+f (x) for linearization. Then, the
+optimization is achieved by Levenberg–Marquardt (LM).
+V. EXPERIMENT RESULTS
+A. Mars UAV Image Dataset
+In this section, nine simulated Mars scenes, as shown in
+Fig. 10, were generated via Blender, a free, and open-source
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+WAN et al.: TERRAIN AIDED PLANETARY UAV LOCALIZATION BASED ON GEO-REFERENCING
+4602018
+Fig. 10.
+Nine simulated Mars scenarios generated from different sources.
+TABLE II
+OPTIC STATISTICS SUMMARY OF NINE MARS SCENES
+3-D scene simulation and rendering engine.2 The data source
+of the DEM model and image texture includes Earth obser-
+vation data, Mars orbital imagery, and a simulated Mars-like
+3-D terrain model. Then, based on the nine scenes, 23 UAV
+image sequences were generated from different trajectories.
+The UAV image size is 480 × 480 pixels, the focal length
+of the camera and the sensor size are both set to 36 mm, the
+elevation and azimuth angles of sunlight in the environment
+are (60◦, 0◦), and the light strength is 10. The Mars UAV
+dataset contains 40 200 images in total.
+The
+simulated
+Mars
+scenes
+are
+shown
+in
+Fig.
+10.
+01–03 scenes are generated from the High Resolution Imaging
+Science Experiment3 (HiRise) equipped on the Mars Recon-
+naissance Orbiter with a ground resolution of 25 cm. The
+three scenes include the typical Martian topography such as
+slope streaks, dunes, and craters in Arabia Terra, Nili Patera,
+and Breachin. 04–06 scenes are Mars-like terrain models
+generated from Google Map, which are scenes from Actama
+Desert, Jordan Desert, and Chaidan Cliff. 07–09 scenes are
+three simulated 3-D terrain models of canyons, valleys, and
+mountains.
+Statistics details of the nine Mars scenes are summarized
+in Table II. As there are three types of data sources for
+Mars 3-D scene simulation, our dataset represents different
+reﬂect Mars scenes at different scales. The terrain model
+from GoogleMap covers a large area of terrain models with
+rich types of topographic features, while the simulated terrain
+models (07–09 scenes) contain detailed topographic features.
+The comparison of different scene scales can be seen in
+2https://www.blender.org/
+3https://hirise.lpl.arizona.edu/
+Fig. 11.
+Different scales in Mars scenes. (a) Google Earth. (b) HiRise.
+(c) Simulation.
+Fig. 11. Using three Mars-like terrain models on the Earth
+also makes it possible for ﬁeld trips in the future. Real UAV
+data can be taken on the Earth for accuracy assessment and
+algorithm performance enhancement.
+To keep the size of nine scenes consistent for UAV data
+generation, all the DEM models are resized to about 600 ×
+600 m2, together with texture image, and thus, the resize factor
+in Table II varies from one scene to another. For scenes 01–03,
+terrain texture is extracted from HiRise satellite imagery after
+orthorectiﬁcation. For scenes 04–06, terrain texture is the
+surface texture extracted from GoogleMap. To simulate the
+color of Mars terrain, the colors of texture for 07–09 are
+manually changed to dark red.
+The process of Mars 3-D terrain scene modeling and UAV
+image generation using Blender is shown in Fig. 12. First,
+we obtain the DEM and surface texture images of a scene
+through the three data sources: HiRise, Google Map, and
+simulation. Next, the DEM image and the surface texture
+image were imported into Blender, then create a terrain plane
+in Blender, and align the plane with the DEM and texture
+image. Moreover, since the value of each pixel on the DEM
+image represents the terrain height at that location, terrain
+elevation can be generated by Blender and then overlay the
+aligned surface texture image on the surface, and a prelimi-
+nary scene model with surface textures is obtained. Finally,
+we set the properties of the terrain model such as reﬂectivity,
+transmittance, and color, as well as the altitude, azimuth,
+and intensity of the sun, and then, we set the focal length,
+resolution of the camera in Blender.
+After establishing the 3-D scene model of Mars, the next
+step is to simulate the trajectories of UAVs and generate
+image sequences. Three UAV trajectories, circular, forward,
+and scanning, are generated and shown in Fig. 13. The
+circular trajectory simulates a touch-down looking on a spe-
+ciﬁc region, the forward trajectory simulates a UAV moving
+forward directly, and the scanning trajectory simulates the
+quick mapping of a large Mars region. The whole ﬂight time
+for the ﬁrst trajectories is set as 900 s, and for the other two
+trajectories, it is set as 600 s. The UAV viewing angle is set as
+nadir view to ensure high mapping and localization precision.
+The camera frequency is set as 1 Hz. Finally, we can use
+Blender’s rendering capabilities to obtain a sequence of images
+from the UAV’s perspective.
+B. Image Matching Between UAV Imagery and DEM
+In this experiment, a UAV image sequence is used as target
+images, while another image sequence of DEM, generated
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.10]
+4602018
+IEEE TRANSACTIONS ON GEOSCIENCE AND REMOTE SENSING, VOL. 60, 2022
+Fig. 12.
+3-D Mars scene modeling and UAV image generation.
+Fig. 13.
+Three ﬂight trajectories of the drone: (a) circular trajectory, (b) forward trajectory, and (c) scanning trajectory (start–end).
+TABLE III
+IMAGE MATCHING ACCURACIES (PIXEL) USING SIFT
+AND OUR METHOD (PC)
+using the same trajectory, is used as a reference. Since the
+same trajectory is used to generate the DEM and the optical
+image sequence, the ideal image offset is 0. Thus, the image
+offset between the optical images and the DEM terrain shading
+images can be used as a metric to evaluate the image matching
+accuracy.
+For comparison, the image matching accuracies of a feature-
+based method, SIFT, are calculated. Table III lists the matching
+accuracies using PC and SIFT in the nine Mars scenes.
+It can be seen in Table III that SIFT failed in most cases
+and only succeeded in four scenes. The feature correspondence
+result of the grayscale images of the DEM image and the
+optical image in the nine scenes using SIFT is shown in
+Fig. 14. It can be seen from Fig. 14 that in most scenes,
+SIFT can hardly generate enough feature pairs due to the
+low texture in the Mars scene and large appearance variation
+between optical images and DEM terrain shading images.
+The image matching performance of PC is superior to
+SIFT in all tested scenarios. As shown in Table III, except
+for scenes 3 and 7, the matching error of PC in all scenes
+is less than 1 pixel, and the average matching accuracy is
+0.66 subpixel.
+To further analyze the matching performance of PC in
+nine Mars scenes, error distributions of image matching are
+plotted in Fig. 15. It can be seen that the error distributions
+vary from scene to scene. For most scenes, the image offsets
+are distributed around 0, which can be modeled by the
+Gaussian distribution. However, for some cases, such as scenes
+03 and 06, the error distribution can be hardly modeled by
+the Gaussian distribution. Fig. 15 also shows that although,
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.11]
+WAN et al.: TERRAIN AIDED PLANETARY UAV LOCALIZATION BASED ON GEO-REFERENCING
+4602018
+Fig. 14.
+SIFT-based image matching between optical UAV image sequence
+and the corresponding DEM terrain shaded images.
+Fig. 15.
+Error distribution of image matching accuracy using PC in nine
+Mars scenes.
+generally, PC achieves robust matching performance, it did fail
+in several cases, for example, in scene 07, for some images, the
+matching error can be as large as 20 pixels. This experiment
+paves the way for the PC-based optical navigation approach,
+which fuses geo-referencing with visual odometry for accurate
+and robust localization results.
+C. Impact of Flight Translation and Rotation on Optical
+Navigation
+In the actual ﬂight of UAV, yaw is inevitable, which
+may cause the translation on the horizontal plane and the
+rotation of ﬂight direction. In order to verify the robustness
+to ﬂight translation and rotation, the following experiments,
+whose UAV image sequences and DEM image sequences are
+generated from the 3-D model of scene 8, are arranged in
+the circumstance of only translation, only rotation, and both
+translation and rotation.
+1) Impact of Flight Translation: This experiment will inves-
+tigate the impact of ﬂight translation on geo-referencing
+results. According to the 3-D model of scene 8, Gaussian
+Fig. 16.
+Actual ﬂight trajectories and calculated ﬂight trajectories under
+different variances.
+Fig. 17.
+Distribution of translation errors under different variances.
+noises are added to the X- and Y-coordinates of DEM image
+sequences, with the variance of 5 and 10 m, respectively, and
+the mean of 0 m. Two groups of UAV image sequences are
+generated under these two different Gaussian noises, so as to
+simulate the phenomenon of UAV ﬂight translation.
+To assess the effect of the experiment, the coordinate
+values of the UAV image sequence are used as ground truth.
+According to (19)–(23), the pixel deviation of PC can be
+converted to the coordinate deviation relative to the DEM
+image sequence to get the coordinates calculated value. The
+Euclidean distance between coordinates calculated value and
+ground truth of Euclidean distance can be used as the error to
+measure the experimental results.
+The comparison between the calculated trajectory and the
+actual trajectory is shown in Fig. 16. It can be seen that
+the calculated trajectory has a high similarity with the actual
+trajectory. The error distribution of each picture is shown in
+Fig. 17. When the variance is 5 m, the average error is 0.77 m;
+when the variance is 10 m, the average error is 1.13 m.
+The experiment shows that under the inﬂuence of different
+Gaussian noises, the accuracy of geo-referencing is acceptable.
+Even if the actual trajectory does not match the preset one,
+it can restore the real position and has the robustness to ﬂight
+translation.
+2) Impact of Flight Rotation: This experiment will inves-
+tigate the impact of ﬂight rotation on georeference results.
+According to the 3-D model of scene 8, Gaussian noises are
+added to the yaw angle of DEM image sequences, with the
+variance of 5◦and 10◦and the mean of 0◦. Two groups of
+UAV image sequences are generated under these two different
+Gaussian noises to simulate the phenomenon of UAV ﬂight
+translation.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.12]
+4602018
+IEEE TRANSACTIONS ON GEOSCIENCE AND REMOTE SENSING, VOL. 60, 2022
+Fig. 18.
+Distribution of rotation errors under different variances.
+To assess the effect of the experiment, the yaw angle used
+to generate the UAV image sequence is used as ground truth.
+According to (3), the rotation deviation of the yaw angle
+relative to the DEM image sequence can be calculated to
+obtain the calculated value of the yaw angle, and the absolute
+value of the difference between the yaw angle calculation value
+and the ground truth can be used as the error to measure the
+experimental effects.
+The error distribution of each picture is shown in Fig. 18.
+When the variance is 5◦and 10◦, the average error is 0.05◦.
+It is probably because the georeference has a fair performance
+under small rotation.
+The experiment shows that under the inﬂuence of different
+Gaussian noises, the accuracy of geo-referencing is acceptable.
+It can calculate the real value of the yaw angle and it has the
+robustness to ﬂight rotation.
+3) Impact of Flight Translation and Rotation: This exper-
+iment will investigate the combined impact of ﬂight trans-
+lation and rotation on georeference results. According to the
+3-D model of scene 8, Gaussian noises are added to the X- and
+Y-coordinates of DEM image sequences, with the variances of
+5 and 10 m, respectively, and the mean of 0 m. Gaussian noises
+are also added to the yaw angle of DEM image sequences, with
+the variance of 5◦and 10◦and the mean of 0◦. Two groups
+of UAV image sequences are generated under two different
+kinds of Gaussian noises. In this way, the ﬂight translation
+and rotation caused by various factors in the real ﬂight of
+UAV are simulated.
+To assess the effect of the experiment, the yaw angle
+used to generate the UAV image sequence and the coordinate
+values of the UAV image sequence are used as ground truth.
+The calculation process is divided into two steps. According
+to (3), the rotation deviation of the yaw angle relative to the
+DEM image sequence is calculated. Based on the rotation
+deviation, the calculated value of the yaw angle is obtained.
+Then, the pixel deviation obtained by phase matching can be
+converted into the coordinate deviation relative to the DEM
+image sequence by referring to formulas 16–20 to obtain the
+calculated value of coordinates. The absolute value of the
+difference between the calculated yaw angle and the ground
+truth is the error of the yaw angle, and the Euclidean distance
+between the calculated coordinates and the ground truth is the
+error of the coordinates.
+The comparison between the calculated and the actual
+trajectory is shown in Fig. 19. It can be seen that the
+Fig. 19.
+Actual ﬂight trajectories and calculated ﬂight trajectories under
+different variances.
+Fig. 20.
+Distribution of translation errors under different variances.
+Fig. 21.
+Distribution of rotation errors under different variances.
+similarity between the calculated and the actual trajectory is
+high, but there is incompleteness in the calculated track. Geo-
+referencing cannot guarantee the reliability of each image in
+the sequence under complex conditions. By ﬁltering the peak
+value of phase matching and changing the size of Hamming
+window, more reliable picture frames can be retained and the
+average error can be reduced.
+The
+error
+distribution
+of
+each
+picture
+is
+shown
+in
+Figs. 20 and 21. When the variance of Gaussian noise is 5 m
+and 5◦, the average translation error is 0.79 m and the average
+rotation error is 0.73◦; when the variance of Gaussian noise is
+10 m and 10◦, the average translation error is 1.16 m and the
+average rotation error is 1.04◦.
+After a series of experiments, as shown in Table IV, the
+accuracy of georeference is affected to some extent by adding
+Gaussian noise to coordinate and yaw angle. Compared with
+only yaw angle noise, the yaw angle error changes more with
+the inﬂuence of translation. It may be because, under the joint
+action of rotation and translation, the common view area of
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.13]
+WAN et al.: TERRAIN AIDED PLANETARY UAV LOCALIZATION BASED ON GEO-REFERENCING
+4602018
+TABLE IV
+AVERAGE TRANSLATION ERROR AND AVERAGE ROTATION ERROR UNDER
+THE INFLUENCE OF DIFFERENT GAUSSIAN NOISES
+TABLE V
+TRAJECTORY ERROR UNDER FIVE DIFFERENT CONFIDENCES
+Fig. 22.
+Appearance of scene 8 under different illumination intensities.
+the two images decreases, and each image has many new
+textures that the other one does not have, which will greatly
+affect the calculation results of PC, resulting in very large
+calculation results. Even if the true value of yaw angle cannot
+be completely restored, the mean error of 1◦is still very small
+for the calculation of translation. Besides, geo-referencing only
+needs to provide ﬁne translation results and not all translation
+and rotation results. It is reasonable to take geo-referencing
+as the terrain constraint of the visual odometer because of the
+robustness of the translation and rotation of the ﬂight based
+on PC.
+D. Impact of Illumination Condition on Optical Navigation
+Lighting is one of the major environmental changes on
+Mars, which signiﬁcantly alters the quality of UAV images
+and thus inﬂuences navigation accuracy. The following exper-
+iments begin to explore the robustness of PC to lighting
+conditions in the aspects of intensity, azimuth angle, and
+elevation angle.
+1) Change of Illumination Intensity: This experiment will
+investigate the effect of lighting strength on geo-referencing
+results. Five UAV image sequences are generated from the
+3-D model of scene 8 under ﬁve different illumination inten-
+sities from 0.1 to 12, as shown in Fig. 22.
+The image sequence with the illumination intensity of 10 is
+set as the presumable illumination condition for terrain shading
+image generation, and other parameters are the same among
+different image sequences except for the illumination intensity.
+Then, we test the matching accuracy of PC with respect to
+illumination intensity using the same metric as in Section V-B.
+Fig. 23.
+Appearance of scene 8 under different illumination azimuths.
+Fig. 24.
+Appearance of scene 8 under different illumination elevations.
+The image matching accuracies of PC under different illu-
+mination intensities are shown in Fig. 25. It can be seen
+from Fig. 25 that when the illumination intensity is 0.1, the
+maximum matching error is 0.129 subpixel, and with the
+lighting strength approaching 10, the error reduces to 0.047
+subpixel. Fig. 26 shows the geo-referencing error using PC
+and has a similar trend. The maximum localization error
+dropped from 0.032 to 0.015 m with the lighting strength
+approaching 10.
+This experiment demonstrates that the accuracy of the geo-
+referencing is higher when the difference in light intensity
+between the presumably DEM image and the real optical
+image is smaller. However, even if the presumably light
+intensity is not accurate, PC can still produce an accurate geo-
+referencing result.
+2) Change of Illumination Azimuth: This experiment will
+investigate the
+effect
+of
+illumination
+azimuth
+on
+geo-
+referencing results. Five UAV image sequences are generated
+from the 3-D model of scene 8 under ﬁve different illumi-
+nation azimuths from –15◦to 45◦, as shown in Fig. 23. The
+presumable azimuth angle is 0◦.
+The accuracies of image matching and geo-referencing
+using PC are shown in Figs. 27 and 28. Similar to the
+experiment result in Section V-C1 that the matching error
+reduces to 0.047 subpixel when the light azimuth angle is
+precisely estimated.
+3) Change of Illumination Elevation:
+This experiment
+will investigate the effect of illumination elevation on geo-
+referencing results. Five UAV image sequences are generated
+from the 3-D model of scene 8 under ﬁve different illumina-
+tion elevation angles from 45◦to 75◦, as shown in Fig. 24.
+The presumable elevation angle is 60◦.
+The accuracies of image matching and geo-referencing
+using PC under different illumination elevations are shown
+in Figs. 29 and 30. The average image matching accuracy is
+0.062 subpixel, and the average geo-referencing accuracy is
+0.089 m.
+The lighting condition may not always be accurately esti-
+mated for every scheduled task. However, the experimental
+results prove that PC-based geo-referencing has robustness
+to the uncertainty of lighting conditions. Therefore, it is
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.14]
+4602018
+IEEE TRANSACTIONS ON GEOSCIENCE AND REMOTE SENSING, VOL. 60, 2022
+Fig. 25.
+Pixel offsets of optical images under different illumination intensities.
+Fig. 26.
+Absolute errors of geo-referencing under different illumination intensities.
+Fig. 27.
+Pixel offsets of optical images under different illumination azimuths.
+Fig. 28.
+Absolute errors of geo-referencing under different illumination azimuths.
+Fig. 29.
+Pixel offsets of optical images under different illumination elevations.
+quite feasible to use the geo-referencing results as the terrain
+constraint in the visual odometer.
+E. Terrain Aided Visual Odometry Experiment
+1) Inﬂuence of the Conﬁdence of Terrain Constraints on
+the Results of LBA: The above experiment results conﬁrm the
+robustness and accuracy of PC-based geo-referencing. In this
+experiment, we will further investigate the effect of the terrain
+constraints under different conﬁdence values.
+The terrain aided VO experiments are carried out using
+the UAV data of scene 8. The optical images have been
+generated when the light intensity is 12, the azimuth angle
+is 0◦, and the altitude angle is 60◦. A total of six groups
+of experiments are set up with the conﬁdence level of 0, 1,
+10, 100, and 1000. The experiment with a conﬁdence of 0 is
+equivalent to terrain constraint-free. The EVO tool is used to
+evaluate the accuracy of calculated trajectories.4 The absolute
+4https://github.com/MichaelGrupp/evo
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.15]
+WAN et al.: TERRAIN AIDED PLANETARY UAV LOCALIZATION BASED ON GEO-REFERENCING
+4602018
+Fig. 30.
+Absolute errors of geo-referencing under different illumination elevations.
+TABLE VI
+POSITIONING ACCURACY UNDER THREE FLIGHT TRAJECTORIES
+Fig. 31.
+Absolute pose error (APE) with respect to ﬁve different conﬁdences.
+Fig. 32.
+Box plot of APE with respect to ﬁve different conﬁdences.
+errors of the trajectories under ﬁve different conﬁdences are
+shown in Table V, Figs. 31 and 32.
+It can be seen from Fig. 32 that when the conﬁdence is equal
+to 10, the average error, root-mean-square error, and standard
+deviation are all the smallest. In addition, it can be seen
+that the accuracy increases signiﬁcantly when the conﬁdence
+level is from 0 to 10. This shows that the terrain constraint
+based on PC has played a signiﬁcant role to increase the
+whole navigation accuracy. However, the increased accuracy
+is not very obvious when the conﬁdence is from 10 to 1000,
+indicating that the optimal conﬁdence value is around 10.
+2) Comparison Results of Different Flight Trajectories:
+This experiment will analyze the effect of UAV trajectories
+on the accuracies of navigation. Fig. 33 shows the navigation
+errors of the estimated trajectories and the ground-truth tra-
+jectories. The color bar on the right represents the absolute
+positioning error of the corresponding color. The statistic
+errors can be seen in Table VI.
+As shown in Fig. 33, most points in calculated trajectories
+are displayed in blue with a low error level. Table VI shows
+that compared to ORB-SLAM2 which produces 1.3-m average
+localization accuracy, the proposed method is able to achieve
+the average localization accuracy of 0.3 m. ORB-SLAM2 has
+the lowest localization accuracy in the circular path, which
+may owe to the loop-closure error in circle-like trajectories,
+the algorithm may mistakenly consider the current position
+returns to the starting point, while the actual trajectory is not.
+It is worthwhile to mention that the proposed method is not
+sensitive to trajectories, as the optimization is not based on
+loop closure, but based on geo-referencing.
+3) Terrain Aided VO Experiments in All Scenarios: This
+experiment will investigate the performance of the proposed
+method for all nine scenes with different terrain types and
+scene scales. The lighting conditions vary from the scene and
+can be seen in Table VII. As proved in Section V-C2, the
+proposed algorithm is not sensitive to ﬂight trajectories, and
+thus, we use circular trajectories in all nine scenes.
+We compare the proposed method with four state-of-the-
+art SLAM algorithms, ORB-SLAM2, ORB-SLAM3, SURF-
+SLAM, and SuperPoint-SLAM. The localization accuracies,
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.16]
+4602018
+IEEE TRANSACTIONS ON GEOSCIENCE AND REMOTE SENSING, VOL. 60, 2022
+Fig. 33.
+Navigation error of estimated trajectory and true trajectory in three cases. ( a) Circular trajectory, (b) Forward trajectory, and (c) Scanning trajectory.
+TABLE VII
+LIGHTING CONDITIONS OF THE NINE SCENES IN THE EXPERIMENT
+including maximum and mean errors, average errors, and stan-
+dard deviation, are shown in Table VIII. The bold numbers in
+Table VIII stand for the best performance among the relevant
+metrics, while dashes mean that the SLAM method fails to
+complete the whole localization process or the localization
+error is larger than 100 m.
+As shown in Table VIII, it can be seen that the proposed
+terrain aided SLAM achieves the highest average localization
+accuracies in nine scenarios compared to other four methods.
+The average RMSE of our method is 0.45 m, compared to
+ORB-SLAM3 0.75 m, ORB-SLAM2 1.32 m, SURF-SLAM
+1.74 m, and SuperPoint-SLAM 1.61 m.
+ORB-SLAM2 and ORB-SLAM3 have similar localization
+performance, while ORB-SLAM3 has a better performance,
+especially in the aspect of maximum error due to the bet-
+ter place recognition algorithm that provides more midterm
+matches. However, it should be noticed that ORBSLAM3 fails
+to complete localization in scenario 9 because of tracking
+failure.
+Both SURF-SLAM and SuperPoint-SLAM failed twice in
+nine scenarios. These failures due to the reason that UAV
+images from 01 to 03 scenarios are generated from real Mars
+satellite images and thus contain many textureless areas, which
+is difﬁcult for feature extraction and tracking in SURF-SLAM
+and SuperPoint-SLAM.
+Since the total length of ﬂight trajectories of the UAVs in
+the nine scenes is 1069.9 m, the localization error of our
+proposed method is 0.042%. This result conﬁrms that the
+LBA is able to fuse the geo-referencing and visual odometry
+into an optimized result. Finally, the processing speed of the
+proposed method is 12 frames/s, which ensures the real-time
+performance.
+VI. EXPERIMENT RESULTS
+In this article, a visual SLAM method based on terrain
+aided geo-referencing is proposed for planetary UAV optical
+navigation. Based on the mathematical derivation to prove the
+robustness of PC to multimodal image registration, a PC-based
+geo-referencing method is proposed to automatically localize
+the UAV image sequence on the reference terrain model.
+The proposed optical navigation approach includes three main
+steps: PC for terrain-based geo-referencing, visual odome-
+try based on frame-to-frame feature tracking, and keyframe
+pose reﬁnement based on LBA. Image matching experiments
+between DEM and optical images and optical navigation
+experiments using simulated Mars UAV sequences from dif-
+ferent terrain models have been conducted to rigorously
+assess the capability of the optical navigation method. The
+results demonstrated that compared to the state-of-the-art
+image matching methods, the proposed terrain aided naviga-
+tion method is able to robustly recover the UAV trajectories,
+regardless of the large appearance difference between UAV
+and reference DEM data.
+It should be noted that our navigation method currently
+only relies on monocular camera, and future work can be
+carried on using multisensor, such as stereo camera and IMU.
+Another promising direction is to involve multiple reference
+maps, such as orthoimages, vector maps, and sematic maps, for
+robust geo-referencing. Matching failures are hardly to avoid
+when reference maps and onboard UAV images come from
+different sources, it would be beneﬁcial to broad the sources
+of reference maps to achieve more robust navigation results.
+The work presented in this article laid the theoretical
+foundation for terrain aided UAV optical navigation. It can
+also be applied in vision-based UAV navigation on the Earth
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.17]
+WAN et al.: TERRAIN AIDED PLANETARY UAV LOCALIZATION BASED ON GEO-REFERENCING
+4602018
+TABLE VIII
+POSITIONING ACCURACY OF THE VISUAL ODOMETER WITH TERRAIN ASSISTANCE IN EACH SCENE
+when the GPS signal is not accurate or unavailable. It can also
+be applied in the vision-based landing process on an asteroid or
+other planet surface when a terrain model is available. Future
+work will be carried out using the real UAV data captured from
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+[p.18]
+4602018
+IEEE TRANSACTIONS ON GEOSCIENCE AND REMOTE SENSING, VOL. 60, 2022
+the desert area, which has a similar texture to the planetary
+surface.
+REFERENCES
+[1] L. Plice, B. Lau, G. Pisanich, and L. A. Young, “Biological inspired
+behavioral strategies for autonomous aerial explorers on Mars,” in Proc.
+IEEE Aerosp. Conf., Mar. 2003, p. 304.
+[2] J. B. Balaram, “Mars helicopter,” Tech. Rep., 2020.
+[3] P. Turtle et al., “Dragonﬂy: Exploring Titan’s prebiotic organic chemistry
+and habitability,” Icarus, vol. 243, pp. 191–207, 2007.
+[4] L. Matthies et al., “Computer vision on Mars,” Int. J. Comput. Vis.,
+vol. 75, no. 1, pp. 67–92, Jul. 2007.
+[5] K. Janschek, V. Janschek, and M. Beck, “Performance analysis for visual
+planetary landing navigation using optical ﬂow and DEM matching,” in
+Proc. AIAA Guid., Navigat., Control Conf. Exhib., Aug. 2006, p. 6706.
+[6] Y. Cheng, M. Maimone, and L. Matthies, “Visual odometry on the Mars
+exploration rovers,” in Proc. IEEE Int. Conf. Syst., Man, Cybern., vol. 1,
+Oct. 2005, pp. 903–910.
+[7] S. Chiodini et al., “Mars rovers localization by matching local horizon to
+surface digital elevation models,” in Proc. IEEE Int. Workshop Metrology
+Aerosp. (MetroAeroSpace), Jun. 2017, pp. 374–379.
+[8] F. Cozman, E. Krotkov, and C. Guestrin, “Outdoor visual position
+estimation for planetary rovers,” Auto. Robots, vol. 9, no. 2, pp. 135–150,
+2000.
+[9] E. Fang, “Terrain relative navigation for lunar polar roving: Exploiting
+geometry, shadows, and planning,” Carnegie Mellon Univ., Pittsburgh,
+PA, USA, Tech. Rep., 2020.
+[10] A. V. Neﬁan et al., “Planetary rover localization within orbital maps,” in
+Proc. IEEE Int. Conf. Image Process. (ICIP), Oct. 2014, pp. 1628–1632.
+[11] T. Miso, T. Hashimoto, and K. Ninomiya, “Optical guidance for
+autonomous landing of spacecraft,” IEEE Trans. Aerosp. Electron. Syst.,
+vol. 35, no. 2, pp. 459–473, Apr. 1999.
+[12] A. E. Johnson, Y. Cheng, and L. H. Matthies, “Machine vision for
+autonomous small body navigation,” in Proc. IEEE Aerosp. Conf.,
+Mar. 2000, pp. 661–671.
+[13] Y. Cheng, A. Johnson, and L. Matthies, “MER-DIMES: A planetary
+landing application of computer vision,” in Proc. IEEE Comput. Soc.
+Conf. Comput. Vis. Pattern Recognit. (CVPR), Jun. 2005, pp. 806–813.
+[14] Z. Liu et al., “Remote sensing mapping and localization techniques for
+teleoperation of chang’e-3 rover,” J. Remote Sens, vol. 18, pp. 971–980,
+2014.
+[15] H. Bay, T. Tuytelaars, and L. V. Gool, “Surf: Speeded up robust
+features,” in Proc. Eur. Conf. Comput. Vis. Springer, 2006, pp. 404–417.
+[16] R. Mur-Artal and J. D. Tardós, “ORB-SLAM2: An open-source slam
+system for monocular, stereo, and RGB-D cameras,” IEEE Trans. Robot.,
+vol. 33, no. 5, pp. 1255–1262, Oct. 2017.
+[17] C. Campos, R. Elvira, J. J. G. Rodriguez, J. M. M. Montiel, and
+J. D. Tardos, “ORB-SLAM3: An accurate open-source library for visual,
+visual–inertial, and multimap SLAM,” IEEE Trans. Robot., vol. 37,
+no. 6, pp. 1874–1890, Dec. 2021.
+[18] D. DeTone, T. Malisiewicz, and A. Rabinovich, “SuperPoint: Self-
+supervised interest point detection and description,” in Proc. IEEE/CVF
+Conf. Comput. Vis. Pattern Recognit. Workshops (CVPRW), Jun. 2018,
+pp. 224–236.
+[19] A. Papoulis and S. U. Pillai, Probability, Random Variables, and
+Stochastic Processes. New York, NY, USA: McGraw-Hill, 2002.
+[20] E. Shechtman and M. Irani, “Matching local self-similarities across
+images and videos,” in Proc. IEEE Conf. Comput. Vis. Pattern Recognit.,
+Jun. 2007, pp. 1–8.
+[21] A. Chilian and H. Hirschmuller, “Stereo camera based navigation of
+mobile robots on rough terrain,” in Proc. IEEE/RSJ Int. Conf. Intell.
+Robots Syst., Oct. 2009, pp. 4571–4576.
+[22] A. Neﬁan, L. Edwards, D. Lees, L. Keely, T. Parker, and M. Malin,
+“Automatic rover localization in orbital maps,” in Proc. Lunar Planet.
+Sci. Conf., 2017, p. 2374.
+[23] M. Balci and H. Foroosh, “Subpixel estimation of shifts directly in
+the Fourier domain,” IEEE Trans. Image Process., vol. 15, no. 7,
+pp. 1965–1972, Jul. 2006.
+[24] W. S. Hoge, “A subspace identiﬁcation extension to the phase correlation
+method [MRI application],” IEEE Trans. Med. Imag., vol. 22, no. 2,
+pp. 277–280, Feb. 2003.
+[25] J. G. Liu and H. Yan, “Phase correlation pixel-to-pixel image co-
+registration based on optical ﬂow and median shift propagation,” Int.
+J. Remote Sens., vol. 29, no. 20, pp. 5943–5956, Oct. 2008.
+[26] V. Argyriou and T. Vlachos, “Using gradient correlation for sub-pixel
+motion estimation of video sequences,” in Proc. IEEE Int. Conf. Acoust.,
+Speech, Signal Process., May 2004, p. 329.
+[27] X. Wan, J. G. Liu, and H. Yan, “The illumination robustness of phase
+correlation for image alignment,” IEEE Trans. Geosci. Remote Sens.,
+vol. 53, no. 10, pp. 5746–5759, Oct. 2015.
+[28] X. Wan, J. Liu, S. Li, J. Dawson, and H. Yan, “An illumination-
+invariant change detection method based on disparity saliency map for
+multitemporal optical remotely sensed images,” IEEE Trans. Geosci.
+Remote Sens., vol. 57, no. 3, pp. 1311–1324, Mar. 2018.
+[29] X. Wan, J. Liu, H. Yan, and G. L. Morgan, “Illumination-invariant image
+matching for autonomous UAV localisation based on optical sensing,”
+ISPRS J. Photogramm. Remote Sens., vol. 119, pp. 198–213, Sep. 2016.
+[30] X. Wan, C. Wang, and S. Li, “The extension of phase correlation to
+image perspective distortions based on particle swarm optimization,”
+Sensors, vol. 19, no. 14, p. 3117, Jul. 2019.
+[31] P. Kube and A. Pentland, “On the imaging of fractal surfaces,” IEEE
+Trans. Pattern Anal. Mach. Intell., vol. PAMI-10, no. 5, pp. 704–707,
+Sep. 1988.
+[32] R. Mur-Artal, J. M. M. Montiel, and J. D. Tardós, “ORB-SLAM: A
+versatile and accurate monocular SLAM system,” IEEE Trans. Robot.,
+vol. 31, no. 5, pp. 1147–1163, Oct. 2015.
+[33] B. Triggs, P. F. McLauchlan, R. I. Hartley, and A. W. Fitzgibbon,
+“Bundle adjustment—A modern synthesis,” in Proc. Int. Workshop Vis.
+Algorithms. Springer, 1999, pp. 298–372.
+Xue Wan received the B.Eng. and M.Eng. degrees
+from the School of Remote Sensing and Informa-
+tion Engineering, Wuhan University, Wuhan, China,
+in 2010 and 2012, respectively, and the Ph.D.
+degree from Imperial College London, London,
+U.K., in 2015.
+She is currently a Professor with the Technol-
+ogy and Engineering Center for Space Utilization,
+Chinese Academy of Sciences, Beijing, China. Her
+current research interests are remotely sensed image
+matching, change detection, vision-based navigation,
+and 3-D reconstruction.
+Yuanbin Shao received bachelor’s degree from the
+School of Astronautics, Nanjing University of Aero-
+nautics and Astronautics, Nanjing, China, in 2020.
+He is currently pursuing the master’s degree with the
+School of Aeronautics and Astronautics, University
+of Chinese Academy of Sciences, Beijing, China.
+His research interest is the visual localization and
+navigation of intelligent robots.
+Shengyang Zhang is currently pursuing the bach-
+elor’s degree in computer science and technology
+with the School of Information Science and Tech-
+nology, Dalian Maritime University, Dalian, China.
+His current research interests are image matching
+and vision-based navigation.
+Shengyang Li received the M.S. degree in com-
+puter science and technology from the Shandong
+University of Science and Technology, Qingdao,
+China, and the Ph.D. degree from the Institute of
+Remote Sensing Applications, Chinese Academy of
+Sciences, Beijing, China, in 2006.
+He is currently a Professor with the Technol-
+ogy and Engineering Center for Space Utilization,
+Chinese Academy of Sciences. His current research
+activities are ground data processing system technol-
+ogy, target detection and tracking in video satellites,
+and machine learning in remote sensing image classiﬁcation and recognition.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 19:17:15 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

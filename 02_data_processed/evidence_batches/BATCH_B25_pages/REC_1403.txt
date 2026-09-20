@@ -1,0 +1,506 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1403.pdf
+sha256: 4099C6354631809359CD6CCF4856614F4255075655C8D904D9ED2654535ECCAA
+library: pymupdf (fitz) v1.28.2
+pages: 5
+=== BEGIN ===
+[p.1]
+Simless GSM positioning for navigation
+in GPS-denied environments
+Inmaculada Soldado Serrano, José García Doblado, Ignazio Federico Finazzi and María Ángeles Martín Prats
+Electronics Engineering Department, University of Seville, Sevilla, Spain
+Abstract
+Purpose – Until now, air navigation systems have mainly relied on global navigation satellite systems (GNSS) on the worldwide spread global
+positioning system. However, the so-called GNSS-denied environments open a new research line which pursues the development of alternative
+technologies which will cover this gap in positioning systems’ services.
+Design/methodology/approach – This paper presents the possibility of using positioning systems based on global system for mobile
+communications (GSM) signal. This approach developed in a standalone device will provide real-time information. The presented algorithm pursues
+a new methodology for providing useful information.
+Findings – Among all the different technologies aimed at giving a navigation solution in the absence of any kind of GNSS in which this paper is
+based, it advocates for the use of the signals of opportunity, particularly the usage of GSM.
+Practical implications – Technology is currently immersed in an era of continuous progress and expansion of navigation systems. These are
+evolving toward high performance systems, offering precise, efﬁcient and safe air navigation. In addition, the growing demand for unmanned aerial
+vehicles increases the level of exigency on this activity even more. Therefore, in the context of the development of unmanned navigation
+technologies, the aim is to implement positioning systems that will allow high precision even in though environments.
+Originality/value – Referencing the SIMless concept, a SIM-free system is described in this paper. The SIM-free system is supported by open data
+bases and permits the positioning based on the information sniffed from the signals broadcast by a set of several nearby base station of the GSM
+network. Hence, it provides same and in some cases even better accuracies than the already developed techniques, not being necessary to
+synchronize the link between the mobile terminal and the base station transceiver (BTS).
+Keywords GPS-denied environment, GSM positioning, Navigation aid, SIMless
+Paper type Research paper
+1. Introduction
+The recent advances in Avionic technologies are improving the
+demanding navigation performances which are required in the
+aeronautic sector nowadays. In this term, the global navigation
+satellite systems and a large number of alternative techniques
+based on satellite positioning, aided inertial navigation and
+beacons are under development. Furthermore, even a larger
+number of research lines are focusing on the development of
+positioning systems based on the signals of opportunity
+(SoOP). The main goal of these researches is providing an
+alternative global positioning system (GPS) support when these
+fundamental signals for navigation are not available, i.e. indoor
+spaces (Varshavsky et al., 2007) or urban scenarios.
+The SoOP are radio frequency (RF) signals which main
+purpose is not navigation. A high density of SoOP can be found
+in urban areas. Hence, they can be used for navigation purposes
+in case the GPS is not available (Raquel and Martin, 2008).
+Furthermore, an additional infrastructure is not necessary for
+their usage, as the current one can be reused.
+Nevertheless, the development of a hardware and software
+SoOP receiver is a challenging goal which is hardly pursued by
+engineers. The receiver’s drawbacks are given by three
+principal factors. The ﬁrst one is related with the non-
+navigation purpose of the received RF signals. The second one
+bases this system’s functionality in the uniform extension and
+distribution of these signals around the world. The last one
+makes it necessary to know where the signal transmitters are
+allocated, even their transmission direction in case the user
+receiver is far away from those BTS. Although some multipath
+problems are also to be taken into account, the SoOP research
+focused on AM radio, Wi-Fi, Bluetooth and DVT signals is
+providing good results in terms of positioning estimation
+(Mautz, 2012). Hence, they are being developed to add
+support to the current navigation systems. Even in a higher
+level in this term, it has to be mentioned the global system for
+mobile communications (GSM), whose research is also
+providing good results to the above mentioned development
+(Mautz, 2012). A simple algorithm for positioning based on
+GSM is presented in this paper.
+The current issue and full text archive of this journal is available on
+Emerald Insight at: www.emeraldinsight.com/1748-8842.htm
+Aircraft Engineering and Aerospace Technology
+90/7 (2018) 1072–1076
+© Emerald Publishing Limited [ISSN 1748-8842]
+[DOI 10.1108/AEAT-01-2017-0029]
+Special words of thanks to the author’s colleagues of the Electronic
+Engineering Department of the University of Seville with whom the author
+had the chance to work closely in such an enjoyable and enriching
+opportunity.
+Received 16 January 2017
+Revised 5 April 2017
+23 June 2017
+Accepted 24 June 2017
+1072
+Downloaded from www.​emerald.​com/​aeat/​article-pdf/​90/​7/​1072/​184371/​aeat-01-2017-0029.​pdf by Kalinga Institute of Industrial Technology user on 18 September 2026
+[p.2]
+The
+GSM
+is
+a
+worldwide
+standard
+for
+the
+digital
+communication between mobiles that was developed by the
+European Telecommunications Standards Institute (ETSI)
+(ETSI,
+2016).
+There
+are
+numerous
+GSM
+navigation
+techniques for locating a user terminal whose algorithms are
+used for positioning depending on the BTS signal range. Well-
+known techniques for passive emitter localization are, for
+example, time difference of arrival, time of arrival (Torrieri,
+1984; Ho and Chan, 1993), frequency difference of arrival,
+angle of arrival (Schell and Gardner, 2018; Weiss, 2004) or the
+combination of two or more of those methods (Mušicki and
+Koch, 2010), among other methods (Mautz, 2012).
+However, the majority of these techniques require a GSM
+station link and challenging algorithms. This article advocates
+for the use of a less difﬁculty algorithm based on obtaining the
+Cell ID which provides information about where the BTS is
+geographically allocated. This Cell identiﬁcation is related with
+a radio range where the user can be situated taking into account
+the theoretical BTS signal strength. This coverage can vary
+from 100 m in urban areas up to 35 km in rural areas where the
+BTS density is signiﬁcantly lower. In addition, the user
+terminal does not have to establish a communication with the
+base transmission station (BTS) and, therefore, it does not
+need to have a SIM. This concept, which is called SIMless,
+allows the user terminal to receive signal from all the near BTS
+no matter the phone company they belong to. Consequently, it
+is possible to overlap coverage areas to obtain more information
+for the cell identiﬁcation. Thus, this article is based on a
+MATLAB
+algorithm
+implementation
+which
+allows
+the
+extraction of broadcast downlink GSM information for static
+positioning purposes.
+2. Algorithm description
+The pursued ﬁnal GSM positioning system is able to acquire
+and post-process the GSM signals, offering a positioning
+solution. Thus, the whole development can be divided into two
+fundamental steps which are described in detail in the two
+following subsections. The ﬁrst one is related to the downlink
+broadcast GSM signal snifﬁng and decoding. The second one
+is referred to the positioning algorithm implementation.
+The extraction of the needed GSM information is done via
+the two ﬁrst mentioned steps. Then, after using the USRP-
+E310 for snifﬁng the downlink broadcast GSM signals and
+after decoding these signals with the GNU Radio software, the
+Cell ID information is obtained from the logical BCCH
+message [GSM 04.03]. The BTS identiﬁcation consists of two
+messages, the location area identity, which consists of a mobile
+country code, the mobile network code and de location area
+code, and the Cell ID itself. They unequivocally identify each
+BTS after their veriﬁcation with a station data base where each
+BTS is placed in its geographical coordinates. Then, these
+coordinates are given as inputs to the developed MATLAB
+algorithm. Finally, the algorithm implements the technique
+that will be presented in the second subsection providing a
+positioning solution.
+The block diagram illustrated in Figure 1 shows the process
+which is followed by the GSM signals and has been described
+above.
+2.1 Snifﬁng and decoding global system for mobile
+communications signals
+These processes are supported by the USRP-E310. This device
+is an Ettus Research Software Deﬁne Radio which allows the
+RF signals processing. In the ﬁrst step, the broadcast GSM
+signals are sniffed in the range of 921 MHz up to 960 MHz.
+After an ADC conversion, GNU radio allows the BCCH
+decoding. The simplest way to run this process is using GNU
+radio companion (GRC), a python code generation tool used to
+generate the blocks diagram which allows the decoding of the
+determined information. Figure 2 shows the diagram that has
+been used for snifﬁng and decoding GSM signals.
+The information extracted from all the near BTS is given as
+inputs to the MATLAB algorithm following described.
+2.2 Proposed algorithm
+This subsection presents the algorithm description. The
+proposed
+algorithm
+uses
+the
+MATLAB
+toolbox
+image
+processing to obtain mask information as it is explained as
+following.
+The ﬂow diagram in Figure 3 is divided into four different
+blocks which are necessary for the correct extraction of the user
+positioning. Following, they will be explained.
+First, the BTS LLA coordinates, i.e. latitude and longitude
+referred to the World Geodetic System 84 (WGS84), are
+obtained by validating the Cell ID information with the BTS
+data base provided as input. It is necessary to assign an initial
+radio of coverage for all the BTS whose signals are received in
+the user terminal. It is also pre-determined the number of ﬁnal
+stations, i.e. the stop condition, that the algorithm calculates
+the position with. In this paper, that number is three. After that,
+the mask is built in relation with the map dimensions which are
+needed for locating all the near BTS.
+Second, the LLA coordinates are transformed into the
+Universal Transverse Mercator (UMT) 2D coordinate system.
+Apart from this, it is necessary to transform the deﬁned point in
+the UMT matrix using a lineal transformation to obtain the
+correct index in the built mask.
+Figure 1 GSM system ﬂow graph
+GSM POSITIONING SYSTEM
+Inmaculada Soldado Serrano et al.
+Aircraft Engineering and Aerospace Technology
+Volume 90 · Number 7 · 2018 · 1072–1076
+1073
+Downloaded from www.​emerald.​com/​aeat/​article-pdf/​90/​7/​1072/​184371/​aeat-01-2017-0029.​pdf by Kalinga Institute of Industrial Technology user on 18 September 2026
+[p.3]
+The third block comprises the iterative process that allows for
+the decrease of the BTS radio coverage until a single point is
+determined. In addition, it takes into account the algorithm
+stop condition for breaking the process. The main purpose of
+that process is to corroborate whether after a established radio
+decrease it exists a non-connected BTS to the rest. In case this
+decision condition is true, the isolated BTS is deleted from the
+following iteration. If there are more than one in this situation,
+the farthest BTS is ﬁrst removed and the radio is reduced to
+continue the process. In case this decision point is false, the
+radio decreases again. When the minimum number of BTSs
+which have shared areas is reached, the mask pixels which are
+commune for the ﬁnal BTS are calculated.
+Finally, the mean point is assumed to be the positioning
+result, providing its transformation into LLA coordinates the
+positioning estimation.
+3. Global system for mobile communications test
+example
+In this subsection, an algorithm operation example is shown to
+simplify the above explanation. Hence, once the information is
+decoded and the near BTSs LLA coordinates are transformed
+into the mask pixels, the ﬁrst scenario illustrated in Figures 4
+and 5 is obtained.
+Figure 2 GRC GSM decoder
+Figure 3 Proposed ﬂow diagram for the MATLAB GSM positioning
+algorithm
+Figure 4 BTS on a visual area map
+GSM POSITIONING SYSTEM
+Inmaculada Soldado Serrano et al.
+Aircraft Engineering and Aerospace Technology
+Volume 90 · Number 7 · 2018 · 1072–1076
+1074
+Downloaded from www.​emerald.​com/​aeat/​article-pdf/​90/​7/​1072/​184371/​aeat-01-2017-0029.​pdf by Kalinga Institute of Industrial Technology user on 18 September 2026
+[p.4]
+Then, this information passes through the iterative process
+until
+the
+coordinate
+point,
+which
+provides
+the
+user’s
+positioning, is obtained as shown in Figure 6. Furthermore, the
+meter’s difference between the GPS positioning and the GSM
+positioning is calculated to validate the correct algorithm
+operation. The result gives an error of 162 m, i.e. a 162 m
+positioning deviation from the real location, in this speciﬁc test.
+4. Global system for mobile communications
+positioning results
+Apart from the test presented above, some others have been
+done to analyze the algorithm precision. Table I shows the
+results from the urban test where there is a high BTS density
+compared to the expected coordinates doing the location with a
+GPS receiver. In addition, the last column provides the meters
+of error obtained.
+After that analysis, Table II provides the statistic positioning
+values obtained from the test. Assuming the samples’ normal
+distribution, a mean error lower than 190 m for urban scenarios
+in a 95 per cent conﬁdence interval is obtained.
+5. Conclusions
+The algorithm implements a low complexity functional
+positioning technique code that provides good values of
+precision for positioning in urban scenarios. In addition, the
+ﬁnal system is expected to use downlink broadcast GSM signals
+which
+belong
+to
+a
+global
+communication
+standard
+infrastructure. Thus, it is a SIM-free (SIMless) system with
+independency from interaction with this infrastructure. Then,
+it is possible an indoor and GPS-denied scenarios positioning
+due to the GSM signals availability.
+Summarizing, the pursued ﬁnal GSM positioning system is
+able to acquire and post-process the GSM signals. This
+positioning solution is truly useful in GPS-denied environment,
+i.e. indoor or urban areas where good values of positioning
+estimation are obtained. Because of the fact that GPS is the
+most precise system in terms of positioning, the alternative
+positioning method based on GSM signals pursues the backup
+usage for guaranteeing the everywhere positioning. The less
+lack of availably signals for the position calculating, the more
+precise, efﬁcient and safe aerial navigation.
+Figure 5 BTS on the determined mask
+Table I Urban area test results
+Urban scenario
+GPS latitude
+GPS longitude
+BTS
+GSM latitude
+GSM longitude
+Error[m]
+Alamillo
+37.412784
+5.986019
+21
+37.411229
+5.984559
+216
+Macarena
+37.402865
+5.989675
+13
+37.403678
+5.989176
+100
+Santa Justa
+37.392045
+5.976021
+21
+37.390599
+5.975123
+179
+Los Arcos
+37.388344
+5.961449
+21
+37.386007
+5.962184
+268
+Nervion
+37.385166
+5.970555
+13
+37.386154
+5.972537
+207
+Viapol
+37.376925
+5.975347
+17
+37.377113
+5.974469
+85
+Bami
+37.361028
+5.977228
+16
+37.359567
+5.976050
+193
+ReinaMercedes
+37.361028
+5.977228
+12
+37.363019
+5.989219
+286
+San Bernardo
+37.381292
+5.989165
+18
+37.411098
+6.003093
+186
+Los Remedios
+37.388344
+5.961449
+12
+37.376930
+6.004114
+179
+Triana
+37.383074
+6.006010
+11
+37.382951
+6.008171
+192
+Plaza Gavidia
+37.395056
+5.997017
+13
+37.393774
+5.998421
+189
+ETSI
+37.410891
+6.001149
+12
+37.360551
+5.989503
+162
+Table II Precision for urban scenarios in a 95% conﬁdence interval
+Mean
+Sigma
+Lower end of the range [m]
+Higher end of the range [m]
+Urban test
+187.8461538
+55.0648801
+157.912544
+217.7797637
+Figure 6 BTS on the determined mask
+GSM POSITIONING SYSTEM
+Inmaculada Soldado Serrano et al.
+Aircraft Engineering and Aerospace Technology
+Volume 90 · Number 7 · 2018 · 1072–1076
+1075
+Downloaded from www.​emerald.​com/​aeat/​article-pdf/​90/​7/​1072/​184371/​aeat-01-2017-0029.​pdf by Kalinga Institute of Industrial Technology user on 18 September 2026
+[p.5]
+References
+ETSI (2016), Search & Browse Standards, ETSI, Sophia
+Antipolis.
+Ho, K. and Chan, Y. (1993), “Solution and performance
+analysis of geolocation by TDOA”, in IEEE Transactions on
+Aerospace and Electronic Systems, Vol. 29 No. 4, pp. 1311-1322.
+Mautz, R. (2012), Indoor Positioning Technologies, Vol. 127,
+Institute of Geodesy and Photogrammetry, Department of
+Civil, Environmental and Geomatic Engineering, ETH
+Zurich, Zurich, February 2012.
+Mušicki, R.K.D. and Koch, W. (2010), “Mobile emitter
+geolocation
+and
+tracking
+using
+TDOA
+and
+FDOA
+measurements”, in IEEE Transactions on Signal Processing,
+Vol. 58 No. 3.
+Raquel, J. and Martin, R.K. (2008), “Non-GNSS radio frequency
+navigation”, EEE International Conference on Acoustic,
+Speech and Signal Processing, March 2008, pp. 5308-5311.
+Schell, S.V. and Gardner, W.A. (2018), “High-resolution
+direction ﬁnding”, in Bose, N.K. and Rao, C.R. (Eds),
+Handbook
+of
+Statistics,
+Signal
+Processing
+and
+Its
+Applications,
+Vol.
+10,
+Elsevier,
+New
+York,
+NY,
+pp. 755-817.
+Torrieri, D.J. (1984), “Statistical theory of passive location
+systems”, in IEEE Transactions on Aerospace and Electronic
+Systems, Vol. AES-20 No. 2, pp. 183-198.
+Varshavsky, A., de Lara, E., Hightower, J., LaMarca, A.
+and Otsason, V. (2007), “GSM indoor localization”,
+Pervasive
+and
+Mobile
+Computing,
+Vol.
+3
+No.
+6,
+pp. 698-720.
+Weiss,
+A.J.
+(2004),
+“Direct
+position
+determination
+of
+narrowband radio frequency transmitters”, IEEE Signal
+Processing Letters, Vol. 11 No. 5, pp. 513-516.
+Further reading
+Chai, G.P. (2004), “Alternative positioning method using
+GSM signals”, Journal of Global Positioning Systems, Vol. 3
+Nos 1/2, pp. 101-105.
+Van der Horst, J. (1973), “Complete decoding of some binary
+BCH codes”, phd. thesis abstr., Vol. 5, p. 377.
+Corresponding author
+Inmaculada
+Soldado
+Serrano
+can
+be
+contacted
+at:
+inmsolser@gte.esi.us.es
+For instructions on how to order reprints of this article, please visit our website:
+www.emeraldgrouppublishing.com/licensing/reprints.htm
+Or contact us for further details: permissions@emeraldinsight.com
+GSM POSITIONING SYSTEM
+Inmaculada Soldado Serrano et al.
+Aircraft Engineering and Aerospace Technology
+Volume 90 · Number 7 · 2018 · 1072–1076
+1076
+Downloaded from www.​emerald.​com/​aeat/​article-pdf/​90/​7/​1072/​184371/​aeat-01-2017-0029.​pdf by Kalinga Institute of Industrial Technology user on 18 September 2026
+=== END ===

@@ -1,0 +1,873 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_1034.pdf
+sha256: E710C96838A1774D6D3F9812DE8669B08DCD1D4B7EC2E473D396A9B26C91C437
+library: pymupdf (fitz) v1.28.2
+pages: 8
+=== BEGIN ===
+[p.1]
+UAVS ENHANCED NAVIGATION IN OUTDOOR GNSS DENIED ENVIRONMENT 
+USING UWB AND MONOCULAR CAMERA SYSTEMS  
+ 
+ 
+S. Zahran a, *, A. Masiero b, M.M. Mostafa a, A. M. Moussa a,c, A. Vettore b, N. El-Sheimy a 
+ 
+a Department of Geomatics, University of Calgary, Calgary, Canada – (shady.zahran1, mostafa.mostafa, elsheimy)@ucalgary.ca 
+b Interdepartmental Research Center of Geomatics (CIRGEO), University of Padova,  
+Viale dell’Università 16, Legnaro (PD) 35020, Italy – (masiero@dei.unipd.it , antonio.vettore@unipd.it) 
+c Department of Electrical Engineering, Port-Said University, Port Said, Egypt - amelsaye@ucalgary.ca 
+ 
+Commission I, ICWG I/II 
+ 
+ 
+KEY WORDS: Optical Flow, Ultra-Wideband, Multi-Sensor Fusion, Inertial Navigation Systems, Multi-Sensor Fusion, Global 
+Navigation Satellite System Denied Environment. 
+ 
+ 
+ABSTRACT: 
+ 
+The demand for small Unmanned Aerial Vehicles (UAVs) is massively increasing these days, due to the wide variety of applications 
+utilizing such vehicles to perform tasks that may be dangerous or just to save time, effort, or cost. Small UAVs navigation system 
+mainly depends on the integration between Global Navigation Satellite Systems (GNSS) and Inertial Measurement Unit (INS) to 
+estimate the Positions, Velocities, and Attitudes (PVT) of the vehicle. Without GNSS such UAVs cannot navigate for long periods of 
+time depending on INS alone, as the low-cost INS typically exhibits massive accumulation of errors during GNSS absence. Given the 
+importance of ensuring full operability of the UAVs even during GNSS signals unavailability, other sensors must be used to bound the 
+INS errors and enhance the navigation system performance. This paper proposes an enhanced UAV navigation system based on 
+integration between monocular camera, Ultra-Wideband (UWB) system, and INS. In addition to using variable EKF weighting scheme.  
+The paper also investigates this integration in the case of low density of UWB anchors, to reduce the cost required for such UWB 
+system infrastructure. A GoPro Camera and UWB rover were attached to the belly of a quadcopter, an on the shelf commercial drone 
+(3DR Solo), during the experimental flight. The velocity of the vehicle is estimated with Optical Flow (OF) from camera successive 
+images, while the range measurements between the UWB rover and the stationary UWB anchors, which were distributed on the field, 
+were used to estimate UAV position. 
+ 
+ 
+1. INTRODUCTION 
+The demand of versatile small UAVs is increasing rapidly, due 
+to the massive spread of applications that utilize such UAVs to 
+accomplish different tasks in order to save cost, effort, time, or 
+tasks that may expose people to danger (Surveillance & 
+Reconnaissance, inspection & monitoring, survey & mapping, 
+industrial inspection, maintenance & repair of oil & gas 
+platforms’. Etc). Such wide range of applications that utilize 
+UAVs in different circumstances, areas, or conditions, makes the 
+development of navigation systems effective in all such operative 
+conditions essential for ensuring safe and proper use of UAVs in 
+critical environments. 
+  
+The current generation of UAVs navigation systems mainly 
+depend on the fusion between the measurements of GNSS and 
+INS through filters to be able to navigate for long and short time 
+periods (Noureldin et al., 2013). Typically, the Inertial 
+Measurement Unit (IMU) used in this kind of UAVs 
+(small/commercial) is based on low-cost Micro-Electro-
+Mechanical Systems (MEMS). Since this kind of sensor typically 
+accumulates a huge amount of errors during the navigation 
+estimation process (mechanization), they can be used as stand-
+alone navigation solutions only for short time periods. 
+Consequently, GNSS is typically used to bound INS errors, 
+enabling the navigation system to correctly work for long time 
+periods. Unfortunately, problems arise once the GNSS system is 
+jammed, blocked, or spoofed: in such cases, an alternative aiding 
+                                                                
+*Corresponding author. 
+system should be used to replace the GNSS in order to ensure a 
+versatile navigation system.  
+ 
+Different sensors were considered in the literature to properly 
+bound INS errors. First, a standard camera is often considered to 
+this aim, mostly because of its small size, lightweight, and low 
+power consumption, which are adequate characteristics for small 
+UAVs. Furthermore, camera sensor is often mounted on UAVs 
+also for other purposes. Visual Odometry (VO) is one of the most 
+common vision-based techniques for estimating the vehicle 
+velocity: in VO, the estimation of the vehicle motion is computed 
+analyzing successive camera images, i.e. by detecting 
+features/textures matched in two successive frames (Yousif et al., 
+2015). Depending on the number of available cameras, VO can 
+be monocular or stereo. Furthermore, it can be based on different 
+image processing techniques: optical flow (Mansur et al., 2017), 
+features matching (Chuanqi et al., 2017), or feature tracking 
+(Johnson et al., 2008).  (Mostafa et al., n.d.) proposed a novel 
+approach based on integrating a monocular camera, IMU, and 
+Artificial Intelligent (AI) through EKF, where the AI is used to 
+estimate the underlying function of the camera and diminish the 
+need for estimating the geometric camera model. Since 
+monocular camera approaches typically suffer from scale 
+estimation issues, such approaches usually integrate the camera 
+information with that provided by other sensors, for instance, the 
+barometer  (Nistér et al., 2004). Alternatively, scale estimation 
+issues can be tackled by using a stereo-camera, such as in (Eynard 
+et al., 2010), where the authors assumed a plane ground, and they 
+utilized a fisheye camera and a respective camera: the fisheye 
+The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences, Volume XLII-2/W13, 2019 
+ISPRS Geospatial Week 2019, 10–14 June 2019, Enschede, The Netherlands
+This contribution has been peer-reviewed. 
+https://doi.org/10.5194/isprs-archives-XLII-2-W13-665-2019 | © Authors 2019. CC BY 4.0 License.
+665
+[p.2]
+ 
+camera provided a wide field of view, whereas the other one 
+provided a higher measurement accuracy. Despite the potential 
+of stereo-camera approaches is typically higher than that of 
+monocular ones, the capabilities of stereo-camera systems 
+mounted on small UAVs are quite limited because of the very 
+short baselines that can be used in such cases. Actually, cameras 
+are very adequate for small drones but their sensitivity to 
+environmental changes may affect their performance and cause 
+errors in navigation. 
+ 
+Ultra-wideband sensors are mainly used for indoor terrestrial 
+applications, but there are several recent types of research that 
+considered this kind of technology for UAV navigation purposes. 
+In (Tiemann et al., 2015), the authors run a real indoor 
+experiment with a quadcopter and UWB mounted on it, to assess 
+UWB system accuracy in a real indoor application. Other 
+researches adopted UWB for precise Unmanned Aircraft 
+Systems (UAS) autonomous landing (Kong et al., 2015). 
+Furthermore, (Tiemann and Wietfeld, 2017) integrated the Time 
+Difference of Arrival (TDOA) through a tightly coupled scheme 
+in a constrained indoor environment using three UAVs. The low 
+power consumption and lightweight of UWB devices make them 
+adequate to be used with small drones. However, UWB devices 
+usually cover only a relatively small area, hence a large UWB 
+network can be required in outdoor UAV applications, 
+consequently resulting in quite expensive costs to cover large 
+areas. 
+ 
+This paper proposes the integration between a camera and a 
+UWB system for outdoor UAV navigation when GNSS is not 
+available, with variable weighting uncertainties EKF scheme. 
+Also, this integration is investigated when the size of the UWB 
+network is decreased by 33 % in order to reduce the overall cost 
+of the system. 
+ 
+2. SYSTEM OVERVIEW  
+This work integrates the information coming from two systems, 
+camera, and UWB. The camera is used as VO to estimate the 
+velocity of the drone based on optical flow approach, although 
+the velocity estimate from the camera greatly enhances the 
+navigation solution, but the orientation of the drones is not 
+observable, which will lead to orientation drift. Differently, the 
+UWB system will be used as CUPT update for the drone, where 
+such CUPT update will enhance the orientation estimation as 
+well. Both systems measurements are fused through EKF but 
+each with a variable uncertainty. The camera measurements 
+uncertainty is estimated based on the percentage of outliers 
+compared to inliers features in each successive camera frames. 
+As if the inliers are more than the outliers we have more trust in 
+the estimated velocity from the camera and vice versa. While in 
+case of UWB system, the weighting is calculated based on the 
+number of UWB anchor in view, in addition to comparing the 
+estimated position from UWB against the position estimated 
+from the mechanization process. 
+ 
+Since the use of an UWB-based drone position update in the 
+outdoor environment requires a quite large, and hence expensive 
+infrastructure, the integration with a camera system is 
+investigated in this work. Such investigation allows reducing the 
+size (and costs) of the UWB infrastructure while ensuring reliable 
+estimates of the navigation unknowns for longer periods, as will 
+be shown in Section 3. 
+ 
+2.1 Monocular Visual Odometry 
+The camera is attached to the belly of the drone (nadir), the 
+implemented VO is based on the optical flow approach shown in 
+(Heinrich, 2017), where features are detected in consecutive 
+frames (30 FPS) through the Speeded Up Robust Features 
+(SURF) detector (Bay et al., 2006), which has been chosen 
+because of its low computational requirements. Then, the 
+matched features pass through an M-estimator Sample 
+Consensus (MSAC) algorithm for outlier rejection purpose. 
+To estimate the forward vehicle velocity a pinhole camera model 
+is employed to project a point in space to a point in the image 
+plane as (1): 
+ 
+𝑝= 𝑓𝑐𝑎𝑚
+ℎ
+𝑃 
+(1) 
+    
+Where:      P is a point in space = [X,Y,Z]. 
+                  𝑝 is the projection of the point of interest in the 
+                     camera frame= [𝑥𝑝𝑖𝑥, 𝑦𝑝𝑖𝑥, 𝑓𝑐𝑎𝑚]. 
+                 𝑓𝑐𝑎𝑚 is the camera focal length. 
+                 h height between the camera origin and the ground. 
+ 
+The difference between the positions of the matched features (∆𝑥 
+and ∆𝑦) in pixels in the camera frame is then convert to real world 
+displacement (∆𝑋 and ∆𝑌) in meters as shown in (2). 
+ 
+∆𝑋 = −
+𝑆
+𝑓𝑐𝑎𝑚
+∆𝑥 . ℎ 
+(2) 
+   
+Where:       𝑆 is the pixel size  
+ 
+In order to calculate the drone forward velocity, the optical flow 
+vectors must be compensated for the drone rotation with the aid 
+of gyro measurements (𝑤𝑥,𝑦,𝑧) as shown in (3). 
+  
+𝑉𝐹= −[ 𝑆
+𝑓𝑐𝑎𝑚
+∆𝑥−𝑓𝑐𝑎𝑚tan(𝑤𝑦∆𝑡)] ∗ℎ 
+(3) 
+ 
+Where:       𝑉𝐹 is the vehicle forward velocity. 
+                   ∆𝑡 is the time between successive frames. 
+          
+2.2 UWB System     
+The low-cost UWB positioning (Pozyx) system  used in this work 
+is composed of 7 devices: 6 stationary beacons (anchors), and one 
+moving beacon (rover) that is mounted on the UAV. Despite their 
+low cost might make their performance worse than that of higher 
+cost UWB systems, their ease of configuration, development, 
+scaling, lightweight and small size are clearly advantageous 
+factors. 
+ 
+Ranges between UWB devices are calculated by means of Time 
+of Flight (TOF) measurements of radio signals. If anchor 
+locations are fixed and known, the rover position can be 
+estimated through trilateration by exploiting the anchor-rover 
+range measurements.  
+ 
+It is worth to notice that the best ranging performance of UWB 
+devices is ensured when working in clear line of sight conditions 
+(CLOS). While in indoor applications such working condition is 
+often not guaranteed, in the case of UAV outdoor tracking CLOS 
+measurements are quite common, hence ensuring good ranging 
+performance of the UWB system.   
+ 
+The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences, Volume XLII-2/W13, 2019 
+ISPRS Geospatial Week 2019, 10–14 June 2019, Enschede, The Netherlands
+This contribution has been peer-reviewed. 
+https://doi.org/10.5194/isprs-archives-XLII-2-W13-665-2019 | © Authors 2019. CC BY 4.0 License.
+666
+[p.3]
+ 
+2.3 EKF Scheme 
+Both the velocity from the camera and positions from the UWB 
+system where fused through a loosely couple EKF scheme. 
+The EKF error state vector is composed of 21 states (4). 
+ 
+𝛿𝑥= [𝛿Pn 𝛿Vn 𝛿𝜀n 𝐴𝑏𝑖𝑎𝑠 𝐺𝑏𝑖𝑎𝑠 𝐴𝑠𝑓 𝐺𝑠𝑓]′ 
+(4) 
+ 
+Where:    𝛿Pn, 𝛿Vn, 𝛿𝜀n are the position, velocity and attitudes 
+                error vectors. 
+               𝐴𝑏𝑖𝑎𝑠 𝑎𝑛𝑑 𝐺𝑏𝑖𝑎𝑠 are the accelerometers and gyros 
+biases respectively. 
+              𝐴𝑠𝑓 𝑎𝑛𝑑 𝐺𝑠𝑓 are the scale factor of the accelerometers 
+and gyros. 
+ 
+The EKF workflow is composed of two steps, first, it starts with 
+prediction step, which is obtained by linearizing the 
+mechanization equations to yield the system model as shown in 
+(5) and (6). 
+ 
+𝑥̇ = 𝐹𝑥+ 𝐺𝑤 
+𝑥̂𝑘
+−= 𝛷𝑘,𝑘−1𝑥̂𝑘−1 + 𝐺𝑘−1𝑤𝑘−1 
+(5) 
+(6) 
+  
+Where:     𝑥 is the error states, 
+                 F is the dynamic matrix 
+                𝛷 is the state transition matrix  
+                G is the noise coefficient matrix 
+                𝑤 is the system noise. 
+ 
+The noise model utilized to represent the colored noise in the 
+accelerometer biases and scale factors is first order Gauss-
+Markov (GM). 
+ 
+The error state prediction step is then followed by state 
+uncertainty prediction (covariance matrix prediction) as (7). 
+  
+𝑃𝑘
+−= 𝛷𝑘,𝑘−1𝑃𝑘−1𝛷𝑘,𝑘−1
+𝑇
++ 𝐺𝑘−1𝑄𝑘−1𝐺𝑘−1
+𝑇
+ 
+(7) 
+ 
+Where:      𝑃 is the state covariance matrix 
+                 𝑄 is the system noise (𝑤) covariance matrix. 
+ 
+When there are measurements from an external aiding sensor, the 
+update equations follow the prediction step, to fuse these 
+measurements with the predicted one according to its 
+uncertainties as shown in (8-10). 
+ 
+ 𝐾𝑘= 𝑃𝑘
+−𝐻𝑘
+T(𝐻𝑘𝑃𝑘
+−𝐻𝑘
+T + 𝑅𝑘)
+−1 
+𝑥̂𝑘= 𝑥̂𝑘
+−+ 𝐾𝑘(𝑍𝑘−𝐻𝑘𝑥̂𝑘
+−) 
+𝑃𝑘= (𝐼−𝐾𝑘𝐻𝑘)𝑃𝑘
+− 
+(8) 
+(9) 
+(10) 
+ 
+Where:     𝐾𝑘 is the Kalman gain.  
+                𝑅𝑘 is the covariance matrix of the measurements.  
+               𝐻𝑘 is the design matrix.  
+               𝑍𝑘 is the observation matrix. 
+ 
+2.4 Data Fusion 
+The weights of the measurements coming from the camera inside 
+the EKF are not constant: weights are determined according to 
+the percentage of inliers with respect to the outlier features found 
+in the currently considered frames. 
+ 
+Measurements from the UWB system are weighted according to 
+the number of available measurements from the beacons and their 
+relationship with the previously predicted position from the 
+mechanization process. The work flow of the proposed approach 
+is showed in Figure 1. 
+ 
+ 
+Figure 1. The work scheme of the proposed integration between 
+camera and UWB system through Extended Kalman Filter 
+loosely coupled scheme. 
+This variable weighting scheme of the UWB system is based on 
+the existence of reliable velocity update, as with velocity update 
+and low velocities of such small UAVs the error in the 
+quadcopter position will be small within short period of time. 
+   
+2.5 Hardware Setup 
+The drone used in this experiment is a commercial drone (3DR 
+Solo) with low-cost MEMS-based IMU (MPU-9250), with a 
+5Hz- U-blox GPS. GoPro Hero 4 camera with a resolution of 
+1080*1920, with 30 frames/secs in addition to the UWB rover is 
+attached to the belly of the quadcopter as shown in  
+Figure 2. 
+ 
+The 6 stationary beacons where approximately homogeneously 
+distributed on the area of interest. The positions of the anchors 
+were surveyed with a Trimble R10 GNSS receiver. 
+ 
+ 
+Figure 2. 3DR Quadcopter with UWB system and camera 
+attached to it. 
+3. EXPERIMENT AND RESULTS 
+The Flight extended for 186 seconds with 23 waypoints around 
+the area of interest shown in Figure 3, the trajectory includes 
+complex maneuvers to show the ability of the proposed approach 
+to enhance the navigation performance during GNSS signal 
+outage even during harsh movements. 
+ 
+Figure 4 shows the velocity estimated from the camera with the 
+aid of optical flow approach compared to the reference velocity. 
+The reference velocity was abstained from the onboard full 
+navigation system (GNSS, INS, and magnetometer). 
+The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences, Volume XLII-2/W13, 2019 
+ISPRS Geospatial Week 2019, 10–14 June 2019, Enschede, The Netherlands
+This contribution has been peer-reviewed. 
+https://doi.org/10.5194/isprs-archives-XLII-2-W13-665-2019 | © Authors 2019. CC BY 4.0 License.
+667
+[p.4]
+ 
+ 
+Figure 3. The trajectory of the real flight experiment, and UWB 
+anchors distributed around the area of interest 
+Sample of the estimated position from the UWB system with 
+33% less in the infrastructure (4 anchors) compared to the 
+positions estimated from the full UWB system is shown in  
+Figure 5 with six different non-homogenous configurations. 
+ 
+Figure 4. Velocity estimated from the camera using optical flow 
+compared against reference velocity.
+ 
+Figure 5. Sample of UWB system positions estimate when utilizing only 4 anchors compared to UWB system  
+when utilizing 6 anchors
+3.1 IMU Stand-alone Solution (Dead-reckoning)  
+The main purpose of this experiment is to show the inability of 
+the low-cost IMU to estimate the navigation unknowns during the 
+absence of GNSS signals as shown in Figure 6. 
+ 
+ 
+Figure 6. INS dead reckoning solution compared against 
+reference trajectory for 60 secs of GNSS signals outage 
+The solution of the IMU as stand-alone system exhibits massive 
+drift reached hundreds of meters in North and East direction 
+(RMSE_N 250 m, and RMSE_E 560 m) during 60 seconds of 
+GNSS outage. 
+ 
+3.2 UWB-Camera-INS Integration (All Beacons Used) 
+This experiment shows the performance of the UWB system 
+alone when all the beacons are used as shown in Figure 7 and 8, 
+while the performance of the camera integrated with INS alone 
+is shown in Figures 9 and 10, and this experiment also proves the 
+ability of the proposed integration between both systems to 
+enhance the navigation solution even further despite using all the 
+available UWB anchors as shown in Figures 11 and 12. 
+ 
+As shown in Figures 7 and 8 that in the outdoor environment, the 
+performance of the UWB system with 6 anchors distributed 
+around the designated area enhanced the performance of the 
+navigation system in GNSS denied environment for 3 minutes, 
+with RMSE error 1.4 and 1.2 meters in North and East direction 
+respectively, compared to hundreds of meters when utilizing INS 
+alone. 
+The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences, Volume XLII-2/W13, 2019 
+ISPRS Geospatial Week 2019, 10–14 June 2019, Enschede, The Netherlands
+This contribution has been peer-reviewed. 
+https://doi.org/10.5194/isprs-archives-XLII-2-W13-665-2019 | © Authors 2019. CC BY 4.0 License.
+668
+[p.5]
+ 
+ 
+Figure 7. UWB-INS integration performance compared against 
+reference trajectory for full GNSS Signal outage (3 minutes) 
+ 
+Figure 8. UWB-INS integration North and East errors for 180 
+seconds of complete GNSS signal outage 
+ 
+Figure 9. Performance of the integration between the camera 
+and INS for 180 seconds of a complete signal outage 
+Figures 9 and 10 showed that the camera alone as aiding system 
+enhanced the navigation performance, compared to INS dead-
+reckoning solution, but it suffers from orientation drift and some 
+links suffer from errors due to errors in camera velocity estimated 
+which may be from some outliers which are not removed during 
+MSAC process. 
+ 
+ 
+Figure 10. RMSE errors trend in North and East directions for 
+the solution of the camera and INS integration 
+ 
+Figure 11. Performance of the integration between the proposed 
+approach (camera with UWB) and INS for 180 seconds of 
+complete GNSS signal outage 
+ 
+Figure 12. RMSE error trend of the proposed approach (camera 
+and UWB) integrated with INS for a complete 180 seconds of 
+GNSS signal outage 
+The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences, Volume XLII-2/W13, 2019 
+ISPRS Geospatial Week 2019, 10–14 June 2019, Enschede, The Netherlands
+This contribution has been peer-reviewed. 
+https://doi.org/10.5194/isprs-archives-XLII-2-W13-665-2019 | © Authors 2019. CC BY 4.0 License.
+669
+[p.6]
+ 
+ 
+UWB 
+-INS 
+VO 
+-INS 
+UWB-
+VO-INS 
+Enhancement 
+from 
+UWB 
+VO 
+RMSE-N 
+1.40m 
+8.53m 
+1.34m 
+4.2% 
+84% 
+RMSE-E 
+1.24m 
+3.91m 
+1.20m 
+3.2% 
+69% 
+Max-
+Error-N 
+4.08m 
+19.6m 
+2.8m 
+31% 
+85% 
+Max-
+Error-E 
+3.95m 
+8.75m 
+3.40m 
+13% 
+61% 
+Table 1. The performance of the proposed approach (Camera 
+and UWB integrated with INS) compared against the solution 
+obtained from the UWB system alone and the solution obtained 
+from the camera alone integrated with INS 
+Table 1 and the previous figures showed that even when using all 
+the beacons of the UWB system alone integrated with INS, or 
+using the camera alone integrated with INS, the integration 
+between the UWB with a camera still enhance the navigation 
+performance when integrated with INS. 
+ 
+3.3  UWB-Camera-INS Integration (4 Beacons Used the 
+first configuration) 
+The following Figures 13 and 14 show the performance of the 
+UWB system alone when fewer anchors are used configuration 
+(f), while the proposed approach performance is shown in Figures 
+15 and 16 when utilizing less infrastructure by 33%. 
+ 
+ 
+Figure 13. The solution from UWB system alone with lower 
+infrastructure (configuration f ) 
+ 
+Figure 14. RMSE Errors trend in North and East directions for 
+the UWB system with lower infrastructure utilized  
+(configuration f ) 
+ 
+Figure 15. Performance of the proposed approach (camera and 
+UWB) integrated with INS, with lower UWB system 
+infrastructure for a complete 3-minute GNSS signal outage  
+(configuration f ) 
+ 
+Figure 16. RMSE Errors trend in North and East directions for 
+the proposed approach (camera and UWB) integrated with INS 
+system with lower infrastructure utilized for a complete 3-
+minute GNSS signal outage (configuration f ). 
+ 
+UWB -
+INS 
+UWB-
+VO-INS 
+Enhancement 
+from UWB 
+RMSE-N 
+1.44m 
+1.31m 
+9% 
+RMSE-E 
+1.36m 
+1.18m 
+13% 
+Max-Error-N 
+4.13m 
+2.82m 
+31% 
+Max-Error-E 
+4.69m 
+2.57m 
+45% 
+Table 2. The performance of the proposed approach (Camera 
+and UWB integrated with INS) compared against the solution 
+obtained from the UWB system alone (lower infrastructure) and 
+the solution obtained from the camera alone integrated with INS 
+Shown in the previous Table 2, and figures that the integration 
+between the UWB system with less infrastructure and camera 
+systems leads to improved performance compared to UWB only 
+or camera only integrated with INS. 
+ 
+3.4 UWB-Camera-INS Integration (4 Beacons Used Second 
+configuration) 
+Another experiment with less UWB infrastructure (33% less) and 
+different configuration (e) to proves the ability of the proposed 
+The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences, Volume XLII-2/W13, 2019 
+ISPRS Geospatial Week 2019, 10–14 June 2019, Enschede, The Netherlands
+This contribution has been peer-reviewed. 
+https://doi.org/10.5194/isprs-archives-XLII-2-W13-665-2019 | © Authors 2019. CC BY 4.0 License.
+670
+[p.7]
+ 
+integration in the outdoor environment to enhance the navigation 
+solution during complete GNSS signal outage for 3 minutes. 
+ 
+ 
+Figure 17. The solution from the UWB system alone with lower 
+infrastructure (configuration e ) 
+ 
+Figure 18. RMSE Errors trend in North and East directions for 
+the UWB system with lower infrastructure utilized 
+(configuration e) 
+Figures 17 and 18 show the UWB alone performance (second 
+configuration), while Figures 19 and 20 show the performance of 
+the integration between the camera and the UWB system with 
+lower infrastructure by 33%. 
+ 
+ 
+UWB 
+-INS 
+UWB-
+VO-INS 
+Enhancement 
+from UWB 
+RMSE-N 
+1.27m 
+1.25m 
+1.5% 
+RMSE-E 
+1.37m 
+1.25m 
+8.7% 
+Max-Error-N 
+3.61m 
+3.16m 
+12% 
+Max-Error-E 
+5.93m 
+3.76m 
+36% 
+Table 3. The performance of the proposed approach (Camera 
+and UWB integrated with INS) compared against the solution 
+obtained from the UWB system alone (lower infrastructure) and 
+the solution obtained from the camera alone integrated with INS 
+(Configuration e) 
+ 
+ 
+Figure 19. Performance of the proposed approach (camera and 
+UWB) integrated with INS, with lower UWB system 
+infrastructure for a complete 3-minute GNSS signal outage  
+(configuration e ) 
+ 
+Figure 20. RMSE Errors trend in North and East directions for 
+the proposed approach (camera and UWB) integrated with INS 
+systems with lower infrastructure utilized for a complete 3-
+minute GNSS signal outage (configuration e) 
+This experiment also proved through the results shown in  
+Table 3, and previous figures, the ability of the integration 
+between camera and UWB systems to enhance the navigation 
+performance of UAVs during GNSS signal outage compared to 
+UWB system only with fewer numbers of anchors utilized to 
+estimate the drone positions. 
+ 
+Table 4 shows the results of the proposed approach for all the 
+configuration shown in Figure (5), which represents the UWB 
+with less infrastructure. The results shown in this table proves 
+that adopting such configuration enhance the navigation system 
+with less UWB infrastructure to reduce the system overall cost. 
+ 
+ 
+ 
+ 
+ 
+ 
+The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences, Volume XLII-2/W13, 2019 
+ISPRS Geospatial Week 2019, 10–14 June 2019, Enschede, The Netherlands
+This contribution has been peer-reviewed. 
+https://doi.org/10.5194/isprs-archives-XLII-2-W13-665-2019 | © Authors 2019. CC BY 4.0 License.
+671
+[p.8]
+ 
+  
+UW
+B (a) 
+UWB 
+& VO 
+(a) 
+UWB 
+(b) 
+UWB 
+& VO 
+(b) 
+UWB 
+(c) 
+UWB 
+& VO 
+(c) 
+UWB 
+(d) 
+UWB 
+& VO 
+(d) 
+UWB 
+(e) 
+UWB 
+& VO 
+(e) 
+UWB  
+(f) 
+UWB 
+& VO 
+(f) 
+RMSE-N 
+1.48 
+1.35 
+1.86 
+1.64 
+1.45 
+1.37 
+1.49 
+1.37 
+1.27 
+1.25 
+1.44 
+1.31 
+Max-E-N 
+4.48 
+3.01 
+5.66 
+3.78 
+4.23 
+3.56 
+7.31 
+3.21 
+3.61 
+3.16 
+4.13 
+2.82 
+RMSE-E 
+1.68 
+1.63 
+1.47 
+1.24 
+1.25 
+1.22 
+1.23 
+1.12 
+1.37 
+1.25 
+1.36 
+1.18 
+Max-E-E 
+5.03 
+4.36 
+6.72 
+3.40 
+5.59 
+3.38 
+4.02 
+3.03 
+5.93 
+3.76 
+4.69 
+2.57 
+Table 4. The performance of the proposed approach in meters for all the sample configuration shown in Figure (5)
+4. CONCLUSION 
+ 
+Small/commercial drones mainly depends on the integration 
+between GNSS system and INS system to navigate for longer 
+periods of time, while due to the challenges that may face the 
+drone during its missions, that may lead to GNSS signals 
+blockage/outage, the navigation performance will be massively 
+deteriorated specially when the used IMU is a MEMS-based low-
+cost, which exhibits massive accumulation of errors. Other aiding 
+system/sensors must be utilized for that purpose. Ultra-wideband 
+system is considered a good candidate during GNSS outage 
+period, due to its low weight, small size, and low power 
+consumption, but UWB is mainly used for indoor terrestrial 
+applications, as it requires a large infrastructure of UWB anchors 
+to cover a large area in the outdoor environment. The monocular 
+camera also is one of the mainly used GNSS replacement systems 
+during GNSS outage period, due to its adequate size, weight, and 
+power consumption. But cameras are sensitive to environmental 
+changes, and lack of detected features may affect its 
+performance. Also integrating camera measurements as velocity 
+with INS through EKF suffers of heading drift. This paper 
+showed that the integration between UWB and camera systems 
+with variable EKF uncertainty scheme. In our experiments, even 
+after decreasing the UWB infrastructure by 33%, the 
+performance of the proposed approach is still better than both that 
+provided by the integration of the full UWB network with INS, 
+and that of camera – INS integration. The proposed approach was 
+evaluated with a real flight, using 3DR solo quadcopter equipped 
+with low-cost IMU (MPU-9250), camera (GoPro hero4) and 
+UWB system (Pozyx). The results of the proposed approach 
+during a complete 180 secs of GNSS signal outage lead to a 
+RMSE error of 1.2m in both North and East directions, even 
+when considering a reduced size of the UWB network. 
+ 
+5. REFERENCES  
+Bay, H., Tuytelaars, T., Van Gool, L., 2006. SURF: Speeded Up 
+Robust Features, in: Leonardis, A., Bischof, H., Pinz, A. (Eds.), 
+Computer Vision – ECCV 2006, Lecture Notes in Computer 
+Science. Springer Berlin Heidelberg, pp. 404–417. 
+ 
+Chuanqi, C., Xiangyang, H., Zhenjie, Z., Mandan, Z., 2017. 
+Monocular visual odometry based on optical flow and feature 
+matching, in: 2017 29th Chinese Control And Decision 
+Conference (CCDC). Presented at the 2017 29th Chinese Control 
+And 
+Decision 
+Conference 
+(CCDC), 
+pp. 
+4554–4558. 
+https://doi.org/10.1109/CCDC.2017.7979301 
+ 
+Eynard, D., Vasseur, P., Demonceaux, C., Frémont, V., 2010. 
+UAV altitude estimation by mixed stereoscopic vision, in: 2010 
+IEEE/RSJ International Conference on Intelligent Robots and 
+Systems. Presented at the 2010 IEEE/RSJ International 
+Conference on Intelligent Robots and Systems, pp. 646–651. 
+https://doi.org/10.1109/IROS.2010.5652254 
+ 
+Heinrich, A., 2017. An Optical Flow Odometry Sensor Based on 
+the Raspberry Pi Computer [WWW Document]. URL /paper/An-
+Optical-Flow-Odometry-Sensor-Based-on-the-Pi- 
+Heinrich/310fa5278f9e05383ed46ffd74ddc36bbacc47a9  
+Johnson, A.E., Goldberg, S.B., Cheng, Y., Matthies, L.H., 2008. 
+Robust and Efficient Stereo Feature Tracking for Visual 
+Odometry. 2008 IEEE Int. Conf. Robot. Autom. 39–46. 
+https://doi.org/10.1109/ROBOT.2008.4543184 
+ 
+Kong, W., Zhang, D., Zhang, J., 2015. A ground-based multi-
+sensor system for autonomous landing of a fixed wing UAV, in: 
+2015 IEEE International Conference on Robotics and 
+Biomimetics (ROBIO). Presented at the 2015 IEEE International 
+Conference on Robotics and Biomimetics (ROBIO), pp. 1303–
+1310. https://doi.org/10.1109/ROBIO.2015.7418951 
+ 
+Mansur, S., Habib, M., Pratama, G.N.P., Cahyadi, A.I., 
+Ardiyanto, I., 2017. Real time monocular visual odometry using 
+Optical Flow: Study on navigation of quadrotors UAV, in: 2017 
+3rd International Conference on Science and Technology - 
+Computer (ICST). Presented at the 2017 3rd International 
+Conference on Science and Technology - Computer (ICST), pp. 
+122–126. https://doi.org/10.1109/ICSTC.2017.8011864 
+ 
+Mostafa, M.M., Moussa, A.M., El-Sheimy, Naser, Sesay, Abu 
+B., "Optical Flow Based Approach for Vision Aided Inertial 
+Navigation Using Regression Trees," Proceedings of the 2017 
+International Technical Meeting of The Institute of Navigation, 
+Monterey, 
+California, 
+January 
+2017, 
+pp. 
+856-865.  
+doi:10.33012/2017.14898 
+ 
+Nistér, D., Naroditsky, O., Bergen, J., 2004. Visual odometry, in: 
+Computer Vision and Pattern Recognition, 2004. CVPR 2004. 
+Proceedings of the 2004 IEEE Computer Society Conference On. 
+Ieee, pp. I–I. 
+ 
+Noureldin, A., Karamat, T.B., Georgy, J., 2013. Fundamentals of 
+Inertial Navigation, Satellite-based Positioning and their 
+Integration. Springer Berlin Heidelberg, Berlin, Heidelberg. 
+https://doi.org/10.1007/978-3-642-30466-8 
+ 
+Tiemann, J., Schweikowski, F., Wietfeld, C., 2015. Design of an 
+UWB indoor-positioning system for UAV navigation in GNSS-
+denied environments, in: 2015 International Conference on 
+Indoor Positioning and Indoor Navigation (IPIN). Presented at 
+the 2015 International Conference on Indoor Positioning and 
+Indoor Navigation (IPIN). doi:10.1109/IPIN.2015.7346960 
+ 
+Tiemann, J., Wietfeld, C., 2017. Scalable and precise multi-UAV 
+indoor navigation using TDOA-based UWB localization, in: 
+2017 International Conference on Indoor Positioning and Indoor 
+Navigation (IPIN). Presented at the 2017 International 
+Conference on Indoor Positioning and Indoor Navigation (IPIN), 
+pp. 1–7. https://doi.org/10.1109/IPIN.2017.8115937 
+ 
+Yousif, K., Bab-Hadiashar, A., Hoseinnezhad, R., 2015. An 
+Overview to Visual Odometry and Visual SLAM: Applications 
+to 
+Mobile 
+Robotics. 
+Intell. 
+Ind. 
+Syst. 
+1, 
+289–311. 
+https://doi.org/10.1007/s40903-015-0032-7 
+The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences, Volume XLII-2/W13, 2019 
+ISPRS Geospatial Week 2019, 10–14 June 2019, Enschede, The Netherlands
+This contribution has been peer-reviewed. 
+https://doi.org/10.5194/isprs-archives-XLII-2-W13-665-2019 | © Authors 2019. CC BY 4.0 License.
+672
+=== END ===

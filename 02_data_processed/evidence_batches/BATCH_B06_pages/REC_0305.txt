@@ -1,0 +1,607 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0305.pdf
+sha256: 10BB456AB3B0428A8540B40FCA9411DC7DC9A58009CA83C01E6C8C75B5724FF9
+library: pymupdf (fitz) v1.28.2
+pages: 6
+=== BEGIN ===
+[p.1]
+A method based on CNN-BiLSTM for UAV
+navigation error compensation in GNSS denied
+environment
+Yi-han Shao, Bin Han*, Ying Luo, Member, IEEE
+Network and communication Research Institute, College of Information Engineering
+SouthWest University of Science and Technology
+Mianyang, Sichuan Province, China
+shaoyihan1120@163.com,hanbin@swust.edu.cn,yluo@swust.edu.cn
+Abstract—When
+the
+Global
+Navigation
+Satellite
+System
+(GNSS) signal is unavailable, the performance of GNSS/Inertial
+Navigation System (INS) integrated navigation system will be
+seriously degraded. In order to compensate the performance of
+GNSS/INS integrated navigation system, an error compensation
+method based on Convolutional Neural Network (CNN) combined
+with Bidirectional Long Short-Term Memory (BiLSTM) network
+is proposed. In the proposed method, the Inertial Measurement
+Unit (IMU) dynamics measurement of Unmanned Aerial Vehicle
+(UAV) is used as the input, the GNSS high-precision navigation
+information is used as the label. CNN-BiLSTM establishes the
+relationship between IMU dynamics measurement and GNSS
+high-precision navigation information through the training of a
+large number of input and label data, since it can achieve more
+accurate prediction of position increment and velocity increment.
+At last, the experimental results show that when the GNSS signal
+is unavailable, CNN-BiLSTM obtains the lower average RMSE
+and MAE of prediction error and the higher prediction fitting
+degree compared with CNN-LSTM and LSTM.
+Index Terms—GNSS/INS integrated navigation system, IMU
+dynamics measurement, CNN-BiLSTM, GNSS denial
+I. INTRODUCTION
+Unmanned Air Vehicle (UAV) swarm technology is based
+on biological swarm behavior, it can accomplish a variety
+of complex tasks through mutual perception, interaction, in-
+formation transmission and collaboration between individual
+UAVs[1-2]. However, this technology is dependent on high-
+precision absolute positioning. Recently, the integrated nav-
+igation technology is widely used in absolute positioning
+due to high-precision[3-4]. When UAV swarm perform tasks,
+each UAV is usually equipped with GNSS/INS integrated
+navigation system, that is, the combination of Global Naviga-
+tion Satellite System (GNSS) and Inertial Navigation System
+(INS). In this navigation system, INS calculates the position
+and velocity of UAV through the dynamics measurement such
+as gyroscope data and accelerometer data provided by the
+Inertial Measurement Unit (IMU). However, the dynamics
+measurement error of IMU accumulates with time, so that
+INS cannot provide accurate position for a long time. GNSS
+can provide accurate position and velocity information to
+compensate the INS navigation error, but its refresh rate is
+only 10-20Hz. GNSS/INS integrated navigation system has
+the advantages of both for absolute positioning[5]. Therefore,
+UAV can obtain high-precision navigation information.
+When UAV executes ground survey missions, due to the
+complexity of the terrain in the unknown area and the
+extremely weak of GNSS signal, GNSS signal is easy to
+failure. In GNSS denied environment, the position and velocity
+calculated by INS cannot be corrected by GNSS navigation
+information. Therefore, the position and velocity error of
+UAV will increase. Finally, it leads to the problem that the
+navigation information is not available.
+To address the above-mentioned problem of the increasing
+error of position and velocity in GNSS denied environment,
+many methods have been recently proposed. The first method
+is to add additional sensors to compensate the INS naviga-
+tion error[6], e.g: laser scanners[7], cameras[8], etc. These
+sensors can effectively enhance the navigation precision, but
+they will increase the cost and complexity of the navigation
+system. The second method is to learn the error model of
+IMU. The learned model is utilized to reduce the noise of
+IMU dynamics measurement and improve the accuracy of the
+position and velocity calculated by INS. For example, authors
+use Temporal Convolutional Network (TCN) to construct the
+output model of the gyroscope of IMU[9]. The model obtains
+the error characteristics from the previous gyroscope data
+and compensates the gyroscope error. Although this method
+improves the positioning accuracy in a short time, it cannot
+adapt to the long-time GNSS denied environment. The third
+method is the error compensation algorithm based on Machine
+Learning (ML) [10-14]. This method is used to simulate
+the error propagation characteristics of a single INS and
+designs and updates the connection between IMU dynamics
+measurement and GNSS navigation information by training
+machine learning models with GNSS signal. For example,
+the literature [10] proposes a GNSS/INS integrated navigation
+method based on Recurrent Neural Network (RNN). This
+method uses the memory function of RNN to estimate the error
+of inertial navigation system when GNSS signal is unavailable,
+so as to obtain continuous and reliable navigation information.
+In addition, the literature [11] also proposes a deep learning
+network architecture- (GI-NN) to assist INS. GI-NN combines
+689
+2023 9th International Conference on Computer and Communications
+979-8-3503-1725-1/23/$31.00 ©2023 IEEE
+2023 9th International Conference on Computer and Communications (ICCC) | 979-8-3503-1725-1/23/$31.00 ©2023 IEEE | DOI: 10.1109/ICCC59590.2023.10507546
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:18 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+Convolutional Neural Network (CNN) and Gated Recurrent
+Unit (GRU) neural network to extract time-spatial features
+from IMU dynamics measurement. And it also models the
+relationship between IMU output and GNSS position incre-
+ment. When GNSS signal is unavailable, it provides position
+compensation information for INS.
+For the third type of method, this paper proposes a method
+based on deep learning which can use a large number of data
+to train a model with strong learning ability. Considering that
+the deep learning model is applied to the case of the long-time
+GNSS denied environment, Bidirectional Long Short-Term
+Memory (BiLSTM) network is selected as the main model,
+due to its ability of processing long-term sequence data. Since
+the input of model is multi-sensor dynamics measurement, e.g:
+gyroscope, accelerometer and magnetometer, the measurement
+data is sent to CNN firstly. CNN can quickly and accurately
+extract data features and increase the overall training rate of
+the model.
+The rest of this article is organized as follows. Section 2
+introduces the proposed method and related details. Section 3
+decribes the fusion of CNN and BiLSTM and the structure of
+CNN-BiLSTM. Section 4 compares the prediction accuracy
+and fitting degree of CNN-BiLSTM with CNN-LSTM and
+LSTM. Finally, Section 5 gives the conclusion.
+II. PROPOSED METHODOLOGY
+In this section, a compensation method for integrated navi-
+gation system during GNSS denial is proposed. IMU dynamics
+measurement error model is introduced and the reasons for
+fusing CNN and BiLSTM are explained.
+A. The proposed method
+The method is demcomposed into two steps, which are the
+training stage and the prediction stage, as shown in Fig.1.
+When GNSS signal is available, the system is working in
+the training stage, as shown in Fig.1. Specifically, wx, wy,
+wz, ax, ay, az and mx, my, mz offered by IMU dynamics
+measurement indicate the angular velocity, acceleration and
+the distribution of magnetic field. INS uses IMU dynamics
+measurement to calculate position PINS and velocity VINS.
+The position PGNSS and velocity VGNSS offered by GNSS
+are input into Error Compensation System to correct error
+of PINS and VINS. Finally, the output of Error Compensa-
+tion System POUT and VOUT are as the navigation infor-
+mation of integrated navigation system. At the same time,
+the CNN–BiLSTM model is trained to find the relationship
+between wx, wy, wz, ax, ay, az, mx, my, mz and PGNSS,
+VGNSS.
+When the GNSS signal is unavailable, the system is working
+in the prediction stage, as shown in Fig.1. CNN–BiLSTM
+predicts the pseudo-signals Ppred and Vpred of GNSS based on
+wx, wy, wz, ax, ay, az and mx, my, mz. The Ppred and Vpred
+are input into Error Compensation System to correct position
+PINS and velocity VINS obtained by INS. The output of the
+integrated navigation system POUT and VOUT are obtained,
+which can be utilized for navigation during GNSS denial.
+Fig. 1. Training stage and Prediction stage.
+B. The IMU Error Output Model
+The article [9] indicates the error output model of gyroscope
+and accelerometer. The output error model of gyroscope and
+accelerometer can be expressed as follows:
+˜wt = (I + Sg + ∆Cg) ∗wt + bg + ε,
+(1)
+˜at = (I + Sa + ∆Ca) ∗at + ba + ξ,
+(2)
+where ˜wt and at are the output values of the gyroscope and
+accelerometer, respectively. wt and at are the real values
+of the angular velocity and acceleration in the body frame,
+respectively. Sg and Sa are the scale factor error matrix
+of the gyroscope and accelerometer, respectively; ∆Cg and
+∆Ca are the installation error matrix of the gyroscope and
+accelerometer, respectively. In addition, bg and ba are the bias
+vectors, which change with time. They are important error
+parts of gyroscope and accelerometer, ε and ξ are random
+drifts, which are usually regarded as zero mean Gaussian white
+noise.
+In the proposed method, the ouput error model of magne-
+tometer is also need to be considered[15]. It is expressed as
+follows:
+˜mt = CsfCnCm(CsiB + Bh) + bm + ψ,
+(3)
+where ˜mt represents the magnetormeters output vetor, Csf
+represents the scaling error matrix, Cn and Cm represent
+misalignment error matrix and non-orthogonal error matrix,
+respectively. Csi represents the soft coefcient matrix, Bh
+represents the hard magnetic error vector, B represents the
+the local earth magnetic feld vector in body coordinate system,
+and b represents the bias error vector. ψ represents the system
+noise vector.
+C. The Proposed Deep Learing Model
+From the above IMU output error model, we can get such
+a conclusion: During the flight of UAV, IMU dynamics mea-
+surement error is mainly determined by the bias ε and ξ drift
+over time. At present, Long Short-Team Memory(LSTM) can
+process time series data, but it cannot process long time series
+data well. It requires additional training layers to improve the
+prediction effect.
+BiLSTM can perform bidirection learning on long-term
+IMU historical dynamics measurement at the same time. It can
+690
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:18 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+improve the training effect without increasing the additional
+training time. Therefore, this paper takes BiLSTM as the main
+part of time series neural network. CNN is firstly used to
+efficiently extract multi-sensor features, due to three different
+characteristics sensors data of IMU dynamics measurement.
+CNN can reduce the overall training time of the model, and
+improve the performance of BiLSTM.
+III. THE CNN-BILSTM MODEL
+In this section, the structure of CNN-BiLSTM is proposed.
+Then the calculation processes of CNN and BiLSTM models
+are introduced in detail, respectively.
+A. CNN-BiLSTM
+IMU dynamics measurement are used as the input of CNN-
+BiLSTM in training stage. They include angular velocity wx,
+wy, wz acceleration ax, ay, az and magnetic intensity mx, my,
+mz. When GNSS signal is available, position increment and
+velocity increment are selected as the label of model training,
+including Pdlat, Pdlon, V dn and V de, as shown in the Fig.2.
+Data preprocessing includes data selection, length cutting and
+normalization.
+Fig. 2. Position Increment And Velocity Increment.
+Fig. 3. The structure of CNN-BiLSTM model.
+Fig.3 shows the proposed CNN-BiLSTM model structure.
+The model structure mainly includes input layer, CNN layer
+(one-dimensional convolution layer, pooling layer), BiLSTM
+layer, Dropout layer, full connection layer and output layer.
+B. CNN
+CNN can be effectively applied to time series prediction.
+Due to its characteristics of local perception and weight
+sharing, it can greatly reduce the number of parameters and
+extract features efficiently. CNN is mainly composed of three
+parts (Fig.4), including convolutional layer, pooling layer and
+fully connected layer. IMU dynamics measurement contain
+three kinds of sensor data. In order to construct the hidden
+relationship between multiple measurement data and extract
+the global features of IMU dynamics measurement, CNN has
+multiple convolution kernels and two convolution layers with
+convolution kernel sizes of 20 and 10 respectively. However,
+the convolution operation of multiple convolution kernels in
+each layer will produce high-dimensional features of IMU
+dynamics measurement, so the pooling layer is used to reduce
+the feature dimension.
+Fig. 4. The structure of CNN model.
+Convolution calculation as shown in formula (4):
+yt =
+K
+X
+k=1
+wkxt−k+1,
+(4)
+where yt is the t-th element of the output vector, wk is the k-th
+element of the convolution kernel, xt−k+1 is the t-k+1 element
+of the input vector, and K is the length of the convolution
+kernel.
+Activation function as shown in formula (5):
+at = f(yt),
+(5)
+where at is the t-th element of the activation layer, yt is the
+t-th element of the convolution layer, and f is the activation
+function, such as sidmoid, tanh, relu.
+Pooling layer calculation as shown in formula (6):
+zt = g(at1, at2, ..., atn),
+(6)
+where
+zt
+is
+the
+t-th
+element
+of
+the
+pooling
+layer,
+at1, at2, ..., atn is a continuous element of the convolution
+layer, and g is the pooling function.
+Fully connected layer calculation as shown in formula (7):
+zi = f(
+n
+X
+j=1
+wijaj + bi),
+(7)
+where zi is the output of the i-th neuron in the fully connected
+layer, f is the activation function, wij is the connection weight
+between the i-th neuron and the j-th input neuron, aj is the
+value of the j-th input neuron, bi is the bias term of the i-th
+neuron.
+C. BiLSTM
+BiLSTM was first proposed by Schuster and Paliwal in
+1997 for speech recognition tasks [16]. It is composed of
+forward LSTM and backward LSTM. BiLSTM can use the
+information of both forward and backward contexts to better
+capture the bidirectional semantic dependencies. The basic unit
+of BiLSTM is still LSTM storage unit. The structure of LSTM
+storage unit is shown in Fig.5. LSTM storage unit includes
+forget gate, input gate and output gate, which are represented
+by ft, it, ot , respectively. Where σ is sigmoid activation
+691
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:18 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+Fig. 5. The structure of LSTM storage unit.
+function, tanh is hyperbolic tangent activation function. Ck−1
+is the cell state of the previous moment, hk−1 is the output
+state of the previous moment, xt is the input of the current
+moment, Ck is the cell state of the current moment, hk is the
+output state of the current moment. The calculation process of
+LSTM storage unit is as follows :
+(1) The output of the previous moment and the input of
+the current moment are inputted into the forgotten gate ft.
+ft determines how much cell state at the previous moment is
+retained to the current moment. Its output value is obtained
+after calculation as shown in formula (8):
+ft = σ(Wf · [ht−1, xt] + bf),
+(8)
+where the value range of ft is 0 to 1, Wf is the weight of the
+forget gate, bf is the bias of the forget gate.
+(2) The output of the previous moment and the input of
+the current moment are inputted into the input gate it. it
+determines how much input of the current network is saved to
+the new cell state. Its output value is obtained after calculation
+as shown in formula (9) and (10):
+it = σ(Wi · [ht−1, xt] + bi),
+(9)
+˜Ct = tanh(Wc · [ht−1, xt] + bc),
+(10)
+where the value range of it is 0 to 1, Wi is the weight of the
+input gate, bi is the bias of the input gate, ˜Ct is the current
+candidate cell state, Wc is the weight of the candidate input
+gate, bc is the bias of the candidate input gate.
+At this point, update the cell state of the current LSTM
+storage unit. The output value is obtained after calculation as
+shown in formula (11):
+Ct = ft ∗Ct−1 + it ∗˜Ct,
+(11)
+where the value range of Ct is 0 to 1.
+(3) The output of the previous moment and the input of
+the current moment are inputted into the output gate ot.
+ot determines which information of the current cell state is
+transmitted to the next moment. Its output value is obtained
+after calculation as shown in formula (12):
+ot = σ(Wo · [ht−1, xt] + bo),
+(12)
+where the value range of ot is 0 to 1, Wo is the weight of the
+input gate, bo is the bias of the input gate.
+(4) By calculating the output of the output gate and the cell
+state at the current time, the output of the LSTM storage unit
+at the current time is obtained. Its output value is obtained
+after calculation as shown in formula (13):
+ht = ot ∗tanh(Ct).
+(13)
+IV. SIMULATION AND EXPERIMENTAL ANALYSIS
+In order to evaluate the performance of CNN-BiLSTM,
+CNN-BiLSTM is compared with CNN-LSTM and LSTM.
+Each model compares the prediction error of position incre-
+ment and velocity increment. Pdlat and Pdlon are position
+increment in latitude and longitude, respectively. To make the
+results clear, the units of latitude and longitude are converted
+into meters. V dn and V de represent velocity increment in
+north and east directions, respectively. Then, the prediction
+fitting degree of each model is compared under different GNSS
+precision.
+A. Experimental Conditions
+All deep learning models are implemented with Tensorflow
+framework and Keras interface. Keras is an advanced neural
+network API written in Python, which supports fast experi-
+ments.
+Since the input of the experiment is one-dimensional time
+series, the convolution kernel of CNN is adjusted to one-
+dimensional. The size of Conv1’s convolution kernel is 20
+, and the step size is 1. The activation function of CNN is
+ReLU. The mode of pooling is Max-Pooling. The area sizes of
+Pooling1 and Pooling2 are 4 and 2, respectively. The Dropout
+layer is to reduce the occurrence of overfitting, the forgetting
+rate is set to 0.01. Three layers of BiLSTM are added in the
+model. Each layer calls 128, 64 and 32 neurons for calculation.
+The full connection layer is used for regression output. Finally,
+Adamax algorithm is used to optimize the model, Huber is
+selected as the loss function.
+B. Experimental Results and Analysis
+1) Evaluation of Error Between Predicted Value and Real
+Value: In order to evaluate the prediction error, Root Mean
+Square Error (RMSE) and Mean Absolute Error (MAE) are
+selected as the evaluation criteria.
+RMSE represents the sample standard deviation of the dif-
+ference between predicted value and real value. Its calculation
+formula is as follows:
+RMSE =
+v
+u
+u
+t 1
+n
+n
+X
+i=1
+(ˆyi −yi)2,
+(14)
+where ˆyi is the predicted value and yi is the real value. The
+smaller the RMSE, the more accurate the predicted value.
+MAE represents the average absolute error between pre-
+dicted value and real value. Its calculation formula is as
+follows:
+MAE = 1
+n
+n
+X
+i=1
+| ˆyi −yi |2,
+(15)
+692
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:18 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+Fig. 6. CNN-BiLSTM prediction error comparison.
+TABLE I
+ANALYSIS FOR EXPERIMENT RESULT.
+Deep Learning Model
+LSTM
+CNN-LSTM
+CNN-BiLSTM
+Error Type
+RMSE
+MAE
+RMSE
+MAE
+RMSE
+MAE
+Position increment error in latitude (m)
+0.0560
+0.0469
+0.0558
+0.0442
+0.0318
+0.0217
+Position increment error in longitude (m)
+0.0611
+0.0566
+0.0409
+0.0306
+0.0382
+0.0292
+Velocity increment error in north (m/s)
+0.0897
+0.0246
+0.0811
+0.0281
+0.0652
+0.0191
+Velocity increment error in east (m/s)
+0.0431
+0.0238
+0.0438
+0.0263
+0.0350
+0.0211
+where ˆyi is the predicted value and yi is the real value. The
+smaller the MAE, the more accurate the predicted value.
+Fig.6 and Table.1 show the performance of each model
+in predicting position increment and velocity increment. The
+performance of CNN-BiLSTM is summarized as follows:
+CNN-BiLSTM is superior to CNN-LSTM and LSTM. It can
+effectively suppress error divergence. The overall prediction
+error of CNN-BiLSTM remains in a small range. And the
+error fluctuation of CNN-BiLSTM is small.
+In this experiment, CNN–BiLSTM reduces RMSE by
+42.89%, 6.48%, 19.54%, 20.07% (the average is 22.25%) and
+MAE by 50.85%, 4.63%, 31.88%, 19.65% (the average is
+26.75%) than CNN-LSTM (Respectively in ’Pdlat’, ’Pdlon’,
+’vdn’ and ’vde’).
+Compared with LSTM, CNN–BiLSTM reduces RMSE by
+43.06%, 37.39%, 27.23%, 18.92% (the average is 31.65%)
+and MAE by 53.62%, 48.41%, 22.08%, 11.15% (the average
+is 33.82%) than LSTM.
+The average RMSE and MAE of CNN-BiLSTM are reduced
+by more than 20% compared with CNN-LSTM and LSTM.
+Therefore, CNN-BiLSTM has better performance than others.
+2) Evaluation of model fitting degree: R2 is to measure
+the fitting degree between predicted value and real value. It
+is an index to evaluate the regression model. The calculation
+formula is as follows :
+R2 = 1 −
+Pn
+i=1(ˆyi −yi)2
+Pn
+i=1(yi −¯yi)2 ,
+(16)
+where ˆyi is the predicted value, yi is the real value, and ¯yi is
+the average value. The value range of R2 is 0 to 1. The closer
+the R2 value is to 1, the higher the fitting degree is.
+Fig.7 (a) shows the flight trajectory of the UAV. Fig.7 (b) -
+Fig.7 (d) are the fitting degree of predicted value and real value
+in position increment and velocity increment. In order to show
+the high fitting degree of CNN-BiLSTM, CNN-BiLSTM is
+compared with CNN-LSTM and LSTM under different GNSS
+precision.
+In Fig.7 (b), GNSS is in low-precision. The fitting degree of
+CNN-BiLSTM is higher than CNN-LSTM and LSTM models.
+CNN-BiLSTM increases R2 by 6.34%, 4.47%, 3.39%, 1.14%
+(the average is: 3.83% ) than CNN-LSTM. Compared with
+LSTM, CNN-BiLSTM increases R2 by 8.92%, 2.36%, 8.40%,
+2.46% (the average is: 5.53%) than LSTM (Respectively
+in ‘Velocity increment error in north’, ‘Velocity increment
+error in east’, ‘Position increment error in latitude’, ‘Position
+increment error in longitude’).
+In Fig.7 (c), GNSS is in mid-precision. CNN-BiLSTM
+increases R2 by 5.95%, 2.99%, 2.30%, 2.51% than CNN-
+LSTM (the average is 3.83%) and R2 by 8.92%, 2.36%,
+8.40%, 2.46% than LSTM (the average is 5.53%).
+In Fig.7 (d), GNSS is in high-precision. CNN-BiLSTM
+increases R2 by 0.99%, 0.77%, 0.07%, 0.003% than CNN-
+LSTM (the average is 0.46%) and R2 by 2.39%, 0.61%,
+0.18%, 0.007% than LSTM (the average is 0.80%).
+By analyzing the experimental results, it is concluded that
+the fitting degree of CNN-BiLSTM is higher than CNN-LSTM
+693
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:18 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+Fig. 7. Model accuracy comparison.
+and LSTM regardless of GNSS precision. And CNN-BiLSTM
+> CNN-LSTM > LSTM on the average of fitting degree.
+V. CONCLUSION AND FUTURE WORK
+This paper presents a new error compensation method for
+GNSS/INS navigation system. It can provide a reliable posi-
+tioning solution for UAV in GNSS denied environment. This
+method uses CNN-BiLSTM to achieve fast feature extraction
+and long-term sequence memory learning, and predicts posi-
+tion increment and velocity increment of UAV to compensate
+the INS navigation error. At the same time, CNN-BiLSTM
+is compared with CNN-LSTM and LSTM. The experimental
+results show that when GNSS signal is unavailable, the average
+RMSE of the prediction error of CNN-BiLSTM is lower
+than 22.25 % of CNN-LSTM and 31.65 % of LSTM. At
+the same time, the average MAE of the prediction error of
+CNN-BiLSTM is lower than 26.75 % of CNN-LSTM and
+33.82 % of LSTM. No matter what GNSS precision is used,
+the prediction fitting degree of CNN-BiLSTM is higher than
+CNN-LSTM and LSTM. Further research will explore the
+implementation of Integrated Navigation System in GNSS
+denied environment and consider more complex flight paths
+to improve the robustness of this method.
+ACKNOWLEDGMENT
+This work was supported in part by the National Natural
+Science Foundation of China under Grant 61771410, in part
+by the Sichuan Science and Technology Program 2021YJ0097,
+and in part by Postgraduate Innovation Fund Project of
+SWUST 20ycx0059.
+REFERENCES
+[1] Ahmed, Faiyaz, et al. ”Recent Advances in Unmanned Aerial Vehicles:
+A Review.” Arabian Journal for Science and Engineering 47.7 (2022):
+7963-7984.
+[2] Nawaz, Haque, Husnain Mansoor Ali, and Asif Ali Laghari. ”UAV
+communication networks issues: a review.” Archives of Computational
+Methods in Engineering 28 (2021): 1349-1369.
+[3] Zhang, Guohao, and Li-Ta Hsu. ”Intelligent GNSS/INS integrated navi-
+gation system for a commercial UAV flight control system.” Aerospace
+science and technology 80 (2018): 368-380.
+[4] Zhang, Jingjuan, Wenxiang Zhou, and Xueyun Wang. ”UAV swarm nav-
+igation using dynamic adaptive Kalman filter and network navigation.”
+Sensors 21.16 (2021): 5374.
+[5] Wang, Guangqi, et al. ”A GNSS/INS integrated navigation algorithm
+based on Kalman filter.” IFAC-PapersOnLine 51.17 (2018): 232-237.
+[6] Balamurugan, Ganesan, J. Valarmathi, and V. P. S. Naidu. ”Survey
+on UAV navigation in GPS denied environments.” 2016 International
+conference on signal processing, communication, power and embedded
+system (SCOPES). IEEE, 2016.
+[7] Zhao, Shibo, et al. ”Super odometry: IMU-centric LiDAR-visual-inertial
+estimator for challenging environments.” 2021 IEEE/RSJ International
+Conference on Intelligent Robots and Systems (IROS). IEEE, 2021.
+[8] Huang, Guoquan. ”Visual-inertial navigation: A concise review.” 2019
+international conference on robotics and automation (ICRA). IEEE,
+2019.
+[9] Huang, Fengrong, et al. ”A MEMS IMU gyroscope calibration method
+based on deep learning.” IEEE Transactions on Instrumentation and
+Measurement 71 (2022): 1-9.
+[10] Dai, Hai-fa, et al. ”An INS/GNSS integrated navigation in GNSS denied
+environment using recurrent neural network.” Defence technology 16.2
+(2020): 334-340.
+[11] Liu, Yaohua, Qingsong Luo, and Yimin Zhou. ”Deep learning-enabled
+fusion to bridge GPS outages for INS/GPS integrated navigation.” IEEE
+Sensors Journal 22.9 (2022): 8974-8985.
+[12] Lei, Xusheng, Rui Wang, and Fa Fu. ”An adaptive method of attitude
+and position estimation during GPS outages.” Measurement 199 (2022):
+111474.
+[13] Zhi, Zhuo, Datong Liu, and Liansheng Liu. ”A performance com-
+pensation method for GPS/INS integrated navigation system based on
+CNN–LSTM during GPS outages.” Measurement 188 (2022): 110516.
+[14] Geragersian, Patrick, et al. ”An INS/GNSS fusion architecture in GNSS
+denied environment using gated recurrent unit.” AIAA SCITECH 2022
+Forum. 2022.
+[15] Chen, Xiyuan, et al. ”A novel calibration method for tri-axial magne-
+tometers based on an expanded error model and a two-step total least
+square algorithm.” Mobile Networks and Applications 27.2 (2022): 794-
+805.
+[16] Schuster, Mike, and Kuldip K. Paliwal. ”Bidirectional recurrent neural
+networks.” IEEE transactions on Signal Processing 45.11 (1997): 2673-
+2681.
+694
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:36:18 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

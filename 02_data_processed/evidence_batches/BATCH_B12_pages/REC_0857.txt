@@ -1,0 +1,1231 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0857.pdf
+sha256: BC5ED6E1AD5D0B8792A4719AB111D65D603B36F74264E5D9695CEBCC48AABA74
+library: pymupdf (fitz) v1.28.2
+pages: 9
+=== BEGIN ===
+[p.1]
+9112
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 5, 1 MARCH 2026
+SwarmRaft: Leveraging Consensus for
+Robust Drone Swarm Coordination in
+GNSS-Degraded Environments
+Kapel Dev , Yash Madhwal , Member, IEEE, Soﬁa Shevelo, Pavel Osinenko ,
+and Yury Yanovich , Member, IEEE
+Abstract—Uncrewed aerial vehicle (UAV) swarms are increas-
+ingly used in critical applications such as aerial mapping,
+environmental monitoring, and autonomous delivery. However,
+the reliability of these systems is highly dependent on uninter-
+rupted access to the Global Navigation Satellite Systems (GNSS)
+signals, which can be disrupted in real-world scenarios due to
+interference, environmental conditions, or adversarial attacks,
+causing disorientation, collision risks, and mission failure. This
+article proposes SwarmRaft, a blockchain-inspired positioning
+and consensus framework for maintaining coordination and
+data integrity in UAV swarms operating under GNSS-denied
+conditions. SwarmRaft leverages the Raft consensus algorithm
+to enable distributed drones (nodes) to agree on state updates
+such as location and heading, even in the absence of GNSS
+signals for one or more nodes. In our prototype, each node
+uses GNSS and local sensing, and communicates over WiFi
+in a simulated swarm. Upon signal loss, consensus is used to
+reconstruct or verify the position of the failed node based on
+its last known state and trajectory. Our system demonstrates
+robustness in maintaining swarm coherence and fault tolerance
+through a lightweight, scalable communication model. This work
+provides a practical and secure approach for decentralized drone
+operation in unpredictable environments.
+Index Terms—Blockchain, fault tolerance, Global Navigation
+Satellite Systems (GNSS)-denied environments, Raft consensus,
+uncrewed aerial vehicle (UAV) swarms.
+NOMENCLATURE
+xi,k
+True position of drone i at time k.
+zGNSS
+i,k
+GNSS position measurement of drone i.
+vGNSS
+i,k
+GNSS measurement noise.
+xINS
+i,k
+Position estimated from INS.
+vINS
+i,k
+INS sensor noise or drift.
+di j,k
+Measured distance from drone i to j.
+ηi j,k
+Noise in range measurement di j,k.
+RGNSS, RINS
+Covariance matrices for GNSS and INS
+noise.
+σ2
+d
+Variance of range noise.
+N
+Number of drones in the swarm.
+f
+Number of compromised/faulty drones.
+Received
+28
+September
+2025;
+revised
+27
+November
+2025;
+accepted 9 December 2025. Date of publication 17 December 2025;
+date of current version 23 February 2026. (Corresponding author: Yash
+Madhwal.)
+The authors are with Skolkovo Institute of Science and Technology, 121205
+Moscow, Russia (e-mail: yash.madhwal@skoltech.ru).
+Digital Object Identiﬁer 10.1109/JIOT.2025.3645453
+I. INTRODUCTION
+R
+APID proliferation of autonomous swarms, including
+uncrewed aerial vehicles (UAVs), ground robots, and
+maritime systems, has enabled transformative applications in
+domains such as logistics, infrastructure monitoring, agricul-
+ture, and disaster response [1], [2], [3]. These distributed
+systems rely heavily on precise coordination, predomi-
+nantly facilitated by Global Navigation Satellite Systems
+(GNSS) such as GPS, GLONASS, Galileo, and BeiDou
+[4]. However, GNSS signals are often unreliable in real-
+world conditions, such as urban canyons, dense vegetation,
+or indoor and subterranean environments. Even with recent
+advances in noise-resilient GNSS acquisition techniques [5],
+the technology remains vulnerable to spooﬁng, jamming, and
+environmental interference. To mitigate these limitations, sys-
+tems frequently integrate inertial navigation systems (INS) to
+improve robustness and continuity. This inherent limitation of
+standalone GNSS or INS systems motivates the need for col-
+laborative, consensus-driven approaches, such as SwarmRaft,
+which combine GNSS, INS, and peer-to-peer fusion to achieve
+robust and fault-tolerant state estimation in UAV swarms.
+As swarm deployments scale in size and mission complex-
+ity, achieving reliable consensus among agents becomes a
+critical challenge, one that draws direct parallels to problems
+in distributed computing and blockchain technologies. In this
+context, swarms must maintain accurate and synchronized
+state information (e.g., position, velocity, heading) despite
+partial failures and environmental interference [6].
+Several mission-critical scenarios exemplify the need for
+robust consensus mechanisms. In urban package delivery,
+GNSS reﬂections from buildings can compromise altitude
+coordination, and a single altimeter failure can lead to col-
+lisions [7]. During bridge inspections, complete GNSS denial
+requires drones to maintain spatial awareness solely through
+local sensing and swarm coordination. Agricultural spray
+missions present additional complexities, as drones must adjust
+for dynamic weight changes during chemical dispersion in
+rural settings, often degraded by GNSS.
+These operational constraints echo the classic challenges
+of distributed systems, yet swarm robotics introduces distinct
+requirements [8], [9]. Unlike traditional consensus algorithms
+that emphasize Byzantine fault tolerance, such as those used
+in permissioned or permissionless blockchain systems, swarm
+2327-4662 © 2025 IEEE. All rights reserved, including rights for text and data mining, and training of artiﬁcial intelligence and
+similar technologies. Personal use is permitted, but republication/redistribution requires IEEE permission.
+See https://www.ieee.org/publications/rights/index.html for more information.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:19 UTC from IEEE Xplore.  Restrictions apply. 
+[p.2]
+DEV et al.: SwarmRaft: LEVERAGING CONSENSUS FOR ROBUST DRONE SWARM COORDINATION
+9113
+consensus must prioritize low-latency agreement, operate
+under stringent resource constraints, and address crash-fault-
+dominated failure models [10], [11], [12]. The core principles
+of consensus remain: ensuring termination (all nonfaulty
+agents reach a decision), agreement (consistency across deci-
+sions), and integrity (decisions are based on valid inputs), even
+in the presence of partial system failures [13].
+UAV swarms operate under unique constraints, includ-
+ing limited computing and energy resources, intermittent
+connectivity, and bounded-delay communication networks.
+Consequently, traditional blockchain consensus protocols such
+as proof-of-work (PoW) and proof-of-stake are ill-suited due
+to their computational and energy overhead [14], [15]. Simi-
+larly, Byzantine Fault-Tolerant (BFT) protocols, e.g., Practical
+Byzantine Fault Tolerance (PBFT), Tendermint, and Exonum
+[16], [17], [18], assume adversarial behavior and incur unnec-
+essary complexity for typical crash-fault scenarios in swarms.
+This creates a compelling opportunity to adapt crash-tolerant
+consensus protocols, such as Raft [19], which are designed for
+environments where nodes (the drones) may fail by crashing,
+but not by acting maliciously. Raft’s lightweight leader-based
+architecture is well-suited to the resource-constrained and real-
+time nature of swarm robotics.
+To address these challenges, we propose SwarmRaft,
+a consensus-driven positioning and crash-tolerant system
+designed for drone swarms. Our approach leverages the Raft
+consensus algorithm to enable drones to communicate and
+synchronize over a distributed network, even in partially
+GNSS-denied environments. SwarmRaft integrates GNSS and
+INS data to enable drones to exchange critical state infor-
+mation such as position and heading. In the event of GNSS
+loss or sensor malfunction, the swarm uses consensus to
+reconstruct or verify the location and trajectory of aﬀected
+nodes based on shared data and prior motion. This consensus-
+driven estimation ensures that the swarm remains cohesive
+and continues its mission safely, even when individual drones
+experience degraded sensing.
+Our work makes the following key contributions.
+1) Adaptation of Raft for UAV Swarm Coordination: We
+adapt the Raft consensus protocol to support real-time
+coordination in UAV swarms, prioritizing low-latency
+decision-making and resilience under crash-fault condi-
+tions typical in GNSS-compromised settings.
+2) Sensor Fusion for Resilient State Estimation: Swarm-
+Raft combines GNSS and INS data using a distributed
+consensus framework to produce robust, fault-tolerant
+state estimates. This fusion mitigates the eﬀects of signal
+intermittency, spooﬁng, and sensor drift, enhancing the
+swarm’s overall situational awareness and operational
+reliability.
+3) Empirical Validation in Varied Simulated Scenarios: We
+evaluate SwarmRaft through a comprehensive set of
+experiments and simulations, demonstrating its eﬀec-
+tiveness in preserving swarm cohesion and operational
+continuity across urban and natural terrains.
+Motivated by the real-world challenges UAV swarms face,
+such as GNSS spooﬁng, jamming, and sensor failure, we
+develop a lightweight, fault-tolerant coordination framework
+that maintains collective situational awareness even when
+individual agents are compromised. Unlike centralized or
+resource-intensive approaches, SwarmRaft leverages crash-
+tolerant consensus and sensor fusion to operate eﬃciently in
+contested or degraded environments. This work applies Raft-
+style distributed consensus to real-time UAV coordination,
+demonstrating its practicality in swarm settings. Our design
+emphasizes practical deployability with practical deployability,
+yielding substantial improvements in localization accuracy and
+swarm resilience across simulated and real-world scenarios.
+SwarmRaft demonstrates how lightweight consensus protocols
+can enhance resilience and coordination in UAV swarms
+operating under GNSS-degraded or adversarial conditions.
+II. RELATED WORK
+Decentralized coordination mechanisms for UAV swarms
+have
+gained
+increasing
+attention,
+particularly
+through
+consensus-based and blockchain-backed approaches. While
+leader–follower architectures have shown success in formation
+control [20], their reliance on central nodes introduces
+vulnerabilities
+to
+single
+points
+of
+failure.
+In
+contrast,
+distributed
+strategies
+oﬀer
+greater
+resilience.
+Tariverdi
+and Torresen [21] present a formation control framework
+tailored to UAV dynamics, and Jia et al. [22] demonstrate
+decentralized estimation and coordination in quadcopter
+swarms. Similarly, Zuo et al. [23] propose a voting-based
+scheme for leader election in lead–follow UAV swarms under
+constrained communication ranges, representing an earlier
+Raft-inspired approach tailored to leader selection rather than
+distributed fault-tolerant localization.
+In the context of Industrial IoT (IIoT), Seo et al. [24]
+propose a codesign framework that jointly optimizes com-
+munication scheduling and consensus execution to meet
+strict latency requirements. Although their setting involves
+ﬁxed infrastructure, their insights into delay-aware consensus
+coordination are applicable to mobile multiagent systems.
+Similarly, Ili´c et al. [25] introduce adaptive asynchronous
+gossip algorithms for heterogeneous sensor networks, oﬀering
+resilience and scalability through weighted message exchange
+without requiring global synchronization. While their work
+focuses on distributed estimation in sensor-rich environments,
+the underlying principles of asynchronous fault-tolerant con-
+sensus motivate swarm-scale extensions.
+Blockchain-based protocols add guarantees of trust and
+tamper
+resistance
+in
+decentralized
+coordination.
+P-Raft
+[26]
+optimizes
+consensus
+in
+consortium
+settings,
+and
+Dynamic Trust Practical Byzantine Fault Tolerance (DTPBFT)
+[27] dynamically adjusts trust levels in UAV networks.
+Yazdinejad et al. [28] propose a zone-based drone authenti-
+cation framework using a delegated proof-of-stake (DDPOS)
+mechanism to enable secure, low-latency interzone handovers
+in smart city deployments, and fairness-oriented multi-UAV
+communication frameworks for urgent tasks [29].
+Comparative analyses of consensus algorithms, such as Raft,
+PBFT, and PoW have focused on tradeoﬀs in scalability, fault
+tolerance, and energy use [30], [31], [32], [33], and communi-
+cation eﬃciency optimizations in UAV ad hoc networks [34].
+Surveys such as [35] highlight the challenges of adapting these
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:19 UTC from IEEE Xplore.  Restrictions apply. 
+[p.3]
+9114
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 5, 1 MARCH 2026
+mechanisms to real-time robotics, particularly under energy
+and processing constraints.
+Research on fault-tolerant swarm behavior includes pre-
+dictive failure mitigation [36], self-healing topologies [37],
+and GNSS spooﬁng resilience [38], as well as UAV-aided
+localization via RF characteristics [39]. Robust navigation
+under sensor failures [40] and adaptive topology control [41]
+further emphasize the need for distributed, resilient solutions.
+Real-world deployments, such as outdoor ﬂocking and coor-
+dinated ﬂight demonstrations [42], underline the feasibility of
+translating algorithmic designs to physical swarm systems.
+Despite these advances, many existing frameworks either
+impose signiﬁcant communication or computational overhead,
+or fail to address the speciﬁc fault models and coordi-
+nation challenges faced by UAV swarms operating under
+GNSS degradation and adversarial interference. In contrast,
+SwarmRaft introduces a lightweight, crash-tolerant local-
+ization framework that combines peer-based voting with
+distributed fault recovery, oﬀering robust performance in
+dynamic and partially compromised environments.
+III. PROPOSED SOLUTION
+A. Overview of the Consensus Scheme
+In modern UAV swarms, individual GNSS or INS read-
+ings alone cannot guarantee resilience against sensor faults
+or deliberate spooﬁng. Our consensus scheme, SwarmRaft,
+leverages peer-to-peer distance measurements, crash fault-
+tolerant communication consensus, and a Byzantine-resilient
+evaluation mechanism to detect and correct malicious or faulty
+position reports. At each time step k, the swarm determines
+the position of each UAV (node). To determine the positions,
+nodes communicate via Raft consensus and elect a leader for
+the step. The leader collects every node’s position estimate
+(derived from GNSS when available and maintained by INS
+otherwise), tests if it is consistent with others, recovers it if
+required, and returns the results to the nodes.
+This design achieves fault tolerance under the assumption
+that up to f nodes’ sensors may be corrupted, so long as
+n ≥2 f + 1, where n is the total number of nodes in the
+swarm. Honest nodes never collude to mislead, and initial
+positions are trusted. The result is a distributed protocol that
+detects spooﬁng and signiﬁcant sensor drift, locally ﬁlters
+out unreliable data, and recovers accurate positions through
+consensus based on neighbor estimates.
+A high-level workﬂow of SwarmRaft in the case of a
+determined leader at a single step k is as follows.
+1) Sense: Each UAV measures its position (GNSS/INS) and
+internode distances.
+2) Inform: Measurement data are sent to the leader (as a
+client’s transaction).
+3) Estimate: The leader recomputes each UAV’s position
+from range constraints.
+4) Evaluate: The leader determines whether the data of
+each sensor are faulty or honest based on residuals.
+5) Recover: If a sensor is determined to be faulty, the leader
+replaces its data with the position computed with peer
+estimates.
+6) Finalize: The leader sends the ﬁnal results to all nodes.
+B. System and Threat Model
+Each UAV in our scheme is modeled as a fully capable
+sensing and communication node. At each discrete time step k,
+node i collects an absolute position measurement zGNSS
+i,k
+from
+its onboard GNSS receiver; because GNSS alone can drift
+or be spoofed, the UAV also carries an INS that produces
+short-term motion increments ∆ui,k through accelerometers
+and gyroscopes. To bind these two modalities and detect
+inconsistent readings, every UAV is further equipped with a
+ranging sensor, for example, ultrawideband or received signal
+strength indicator (RSSI)-based, which yields noisy internode
+distances di j,k to each neighbor j. Finally, nodes share all
+measurements and voting messages over an authenticated
+broadcast channel protected by predistributed cryptographic
+keys, so that neither message forgery nor tampering can occur
+undetected.
+We assume the communication graph among the n UAVs
+is fully connected and synchronous: in each protocol round
+every node can exchange messages with every other node, and
+timing is suﬃciently well-aligned that messages from step k
+are received before step k + 1 begins. This idealization allows
+us to focus on sensor faults rather than network delays or
+partitions. To tolerate up to f arbitrarily faulty or malicious
+sensors, we require the bound n ≥2f+1. Under this constraint,
+even if f nodes report completely corrupted GNSS or ranging
+data (or collude to bias their votes), the remaining honest
+nodes still form a majority that can detect and override any
+bad information.
+Assumption 1: Nodes’ compute and communication mod-
+ules are honest, authorized, and synchronous.
+Assumption 2: Only GNSS sensors can be Byzantine, while
+INS are reliable. Up to f nodes’ GNSS sensors out of n may
+be arbitrarily corrupted, where n ≥2f + 1.
+Assumption 3: True positions at time k = 0 are securely
+known.
+We model three classes of adversarial behavior against
+which our consensus scheme must defend:
+Attack Scenario 1 (GNSS Spooﬁng Attack): An adversary
+corrupts the satellite positioning signals received by up to
+f UAVs, causing each compromised node to report position
+measurements zGNSS
+i,k
+that are oﬀset by an arbitrary, potentially
+time-varying bias. Such spooﬁng can be orchestrated remotely
+and may remain undetected by the individual UAV’s receiver.
+However, our internode consistency checks and consensus
+mechanism aim to reveal any GNSS readings that deviate
+signiﬁcantly from the peer-estimated location.
+Attack Scenario 2
+(Ranging-Tampering Scenario): The
+adversary injects errors into the inter-UAV distance mea-
+surements di j,k. This could be accomplished by jamming or
+forging ultrawideband pulses (or manipulating RSSI readings),
+causing one or more honest nodes to compute incorrect range
+constraints.
+Since our fused position estimates rely on the integrity
+of these distance measurements, the protocol’s voting and
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:19 UTC from IEEE Xplore.  Restrictions apply. 
+[p.4]
+DEV et al.: SwarmRaft: LEVERAGING CONSENSUS FOR ROBUST DRONE SWARM COORDINATION
+9115
+median-based recovery step are designed to mitigate the
+impact of up to f such corrupted range reports.
+Attack Scenario 3
+(Collusion Among Faulty Sensors):
+We allow for collusion among up to f faulty sensors across
+diﬀerent UAVs. In this worst case scenario, compromised
+nodes coordinate both their reported measurements and their
+votes in the SwarmRaft protocol in an attempt to sway the
+swarm’s decision about a particular node’s status.
+By enforcing the requirement n ≥2 f +1 and using majority
+thresholds, the scheme guarantees that honest votes outnumber
+colluding malicious votes, ensuring that no coalition of size
+≤f can force an incorrect global decision.
+C. Position Estimation
+At each time step k ∈N, the UAV with index i ∈{1, . . ., n}
+obtains two complementary sources of information about its
+state. First, the GNSS receiver produces a direct but noisy
+readout of the true position xi,k
+zGNSS
+i,k
+= xi,k + vGNSS
+i,k
+,
+vGNSS
+i,k
+∼N (0, RGNSS)
+where zGNSS
+i,k
+is the GNSS measurement, vGNSS
+i,k
+∈R3 is the
+GNSS measurement noise, and RGNSS ∈R3×3 is its covari-
+ance matrix. Here, N(µ, Σ) denotes a multivariate Gaussian
+distribution with mean µ and covariance Σ.
+Second, in the event of a GNSS outage, the UAV can fall
+back on its inertial navigation system. The INS predicts the
+next position xINS
+i,k
+∈R3 based on the previous estimate xi,k−1
+and the inertial measurements ∆ui,k, which represent incre-
+ments derived from accelerometer and gyroscope readings over
+the interval [k −1, k]
+xINS
+i,k = f
+ xi,k−1, ∆ui,k
+
++ vINS
+i,k ,
+vINS
+i,k ∼N
+ 0, RINS
+where f(·) denotes the INS state-propagation model, vINS
+i,k ∈R3
+is the accumulated INS error over one step, and RINS ∈R3×3
+characterizes the associated covariance.
+Thus, the INS provides high-rate relative motion at the cost
+of accumulating drift, while GNSS provides drift-free absolute
+position with higher instantaneous noise.
+To cross-check these two sensor streams, each UAV also
+measures its distance to every other UAV. If UAV j measures
+the range to UAV i, the reading satisﬁes
+di j,k =
+
+
+xi,k −xj,k
+
+
+ + ηij,k,
+ηij,k ∼N
+ 0, σ2
+d
+
+where dij,k is the measured distance from UAV j to UAV i at
+time step k, xi,k and xj,k are the true positions of UAVs i and
+j, respectively, ηij,k is the measurement noise, and σ2
+d is its
+variance. This geometric constraint links the true positions of
+nodes i and j and can reveal inconsistencies when one node’s
+GNSS add/or INS has been spoofed or drifted excessively.
+D. Fused Estimation Through Probabilistic Localization
+Each node i measures its distances to all the neighboring
+nodes and pairs this information with its own GNSS-derived
+position. Both the GNSS estimate and the set of computed
+internode distances are then transmitted to the leader node.
+Similarly, every other node in the network reports its GNSS
+position together with its locally computed distances to neigh-
+bors. Upon receiving the report from node i, the leader uses
+the GNSS location of i and its distance measurements to
+approximate the possible locations of neighboring nodes. Since
+a single distance measurement corresponds to a circle (in
+2-D) or a sphere (in 3-D) centered at node i, each neighbor’s
+location is constrained to lie within such a probabilistic region.
+By aggregating the distance-based regions provided by all
+the nodes, the leader constructs an intersection of feasible
+regions that captures the most likely positions of every node.
+This process can be interpreted as a form of SwarmRaft’s
+fused estimation: node i’s GNSS information deﬁnes its own
+anchor position, while the distance measurements extend this
+knowledge to constrain neighboring nodes. The leader’s role is
+to integrate these partial constraints from all reporting nodes,
+producing a consistent, network-wide probabilistic localization
+of the ﬂeet.
+E. Fault Detection
+In this phase, the leader evaluates the consistency of a
+node’s reported position by estimating its location from intern-
+ode distances and the GNSS-based positions of its neighbors.
+Large discrepancies between a node’s self-reported GNSS
+position and the probabilistic regions derived from neighbors’
+distance measurements indicate that either the reporting node’s
+sensors or the peers’ range measurements may be faulty.
+To make this precise, we deﬁne a residual, apply a statisti-
+cally justiﬁed threshold, and then cast a binary vote.
+Speciﬁcally, for node i, the leader constructs feasible
+regions of its location from all nonfaulty neighbor reports (as
+spheres/circles deﬁned by measured distances). The reported
+GNSS position zi,k is then compared against this feasible
+region. We deﬁne the residual as the minimum Euclidean
+distance between zi,k and the feasible region boundary
+ei,k = min
+x∈Ri,k
+
+
+x −zi,k
+
+
+
+where Ri,k denotes the feasible region of node i’s position at
+time k derived from veriﬁed neighbors.
+Under nominal (nonattacked) conditions, this residual is
+primarily driven by sensor noise in GNSS and interdrone
+ranging, so it remains small with high probability. To detect
+abnormal residuals, we deﬁne a threshold
+T = µe + 3σe
+where µe and σe are obtained via oﬄine calibration under
+honest sensor operation. By Gaussian tail bounds, the proba-
+bility that an honest residual exceeds T is less than 0.01. Any
+residual ei,k > T is thus treated as strong evidence of a fault
+or spooﬁng attempt.
+1) Local Vote Broadcast: Based on the threshold test, the
+leader assigns a binary decision for each node i
+vi,k =
+(
++1,
+ei,k ≤T
+−1,
+ei,k > T.
+A decision of + 1 indicates that node i’s reported position is
+consistent with the probabilistic regions derived from neighbor
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:19 UTC from IEEE Xplore.  Restrictions apply. 
+[p.5]
+9116
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 5, 1 MARCH 2026
+constraints, while −1 signals a potential fault. These decisions
+are then broadcast to all nodes, forming the input for the
+subsequent SwarmRaft stage.
+1) If Si ≥0, decide i is honest.
+2) If Si < 0, decide i is faulty.
+F. Position Correction and Recovery
+Once a node i is ﬂagged as faulty, its position is recomputed
+using only the nonfaulty neighbors’ information. Let N good
+i
+denote the set of neighbors of node i that are not ﬂagged as
+faulty. Each neighbor j ∈N good
+i
+provides a reported position
+xj,k and the measured distance di, j to node i.
+We model the feasible location of the faulty node i as the
+intersection of spheres centered at each nonfaulty neighbor
+with radius equal to the measured distance
+Sj =
+˚
+x ∈R3|
+
+
+x −xj,k
+
+
+ = di,j
+	
+.
+The intersection of these spheres deﬁnes the feasible region
+for the node’s true position.
+To compute a single position estimate ˜xi,k, we solve a
+nonlinear least-squares problem that minimizes the squared
+deviations from all spheres
+˜xi,k = arg min
+x∈R3
+X
+j∈N good
+i
+ 
+
+x −x j,k
+
+
+ −di,j
+2 .
+This formulation ﬁnds the point that best ﬁts all range mea-
+surements from nonfaulty neighbors, eﬀectively performing a
+multilateration.
+In practice, we initialize the optimization at the centroid of
+the nonfaulty neighbors
+x(0)
+i,k =
+1
+ˇˇˇN good
+i
+ˇˇˇ
+X
+j∈N good
+i
+xj,k
+and reﬁne ˜xi,k via iterative least-squares (e.g., using a soft-L1
+loss to reduce sensitivity to residual errors). Once obtained,
+the node resets its INS state to ˜xi,k.
+Note: If too few nonfaulty neighbors remain (e.g., due to
+false positives), we skip multilateration and rely solely on
+the node’s INS propagation. This ensures that the recovery
+procedure remains robust even under adversarial conditions.
+Note: In rare cases, multiple honest sensors may be
+falsely ﬂagged as faulty, potentially leaving too few veriﬁed
+neighbors for multilateration. When this occurs, we skip
+median/multilateration recovery and rely solely on the node’s
+INS propagation to update its state.
+G. Security and Fault Tolerance Analysis
+The security and fault tolerance guarantees of SwarmRaft
+arise from its algorithmic design, the assumptions of the threat
+model, and the underlying Raft consensus protocol.
+1) Safety: SwarmRaft provides safety under assumptions
+through majority voting by enforcing the condition n ≥2 f +1,
+and the system guarantees that honest nodes always outnumber
+any coalition of up to f faulty or malicious nodes. This
+majority threshold prevents incorrect decisions from being
+adopted, even in the presence of adversarial behavior.
+2) Liveness: In a synchronous network setting, the protocol
+guarantees liveness as long as a majority of nodes remain
+honest and responsive. The Raft algorithm enables reliable
+leader election and, once a leader is in place, timely progress
+is maintained throughout the swarm through eﬃcient rounds
+of position estimation, fault detection, and recovery.
+3) Integrity: All the internode communications are authen-
+ticated using predistributed cryptographic keys, preventing
+forgery and tampering. Consensus-based validation ensures the
+trustworthiness of the reported data. Although rare statistical
+anomalies can incorrectly ﬂag an honest sensor as faulty, such
+false positives are mitigated by majority voting. In edge cases
+where too many nodes are ﬂagged, the system falls back to
+inertial (INS) data for continuity, preserving mission integrity
+at the cost of reduced accuracy.
+4) Communication Eﬃciency: SwarmRaft is designed to
+scale eﬃciently. The leader incurs a communication and
+computation cost of O(2(n −1)) per round, while nonleader
+nodes communicate only with the leader at O(2) cost. This
+model minimizes bandwidth usage and processing load as the
+swarm scales. Raft log replication further ensures consistency
+across all nodes.
+5) Fault Tolerance: The protocol tolerates up to f Byzan-
+tine faults, including GNSS spooﬁng, range manipulation,
+and collusion. By requiring n ≥2 f + 1, SwarmRaft ensures
+that honest node votes dominate and that consensus decisions
+remain trustworthy even under adversarial conditions. The
+coordination of the leader of the Raft and the replicated logs
+reinforces fault-tolerant behavior during ongoing operations.
+6) Recovery: When faults are detected, SwarmRaft uses
+a robust median-based recovery strategy that replaces outlier
+or corrupted readings with consensus estimates derived from
+peer data. This allows the swarm to maintain stable formation
+and control even under localized sensor failures. Recovery
+decisions are consistently propagated via Raft’s replication
+mechanism, preserving swarm-wide state alignment.
+IV. PROTOTYPE IMPLEMENTATION
+To evaluate SwarmRaft under adversarial localization sce-
+narios, we developed a modular simulation framework in
+Python that models both the dynamics and vulnerabilities of
+drone swarms. The framework simulates each drone’s ground-
+truth motion, inertial navigation estimates, GNSS observations
+(including spoofed signals), and noisy interdrone ranging data.
+A dedicated leader node module performs position veriﬁcation,
+fault detection through voting, and recovery via iterative
+multilateration. To support performance benchmarking, the
+simulator includes tools for running large-scale Monte Carlo
+experiments that vary swarm size and attacker conﬁguration,
+producing statistical metrics including mean absolute error
+(MAE). In addition, the framework supports real-time visual-
+ization and postsimulation plotting to analyze error evolution
+and swarm behavior.
+A. Algorithmic Procedure
+The leader-based veriﬁcation algorithm operates in two
+main stages. First, each drone’s reported position is cross-
+validated against interdrone distance measurements. The
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:19 UTC from IEEE Xplore.  Restrictions apply. 
+[p.6]
+DEV et al.: SwarmRaft: LEVERAGING CONSENSUS FOR ROBUST DRONE SWARM COORDINATION
+9117
+Algorithm 1 Leader-Based Neighbor Veriﬁcation With Voting
+and Multilateration
+Require: Reported positions xrep
+i
+from all UAVs i = 1, . . ., n
+Inter-UAV distance matrix D = [dij] measured from true
+geometry Base tolerance ϵ > 0, maximum iterations kmax
+Ensure: Veriﬁed positions xver
+i
+and fault ﬂags for all UAVs
+1: Leader collects xrep
+1:n and distance matrix D
+2: for each UAV A = 1 to n do
+▷Stage 1: Voting
+3:
+Initialize vote counter vA ←0
+4:
+for each neighbor B , A do
+5:
+Compute distance from reports: ˆdAB = ∥xrep
+A −xrep
+B ∥
+6:
+if | ˆdAB −dAB| < τ then ▷consistency check
+7:
+vA ←vA + 1
+8:
+else
+9:
+vA ←vA −1
+10:
+end if
+11:
+end for
+12:
+Flag A as faulty if vA < 0
+13:
+Initialize xver
+A ←xrep
+A
+14: end for
+15: for each UAV A ﬂagged as faulty do
+▷Stage 2:
+Multilateration reﬁnement
+16:
+Select nonfaulty neighbors NA
+17:
+if |NA| < 3 then
+18:
+NA ←all other UAVs
+▷fallback if insuﬃcient
+anchors
+19:
+end if
+20:
+Initialize estimate p ←xrep
+A
+21:
+for k = 1 to kmax do
+22:
+Update p by solving least-squares residuals:
+p ←arg min
+q∈R3
+X
+j∈NA
+
+∥q −xrep
+j ∥−d jA
+2
+23:
+if converged then
+24:
+break
+25:
+end if
+26:
+end for
+27:
+Compute deviation ∆A = ∥xrep
+A −p∥
+28:
+if ∆A > ϵ then
+29:
+xver
+A ←p
+▷replace spoofed report
+30:
+else
+31:
+xver
+A ←xrep
+A
+32:
+Mark A as nonfaulty
+33:
+end if
+34: end for
+35: return Veriﬁed positions xver
+1:n and fault ﬂags
+leader tallies votes from all pairwise checks, where consistent
+neighbors contribute positive votes and inconsistent ones con-
+tribute negative votes. Any drone that accumulates a majority
+of negative votes is ﬂagged as potentially faulty.
+In the second stage, the leader reﬁnes the positions of
+ﬂagged drones using multilateration. This involves solving
+a least-squares problem with respect to veriﬁed neighbors,
+iteratively adjusting the estimated position until convergence
+or until a maximum number of iterations is reached. If the
+corrected estimate deviates signiﬁcantly from the originally
+reported position, the corrected value replaces the spoofed
+report; otherwise, the drone is reclassiﬁed as valid. This
+process guarantees that up to f malicious or faulty drones
+can be corrected in a swarm of size n ≥2 f + 1. The overall
+veriﬁcation workﬂow is summarized in Algorithm 1.
+The prototype accommodates conﬁgurable attack injection,
+including GNSS spooﬁng, range distortion, and randomized
+attacker behavior. The implementation serves as the experi-
+mental foundation for the visual and quantitative evaluations
+discussed in subsequent section. The source code for Swarm-
+Raft is publicly available on GitHub [43].
+V. NUMERICAL EXPERIMENTS AND RESULTS
+A. Qualitative Results for Position Recovery
+Fig. 1 illustrates the SwarmRaft recovery mechanism across
+varying swarm sizes. The three subplots correspond to (n, f) ∈
+{(6, 2), (11, 5), (16, 7)}, i.e., swarms with two, ﬁve, and seven
+faulty drones, respectively. Each visualization demonstrates
+that SwarmRaft is able to correctly identify spoofed drones
+and restore their reported positions to match ground truth
+via multilateration. For spoofed drones, the recovered position
+(yellow star) aligns with the true position (green cross), while
+the spoofed report (red triangle) is visibly displaced. Arrows
+further highlight the deviation between true and spoofed
+reports, making the correction visually evident. SwarmRaft’s
+ability to detect and isolate faulty agents, even in small
+swarms with limited redundancy. The recovered positions align
+closely with the truth of the ground, highlighting the eﬀective-
+ness of peer triangulation and consistency-based voting. Each
+subﬁgure demonstrates how noisy or spoofed measurements
+are corrected through distributed voting and recovery. This
+visualization not only showcases concrete recovery behavior
+but also reveals the spatial structure of localization errors
+in both small- and large-scale swarms, complementing the
+accompanying statistical evaluation.
+Each drone Di is annotated with
+1) Green Cross (×): the ground-truth position xtrue
+i
+.
+2) Red Triangle (▲): the spoofed reported position xrep
+i .
+3) Yellow Star (⋆): the recovered position ˆxi computed via
+multilateration.
+The SwarmRaft protocol veriﬁes positions through two
+stages. First, consistency voting checks whether reported
+interdrone distances match measured distances; drones that
+fail majority voting are ﬂagged as faulty. Second, ﬂagged
+drones undergo multilateration using nonfaulty neighbors as
+anchors. If the corrected estimate signiﬁcantly deviates from
+the reported position, the spoofed report is replaced with
+the multilateration-based recovery. This ensures that up to
+f compromised drones can be tolerated in a swarm of size
+n ≥2f + 1.
+B. Quantitative Evaluation Across Swarm Sizes and Attacks
+To complement the qualitative visualizations, we conduct a
+large-scale statistical evaluation of SwarmRaft under varying
+swarm sizes and adversarial conditions. For each swarm size
+n ∈{3, 5, 7, 9, 11, 13, 15, 17} and each number of attacked
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:19 UTC from IEEE Xplore.  Restrictions apply. 
+[p.7]
+9118
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 5, 1 MARCH 2026
+Fig. 1.
+Visualization of SwarmRaft recovery under diﬀerent swarm sizes (N = 6, 11, 16). Yellow stars represent recovered positions using consensus and
+range-based fusion.
+Fig. 2.
+Scaling performance of SwarmRaft as swarm size increases. Mean
+recovery error (log scale) decreases signiﬁcantly with larger swarms, from 19
+to 0.28 m.
+drones f ∈{1, 2, . . ., 8}, we run Monte Carlo trials where
+f drones are randomly selected as spoofed. Spoofed drones
+report displaced positions and manipulated ranges, while the
+remaining drones report correctly.
+Each trial produces two error metrics.
+1) Baseline Error: The MAE of reported (potentially
+spoofed) positions relative to ground truth.
+2) Recovered Error: The MAE of the recovered and mul-
+tilaterated positions ˆxi produced by SwarmRaft.
+Fig. 2 shows the scaling performance of SwarmRaft as
+swarm size grows. For a given number of faulty drones f, we
+consider the minimal swarm size n = 2 f +1, which guarantees
+that the majority of drones remain nonfaulty. The plot reports
+the mean recovery error on a logarithmic scale, averaged
+over 10 000 Monte Carlo simulations. As the size of the
+swarm increases relative to f, the recovery accuracy improves
+dramatically, with a mean error dropping from approximately
+19 to 0.28 m.
+We observe that
+1) Reported (spoofed) positions quickly diverge from
+ground
+truth,
+reﬂecting
+the
+impact
+of
+adversarial
+manipulation.
+2) SwarmRaft consistently reduces error compared with
+the baseline, even when nearly half of the swarm is
+compromised.
+3) Recovery accuracy improves with swarm size, demon-
+strating scalability and resilience of the protocol.
+Fig. 2 further shows comparison of error distributions
+across trials. Baseline errors show high spread, large medians,
+and many outliers, conﬁrming vulnerability to spooﬁng. In
+contrast, SwarmRaft-corrected positions exhibit low medians,
+tight interquartile ranges, and few outliers, reﬂecting robust-
+ness under adversarial conditions.
+C. Computational Complexity
+To provide a fair comparison, we summarize the compu-
+tational complexity of the proposed veriﬁcation algorithm
+against conventional GNSS and INS solutions. For GNSS,
+position computation after signal tracking reduces to solving
+a set of pseudorange equations, typically involving m ≈6–10
+satellites. This least-squares solution requires a matrix inver-
+sion of size m×m, with complexity O(m3), which is eﬀectively
+constant in practice. INS propagation involves simple state
+integration (position, velocity, attitude), with complexity O(n)
+for a state dimension n ≈9–15. When GNSS and INS are
+fused using a Kalman ﬁlter, the update step has complexity
+O(n3) due to covariance updates, where n ≈15 states, yielding
+on the order of 3000 arithmetic operations per update.
+In contrast, in our proposed distributed swarm veriﬁca-
+tion scheme, each regular node computes distances to all
+other nodes, yielding O(N) operations per update for swarm
+size N. The leader node, in the worst case solvable scenario
+( f ≈(N −1)/2 faulty nodes), must iteratively correct f faulty
+positions, resulting in O( f N) ≈O(N2). For typical values
+(N ≤17), this corresponds to fewer than 6000 ﬂoating-
+point operations, which is of the same order as a GNSS +
+INS Kalman update and easily handled by modern embedded
+processors. A summary of these computational complexities,
+together with the proposed SwarmRaft veriﬁcation algorithm,
+is provided in Table I for ease of comparison.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:19 UTC from IEEE Xplore.  Restrictions apply. 
+[p.8]
+DEV et al.: SwarmRaft: LEVERAGING CONSENSUS FOR ROBUST DRONE SWARM COORDINATION
+9119
+TABLE I
+COMPUTATIONAL COMPLEXITY COMPARISON OF GNSS, INS, AND
+THE PROPOSED VERIFICATION ALGORITHM
+VI. CONCLUSION
+This article introduced SwarmRaft, a novel consensus-based
+protocol for resilient and decentralized UAV swarm localiza-
+tion in GNSS-degraded and adversarial environments. Unlike
+prior approaches that rely on centralized control or compu-
+tationally intensive BFT protocols, SwarmRaft adapted the
+Raft consensus algorithm to support lightweight, crash-tolerant
+decision-making within resource-constrained aerial swarms.
+The system fused inertial navigation data with interdrone
+ranging and applied distributed voting to detect and recover
+from sensor faults or spoofed position reports. Through
+extensive simulations under varying swarm sizes and attack
+intensities, SwarmRaft demonstrated clear improvements in
+both mean and median localization accuracy compared with
+GNSS-only baselines, particularly in scenarios with partial
+compromise. The protocol’s ability to maintain collective
+situational awareness without a central authority highlights
+its practical deployability for time-sensitive missions such
+as autonomous logistics, disaster response, and infrastruc-
+ture inspection. Looking ahead, future research will focus
+on incorporating conﬁdence-weighted fusion, dynamic trust
+scores, and asynchronous consensus strategies, as well as
+validating the system on physical UAV swarms in real-world
+settings. These advancements aim to establish SwarmRaft as
+a foundational architecture for fault-resilient coordination in
+next-generation autonomous multiagent systems.
+ACKNOWLEDGMENT
+The authors would like to acknowledge the use of ChatGPT
+and DeepSeek in enhancing the readability and clarity of this
+article. These tools were used to assist in reﬁning language and
+improving the overall presentation of the content. However,
+they retain full responsibility for the integrity, accuracy, and
+intellectual contributions of the research at all stages.
+REFERENCES
+[1]
+A. A. Laghari, A. K. Jumani, R. A. Laghari, and H. Nawaz, “Unmanned
+aerial vehicles: A review,” Cognit. Robot., vol. 3, pp. 8–22, 2022, doi:
+10.1016/j.cogr.2022.12.004.
+[2]
+M. AlMarshoud, M. Sabir Kiraz, and A. H. Al-Bayatti, “Security,
+privacy, and decentralized trust management in VANETs: A review of
+current research and future directions,” ACM Comput. Surv., vol. 56,
+no. 10, pp. 1–39, Oct. 2024.
+[3]
+I. Bae and J. Hong, “Survey on the developments of unmanned
+marine vehicles: Intelligence and cooperation,” Sensors, vol. 23, no. 10,
+p. 4643, May 2023.
+[4]
+B. Bhatta, Global Navigation Satellite Systems, 2nd ed., Boca Raton,
+FL, USA: CRC Press, 2021.
+[5]
+H. Zhang, Y. Xu, R. Luo, and Y. Mao, “Fast GNSS acquisition algorithm
+based on SFFT with high noise immunity,” China Commun., vol. 20,
+no. 5, pp. 70–83, May 2023, doi: 10.23919/jcc.2023.00.006.
+[6]
+M.-T. O. Hoang, K. A. R. Grøntved, N. van Berkel, M. B. Skov,
+A. L. Christensen, and T. Merritt, Drone Swarms To Support Search
+and Rescue Operations: Opportunities and Challenges. Switzerland:
+Springer, 2023, pp. 163–176, doi: 10.1007/978-3-031-28138-9 11.
+[7]
+K. Kuru, D. Ansell, W. Khan, and H. Yetgin, “Analysis and optimization
+of unmanned aerial vehicle swarms in logistics: An intelligent delivery
+platform,” IEEE Access, vol. 7, pp. 15804–15831, 2019.
+[8]
+S. Bano et al., “SoK: Consensus in the age of blockchains,” in Proc.
+1st ACM Conf. Adv. Financial Technol., Oct. 2019, pp. 183–198.
+[9]
+M. Raikwar, N. Polyanskii, and S. M¨uller, “SoK: DAG-based consensus
+protocols,” in Proc. IEEE Int. Conf. Blockchain Cryptocurrency (ICBC),
+May 2024, pp. 1–18. [Online]. Available: https://ieeexplore.ieee.org/
+document/10634358/
+[10] V. Buterin. (2015). On Public and Private Blockchains—Ethereum
+Blog.
+[Online].
+Available:
+https://blog.ethereum.org/2015/08/07/on-
+public-and-private-blockchains/
+[11] J. Garzik. (2015). Public Versus Private Blockchains. Part 1: Per-
+missioned Blockchains. [Online]. Available: http://bitfury.com/content/
+5-white-papers-research/public-vs-private-pt1-1.pdf
+[12] J. Garzik. (2015). Public Versus Private Blockchains Part 2: Permission-
+less Blockchains. [Online]. Available: http://bitfury.com/content/5-white-
+papers-research/public-vs-private-pt2-1.pdf
+[13] C.
+Dwork,
+N.
+Lynch,
+and
+L.
+Stockmeyer,
+“Consensus
+in
+the
+presence
+of
+partial
+synchrony,”
+J.
+ACM,
+vol. 35,
+no. 2,
+pp. 288–323, Apr. 1988. [Online]. Available: http://portal.acm.org/
+citation.cfm?doid=42282.42283
+[14] S. Nakamoto. (2008). Bitcoin: A Peer-to-Peer Electronic Cash System.
+[Online]. Available: https://bitcoin.org/bitcoin.pdf
+[15] A. Kiayias, A. Russell, B. David, and R. Oliynykov, “Ouroboros:
+A provably secure proof-of-stake blockchain protocol,” in Advances
+in Cryptology–CRYPTO 2017 (CRYPTO 2017), vol. 10401. Cham,
+Switzerland: Springer, 2017, pp. 357–388. [Online]. Available: http://
+link.springer.com/10.1007/978-3-319-63688-7 12
+[16] M. Castro and B. Liskov, “Practical Byzantine fault tolerance,”
+in Proc. 3rd USENIX Symp. Operating Syst. Design Implement.,
+1999, pp. 173–186. [Online]. Available: http://pmg.csail.mit.edu/papers/
+osdi99.pdf
+[17] J. Kwon. (2014). Tendermint: Consensus Without Mining. [Online].
+Available: http://tendermint.com/docs/tendermint.pdf
+[18] Y. Yanovich, I. Ivashchenko, A. Ostrovsky, A. Shevchenko, and
+A. Sidorov. (2018). Exonum: Byzantine Fault Tolerant Protocol for
+Blockchains. [Online]. Available: https://bitfury.com/content/downloads/
+wp-consensus-181227.pdf
+[19] D. Ongaro and J. K. Ousterhout, “In search of an understandable consen-
+sus algorithm,” in Proc. USENIX Annu. Tech. Conf., 2014, pp. 305–320.
+[20] R. Raﬁfandi, D. L. Asri, E. Ekawati, and E. M. Budi, “Leader–follower
+formation control of two quadrotor UAVs,” Social Netw. Appl. Sci.,
+vol. 1, no. 6, pp. 1–12, Jun. 2019.
+[21] A. Tariverdi and J. Torresen, “Rafting towards consensus: Formation
+control of distributed dynamical systems,” 2023, arXiv:2308.10097.
+[22] Z. Jia, M. Hamer, and R. D’Andrea, “Distributed estimation, control and
+coordination of quadcopter swarm robots,” 2021, arXiv:2102.07107.
+[23] Y. Zuo, W. Yao, Q. Chang, X. Zhu, J. Gui, and J. Qin, “Voting-based
+scheme for leader election in lead-follow UAV swarm with constrained
+communication,” Electronics, vol. 11, no. 14, p. 2143, Jul. 2022, doi:
+10.3390/electronics11142143.
+[24] H. Seo, J. Park, M. Bennis, and W. Choi, “Communication and consen-
+sus co-design for distributed, low-latency, and reliable wireless systems,”
+IEEE Internet Things J., vol. 8, no. 1, pp. 129–143, Jan. 2021.
+[25] N. Ili´c, M. Vuˇceti´c, A. Makarov, R. Petrovi´c, and M. Punt, “Adaptive
+asynchronous gossip algorithms for consensus in heterogeneous sensor
+networks,” IEEE Internet Things J., vol. 12, no. 13, pp. 25516–25532,
+Jul. 2025.
+[26] S. Lu, X. Zhang, R. Zhao, L. Chen, J. Li, and G. Yang, “P-raft: An
+eﬃcient and robust consensus mechanism for consortium blockchains,”
+Electronics, vol. 12, no. 10, p. 2271, May 2023.
+[27] P. Han, X. Wu, and A. Sui, “DTPBFT: A dynamic and highly trusted
+blockchain consensus algorithm for UAV swarm,” Comput. Netw.,
+vol. 250, Aug. 2024, Art. no. 110602.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:19 UTC from IEEE Xplore.  Restrictions apply. 
+[p.9]
+9120
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 5, 1 MARCH 2026
+[28] A. Yazdinejad, R. M. Parizi, A. Dehghantanha, H. Karimipour, G. Sri-
+vastava, and M. Aledhari, “Enabling drones in the Internet of Things
+with decentralized blockchain-based security,” IEEE Internet Things J.,
+vol. 8, no. 8, pp. 6406–6415, Apr. 2021.
+[29] F. Xu et al., “Multi-UAV assisted mixed FSO/RF communication net-
+work for urgent tasks: Fairness oriented design with DRL,” IEEE Trans.
+Veh. Technol., vol. 74, no. 1, pp. 1736–1741, Jan. 2025, doi: 10.1109/
+TVT.2024.3453333.
+[30] V. Sharma and N. Lal, “A novel comparison of consensus algorithms in
+blockchain,” Adv. Appl. Math. Sci., vol. 20, no. 1, pp. 1–13, 2020.
+[31] E. Androulaki et al., “Hyperledger fabric: A distributed operating
+system for permissioned blockchains,” in Proc. 13th EuroSys Conf.,
+2018, pp. 1–15. [Online]. Available: https://dl.acm.org/doi/10.1145/
+3190508.3190538
+[32] P. Kostyuk, S. Kudryashov, Y. Madhwal, I. Maslov, V. Tkachenko,
+and Y. Yanovich, “Blockchain-based solution to prevent plastic pipes
+fraud,” in Proc. 7th Int. Conf. Softw. Deﬁned Syst. (SDS), Apr. 2020,
+pp. 208–213. [Online]. Available: https://ieeexplore.ieee.org/document/
+9143879/
+[33] B. Borzdov, M. Minchenok, and Y. Yanovich, “Practical vulnerabilities
+in Byzantine fault-tolerant blockchain consensus protocols,” in Proc.
+18th Int. Symp. Problems Redundancy Inf. Control Syst. (REDUN-
+DANCY), Oct. 2023, pp. 94–99.
+[34] J. Chen, J. Wang, J. Wang, and L. Bai, “Joint fairness and eﬃ-
+ciency optimization for CSMA/CA-based multi-user MIMO UAV ad
+hoc networks,” IEEE J. Sel. Topics Signal Process., vol. 18, no. 7,
+pp. 1311–1323, Oct. 2024, doi: 10.1109/JSTSP.2024.3435348.
+[35] U. S. Aditya, R. Singh, P. K. Singh, and A. Kalla, “A survey on
+blockchain in robotics: Issues, opportunities, challenges and future
+directions,” J. Netw. Comput. Appl., vol. 196, Dec. 2021, Art. no.
+103245.
+[36] J. O’Keeﬀe and A. Gregory Millard, “Predictive fault tolerance for
+autonomous robot swarms,” 2023, arXiv:2309.09309.
+[37] V. S. Varadharajan, D. St-Onge, B. Adams, and G. Beltrame, “Swarm
+relays: Distributed self-healing ground-and-air connectivity chains,”
+IEEE Robot. Autom. Lett., vol. 5, no. 4, pp. 5347–5354, Oct. 2020.
+[38] A. Ranganathan, A. Belfki, and P. Closas, “The impact of gnss spooﬁng
+on unmanned aerial vehicle swarms,” GNSS, LLC, Philadelphia, PA,
+USA, Tech. Rep., Mar./Jun. 2024.
+[39] M. Kato, T. Koketsu Rodrigues, T. Abe, and T. Suganuma, “Exploiting
+radio frequency characteristics with a support unmanned aerial vehicle
+to improve wireless sensor location estimation accuracy,” IEEE Internet
+Things J., vol. 11, no. 24, pp. 39570–39578, Dec. 2024.
+[40] J. Hu, H. Niu, J. Carrasco, B. Lennox, and F. Arvin, “Fault-tolerant coop-
+erative navigation of networked UAV swarms for forest ﬁre monitoring,”
+Aerosp. Sci. Technol., vol. 123, Apr. 2022, Art. no. 107494.
+[41] G. Wang, H. Luo, X. Hu, H. Ma, and S. Yang, “Fault-tolerant
+communication topology management based on minimum cost arbores-
+cence for leader–follower UAV formation under communication faults,”
+Int. J. Adv. Robotic Syst., vol. 14, no. 2, Mar. 2017, Art. no.
+1729881417693965.
+[42] G. V´as´arhelyi et al., “Outdoor ﬂocking and formation ﬂight with
+autonomous aerial robots,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots
+Syst., Sep. 2014, pp. 3866–3873.
+[43] K. Dev. (2025). Swarmraft. [Online]. Available: https://github.com/
+kapeldev/SwarmRaft
+Kapel Dev received the M.Sc. degree in information
+technology from Skolkovo Institute of Science and
+Technology (Skoltech), Moscow, Russia, in 2025.
+He is a Wireless Communication Researcher
+with expertise in secure positioning, signal process-
+ing, and blockchain applications for next-generation
+networks. His thesis addressed security vulnera-
+bilities in IEEE 802.11az ranging protocols. His
+work includes international research collaborations
+on
+physical-layer
+security,
+SDR-based
+wireless
+testbeds, and a co-invented U.S. patent for secure
+key exchange. His current research explores blockchain-integrated solutions
+to enhance trust and resilience in positioning systems.
+Yash Madhwal (Member, IEEE) received the Ph.D.
+degree in 2024, with a focus on blockchain appli-
+cations in supply chain systems from Skolkovo
+Institute of Science and Technology (Skoltech),
+Moscow, Russia.
+He is a Research Scientist at Skoltech, Moscow,
+where he specializes in applying blockchain tech-
+nology to solve supply chain challenges. He has
+authored several scientiﬁc papers in which he devel-
+oped prototypes of blockchain-based decentralized
+applications (DApps) designed to address real-world
+industrial problems. He serves as a teaching assistant for the course
+“Introduction to Blockchain” and regularly conducts technical seminars that
+demonstrate practical methods for building blockchain applications. Addi-
+tionally, he serves as a guest lecturer at various universities, delivering
+introductory lectures on blockchain technology and its potential applications.
+Soﬁa Shevelo received the M.Sc. degree in engineer-
+ing systems from Skolkovo Institute of Science and
+Technology (Skoltech), Moscow, Russia, in 2025.
+Her research focuses on human–robot interaction
+(HRI), haptics, robotics, machine learning, and com-
+puter vision. Her research explores gesture-based
+interfaces to improve the intuitiveness and user
+experience of drone operating systems. She collab-
+orates with the Artiﬁcial Intelligence in Dynamic
+Actions team at Skoltech and contributes to projects
+involving multi-modal user interfaces for robotics
+platforms.
+Pavel Osinenko received the Doctor Habilitatus
+degree from Technische Universit¨a(t) Chemnitz,
+Chemnitz, Germany, in 2025, with the focus on
+reinforcement learning (RL) with formal guarantees
+for safety, stability, and robustness.
+He is an Associate Professor at Skolkovo Institute
+of Science and Technology (Skoltech), Moscow,
+Russia, where he leads the AI in Dynamic Action
+(AIDA) Research Group. He has authored numer-
+ous peer-reviewed publications and proposed several
+RL algorithms, including the Critic as Lyapunov
+Function (CALF) framework. At Skoltech, he teaches graduate courses and
+supervises research in machine learning, RL, and control systems. He also
+conducts technical seminars and contributes to interdisciplinary projects aimed
+at building reliable, provable, and safe AI systems for real-world applications.
+His research interests include center on the intersection of RL and control
+theory, particularly the development of trustworthy AI for dynamical systems.
+Yury
+Yanovich
+(Member, IEEE) received the
+bachelor’s and master’s (Hons.) degrees in applied
+physics and mathematics from Moscow Institute of
+Physics and Technology, Moscow, Russia, in 2010
+and 2012, respectively, and the Ph.D. degree in
+probability theory and mathematical statistics from
+the Institute for Information Transmission Problems,
+Moscow, in 2017.
+He is currently an Assistant Professor with
+Skolkovo Institute of Science and Technology,
+Moscow. He is the author of the Exonum consensus
+protocol and has been a Lecturer in the Introduction to Blockchain course at
+top Russian universities since 2017. His research interests include blockchain,
+consensus protocols, privacy, and their applications.
+Authorized licensed use limited to: KIIT University. Downloaded on September 16,2026 at 17:09:19 UTC from IEEE Xplore.  Restrictions apply. 
+=== END ===

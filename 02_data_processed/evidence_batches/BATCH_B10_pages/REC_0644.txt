@@ -1,0 +1,1534 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+=== pdf_text.py v1.0 ===
+file: E:\GPS_Denied_SLR\05_papers_fulltext\REC_0644.pdf
+sha256: D3E39340C113DDFD47739770B82DC6E04BD773D8B7AF11CCAE4E7FD34A1F5255
+library: pymupdf (fitz) v1.28.2
+pages: 19
+=== BEGIN ===
+[p.1]
+Received 30 October 2025, accepted 27 December 2025, date of publication 5 January 2026, date of current version 12 January 2026.
+Digital Object Identifier 10.1109/ACCESS.2025.3650454
+Autonomous Localization and Navigation
+for Drones Over Rivers
+PO-CHUN WU
+, YANG-YI CHEN, CHUN-LIANG LIN
+, (Life Senior Member, IEEE),
+AND HAN WANG
+Department of Electrical Engineering, National Chung Hsing University, Taichung 402, Taiwan
+Corresponding author: Chun-Liang Lin (chunlin@dragon.nchu.edu.tw)
+This work was supported by the National Science and Technology Council, Taiwan, under Grant NSTC 112-2221-E-005-068-MY2.
+ABSTRACT Uncrewed aerial vehicles (UAVs) are increasingly used for environmental monitoring and
+riverine studies; however, their dependence on Global Positioning System (GPS) localization is often
+compromised in forested areas, under bridges, or above highly dynamic water surfaces. Conventional vision-
+based navigation methods struggle with sparse textures and transient disturbances, leading to unstable
+positioning and drift. This paper presents a robust real-time visual–inertial navigation framework that
+integrates neural network–based optical flow estimation (NeuFlow v2), the Dynamic Divided Method
+(DDM), and inertial measurement unit (IMU) data through a Kalman Filter (KF). The DDM adaptively
+segments the optical-flow field according to water-surface dynamics and local texture stability, suppressing
+transient artifacts such as ripples and reflections, while the KF stabilizes state estimation by compensating for
+outliers and short-term measurement loss. Field experiments at Kangqiao, Green River, and Wu River sites
+demonstrate that DDM-enhanced visual odometry (VO) significantly improves robustness in low-texture and
+dynamic conditions. The fused framework combining NeuFlow v2, DDM, and KF achieves high trajectory
+similarity with GPS benchmarks, reduced drift, and enhanced spatial consistency. These findings validate a
+practical and effective solution for accurate UAV localization and autonomous environmental monitoring in
+GPS-degraded riverine environments.
+INDEX TERMS Visual-inertial odometry, dynamic disturbance mitigation, self-positioning without GPS,
+uncrewed aerial vehicle (UAV), NeuFlow v2.
+I. INTRODUCTION
+Unmanned aerial vehicles (UAVs) have become indispens-
+able tools across diverse applications, including environ-
+mental monitoring [1], disaster response [2], infrastructure
+inspection [3], and precision agriculture [4]. Their ability to
+capture high-resolution data in remote or challenging ter-
+rains makes them particularly valuable for monitoring aquatic
+ecosystems such as rivers [5], lakes, and wetlands. These
+missions demand precise localization and robust autonomous
+navigation to assess water quality, track pollution sources,
+and evaluate climate change impacts. However, achieving
+reliable navigation in complex environments remains a sig-
+nificant challenge.
+The associate editor coordinating the review of this manuscript and
+approving it for publication was Xiwang Dong.
+One of the primary obstacles for UAVs in real-world sce-
+narios is their dependence on Global Positioning System
+(GPS) for localization. While GPS performs reliably in open
+areas, its signals are often obstructed or unavailable in dense
+forests, under bridges, or within narrow riverine corridors.
+Rivers pose unique challenges due to their winding paths,
+dynamic water surfaces, and surrounding vegetation, which
+can lead to signal loss, causing UAVs to drift, lose con-
+trol, or fail missions. These limitations necessitate alternative
+localization methods capable of ensuring robust navigation in
+GPS-denied environments.
+Visual-Inertial Odometry (VIO) has emerged as a promis-
+ing approach, combining camera imagery with inertial mea-
+surement unit (IMU) data to estimate position and velocity.
+VIO has shown significant potential in GPS-denied settings,
+such as urban canyons and forested areas [6], by leveraging
+visual features like edges, textures, and corners [7], [8], [9]
+5236
+ 2026 The Authors. This work is licensed under a Creative Commons Attribution 4.0 License.
+For more information, see https://creativecommons.org/licenses/by/4.0/
+VOLUME 14, 2026
+[p.2]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+alongside IMU accelerometer and gyroscope data to provide
+continuous, accurate state estimation.
+Despite its strengths, VIO faces challenges in dynamic and
+low-texture environments like calm rivers. Rapidly changing
+water surfaces, variable lighting, and dynamic objects—
+such as birds or fish—reduce the availability of stable
+visual features. Motion blur during high-speed flight further
+degrades image quality, compromising localization accuracy.
+For example, VINS-Mono [10], a leading monocular VIO
+framework, delivers reliable performance in many scenarios
+but struggles in dynamic, low-texture conditions.
+Recent advancements in learning-based optical flow esti-
+mation offer solutions to these challenges. Techniques like
+RAFT [11], which incorporate attention mechanisms and
+positional encoding, have improved flow estimation for
+applications such as river surface velocity analysis [12].
+However, RAFT’s computational demands limit its suitabil-
+ity for resource-constrained UAV platforms, achieving only
+1–2 frames per second on devices like the Jetson Orin Nano.
+In contrast, NeuFlow v2 [13] achieves over 20 frames per
+second at 512 × 384 resolution, offering a 10–70× speedup
+over RAFT [11] while maintaining comparable accuracy,
+making it ideal for embedded UAV systems.
+This study proposes a real-time UAV navigation system
+tailored for dynamic riverine environments. The system inte-
+grates NeuFlow v2 [13] for efficient optical flow estimation,
+IMU data for robust motion tracking, and the Dynamic
+Divided Method (DDM) to adaptively process optical flow
+under varying environmental conditions. A Kalman Filter
+(KF) [14] facilitates multi-sensor fusion, stabilizing outputs
+by filtering noise and mitigating errors from dynamic objects.
+Optimized for real-time performance on embedded hardware,
+the system ensures reliable operation in scenarios where
+GPS-based navigation fails. The main contributions of this
+work are:
+• A Novel VIO Framework for GPS-Denied Riverine
+Environments: The system combines NeuFlow v2 opti-
+cal flow estimation with IMU data fusion, enabling
+robust and efficient localization where traditional GPS
+or vision-based methods falter.
+• Efficient Real-Time Optical Flow Computation: Neu-
+Flow v2 delivers high-speed, accurate optical flow
+estimation on resource-constrained UAV platforms,
+ensuring practical deployment in real-world scenarios.
+• Kalman Filter-Based Multi-Sensor Fusion: The KF inte-
+grates optical flow and IMU data, compensating for
+outliers caused by dynamic objects and enhancing nav-
+igation stability and accuracy in challenging riverine
+conditions.
+• Comprehensive Field Validation: The system was tested
+at Kangqiao, Green River, and Wu River, across diverse
+trajectories including straight paths, rectangular routes,
+and curved river-following flights. Results demonstrate
+superior navigation robustness and accuracy compared
+to conventional methods, affirming its feasibility for
+autonomous environmental monitoring.
+II. RELATED WORKS
+The following section reviews key UAV navigation technolo-
+gies, focusing on GPS-based and GPS-denied approaches.
+As illustrated in Fig. 1, navigation methods are categorized
+into GPS-based and GPS-denied techniques. While GPS is
+effective in open environments, its limitations in areas with
+poor signal reception, such as forests or water bodies, have
+spurred the development of alternatives like VIO [15], opti-
+cal flow estimation [16], Inertial Navigation Systems (INS)
+[17], and Ultra-Wideband (UWB) [18]. These methods col-
+lectively address the challenges of reliable UAV navigation
+in complex, GPS-denied environments, with VIO and opti-
+cal flow-based approaches showing particular promise for
+dynamic settings like rivers.
+A. GPS-BASED UAV NAVIGATION
+GPS remains the most widely adopted technology for UAV
+positioning and navigation. By receiving signals from mul-
+tiple satellites, GPS systems provide absolute position and
+velocity estimates for UAVs. The main advantage of this
+method is its simplicity, accuracy, and ease of implemen-
+tation, especially in open environments where UAVs can
+rely on GPS signals for precise positioning and velocity
+estimation. However, when UAVs enter areas such as dense
+forests, caves, or water surfaces, traditional GPS-based nav-
+igation methods become ineffective, and UAVs must rely on
+other technologies to achieve autonomous localization and
+navigation.
+In addition to conventional GPS positioning, Real-Time
+Kinematic (RTK) [19] is a high-precision GPS-based posi-
+tioning technique. RTK improves accuracy by using base
+stations and mobile measuring units to provide centimeter-
+level positioning, making it an indispensable technology for
+applications requiring high accuracy, such as agriculture,
+surveying, and precise navigation. Despite these advan-
+tages, GPS and RTK remain vulnerable to signal blockages,
+multipath effects, and disturbances such as solar magnetic
+storms [20], which can lead to significant errors or even total
+signal loss.
+B. LOCALIZATION METHODS IN GPS-DENIED
+ENVIRONMENTS
+When GPS signals are unavailable or unreliable, UAVs
+must rely on alternative localization strategies. Prominent
+approaches include VIO, optical flow estimation, INS,
+and UWB positioning, each with unique advantages and
+constraints.
+1) VIO
+VIO combines camera imagery with IMU measurements
+to provide real-time position estimation. It enables UAVs
+to maintain stable localization in environments with sparse
+visual features or dynamic conditions. VO, as a core com-
+ponent of VIO, estimates UAV motion by analyzing feature
+point displacement between consecutive frames [21]. Com-
+VOLUME 14, 2026
+5237
+[p.3]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+FIGURE 1. The system architecture for UAV navigation in GPS-denied environments.
+mon feature descriptors such as SIFT [8], SURF [22]
+or ORB [23] enable efficient and robust real-time appli-
+cations. However, VO accuracy may be compromised in
+low-texture environments, under motion blur, or when subject
+to illumination changes and occlusions. VIO addresses these
+limitations by integrating high-frequency IMU data, pro-
+viding short-term stability and reducing drift. Loop closure
+techniques further enhance long-term accuracy by correcting
+accumulated errors.
+2) OPTICAL FLOW ESTIMATION
+Optical flow estimation analyzes pixel displacement between
+consecutive images to estimate object motion. Traditional
+methods, such as Horn–Schunck and Lucas–Kanade [24], are
+computationally efficient and effective for small motion but
+degrade in environments with sparse textures, dynamic back-
+grounds, or abrupt illumination changes. Recent advances
+in deep learning, including FlowNet [25], PWC-Net [26],
+RAFT [11], and FlowFormer [27], significantly improve
+robustness and accuracy by leveraging convolutional and
+attention-based architectures.
+3) INS
+INS integrates acceleration and angular velocity from
+IMUs
+to
+estimate
+position,
+velocity,
+and
+orientation
+through dead reckoning. It provides self-contained and
+weather-independent navigation with high short-term accu-
+racy but suffers from long-term drift. Accordingly, INS is
+often fused with VO or optical flow estimation to improve
+robustness [28].
+4) UWB
+UWB is a short-range, high-precision localization technology
+that measures distance between devices using high-frequency
+signals [29]. By deploying multiple anchors, UAVs can
+achieve centimeter-level indoor localization through triangu-
+lation. UWB is robust to lighting and weather conditions,
+but its reliance on fixed infrastructure and limited opera-
+tional range restricts its applicability in large-scale outdoor
+environments.
+Each UAV navigation method presents distinct strengths
+and limitations. GPS-based navigation provides high accu-
+racy in open environments but degrades severely in signal-
+deprived areas. VIO and VO offer robust alternatives in
+GPS-denied environments, leveraging visual and inertial data
+for stable state estimation but remain sensitive to low-texture
+scenes, lighting changes, and dynamic objects. Optical flow
+estimation complements VO by providing relative motion
+tracking in homogeneous or water-surface environments but
+is also sensitive to visual ambiguity. INS delivers reliable
+short-term estimates but suffers cumulative drift, while UWB
+excels in confined indoor spaces with centimeter-level accu-
+racy but is limited by infrastructure requirements.
+III. METHODOLOGY
+Our navigation system is composed of three main compo-
+nents: (1) NeuFlow v2 for efficient and real-time optical
+flow estimation, (2) the DDM for adaptive flow segmentation
+and robust feature extraction under varying river conditions,
+and (3) KF for multi-sensor fusion, which integrates IMU
+measurements with optical flow data to enhance stability
+5238
+VOLUME 14, 2026
+[p.4]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+FIGURE 2. Architecture of NeuFlow v2. Redrawn based on the framework described in [17].
+and compensate for outliers. These modules are integrated to
+provide reliable and accurate UAV navigation in GPS-denied
+environments. The overall architecture and data flow of the
+system are illustrated in Fig. 1.
+For optical flow estimation, this study employs NeuFlow
+v2, a neural network-based framework originally proposed
+in [13]. NeuFlow v2 was designed to provide a balance
+between computational efficiency and estimation accuracy,
+making it particularly suitable for UAV navigation tasks
+where onboard resources are constrained. Traditional optical
+flow approaches such as Lucas–Kanade or Horn–Schunck
+[24] are computationally efficient but degrade significantly
+in low-texture or dynamic environments. In contrast, deep
+learning–based models such as RAFT [11] achieve state-
+of-the-art accuracy, but their computational demands render
+them impractical for real-time UAV deployment on edge
+devices. NeuFlow v2 [13] occupies a middle ground: it
+inherits the robustness of learning-based frameworks while
+incorporating architectural optimizations that make it deploy-
+able in real time on embedded hardware.
+The network architecture of NeuFlow v2 [13] is shown
+in Fig. 2. It follows a lightweight encoder–decoder design
+optimized for embedded deployment. The encoder extracts
+hierarchical, multi-scale feature maps from the input images,
+ensuring that both coarse global motion and fine local dis-
+placements can be captured. The decoder then progressively
+refines these features through a series of convolutional and
+upsampling layers to produce dense optical flow predictions.
+Compared with RAFT [11], which uses large recurrent mod-
+ules and extensive correlation volumes, NeuFlow v2 [13]
+significantly reduces memory access and floating-point oper-
+ations while preserving competitive accuracy. These design
+choices make it an attractive candidate for UAV naviga-
+tion in GPS-denied riverine environments, where maintaining
+real-time updates is essential for flight stability.
+To evaluate the runtime performance of the proposed
+system, NeuFlow v2 [13] was benchmarked on a Jetson
+Orin Nano across multiple input resolutions. The resulting
+inference time and frame-rate (FPS) values are summarized
+in TABLE 1, revealing a clear trade-off between spatial
+resolution and computational throughput. As the input size
+increases, the inference latency grows nonlinearly, highlight-
+ing the sensitivity of real-time optical-flow estimation to
+resolution scaling. These measurements provide a quantita-
+tive basis for selecting the optimal input configuration used in
+subsequent experiments to balance accuracy and efficiency.
+TABLE 1. NeuFlow v2 inference time on Jetson Orin Nano.
+Beyond runtime evaluation, we further examined how
+frame-rate reductions affect UAV navigation accuracy and
+long-term trajectory stability. Specifically, a static-scene
+experiment with controlled wind disturbances was conducted
+to emulate real-world perturbations.
+As illustrated in Fig. 3, when the optical-flow update
+rate dropped to low FPS levels, the VIO pipeline exhib-
+ited pronounced cumulative drift and positional bias, even
+though the environment remained static. This degradation
+arises because a lower flow update frequency increases the
+temporal interval between measurements, thereby amplifying
+integration error and weakening the feedback stability of the
+Kalman filter loop. Consequently, the delayed correction of
+optical-flow residuals allows unmodeled disturbances—such
+as wind gusts or sensor bias—to accumulate over time.
+This observation underscores the necessity of maintain-
+ing sufficiently high optical-flow update rates to ensure
+stable closed-loop state propagation. In the proposed sys-
+tem, NeuFlow v2’s runtime characteristics (as summarized
+in TABLE 1) are jointly leveraged with the DDM and
+KF-based fusion to mitigate outlier effects induced by
+dynamic objects, while maintaining high-frequency correc-
+tion capability. Together, these components stabilize the
+navigation output by preserving both spatial coherence and
+VOLUME 14, 2026
+5239
+[p.5]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+FIGURE 3. VIO trajectory drift under Low FPS and wind disturbance in a
+static environment.
+temporal responsiveness, ensuring reliable UAV localization
+even under fluctuating environmental conditions.
+To balance localization accuracy and computational effi-
+ciency, this study adopts an input resolution of 512 × 384 for
+optical-flow estimation on the Jetson Orin Nano prior to
+integrating the DDM module. This configuration achieves an
+average inference time of approximately 64 ms per frame,
+corresponding to an effective update frequency of around
+15 frames per second (fps). The selected resolution provides
+an optimal trade-off between processing speed and spatial
+fidelity—fast enough to sustain real-time navigation while
+retaining sufficient texture detail for reliable optical-flow
+extraction. This setting serves as the baseline configura-
+tion for all subsequent on-board experiments and system
+deployment.
+To further enhance input representativeness without
+increasing computational load, an input selection and
+reassembly strategy was developed to preserve spatial diver-
+sity during optical-flow estimation. As shown in Fig. 4, the
+original 1920 × 1080 image is evenly divided into four
+quadrants—upper-left, upper-right, lower-left, and lower-
+right. From the center of each quadrant, a 128 × 96 pixel
+patch is extracted to capture regional variations in brightness,
+texture, and motion. These four patches are then spatially
+rearranged according to their original positions to form a new
+composite frame with a resolution of 512 × 384, which is
+subsequently fed into the NeuFlow v2 model for optical-flow
+computation.
+This composite-patching design maintains both the com-
+putational efficiency of a reduced-resolution input and the
+scene-awareness of a full-frame image. By retaining spatial
+diversity across quadrants, the system minimizes local feature
+bias and enhances the robustness of flow estimation under
+heterogeneous visual conditions, such as asymmetric lighting
+or texture imbalance across the river surface.
+This design aims to enhance the global representativeness
+and robustness of the estimated optical flow. In riverine
+FIGURE 4. Patch selection and reassembly strategy for VIO input.
+environments, using input images concentrated in a single
+region can easily lead to biased motion estimation—local
+disturbances caused by water vegetation, aquatic animals,
+or variations in underwater terrain may be mistakenly inter-
+preted as the dominant flow direction. By sampling from
+all four quadrants and reassembling them into a composite
+frame, the method preserves spatial diversity and balances
+illumination and texture variations across the scene. This
+approach reduces the influence of local noise and enables
+extraction of globally consistent motion cues essential for
+stable navigation.
+While the reassembly strategy broadens spatial coverage,
+additional mechanisms are required to handle dynamic dis-
+turbances commonly encountered in riverine environments.
+To this end, the Dynamic Divided Method (DDM) is intro-
+duced. The DDM adaptively segments the optical-flow field
+according to water-surface dynamics and local texture stabil-
+ity, emphasizing motion-consistent regions while suppressing
+transient artifacts caused by ripples, reflections, or vegeta-
+tion motion. Unlike conventional flow-smoothing techniques
+that apply uniform filtering, the proposed approach performs
+localized spatiotemporal weighting, allowing it to preserve
+coherent motion in stable regions and enhance robustness
+under fluctuating environmental conditions.
+The method begins with the physical assumption that when
+the UAV hovers at the initial moment, its self-motion is
+negligible, and thus all observed optical flow originates from
+the background. Accordingly, the background flow at t = 0 is
+equivalent to the total measured flow, as expressed in Eq. (1):
+Flowriver(0) = Flowall(0)
+(1)
+This definition establishes the reference flow field used
+for subsequent segmentation. where Flowall(t) represents
+the total observed flow at time t, which is composed of
+Flowriver(t), the true background flow, and Flowdrone(t), the
+UAV-induced flow.
+To ensure a robust estimation of the initial background flow
+and to mitigate the impact of wind-induced disturbances or
+measurement noise, the UAV is commanded to hover in place
+for the first 3 seconds at the start of each flight. Rather than
+relying on a single frame, the background flow is computed
+as the average of the optical flow vectors over 25 consecutive
+frames collected during this stationary period. This approach
+effectively smooths out transient fluctuations and provides a
+5240
+VOLUME 14, 2026
+[p.6]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+more stable and reliable initialization for subsequent motion
+decomposition.
+As the UAV begins to move, its motion contribution is
+updated using the temporal difference:
+1Flowall(t) = Flowall(t) −Flowall(t −1)
+(2)
+Flowdrone(t) = Flowdrone(t −1) + 1Flowall(t)
+(3)
+In the equations presented, Flowall(t) denotes the total
+observed flow field at time t, which includes both the
+motion induced by the UAV and the background river flow.
+1Flowall(t) represents the temporal change in the total flow
+between time t −1 and t. Flowdrone(t) indicates the estimated
+component of the flow resulting from the UAV’s own move-
+ment (ego-motion), updated incrementally over time using
+the temporal difference. Flowriver(t) refers to the residual
+background flow, primarily caused by the river, obtained by
+subtracting the UAV-induced motion from the total observed
+flow.
+Subsequently, the background flow is recovered by sub-
+tracting the estimated UAV flow from the total:
+Flowriver(t) = Flowall(t) −Flowdrone(t)
+(4)
+Under ideal conditions with static backgrounds, this model
+yields stable and accurate estimates of river motion. How-
+ever, in dynamic environments—such as those with transient
+reflections, ripples, or vegetation—the estimated Flowriver(t)
+may fluctuate abruptly. If left unfiltered, such noise can lead
+to incorrect updates of the UAV motion term, resulting in drift
+accumulation.
+To counter this, we introduce a gating mechanism
+via an indicator function I(t), which suppresses updates
+toFlowdrone(t) when the change in Flowriver(t) exceeds a
+predefined threshold 1threshold, the 1threshold is, for example,
+0.8 in our experiments:
+I(t)
+=
+(
+1,
+if ∥Flowriver(t) −Flowriver(t −1)∥> 1threshold
+0,
+otherwise
+(5)
+Based on this, the UAV flow is updated only under stable
+conditions:
+Flowdrone(t) = (1 −I(t)) · [Flowdrone(t −1) + 1Flowall(t)]
++ I(t) · Flowdrone(t −1)
+(6)
+Finally, the river flow is recomputed as
+Flowriver(t) = Flowall(t) −Flowdrone(t)
+(7)
+Of course, the estimated result could be further improved
+if advanced prediction algorithms are applied. Here, we just
+want to realize the idea in practical applications.
+The DDM output is a dense optical flow map consisting
+of per-pixel flow vectors. However, to extract a more usable
+motion representation, further processing is required. Specif-
+ically, the flow vectors are averaged over valid regions of the
+image to produce a single representative flow vector. This
+process is mathematically expressed as:
+¯u(t) = 1
+N
+Nui
+X
+i=1
+(t), ¯v(t) = 1
+N
+Nvi
+X
+i=1
+(t)
+(8)
+where N denotes the total number of valid flow vectors in
+the optical flow field, and ¯u(t), represents the horizontal and
+vertical components, respectively, of the flow vector located
+at the i-th pixel coordinate within the image grid. In this
+thesis, the input image resolution provided to NeuFlow v2
+is W × H, where W is the image width (in pixels) and H is
+the image height (in pixels).
+To convert this average flow vector into real-world dis-
+placement (in meters), a projection based on camera param-
+eters is used:
+Displacementmeters = Pixel_displacement × D
+f
+(9)
+where Pixel_displacement is the displacement calculated
+from the average flow vector, D is the distance from the
+camera to the observed surface (e.g., UAV altitude), measured
+in meters. f is the focal length of the camera, measured in
+pixel.
+FIGURE 5. Illustration of the UAV’s FOV and ground coverage width.
+Alternatively, the pixel size can be derived from the cam-
+era’s field of view (FOV) and image width. As shown in
+Fig. 5, the relationship between the camera’s FOV, UAV alti-
+tude, and the ground coverage width can be used to compute
+the pixel size. The relation is as follows:
+1 pixel ≈
+2D · tan(FOV/2)
+image width (pixels)
+(10)
+By multiplying (10), which represents the pixel displace-
+ment with (8), which defines the ground-projected distance
+corresponding to a single pixel, the displacement in meters
+can be obtained as
+xm = ¯u(t) · 2D tan(FOV/2)
+Wpixels
+(11)
+ym = ¯v(t) · 2D tan(FOV/2)
+Wpixels
+(12)
+VOLUME 14, 2026
+5241
+[p.7]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+where xm represents the ground displacement in the x-axis
+direction, and ym represents the ground displacement in the
+y-axis direction.
+To ensure consistency among different sensor sources, all
+motion data are transformed into a common world coordinate
+frame before fusion. The IMU outputs are expressed in the
+UAV body frame, while DDM provides planar displacement
+in the image/body frame, which often follows the convention
+of a downward-positive Y-axis. To unify these conventions,
+the visual displacements are first sign-corrected and then
+rotationally aligned with the world frame using the UAV yaw
+angle θ. The corresponding 2-D rotation matrix is defined as
+follows
+R(θ) =
+ cos(θ) −sin(θ)
+sin(θ)
+cos(θ)
+
+(13)
+where R(θ) is used to transform a vector from the UAV’s body
+(local) frame to the world (global) coordinate system. When
+the Y-axis orientation differs, a modified rotation matrix is
+given by:
+R∗(θ) =
+ cos(θ)
+−sin(θ)
+−sin(θ) −cos(θ)
+
+(14)
+where R∗(θ) denotes the modified rotation matrix, introduced
+to account for differences in axis conventions, the negative
+signs in the second row account for the inverse orientation of
+the Y-axis between image and world coordinate frames.
+The horizontal and vertical displacements1xm and 1ym
+obtained from (11) and (12) represent the metric body–frame
+motion components. These two quantities are combined into
+the body–frame displacement vector db = [1xm, 1ym]T ,
+which is subsequently used in the coordinate transformation
+below.
+After applying the rotation, the transformed displacement
+vector can be expressed as:
+dw = R∗(θ)db
+(15)
+where dw = [1xw, 1yw]T denotes the displacement in the
+world frame, and R∗(θ) is the 2-D rotation matrix defined
+in (14).
+Finally, the recursive accumulation of displacements into
+an absolute VO trajectory is formulated as:
+pk = pk−1 + dw
+(16)
+where pk = [xk, yk]T is the UAV position at time step k in
+the world frame, and pk−1 is the previous position.
+To incorporate visual odometry (VO) observations into
+the Kalman filtering framework, the system state vector is
+defined as:
+xk =
+
+
+px,k
+py,k
+vx,k
+vy,k
+
+
+(17)
+where px,k, py,k are the planar positions and vx,k, vy,k the
+corresponding velocities along thex–axes andy–axes. The
+initial covariance matrix P0 = 100I4×4 captures our initial
+uncertainty about these quantities.
+The time-update (prediction) model describing system
+evolution is given by:
+Xk = AXk−1 + Buk + wk
+(18)
+where A is the state transition matrix that models the evolution
+of the system under a constant-velocity assumption, B = I4
+is the control input matrix (set to be an identity matrix here),
+uk is the control vector derived from the IMU pre-integrated
+increments 1xk, and wk is the process noise, assumed to be
+zero-mean Gaussian with covariance Q.
+For a constant-velocity model in the two-dimensional
+plane, the state transition matrix A is
+A =
+
+
+1
+0
+1t
+0
+0
+1
+0
+1t
+0
+0
+1
+0
+0
+0
+0
+1
+
+
+(19)
+where1t is the time interval between steps.
+The control input is represented by the IMU pre-integration
+increment, denoted
+uk = 1xk =
+
+
+1px
+1py
+1vx
+1vy
+
+
+(20)
+where 1xk contains the pre-integrated changes in position
+and velocity provided by the IMU. The control input vector
+directly influences all components of the state due to B being
+the identity matrix.
+The observation equation is
+zk = Hxk + vk
+(21)
+where H is the observation matrix that projects the state
+vector onto the measurement space
+H =
+ 1
+0
+0
+0
+0
+1
+0
+0
+
+(22)
+vk is the measurement noise and zk is the measurement vector
+provided by NeuFlow v2 visual odometry
+zk = pk
+(23)
+To account for the dynamic uncertainty in altitude-based
+scale estimation, the measurement noise covariance matrix is
+refined by incorporating the variance of barometric altitude
+as follows:
+Reff = Rvo + σ 2
+ZJZJT
+Z
+(24)
+where Rvo = γ I2 represents the intrinsic noise of the VO
+system with γ being a positive constant, σ 2
+Z is the variance
+of the barometric altitude estimate, and the Jacobian JZ is
+defined
+JZ = 1
+Z
+ 1xDDM
+1yDDM
+
+(25)
+5242
+VOLUME 14, 2026
+[p.8]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+where 1xDDM and 1yDDM represent the DDM-based pla-
+nar displacements along the x– and y–axes, respectively.
+These quantities are obtained by converting the averaged
+optical-flow components (1uavg, 1vavg) from pixel space
+into metric ground displacements according to the UAV alti-
+tude Z and camera focal length f . Here, 1uavg and 1vavg
+denote the averaged horizontal and vertical components of
+the DDM-derived optical-flow field, obtained by averaging
+all valid per-pixel flow vectors (ui, vi) within the image region
+before projection into real-world coordinates.
+This formulation indicates that the pixel-to-meter con-
+version factor of the downward-looking camera scales with
+altitude Z; thus, altitude uncertainty directly propagates into
+the planar VO measurements and increases the effective noise
+when the UAV flies higher or experiences barometric fluctu-
+ations.
+To propagate the state and its uncertainty, the predic-
+tion step follows the standard discrete-time Kalman filter
+equations:
+ˆxk|k−1 = Axk−1|k−1 + Buk−1
+(26)
+A constant-velocity model is adopted since UAV motion
+over riverine scenes is generally smooth and low-frequency,
+dominated by translational dynamics rather than abrupt accel-
+erations. This assumption stabilizes the fusion process while
+preventing the over-amplification of IMU noise.
+Pk|k−1 = APk−1|k−1A⊤+ Q
+(27)
+Here, bxk|k−1 denotes the predicted state vector, Pk|k−1 is
+the predicted covariance, and Q is the process noise covari-
+ance matrix, defined as:
+Q = γ
+
+
+σ 2
+px
+σpxpy
+σpxvx
+σpxvy
+σpypx
+σ 2
+py
+σpyvx
+σpyvy
+σvxpx
+σvxpy
+σ 2
+vx
+σvxvy
+σvypx
+σvypy
+σvyvx
+σ 2
+vy
+
+
+(28)
+To capture the statistical dependencies among position and
+velocity states, a full 4×4 matrix is used, including both vari-
+ances (diagonal terms) and covariances (off-diagonal terms).
+A global scaling factorγ
+= 109 is applied to counteract
+the numerical shrinkage caused by small IMU integration
+intervals.
+Given the NeuFlow v2 visual odometry (VO) observations,
+the Kalman filter corrects the prediction using the standard
+update equations:
+yk = zk −Hbxk|k−1
+(29)
+Sk = HPk|k−1H⊤+ Reff
+(30)
+Kk = Pk|k−1H⊤S−1
+k
+(31)
+xk|k = bxk|k−1 + Kkyk
+(32)
+Pk|k = (I −KkH)Pk|k−1
+(33)
+where yk is the innovation vector, Sk is the innovation covari-
+ance, and Kk is the Kalman gain that adaptively balances the
+predicted and observed states. The final state estimatebxk and
+its error covariance Pk are subsequently updated to refine the
+system’s belief of its true state.
+In summary, this section has presented a comprehensive
+Kalman Filter (KF)–based visual–inertial fusion framework,
+covering the entire processing chain from coordinate trans-
+formation and observation modeling to state prediction and
+correction. The proposed formulation explicitly incorpo-
+rates altitude-dependent visual-odometry uncertainty, ensur-
+ing that the fusion process remains consistent under varying
+flight altitudes and barometric fluctuations. By adopting a
+full covariance matrix that captures interdependencies among
+position and velocity components, and by introducing a
+global scaling factor to mitigate numerical shrinkage in IMU
+pre-integration, the system achieves both statistical rigor and
+numerical stability.
+This design allows the fused estimator to maintain robust-
+ness against transient sensor errors and environmental dis-
+turbances, providing a reliable foundation for downstream
+control, trajectory tracking, and autonomous navigation
+tasks.
+IV. EXPERIMENTAL RESULTS
+This section validates the effectiveness and feasibility of
+the proposed visual–inertial fusion method through compre-
+hensive simulation and field evaluations. The experimental
+protocol is designed to assess both accuracy and robust-
+ness under diverse riverine conditions. The section first
+outlines the simulation environments and flight scenarios,
+followed by a comparative analysis of trajectory similarity
+between visual–inertial odometry (VIO) results with and
+without the proposed DDM, using GPS data as the reference
+benchmark.
+A comprehensive performance evaluation was conducted
+using real-world riverbank scenes as the simulation envi-
+ronment. Three representative locations were selected for
+on-site data acquisition, ensuring diversity in water flow,
+background complexity, and illumination. All simulations
+and algorithmic tests were executed on authentic video and
+sensor recordings, rather than synthetic datasets, to better
+approximate real operational conditions. The experimental
+framework encompasses the rationale for site selection, the
+design of representative flight missions, the data acquisition
+and post-processing pipeline, and the criteria for system per-
+formance assessment.
+Each test site provided field-collected multimodal data—
+comprising video imagery, inertial measurements, and GPS
+trajectories—serving as the basis for evaluating the fusion
+algorithm. Representative flight missions, including straight
+out-and-back, rectangular, curved river-following, and turn-
+ing trajectories, were designed to systematically challenge
+localization performance across varying degrees of motion
+dynamics and environmental complexity. These trajectories
+were replayed in post-processing using the recorded datasets,
+enabling controlled yet realistic analysis of the proposed
+system’s consistency and adaptability.
+VOLUME 14, 2026
+5243
+[p.9]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+A. EXPERIMENTAL SITES AND FLIGHT MISSIONS
+To comprehensively evaluate the performance and robustness
+of the proposed visual–inertial fusion system under varying
+aquatic and environmental conditions, three representative
+riverbank sites were selected as test areas. Each site presents
+distinct hydrodynamic and visual characteristics, enabling
+systematic validation of the system’s adaptability across low-,
+moderate-, and high-dynamic conditions. The corresponding
+flight missions were designed to assess positioning accuracy,
+stability, and perception consistency under different environ-
+mental complexities.
+1) KANGQIAO SITE—LOW-DYNAMIC ENVIRONMENT
+Located behind National Chung Hsing University (24◦07′
+01.5 N,’’ 120◦40′ 27.5’’ E), the Kangqiao section represents
+an open and near-static river environment characterized by
+slow water flow and minimal surface disturbance. This site
+was selected to evaluate the system’s positioning accuracy
+and stability under low-dynamic conditions with limited
+background motion. The UAV performed short, straight, out-
+and-back flight missions along the river axis at an altitude
+of approximately 25 m and a velocity of 5 m/s, enabling a
+focused analysis of low-motion performance. As illustrated
+in Fig. 6, the red line indicates the actual UAV flight trajectory
+along the Kangqiao river section.
+FIGURE 6. Kangqiao Flight Path at 24◦07’01.5’’N120◦40’27.5’’E.
+2) GREEN RIVER SITE—MODERATE-DYNAMIC AND
+COMPLEX ENVIRONMENT
+The second test site is located at the Green River area near
+National Chung Hsing University (24◦07′ 22.5′′ N, 120◦40′
+17.7′′ E). This river segment features moderate flow velocity
+and dense tree coverage along both banks, forming a visu-
+ally cluttered and moderately dynamic environment. It was
+selected to evaluate the system’s robustness and reliability in
+more complex scenes with increased background noise.
+To systematically assess the algorithm’s adaptability, mul-
+tiple flight missions were carried out, including curved
+river-following trajectories, straight out-and-back paths, and
+rectangular circuits. Each mission was executed at an altitude
+of approximately 6.8 m and a velocity of 5 m/s, providing
+consistent conditions for cross-comparison of different flight
+patterns.
+As illustrated in Figs. 7–9, the red lines depict the actual
+UAV flight trajectories for each mission type, demonstrat-
+ing how these tests were designed to challenge localization
+robustness and visual-inertial perception consistency in mod-
+erately dynamic riverine conditions.
+FIGURE 7. Green River site and straight-line flight path at 24◦07’22.5’’N
+120◦40’17.7’’E.
+3) WU RIVER SITE—HIGH-DYNAMIC CONFLUENCE
+ENVIRONMENT
+The third test site is located at the confluence area of the
+Wu River and an adjacent tributary (24◦06′ 16.4′′ N, 120◦35′
+36.5′′ E). This region features moderate flow speed but
+exhibits complex hydrodynamic interactions due to merging
+currents and irregular topography, forming a highly dynamic
+and visually heterogeneous environment. It was selected to
+verify the system’s robustness and adaptability under stronger
+visual disturbances and nonuniform motion patterns. Two
+representative flight missions were conducted at this site:
+straight out-and-back and rectangular circuits. Each mission
+was flown at an altitude of approximately 7.7 m and a velocity
+of 5 m/s, maintaining consistency with the previous sites to
+facilitate comparative analysis.
+As shown in Figs. 10–12, the red lines indicate the actual
+UAV flight paths for each mission. These route diagrams
+visualize the geometric layout and physical characteris-
+tics of the designed trajectories, clearly illustrating how
+the task configurations were used to evaluate localization
+resilience and perception reliability in a complex confluence
+environment.
+4) SUMMARY
+Across the three sites, the experimental design progressively
+increases environmental complexity—from low-dynamic
+open water (Kangqiao) to moderate cluttered scenes (Green
+River) and finally to a high-dynamic confluence (Wu River).
+This hierarchical arrangement enables a structured evaluation
+of the proposed method’s scalability, providing empirical
+evidence of its stability, adaptability, and robustness under
+diverse real-world riverine conditions.
+5244
+VOLUME 14, 2026
+[p.10]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+FIGURE 8. Green River site and rectangular flight path at 24◦07’22.5’’N
+120◦40’17.7’’E.
+FIGURE 9. Green River site and curved (river-following) flight path at
+24◦07’22.5’’N 120◦40’17.7’’E.
+FIGURE 10. Wu River site and straight-line flight path at 24◦06’16.4’’N
+120◦35’36.5’’E.
+B. INCORPORATION OF KF
+The addition of KF to VO is then emphasized, which aims
+to prevent abnormal VO data from causing sudden jumps
+or erratic UAV behavior. The main focus of the results and
+discussion is on comparing VO with and without the proposed
+DDM, as well as GPS, to clearly assess the impact of DDM
+on VO performance. Subsequently, the comparative analysis
+between VO, VIO, and GPS will be presented.
+FIGURE 11. Wu River site and rectangular flight path at
+24◦06’16.4’’N120◦35’36.5’’E.
+FIGURE 12. Wu River site and turning flight path at
+24◦06’16.4’’N120◦35’36.5’’E.
+The results are grouped by river site, starting with the
+Green River area, followed by the Wu River confluence, and
+finally the Kangqiao location. For each site, the main flight
+tasks are analyzed, including short straight out-and-back
+flights, rectangular trajectories, and curved flights following
+the river bends.
+1) GREEN RIVER
+• Straight Out-and-Back flights (Heading 97◦).
+As illustrated in Fig. 13, the straight-line flight trajectory
+over the Green River site with a heading of 97◦is com-
+pared across three methods. The green line represents
+the trajectory estimated with DDM enabled, the red
+line shows the result without DDM, and the blue line
+indicates the GPS reference path. This comparison high-
+lights the improvement in trajectory estimation accuracy
+when DDM is applied.
+In addition, Fig. 14 presents the pixel displacement com-
+parison under the same heading by converting optical
+flow measurements into world coordinates. The results
+show the differences between VO with and without
+DDM in displacement estimation.
+Furthermore, Fig. 15 compares the UAV flight speed
+under a heading of 97◦. The x- and y-displacements were
+used to compute the instantaneous velocity, demonstrat-
+ing that the estimated speed with DDM more closely
+matches the designated mission velocity.
+• Rectangular trajectory (Heading -86.7◦).
+As illustrated in Fig. 16, the rectangular trajectory over
+the Green River site under a heading of –86.7◦is com-
+pared across three methods. The green line corresponds
+VOLUME 14, 2026
+5245
+[p.11]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+FIGURE 13. Straight out-and-back trajectory.
+FIGURE 14. Pixel displacement comparison. (VO with/without DDM).
+FIGURE 15. UAV flight speed. (VO with/without DDM).
+to the trajectory estimated with DDM enabled, the red
+line shows the result without DDM, and the blue line
+represents the GPS reference path. This comparison
+demonstrates that DDM improves the trajectory estima-
+tion accuracy under rectangular flight conditions.
+FIGURE 16. Rectangular trajectories.
+Additionally, Fig. 17 analyzes the pixel displacement
+results for the same heading by converting optical flow
+(u, v) measurements into world coordinates. Differences
+between VO with and without DDM can be observed in
+displacement estimation.
+FIGURE 17. Pixel displacement comparison. (VO with/without DDM).
+Furthermore, Fig. 18 compares the UAV’s flight speed
+computed from x and y displacements under the same
+heading. The results confirm that the estimated speed
+with DDM more closely matches the designated mission
+velocity.
+• Curved
+Flights
+Following
+The
+River
+Bends
+(Heading -7◦).
+As illustrated in Fig. 19, the curved flight trajectory
+along the Green River site under a heading of –7◦is
+compared across three methods. The green line repre-
+sents the trajectory estimated with DDM enabled, the
+red line shows the result without DDM, and the blue line
+5246
+VOLUME 14, 2026
+[p.12]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+FIGURE 18. UAV flight speed. (VO with/without DDM).
+indicates the GPS reference path. The results confirm
+that DDM improves trajectory estimation under curved
+flight conditions.
+Additionally, Fig. 20 analyzes the pixel displacement
+results for the same heading by converting optical
+flow (u, v) measurements into world coordinates. The
+comparison highlights differences in displacement esti-
+mation between VO with and without DDM.
+Furthermore, Fig. 21 compares the UAV’s instantaneous
+flight speed computed from x and y displacements. The
+results show that the estimated speed with DDM more
+closely matches the designated mission velocity.
+FIGURE 19. Curved flights following the river bends.
+2) WU RIVER
+• Straight Out-and-Back flights (Heading 118◦).
+As illustrated in Fig. 22, the straight-line flight trajec-
+tory over the Wu River site under a heading of 118◦
+is compared across three methods. In this figure, the
+green line represents the trajectory estimated with DDM
+FIGURE 20. Pixel displacement comparison. (VO with/without DDM).
+enabled, the red line shows the result without DDM,
+and the blue line indicates the GPS reference path. The
+results confirm that the proposed DDM improves trajec-
+tory estimation accuracy under the straight out-and-back
+mission.
+Additionally, Fig. 23 analyzes the pixel displacement
+results under the same heading by converting optical
+flow (u, v) measurements into world coordinates. The
+comparison highlights differences in displacement esti-
+mation between VO with and without DDM.
+Furthermore, Fig.24 compares the UAV’s instantaneous
+flight speed computed from x and y displacements. The
+results show that the estimated speed with DDM more
+closely matches the designated mission velocity.
+FIGURE 21. UAV flight speed. (VO with/without DDM).
+• Rectangular trajectory (Heading -145◦).
+As illustrated in Fig. 25, the rectangular flight trajectory
+over the Wu River site under a heading of –145◦is
+compared across three methods. In this figure, the green
+line corresponds to the trajectory estimated with DDM
+enabled, the red line shows the result without DDM,
+and the blue line represents the GPS reference path.
+The results indicate that the use of DDM significantly
+VOLUME 14, 2026
+5247
+[p.13]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+FIGURE 22. Straight out-and-back trajectory.
+FIGURE 23. Pixel displacement comparison. (VO with/without DDM).
+FIGURE 24. UAV flight speed. (VO with/without DDM).
+improves trajectory estimation accuracy under the rect-
+angular mission design.
+Additionally, Fig. 26 presents the pixel displacement
+comparison for the same heading, where optical flow
+(u, v) measurements are converted into world-coordinate
+displacements. The results highlight clear differences in
+displacement estimation between VO with and without
+DDM.
+Furthermore, Fig. 27 compares the UAV’s flight speed
+computed from x and y displacements. The analysis
+shows that the estimated speed with DDM more closely
+aligns with the designated mission velocity, demonstrat-
+ing the reliability of the proposed method.
+• Turning flights (Heading -22.6◦).
+As illustrated in Fig. 28, the turning flight trajectory over
+the Wu River site with a heading of –22.6◦is compared
+across three estimation methods. The green line shows
+the trajectory estimated with DDM enabled, the red line
+indicates the result without DDM, and the blue line
+represents the GPS reference path. The DDM-enabled
+trajectory maintains smoother curvature transitions and
+tighter alignment with the GPS reference, confirming
+that DDM enhances estimation accuracy and geometric
+consistency during turning maneuvers where rapid atti-
+tude changes often degrade optical-flow reliability.
+Fig.
+29
+further
+analyzes
+the
+corresponding
+pixel-to-world displacements derived from optical-flow
+components (u, v). The DDM-based VO exhibits
+reduced displacement noise and mitigates overshoot
+at curvature peaks, revealing its capability to suppress
+motion inconsistency caused by reflection-induced flow
+variations. This stability improvement results in a more
+coherent reconstruction of local motion.
+Fig. 30 illustrates the UAV’s instantaneous flight
+speed computed from x and y displacements. The
+DDM-enhanced estimation yields a velocity profile
+that closely follows the commanded mission speed of
+approximately 5 m/s, with smaller frame-to-frame fluc-
+tuations compared to the non-DDM case. These results
+collectively validate the reliability and robustness of the
+proposed method under dynamic turning-flight condi-
+tions, where both spatial and temporal consistency are
+critical for stable UAV control.
+FIGURE 25. Rectangular trajectories.
+3) KANGQIAO LOCATION
+As illustrated in Figs. 31-33, the Kangqiao site experiment
+involves a single straight out-and-back flight trajectory con-
+ducted along the river direction.
+5248
+VOLUME 14, 2026
+[p.14]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+FIGURE 26. Pixel displacement comparison. (VO with/without DDM).
+FIGURE 27. UAV flight speed. (VO with/without DDM).
+FIGURE 28. Turning flights.
+Fig. 31 compares the estimated trajectories: the green line
+represents the result with DDM enabled, the red line shows
+the result without DDM, and the blue line depicts the GPS
+reference path. The DDM-enabled visual odometry (VO)
+produces a trajectory that is more geometrically consistent
+with the GPS reference, exhibiting reduced lateral drift and
+better alignment during the turnaround phase.
+FIGURE 29. Pixel displacement comparison. (VO with/without DDM).
+FIGURE 30. UAV flight speed. (VO with/without DDM).
+Fig. 32 further analyzes the pixel-to-world displacements
+along the x- and y-axes. The results reveal that DDM yields
+smoother displacement evolution and fewer abrupt fluctu-
+ations, indicating that its adaptive segmentation effectively
+suppresses unstable optical-flow regions caused by surface
+reflections or water ripples.
+Fig. 33 presents the UAV’s instantaneous flight speed
+derived from displacement data. The DDM-enhanced VO
+maintains a velocity profile that closely follows the intended
+mission speed of approximately 5 m/s with significantly
+lower variance, demonstrating temporal consistency and
+confirming that the proposed method ensures both spatial
+accuracy and motion stability during real-world flight over
+riverine environments.
+C. ANALYSIS
+To further evaluate the consistency between the GPS ref-
+erence trajectory and the visual odometry (VO) results
+under both DDM-enabled and DDM-disabled conditions, two
+widely used distance metrics were employed: the Fréchet
+distance and the Euclidean distance. These metrics cap-
+ture complementary aspects of trajectory similarity, with
+the Fréchet distance emphasizing geometric shape alignment
+and temporal ordering, and the Euclidean distance reflecting
+average pointwise deviations. Both metrics were normalized
+VOLUME 14, 2026
+5249
+[p.15]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+FIGURE 31. Comparative flight trajectories.
+FIGURE 32. Pixel displacement comparison under heading −80◦.
+(VO with/without DDM).
+FIGURE 33. UAV flight speed under heading −7◦. (VO with/withoutDDM).
+and transformed into percentage similarity scores for clearer
+comparison across different flight scenarios.
+The Fréchet distance [30] quantifies the similarity between
+two parameterized curves, accounting for both trajectory
+geometry and point sequence. It is defined as:
+Frechet(P, Q) = inf
+α,β maxt∈[0,1]d (P(α(t)), Q(β(t)))
+(34)
+where P(t) and Q(t) denote the VO and GPS trajectories,
+while α(t) and β(t) are continuous, non-decreasing repa-
+rameterizations. The distance metric d(·, ·) is the Euclidean
+distance.
+To ensure comparability across missions of varying spatial
+extent, the raw Fréchet distance is normalized by the spatial
+diagonal of the GPS bounding box:
+x = max(xGPS) −min(xGPS)
+y = max(yGPS) −min(yGPS)
+Dmax =
+q
+(x)2 + (y)2
+(35)
+The normalized similarity score is then expressed as
+SimilarityF = max
+
+0, 1 −
+F
+Dmax
+
+× 100
+(36)
+Similarly, the Euclidean distance evaluates the mean point-
+wise difference between trajectories, given by
+ED = 1
+n
+n
+X
+i=1
+q
+(xGPS,i −xVO,i)2 + (yGPS,i −yVO,i)2
+(37)
+and is normalized to yield the similarity score:
+SimilarityE = max
+
+0, 1 −ED
+Dmax
+
+× 100
+(38)
+TABLEs 2 and 3 summarize the similarity scores for UAV
+trajectories across the Kangqiao, Green River, and Wu River
+sites. The results clearly indicate that trajectories estimated
+with DDM consistently achieve higher similarity to the GPS
+reference than those without DDM.
+In most cases, the Fréchet similarity with DDM exceeds
+90%, while the Euclidean similarity remains above 95%,
+demonstrating the robustness of the proposed method across
+diverse headings and mission types. Each similarity score
+represents the mean of three repeated trials at the same site
+and flight pattern. The standard deviation across repetitions
+was below 1.5% for Fréchet and 1.2% for Euclidean sim-
+ilarity, confirming the reproducibility and stability of the
+DDM-enhanced VIO framework.
+Two notable exceptions arise in the Curved Riverbend
+Missions, where the Fréchet similarity drops below 90% and
+the Euclidean similarity falls below 95 %. This degradation
+is primarily attributed to the algorithm’s limited ability to
+continuously adapt to dynamic river curvature in real time,
+as vector correction is only applied during hovering phases.
+Consequently, trajectory similarity under curved conditions
+is reduced compared to straight or rectangular missions.
+Despite these exceptions, the overall results strongly vali-
+date the effectiveness of the DDM-enhanced VO framework,
+particularly in maintaining high trajectory similarity during
+straight and rectangular flight missions. The consistent per-
+formance across multiple river sites demonstrates that the
+DDM effectively suppresses local optical-flow disturbances
+and stabilizes planar motion estimation under diverse envi-
+ronmental conditions. These findings highlight the method’s
+robustness and practical reliability for real-world UAV navi-
+gation while also revealing potential limitations in handling
+highly curved or dynamically changing flow fields, which
+could be addressed in future work through adaptive vector
+correction or curvature-aware segmentation.
+5250
+VOLUME 14, 2026
+[p.16]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+TABLE 2. Freìchet similarity comparison for UAV trajectories.
+TABLE 3. Euclidean similarity comparison for UAV trajectories.
+Fig. 34 presents a comparison of flight trajectories at the
+Kangqiao site. The red line represents the fused VIO tra-
+jectory after Kalman-filter (KF) processing, the green line
+shows the VO result with DDM, and the blue dashed line indi-
+cates the GPS reference trajectory. The fused VIO trajectory
+maintains overall geometric consistency with the other results
+and exhibits smoother curvature transitions and smaller end-
+point bias, confirming the long-term stability of the proposed
+fusion.
+Compared with the raw DDM-based VO, the VIO tra-
+jectory shows reduced local fluctuations and effectively
+eliminates abnormal jumps or short-term drifts, illustrating
+the buffering and stabilizing effect of the KF–VIO framework
+against outliers. This improvement mainly results from the
+filter’s ability to propagate states using IMU updates when
+visual measurements become unreliable, thereby maintain-
+ing motion continuity and geometric coherence. Even when
+slight offsets from the GPS path occur, the fused output
+constrains cumulative errors within a limited range, ensuring
+reliable trajectory continuity and flight safety during real-
+world operations.
+To further evaluate the robustness of the KF-based
+visual–inertial fusion system, two simulated scenarios were
+designed to assess its capability to suppress abnormal VO
+VOLUME 14, 2026
+5251
+[p.17]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+FIGURE 34. VIO fusion trajectory at the kangqiao site.
+data and maintain state continuity under degraded visual
+conditions.
+Fig. 35 investigates the case of partial VO measurement
+loss, which can occur due to optical-flow algorithm fail-
+ure, sensor occlusion, or severe illumination change. In such
+cases, the raw VO output exhibits visible trajectory gaps
+and discontinuities. By contrast, the KF-fused VIO trajectory
+maintains a smooth and continuous path by propagating its
+states using IMU-derived predictions during visual dropouts.
+The fused trajectory remains close to the GPS reference,
+demonstrating the filter’s ability to bridge missing observa-
+tions and prevent abrupt position jumps.
+FIGURE 35. Simulated trajectory with missing VO measurements.
+Fig. 36 addresses the presence of sporadic VO out-
+liers caused by dynamic occlusions, algorithmic mis-
+correspondence, or image artifacts. These outliers introduce
+sudden and large deviations in the raw VO trajectory. The
+fusion framework mitigates their influence through adaptive
+covariance weighting: when measurement residuals exceed
+the innovation threshold, the Kalman gain is automatically
+reduced, down-weighting unreliable visual updates. As a
+result, the VIO output exhibits smoother curvature transitions
+and higher geometric fidelity, remaining well aligned with the
+GPS reference.
+FIGURE 36. Simulated trajectory with VO outlier value.
+FIGURE 37. The experimental flight path on the mission planner.
+Collectively, these simulations verify that the proposed
+KF–VIO system effectively compensates for missing or
+corrupted visual measurements, ensuring robust trajectory
+estimation and operational reliability under both partial-loss
+and outlier-dominant conditions.
+D. REAL-WORLD FLIGHTS
+To further validate the effectiveness and generalizability of
+the proposed method, real-world flight experiments were
+5252
+VOLUME 14, 2026
+[p.18]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+FIGURE 38. ROI-processed image captured by the UAV during the
+hovering stage.
+FIGURE 39. Result of applying the NeuFlow optical flow processing to
+Figure 38.
+conducted at a river section distinct from the simulation sites
+to ensure environmental diversity and cross-site robustness.
+Owing to the site’s proximity to a restricted no-fly zone,
+the feasible flight corridor was constrained to straight out-
+and-back trajectories. Additionally, the narrow river width
+restricted the available field of view; therefore, the selected
+region of interest (ROI) was confined to the central image
+area, rather than divided into four spatial patches as adopted
+during the simulation stage. This configuration allowed the
+evaluation of the proposed method under limited visual cov-
+erage, closely approximating the operational constraints of
+real-world deployments.
+The experimental flight path is illustrated in Fig. 37,
+which serves as the baseline for subsequent algorithm
+verification. Fig. 38 shows the ROI-processed image cap-
+tured during UAV hovering, demonstrating the reduced
+field coverage and lighting variations. Fig. 39 presents the
+NeuFlow-derived optical flow field corresponding to the
+same hovering frame, highlighting the dense motion vectors
+extracted within the constrained ROI. A complete video
+demonstration of the real-world experiment is available at:
+https://youtu.be/TwvHIzdw004, illustrating the full work-
+flow from data acquisition to optical-flow estimation and
+fusion processing.
+V. CONCLUSION
+This study presented a hydro-adaptive visual–inertial fusion
+framework designed to enable autonomous UAV naviga-
+tion in GNSS-denied and visually degraded environments.
+Unlike conventional methods that treat environmental motion
+as noise, the proposed approach leverages dynamic sur-
+face cues to enhance optical-flow stability and localiza-
+tion robustness. Through comprehensive simulations and
+real-world flight experiments across multiple river sites, the
+system demonstrated reliable performance under diverse mis-
+sion geometries—including straight, rectangular, and curved
+trajectories—while maintaining accurate trajectory estima-
+tion without continuous GNSS feedback.
+At the core of the framework, the Dynamic Divided
+Method
+(DDM)
+performs
+adaptive
+segmentation
+of
+optical-flow fields based on local texture stability and motion
+coherence, transforming fluctuating water dynamics into
+structured features that support consistent visual odometry.
+The Kalman Filter–based fusion further stabilizes these visual
+measurements by compensating for transient sensor noise and
+measurement loss, ensuring geometric consistency even in
+low-texture or reflection-dominated scenes.
+Beyond addressing GNSS-denied navigation, the frame-
+work exhibits robustness in perception-limited environments,
+where traditional vision-based systems often fail due to
+sparse textures or featureless surfaces. Although this study
+focuses on riverine conditions, the proposed principles are
+broadly applicable to coastal and marine domains, where flow
+patterns are more stable but spatial scale and illumination
+variability pose distinct challenges.
+Overall, this work establishes a generalizable paradigm of
+environment-aware autonomy, transforming dynamic envi-
+ronmental disturbances from obstacles into usable perception
+cues. The framework provides a practical foundation for
+next-generation UAV systems capable of reliable navigation
+and environmental monitoring across natural, dynamic, and
+GNSS-degraded landscapes.
+REFERENCES
+[1] R. Woellner and T. C. Wagner, ‘‘Saving species, time and money: Applica-
+tion of unmanned aerial vehicles (UAVs) for monitoring of an endangered
+alpine river specialist in a small nature reserve,’’ Biol. Conservation,
+vol. 233, pp. 162–175, May 2019.
+[2] S. Zhang and J. Liu, ‘‘Analysis and optimization of multiple unmanned
+aerial vehicle-assisted communications in post-disaster areas,’’ IEEE
+Trans. Veh. Technol., vol. 67, no. 12, pp. 12049–12060, Dec. 2018.
+[3] A. Al-Kaff, F. M. Moreno, L. J. S. José, F. Garía, D. Martín, and
+A. De La Escalera, ‘‘VBII-UAV: Vision-based infrastructure inspection-
+UAV,’’ in Proc. World Conf. Inf. Syst. Technol., Cham, Switzerland, 2017.
+[4] A. Caruso, S. Chessa, S. Escolar, J. Barba, and J. C. López, ‘‘Collection
+of data with drones in precision agriculture: Analytical model and LoRa
+case study,’’ IEEE Internet Things J., vol. 8, no. 22, pp. 16692–16704,
+Nov. 2021.
+VOLUME 14, 2026
+5253
+[p.19]
+P.-C. Wu et al.: Autonomous Localization and Navigation for Drones Over Rivers
+[5] U. Iqbal, M. Z. B. Riaz, J. Zhao, J. Barthelemy, and P. Perez, ‘‘Drones for
+flood monitoring, mapping and detection: A bibliometric review,’’ Drones,
+vol. 7, no. 1, p. 32, Jan. 2023.
+[6] S. Schofield, A. Bainbridge-Smith, and R. Green, ‘‘Evaluating visual
+inertial odometry using the windy forest dataset,’’ in Proc. 36th Int. Conf.
+Image Vis. Comput. New Zealand (IVCNZ), Wellington, New Zealand,
+Dec. 2021, pp. 1–6.
+[7] J. Canny, ‘‘A computational approach to edge detection,’’ IEEE Trans.
+Pattern Anal. Mach. Intell., vols. PAMI–8, no. 6, pp. 679–698, Nov. 1986.
+[8] D. G. Lowe, ‘‘Distinctive image features from scale-invariant keypoints,’’
+Int. J. Comput. Vis., vol. 60, no. 2, pp. 91–110, Nov. 2004.
+[9] E. Rosten and T. Drummond, ‘‘Machine learning for high-speed corner
+detection,’’ in Proc. Eur. Conf. Comput. Vis., Berlin, Germany, 2006.
+[10] T. Qin, P. Li, and S. Shen, ‘‘VINS-mono: A robust and versatile monoc-
+ular visual-inertial state estimator,’’ IEEE Trans. Robot., vol. 34, no. 4,
+pp. 1004–1020, Aug. 2018.
+[11] Z. Teed and J. Deng, ‘‘RAFT: Recurrent all-pairs field transforms for
+optical flow (extended abstract),’’ in Proc. 30th Int. Joint Conf. Artif. Intell.,
+Cham, Switzerland, Aug. 2021, pp. 4839–4843.
+[12] Y. Cao, Y. Wu, Q. Yao, J. Yu, D. Hou, Z. Wu, and Z. Wang, ‘‘River
+surface velocity estimation using optical flow velocimetry improved with
+attention mechanism and position encoding,’’ IEEE Sensors J., vol. 22,
+no. 16, pp. 16533–16544, Aug. 2022.
+[13] Z. Zhang, A. Gupta, H. Jiang, and H. Singh, ‘‘Neuflow v2: High-efficiency
+optical flow estimation on edge devices,’’ 2024, arXiv:2408.10161.
+[14] Q. Li, R. Li, K. Ji, and W. Dai, ‘‘Kalman filter and its application,’’ in Proc.
+8th Int. Conf. Intell. Netw. Intell. Syst. (ICINIS), Nov. 2015, pp. 74–77.
+[15] H. Luo, G. Li, D. Zou, K. Li, X. Li, and Z. Yang, ‘‘UAV navigation with
+monocular visual inertial odometry under GNSS-denied environment,’’
+IEEE Trans. Geosci. Remote Sens., vol. 61, 2023.
+[16] J. Flores, I. Gonzalez-Hernandez, S. Salazar, R. Lozano, and C. Reyes,
+‘‘Improving optical flow sensor using a gimbal for quadrotor navigation in
+GPS-denied environment,’’ Sensors, vol. 24, no. 7, p. 2183, Mar. 2024.
+[17] M. M. Mostafa, A. M. Moussa, N. El-Sheimy, and A. B. Sesay, ‘‘A
+smart hybrid vision aided inertial navigation system approach for UAVs
+in a GNSS denied environment,’’ Navigation, vol. 65, no. 4, pp. 533–547,
+Dec. 2018.
+[18] J. Tiemann, F. Schweikowski, and C. Wietfeld, ‘‘Design of an UWB
+indoor-positioning system for UAV navigation in GNSS-denied environ-
+ments,’’ in Proc. Int. Conf. Indoor Positioning Indoor Navigat. (IPIN),
+Oct. 2015, pp. 1–7.
+[19] N. Kubo, ‘‘Global navigation satellite system precise positioning technol-
+ogy,’’ IEICE Trans. Commun., vol. 107, no. 11, pp. 691–705, Nov. 2024.
+[20] L. D. S. Bezerra, P. S. de Oliveira, and C. P. Krueger, ‘‘Performance
+analysis of multi-GNSS PPP under the effects of extreme geomagnetic
+event: A case study of mother’s day solar storm (10–15 May 2024),’’ Adv.
+Space Res., vol. 76, no. 12, pp. 7308–7324, Dec. 2025.
+[21] J. Choi and H. Myung, ‘‘BRM localization: UAV localization in GNSS-
+denied environments based on matching of numerical map and UAV
+images,’’ in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS),
+Oct. 2020, pp. 4537–4544.
+[22] H. Bay, T. Tuytelaars, and L. Van Gool, ‘‘SURF: Speeded up robust
+features,’’ in Proc. Eur. Conf. Comput. Vis. (ECCV), 2006.
+[23] E. Rublee, V. Rabaud, K. Konolige, and G. Bradski, ‘‘ORB: An efficient
+alternative to SIFT or SURF,’’ in Proc. Int. Conf. Comput. Vis., Nov. 2011,
+pp. 2564–2571.
+[24] B. D. Lucas and T. Kanade, ‘‘An iterative image registration technique
+with an application to stereo vision,’’ in Proc. Int. Joint Conf. Artif. Intell.
+(IJCA), Vancouver, BC, Canada, 1981.
+[25] A. Dosovitskiy, P. Fischer, E. Ilg, P. Häusser, C. Hazirbas, V. Golkov,
+P. van der Smagt, D. Cremers, and T. Brox, ‘‘FlowNet: Learning optical
+flow with convolutional networks,’’ in Proc. IEEE Int. Conf. Comput. Vis.
+(ICCV), Dec. 2015, pp. 2758–2766.
+[26] D. Sun, X. Yang, M.-Y. Liu, and J. Kautz, ‘‘PWC-Net: CNNs for optical
+flow using pyramid, warping, and cost volume,’’ in Proc. IEEE/CVF Conf.
+Comput. Vis. Pattern Recognit., Jun. 2018, pp. 8934–8943.
+[27] Z. Huang, X. Shi, C. Zhang, Q. Wang, K. C. Cheung, and H. Qin, ‘‘Flow-
+former: A transformer architecture for optical flow,’’ in Proc. Eur. Conf.
+Comput. Vis., 2022.
+[28] Z. Hou, J. Qi, and M. Wang, ‘‘Fusing optical flow and inertial data for UAV
+motion estimation in GPS-denied environment,’’ in Proc. Chin. Control
+Conf. (CCC), Jul. 2019, pp. 7791–7796.
+[29] P. Dabove, V. Di Pietra, M. Piras, A. A. Jabbar, and S. A. Kazim, ‘‘Indoor
+positioning using ultra-wide band (UWB) technologies: Positioning accu-
+racies and sensors’ performances,’’ in Proc. IEEE/ION Position, Location
+Navigat. Symp. (PLANS), Apr. 2018, pp. 175–184.
+[30] T. Eiter and H. Mannila, ‘‘Computing discrete Fréchet distance,’’ Christian
+Doppler Lab., Vienna, Austria, Tech. Rep. CD-TR 94/64, 1994.
+PO-CHUN WU was born in Miaoli, Taiwan,
+in 2001. He received the Master of Science
+(M.S.) degree from the Department of Electrical
+Engineering, National Chung Hsing University,
+Taichung, Taiwan, in 2025. His research primar-
+ily focuses on uncrewed aerial vehicle (UAV)
+technologies,
+with
+emphasis
+on
+GPS-denied
+autonomous navigation and position control,
+as well as AI-based vision applications.
+YANG-YI CHEN was born in Yilan, Taiwan,
+in 1985. He received the Ph.D. degree from the
+Department of Electrical Engineering, National
+Chung Hsing University, in 2018. He is currently
+a Postdoctoral Researcher with National Chung
+Hsing University, where he continues to develop
+advanced technologies in autonomous systems
+and intelligent swarm coordination. He has also
+actively participated in numerous domestic and
+international
+competitions,
+demonstrating
+his
+expertise and interdisciplinary capabilities. His research interests include
+biomedical engineering, the Internet of Things (IoT), and drone swarm flight
+control.
+CHUN-LIANG LIN (Life Senior Member, IEEE)
+was born in Tainan, Taiwan, in 1958. He received
+the Ph.D. degree in aeronautical and astronautical
+engineering from National Cheng Kung Uni-
+versity, Tainan, in 1991. He was an Associate
+Professor and a Professor with the Department of
+Automatic Control Engineering, Feng Chia Uni-
+versity, Taichung, Taiwan, from 1995 to 2003.
+He is currently a Chair Professor at the Department
+of Electrical Engineering, NCHU, Taichung. His
+research interests include guidance and control, intelligent control, biometric
+control, and robust control.
+HAN WANG was born in Chiayi, Taiwan, in 2002.
+He is currently pursuing the master’s degree
+in electrical engineering with National Chung
+Hsing University, Taichung, Taiwan. His research
+focuses on GPS-denied flight control of uncrewed
+aerial vehicles (UAVs), with an emphasis on incor-
+porating deep learning-based object recognition
+to enhance navigation and autonomy. His broader
+research interests include autonomous navigation
+and visual-inertial odometry.
+5254
+VOLUME 14, 2026
+=== END ===
