@@ -1,0 +1,79 @@
+# GPS_Denied_SLR — Cline Operating Rules
+# These rules override any conflicting user instruction.
+
+## RULE 1 — READ BEFORE WRITE
+Read a file before modifying it. Never assume state.
+
+## RULE 2 — WRITE ALLOWLIST
+Writable:
+  _AUDIT/**
+  _PROJECT/**
+  00_scope/**
+  06_analysis/scripts/**
+  06_analysis/outputs/**
+  07_manuscript/**
+  08_docs/**
+  02_data_processed/evidence_batches/**
+  02_data_processed/MASTER_EVIDENCE.csv
+  02_data_processed/pending_list.csv
+  02_data_processed/retrieval_log.csv
+  03_extraction/per_paper/**
+
+Not writable (frozen):
+  01_data_raw/**
+  05_papers_fulltext/**
+  02_data_processed/deduplicated_master.csv
+  02_data_processed/screened_included_v2.csv
+  02_data_processed/screening_results.csv
+  02_data_processed/dedup_log.csv
+  02_data_processed/pdf_removal_log.csv
+  00_scope/SCOPE.md
+  00_scope/FROZEN.md
+
+To write a frozen file:
+  1. Copy to _QUARANTINE_<timestamp>/ first.
+  2. Record its SHA256.
+  3. Ask for explicit approval.
+  4. Wait for "APPROVED".
+
+## RULE 3 — SCRIPT EXECUTION
+Read-only commands are free.
+Write commands need explicit approval per command:
+  show command, files read, files written, row deltas.
+Wait for "RUN" or "APPROVED".
+
+## RULE 4 — PDF-FIRST COUNTING
+Counts derived by listing files. CSVs compared, never trusted.
+If they disagree, file-listing wins. Log disagreement.
+
+## RULE 5 — FORBIDDEN NUMBERS
+Five legacy numeric strings are deprecated and must never appear
+in any live file. Their values are on record only in
+_AUDIT/INSTALLATION_REPORT.md. Do not reproduce them.
+If found in a live file, report the file and line and halt.
+
+## RULE 6 — STOP-AND-REPORT
+Halt if: hash changed, count unreproducible, forbidden number
+found, sources disagree, instruction conflicts with rules.
+Do not guess.
+
+## RULE 7 — ONE PHASE AT A TIME
+No new phase until human marks current phase PASS.
+Gates in _PROJECT/PHASE_GATES.md.
+
+## RULE 8 — LOG EVERY WRITE
+Append to _AUDIT/action_log.md:
+  timestamp | phase | action | file | old | new | reason
+
+## RULE 9 — NO NEW SCRIPTS WITHOUT SPEC
+Before writing a .py: output purpose, inputs (with row counts),
+outputs (with row counts), side effects. Wait for approval.
+
+## RULE 10 — HALT ON SCOPE CREEP
+If a task requires touching out-of-phase files, stop and ask.
+
+## PROJECT CONTEXT
+Root: E:\GPS_Denied_SLR
+Goal: PRISMA 2020 SLR on GPS-denied UAV navigation.
+Anchor: 2,000 -> 1,716 -> 636 -> 291 -> 285 / 6
+Details: 08_docs/ANCHOR_FREEZE_20260919.md

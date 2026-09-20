@@ -1,0 +1,206 @@
+You are screening a single paper for a PRISMA 2020 systematic literature
+review on GPS-denied UAV navigation and localization. Apply screening
+criteria v2 exactly as given. Decide include, exclude, or borderline_exclude.
+
+The criteria text below is copied VERBATIM from
+00_scope/screening_criteria_v2.md (approved 2026-09-15 via RULINGS.md,
+with the R1 rate band incorporated). Criteria SHA-256: 71fac4ba0dd42247c3d9d87fc723abc3e14094a1d51efb172054d7069525a0e5
+
+--- CRITERIA v2 (verbatim) ---
+## 1. Inclusion criteria — I1 … I6
+
+A paper is included **only if I1 through I6 all hold.**
+
+| Code | Criterion |
+|---|---|
+| **I1** | Platform is a UAV/drone (fixed-wing, rotary-wing, or hybrid), **or** the method is explicitly stated to be transferable to UAVs. Ground/surface/underwater UxVs are included only when an explicit UAV comparison is present. |
+| **I2** | **The paper's PRIMARY claimed contribution is GNSS-denied navigation or localization.** If removing the GPS-denied setting would not change the paper's main claim, the paper is excluded. The GPS/GNSS-denied condition must be a stated core focus, not a peripheral assumption or experimental convenience. |
+| **I3** | Quantitative localization or navigation results are reported (for example ATE, RMSE, RPE, drift %, success rate, or an equivalent metric). |
+| **I4** | Peer-reviewed publication (journal article or conference paper). |
+| **I5** | Published within 2010-01-01 → 2026-06-30. |
+| **I6** | Written in English. |
+
+> **I2 is the defining change in v2.** v1 screening reached a 94–98% inclusion
+> rate precisely because I2 did not exist; papers that merely *mention*
+> GPS-denied operation were admitted.
+
+---
+
+## 2. Exclusion criteria — E1 … E8
+
+A paper is excluded if **any one** of E1 … E8 applies. Every excluded paper must
+carry **at least one** E-code; the code is what gets counted in
+`screened_excluded_v2.csv`.
+
+| Code | Exclusion |
+|---|---|
+| **E1** | Purely theoretical or conceptual contribution with no experimental or simulated validation. |
+| **E2** | The GPS/GNSS-denied setting is incidental: removing it would not change the paper's main claim. *(The operational form of an I2 failure — expected to be the most frequent v2 exclusion.)* |
+| **E3** | GPS-augmented rather than GPS-denied: GNSS is a fusion input or a used sensor, not the denied modality. |
+| **E4** | Out of scope subject matter: pure communication or networking protocol papers, antenna/RF hardware design, orbital or astrodynamics work, pedestrian or road-vehicle navigation, satellite payload design. |
+| **E5** | Non-UAV platform with no result explicitly transferable to UAVs. |
+| **E6** | Not peer-reviewed: preprint, grey literature, technical report, thesis, editorial, or other non-archival item. Also applied when the record is abstract-only, no full text is retrievable, **and** the abstract alone cannot satisfy I3. |
+| **E7** | Published outside 2010-01-01 → 2026-06-30. |
+| **E8** | Not written in English. |
+
+---
+
+## 3. Decision rule
+
+- If **I1–I6 all clearly hold** and **no E-code applies** → `include`.
+- If **any of I1–I6 clearly fails** or **any E-code applies** → `exclude`.
+- If the evidence is **genuinely ambiguous** at title/abstract level →
+  `borderline_exclude` (§7).
+
+## 4. Code precedence
+
+A paper may appear to trigger several codes. Emit **one primary code** using this
+precedence, highest first:
+
+1. `E7` outside window
+2. `E8` not English
+3. `E6` not peer-reviewed / no retrievable full text
+4. `E4` out of scope subject matter (§2)
+5. `E3` GPS-augmented
+6. `E2` GPS-denied incidental (I2 failure)
+7. `E5` non-UAV, no transferable result
+8. `E1` theoretical only
+
+Rationale: metadata-level disqualifiers are settled before content-level
+judgements, and the I2 failure outranks the other content codes because it is the
+v2 workhorse whose count the calibration gate depends on.
+
+> **ERRATA v2.1 (2026-09-15, agent).** This list previously read
+> "1. `E4` duplicate record", contradicting §2 (E4 = out of scope subject matter),
+> §5 (I1 → "`E4` if the topic is out of scope") and §0.2 (E4 ← `PROTOCOL.md` §4
+> EC3). Three independent locations agree that **E4 = out of scope subject
+> matter**, so this single contradictory line was corrected. **No rule definition
+> changed — only this ordering list.**
+>
+> Duplicate records never reach Stage 1, because deduplication already removed
+> them upstream (`PROTOCOL.md` §7.1), so no E-code for duplicates is needed here.
+>
+> Because the criteria SHA-256 is embedded in every generated prompt, this errata
+> required regenerating `03_prompts/screening_prompts_v2/` and
+> `03_prompts/screening_prompts_v2.jsonl`. **No paper had been screened under the
+> earlier text**, so no screening decision is affected. Recorded in
+> `03_prompts/SCREENING_PROMPT_CHANGELOG.md` and `CHANGELOG.md`.
+
+## 5. I → E mapping (every failing inclusion criterion has an exclusion code)
+
+Because runbook PHASE 5-R requires *"every excluded paper has ≥1 criterion code
+from E1–E8"*, each inclusion failure maps onto one or more E-codes. This table is
+the mapping the screening prompt must use.
+
+| Failing inclusion criterion | Emit E-code |
+|---|---|
+| I1 (platform) | `E4` if the topic is out of scope, otherwise `E5` |
+| I2 (primary contribution) | `E2`, or `E3` when GNSS is actively used as an input |
+| I3 (quantitative results) | `E1`, or `E6` if it is abstract-only with no retrievable full text |
+| I4 (peer-reviewed) | `E6` |
+| I5 (timeframe) | `E7` |
+| I6 (language) | `E8` |
+
+---
+
+## 6. STRICTNESS rules
+
+These exist because v1 screening was far too permissive.
+
+- **S1 — Presumption of exclusion.** When the abstract is genuinely ambiguous,
+  prefer `exclude` / `borderline_exclude` over inclusion. Stage 1 is a filter, not
+  a final judgement; a false include is far more costly than a false exclude,
+  because it contaminates every downstream count.
+- **S2 — Evidence must be explicit.** An inclusion decision must be justified by
+  text actually present in the title or abstract. Do not infer a GPS-denied focus
+  from a keyword alone.
+- **S3 — I2 is strictly enforced.** The paper must *claim* GNSS-denied
+  navigation/localization as a primary contribution — normally visible in the
+  title, or in the abstract's contribution or objective sentence. "GPS-denied" as
+  a passing phrase, an experimental setup detail, a related-work remark, or a
+  future-work aside does **not** satisfy I2.
+- **S4 — Rate guardrail.** Screening run under these criteria must land inside the
+  target inclusion-rate band defined in §10. A rate above that band means the
+  criteria are being applied too loosely, and screening must stop rather than
+  continue.
+- **S5 — No criterion may be waived or added** by the screening agent at run time.
+  Any proposed change must be a versioned criteria edit (`v3`) recorded in
+  `03_prompts/SCREENING_PROMPT_CHANGELOG.md`.
+
+## 7. CONFIDENCE rules
+
+Every decision must carry one of exactly three confidence values. These are
+ordinal labels, **not** probabilities.
+
+| Value | Meaning for a decision |
+|---|---|
+| `high` | The decisive evidence is explicit in the title or abstract, and no plausible alternative reading exists. |
+| `medium` | The decision follows from a reasonable reading of the abstract, but some inference was required. |
+| `low` | The decision cannot be settled from the title and abstract alone; full text would be required to confirm. |
+
+- A `low`-confidence **include** is permitted but must be flagged so it feeds the
+  human-validation sample (runbook PHASE 5-V).
+- A `low`-confidence **exclude** is permitted under S1 and is likewise flagged.
+- Confidence and decision are independent: `include` + `low` is valid.
+
+## 8. BORDERLINE rules
+
+`borderline_exclude` is a third decision value, defined so that near-miss papers
+are counted honestly instead of being silently promoted to `include`.
+
+- **B1 — Definition.** Use `borderline_exclude` when the paper plausibly satisfies
+  **I2 but not I3**, or when it sits right at the edge of the I2 test (the
+  GPS-denied framing is real but is not obviously the primary contribution). A
+  paper that clearly fails any criterion belongs in `exclude`, not here.
+- **B2 — Counting.** `borderline_exclude` **counts as an exclusion** for every
+  inclusion-rate calculation. It never counts toward the included corpus.
+- **B3 — Justification.** Every `borderline_exclude` must name its near-miss code
+  (from E1–E8) and give a one-line justification.
+- **B4 — Review.** All `borderline_exclude` rows are flagged for human review and
+  are over-sampled in the Phase 5-V validation sample.
+- **B5 — Escalation.** If `borderline_exclude` exceeds 15% of the corpus, that is
+  a criteria-quality signal and must be reported as a deviation rather than
+  absorbed silently.
+
+---
+--- END CRITERIA v2 ---
+## 12. Required output schema (per paper)
+
+One JSON per paper, written to `04_ai_responses/screening_v2/resp_<id>.json`:
+
+```json
+{
+  "id": "REC_0001",
+  "decision": "include | exclude | borderline_exclude",
+  "criteria_triggered": ["I2", "E2"],
+  "confidence": "high | medium | low",
+  "one_line_justification": "…"
+}
+```
+
+Rules:
+- `criteria_triggered` must be non-empty. Exclusion and borderline rows must
+  contain **at least one E-code from E1–E8** (runbook verification requirement).
+- For `include`, list the satisfied inclusion codes.
+- The primary code must respect the §4 precedence order and be listed first.
+- `one_line_justification` must quote or paraphrase the abstract evidence used;
+  it must not restate the decision alone.
+
+PAPER UNDER REVIEW
+paper_id: REC_1493
+title: Real-time UAV autonomous localization based on smartphone sensors
+abstract: Localization in GPS-denied environments has become a bottleneck problem for small unmanned aerial vehicles (UAVs). Smartphones equipped with multi-sensors and multi-core processors provide a choice advantage for small UAVs for their high integration and light weight. However, the built-in phone sensor has low accuracy and the phone storage and computing resources are limited, which make the traditional localization methods unable to be readily converted to smartphone-based ones. The paper aims at exploring the feasibility of the phone sensors, and presenting a real-time, less memory autonomous localization method based on the phone sensors, so that the combination of “small UAV+smartphone” can operate in GPS-denied areas regardless of the overload problem. Indoor and outdoor flight experiments are carried out, respectively, based on an off-the-shelf smartphone and a XAircraft 650 quad-rotor platform. The results show that the precision performance of the phone sensors and real-time accurate localization in indoor environment is possible. © 2018 by the authors. Licensee MDPI, Basel, Switzerland.
+
+Respond with ONE JSON object and nothing else, exactly these keys:
+{"paper_id": "REC_1493",
+ "decision": "include" | "exclude" | "borderline_exclude",
+ "criteria_triggered": ["<primary code>", "<...>"],
+ "confidence": "high" | "medium" | "low",
+ "one_line_justification": "<evidence from the title/abstract>"}
+
+Non-negotiable rules:
+- exclude and borderline_exclude MUST cite at least one code from E1-E8;
+- include MUST cite the satisfied codes from I1-I6;
+- list the primary code first, per the section 4 precedence order;
+- never guess: if the abstract is silent on a criterion, it does not hold;
+- Section 6 S1 applies: when genuinely ambiguous, prefer exclusion.
