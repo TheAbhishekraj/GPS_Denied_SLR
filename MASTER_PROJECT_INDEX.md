@@ -164,6 +164,44 @@ Every reported number across all manuscript drafts, tables, and scripts must rep
 
 ---
 
+### 📁 `_AUDIT/` — Cryptographic Audit Trail, Batch Reports & Governance Ledgers
+* **Purpose:** Normative event ledger, cryptographic merge logs for Batches B01–B28, and phase gate verifications.
+* **Audit State:** Audited on 2026-09-27. Manifest added.
+
+| File Link | Size | SHA256 Hash | Role / Status |
+| :--- | :---: | :--- | :--- |
+| [`_AUDIT/README.md`](file:///e:/GPS_Denied_SLR/_AUDIT/README.md) | 2.5 KB | `B0239CBC04F46278EDE8967BDC3E099D6AEFF9AB3C62008FC4544C1BB1BCA505` | **Directory Manifest** |
+| [`_AUDIT/action_log.md`](file:///e:/GPS_Denied_SLR/_AUDIT/action_log.md) | ~196 KB | — | Universal Append-Only Event Ledger |
+| [`_AUDIT/merge_log.csv`](file:///e:/GPS_Denied_SLR/_AUDIT/merge_log.csv) | 5.8 KB | `8299C94D1CD63F56E74B72C7F19E929668CCFF12BFFBA4A485A574FDCBD26A4A` | Batch Merge Ledger (B01–B28) |
+| [`_AUDIT/STATUS_REPORT_20260927.md`](file:///e:/GPS_Denied_SLR/_AUDIT/STATUS_REPORT_20260927.md) | 26.1 KB | `194EF26FE5A8E101BE602F87A656DA41DC486CE2934D251C339B1BDC3CE3B843` | Master Status & Provenance Report |
+| [`_AUDIT/FINDINGS_20260927_CORPUS_INTEGRITY.md`](file:///e:/GPS_Denied_SLR/_AUDIT/FINDINGS_20260927_CORPUS_INTEGRITY.md) | 12.8 KB | `A838ED299EC1B33B05C7221DF2C9D04FEE2F314C98AC2702206B8983AF9C9146` | Authoritative 279-Corpus Reconciliation |
+| [`_AUDIT/PROJECT_COMPILATION_20260927.md`](file:///e:/GPS_Denied_SLR/_AUDIT/PROJECT_COMPILATION_20260927.md) | 18.2 KB | `04C923B330F7C2D90209AE93A4F878D321287B8CE20BC6BC36BBD8B40156A07E` | Project Architecture & Reset Report |
+| [`_AUDIT/INTERPRETIVE_PROGRESS.md`](file:///e:/GPS_Denied_SLR/_AUDIT/INTERPRETIVE_PROGRESS.md) | 12.2 KB | `6E25DCECFE1F6DB7060A5A3FE0C2DA3BE2F188E6B151F9B94FDC3D8C3F5DC046` | Interpretive Progress Ledger |
+| [`_AUDIT/RULE9_SPEC_figures_py.md`](file:///e:/GPS_Denied_SLR/_AUDIT/RULE9_SPEC_figures_py.md) | 8.3 KB | `A2EBA4A8DA2DE5EF92243557F85F8582C98EFB7FECC4A818CD347A2BC3C2FA39` | Approved Figures Specification |
+| [`_AUDIT/batch_B01_report.md`](file:///e:/GPS_Denied_SLR/_AUDIT/batch_B01_report.md) ... [`batch_B28_report.md`](file:///e:/GPS_Denied_SLR/_AUDIT/batch_B28_report.md) | ~15 KB | (28 reports) | Individual Batch Audit Reports |
+
+### 📁 `_PROJECT/` — SLR Governance, Master Prompts & Phase Gates
+* **Purpose:** Core governance charters, formal phase gate checklists, and sequential master execution prompts.
+* **Audit State:** Audited on 2026-09-27. Manifest added.
+
+| File Link | Size | SHA256 Hash | Role / Status |
+| :--- | :---: | :--- | :--- |
+| [`_PROJECT/README.md`](file:///e:/GPS_Denied_SLR/_PROJECT/README.md) | 2.1 KB | `69B2E81B2D794899F235B0C24BFA0F773F83E43AD26AB80373B7077409756749` | **Directory Manifest** |
+| [`_PROJECT/MASTER_PROMPT_3.md`](file:///e:/GPS_Denied_SLR/_PROJECT/MASTER_PROMPT_3.md) | 15.2 KB | `E529335DCDF8839B7914C22FAF09D2E080464FB76364B3CACAAABDE2C08E4F8A` | **Active Operational Prompt (Tasks T1–T8)** |
+| [`_PROJECT/MASTER_PROMPT_1.md`](file:///e:/GPS_Denied_SLR/_PROJECT/MASTER_PROMPT_1.md) | 8.2 KB | `1100A84183F55CB441B48530A329C9B53EB5457FDD8FC726DD6EA34F7FA97682` | Phases 1–4 Gated Execution Prompt |
+| [`_PROJECT/MASTER_PROMPT_2.md`](file:///e:/GPS_Denied_SLR/_PROJECT/MASTER_PROMPT_2.md) | 8.4 KB | `B75B7540A4DFAC9D42500E4AE402C19752D936457B1AB6389A114EF8D7F5C2F8` | Phases 5–9 Gated Execution Prompt |
+| [`_PROJECT/MASTER_PROMPT.txt`](file:///e:/GPS_Denied_SLR/_PROJECT/MASTER_PROMPT.txt) | 3.0 KB | `4777F6AB45291844F967D3EDD79231B31B7474E0A7284AC9C405ADD7B236E424` | Core Rules & Operational Boundaries |
+| [`_PROJECT/PHASE_GATES.md`](file:///e:/GPS_Denied_SLR/_PROJECT/PHASE_GATES.md) | 2.1 KB | `31F81A31117209D46FCBCB55D95F88D2F87A9AA3EEAB93A22457CBACFA363E69` | Gate Pass/Fail Criteria |
+| [`_PROJECT/PROJECT_CHARTER.md`](file:///e:/GPS_Denied_SLR/_PROJECT/PROJECT_CHARTER.md) | 1.1 KB | `FA873A3482FE3C93AF5C595C4FFDCAA9C7D8EC06C7F7E88C2F5EE9D699DFD9E7` | Project Charter & Scope |
+| [`_PROJECT/END_GOAL.md`](file:///e:/GPS_Denied_SLR/_PROJECT/END_GOAL.md) | 1.2 KB | `080C293C63FE078BF8BD035F76DAFA1B882DB666EBBA63A64F7BEFCDC7A65A15` | Target Deliverables Specification |
+
+### 📁 `_MANUAL/` — Primary Human-Verified Frozen Ground Truth
+* **Purpose:** Primary human-verified ground-truth extraction base.
+* **Audit State:** **FROZEN.** 291 markdown extractions (279 in-corpus master evidence + 6 deferred + 6 special handling/excluded). **NEVER modified or deleted.**
+* **Pipeline Synchronization:** Exactly 288 in-scope extractions are mirrored 1:1 in `03_extraction/per_paper/` with 0 cryptographic mismatches.
+
+---
+
 ## 3. Relocated Legacy Archives: `_ARCHIVE/`
 
 To prevent confusion with live PRISMA 2020 statistics, obsolete Generation-1 files have been safely relocated using `git mv` into [`_ARCHIVE/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/):
@@ -201,15 +239,24 @@ To prevent confusion with live PRISMA 2020 statistics, obsolete Generation-1 fil
    - `adjudicated.csv`, `extraction_validation_results.csv`, `extraction_validation_sample.csv`, `reviewer_A.csv`, `reviewer_B.csv`, `sample.csv`, `kappa_report.md`, `extraction_validation_report.md` (172-paper validation data from deprecated 1,700-row run)
 9. **[`_ARCHIVE/legacy_supplementary/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_supplementary/)** (8 items):
    - `S1_prisma_checklist.md`, `S2_search_queries.txt`, `S3_quality_scores.csv` (172 rows), `S4_full_reference_list.bib`, `S5_extracted_master_snapshot_v2.csv` (172 rows), `S6_screening_criteria_v2.md`, `S7_human_validation_report.md`, `S8_extraction_validation_report.md`
+10. **[`_ARCHIVE/quarantines/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/quarantines/)** (48 directories, 11,274 files, 161.64 MB):
+    - Consolidated from root. Preserves all intermediate batch backups and quarantine snapshots while fully un-cluttering the repo root.
+11. **[`_ARCHIVE/legacy_NEXT_STEPS_TO_330.md`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_NEXT_STEPS_TO_330.md)**:
+    - Obsolete 2026-09-17 roadmap targeting 330 papers.
 
 ---
 
-## 4. Upcoming Folders to Review & Clean Up
+## 4. Next Project Execution Steps: Phase 6 Data Enrichment (Tasks T1–T8)
 
-| Directory | Items / Size | Current State | Planned Action |
-| :--- | :---: | :--- | :--- |
-| **`_AUDIT/`** | 55 files (350 KB) | Live audit ledger and batch reports | Clean up stray scratch scripts, add manifest |
-| **`_MANUAL/`** | 291 files (1.5 MB) | **FROZEN manual extraction evidence base** | Preserve and lock |
-| **`_PROJECT/`** | 7 files (40 KB) | Governance & master prompts | Update and maintain |
-| **47 `_QUARANTINE_*`** | ~17,800 files (~180 MB) | Cluttering the root directory | Consolidate into `_ARCHIVE/quarantines/` |
+With workspace decluttering, directory cataloging, and legacy isolation 100% complete, the active project is ready to execute Tasks T1–T8 defined in [`_PROJECT/MASTER_PROMPT_3.md`](file:///e:/GPS_Denied_SLR/_PROJECT/MASTER_PROMPT_3.md):
+
+* **Task T1:** Repair missing `doi` (5 rows) and `year` (5 rows) in `MASTER_EVIDENCE.csv` using canonical `screening_results.csv`.
+* **Task T2:** Parse all 24 interpretive fields from `_MANUAL/abhishek/per_paper/REC_*.md` into `MASTER_EVIDENCE.csv` (enriching beyond the deterministic defaults).
+* **Task T3:** Regenerate `06_analysis/outputs/inference_table.csv` and `evidence_matrix.csv` from enriched master.
+* **Task T4:** Re-evaluate and close the remaining open gaps in BATCH_B14 (`REC_1032`) and BATCH_B17 (`REC_1118`).
+* **Task T5:** Implement and execute `06_analysis/scripts/figures.py` per `_AUDIT/RULE9_SPEC_figures_py.md` to produce figures F2–F9.
+* **Task T6:** Resolve the 13 `[UNRESOLVED]` markers in [`07_manuscript/MANUSCRIPT_V2.md`](file:///e:/GPS_Denied_SLR/07_manuscript/MANUSCRIPT_V2.md) (including screening independence Case selection).
+* **Task T7:** Compile and verify IEEE LaTeX manuscript (`07_manuscript/GPS_Denied_SLR_IEEE_v2.tex`).
+* **Task T8:** Execute final PRISMA 2020 exit audit and produce submission-ready package.
+
 

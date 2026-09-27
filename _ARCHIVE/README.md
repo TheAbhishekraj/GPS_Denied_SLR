@@ -83,3 +83,14 @@ Relocated on 2026-09-27 from `10_validation/`:
 Relocated on 2026-09-27 from `supplementary/`:
 * `S1_prisma_checklist.md`, `S2_search_queries.txt`, `S3_quality_scores.csv` (172 rows), `S4_full_reference_list.bib`, `S5_extracted_master_snapshot_v2.csv` (172 rows), `S6_screening_criteria_v2.md`, `S7_human_validation_report.md`, `S8_extraction_validation_report.md`.
 
+### 📁 `quarantines/` (48 directories, 11,274 files, 161.64 MB)
+Relocated on 2026-09-27 from repository root:
+* All 48 `_QUARANTINE_*` directories created during batch merges and backups (e.g. `_QUARANTINE_20260919_195014`, `_QUARANTINE_FULL_RESET`, `_QUARANTINE_SCOPE_20260927`, etc.).
+* Helper scripts: `copy_to_quarantine.ps1`, `create_quarantine.ps1`, `verify_quarantine.ps1`.
+* *Note:* Completely un-clutters the repository root while retaining 100% cryptographic historical recovery capabilities.
+
+### 📄 `legacy_NEXT_STEPS_TO_330.md`
+Relocated on 2026-09-27 from repository root:
+* Obsolete roadmap dated 2026-09-17 written for the deprecated 171-to-330 paper target. Superseded by PRISMA 2020 279 in-corpus methodology.
+
+
