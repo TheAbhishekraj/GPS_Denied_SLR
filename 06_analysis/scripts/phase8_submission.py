@@ -1,4 +1,10 @@
-# SUBMISSION CHECKLIST — GPS_Denied_SLR
+#!/usr/bin/env python3
+import os
+
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+CHECKLIST = os.path.join(REPO, "07_manuscript", "SUBMISSION_CHECKLIST.md")
+
+content = """# SUBMISSION CHECKLIST — GPS_Denied_SLR
 
 Status: **[READY FOR HUMAN REVIEW]**
 
@@ -62,3 +68,7 @@ the frozen anchor (08_docs/ANCHOR_FREEZE_20260919.md), per-batch page text
 
 ## Attestation
 - No submission made yet. Awaiting final human authorization.
+"""
+with open(CHECKLIST, "w", encoding="utf-8") as f:
+    f.write(content)
+print("Updated SUBMISSION_CHECKLIST.md")

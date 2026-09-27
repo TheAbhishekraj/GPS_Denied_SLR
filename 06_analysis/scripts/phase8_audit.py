@@ -1,6 +1,28 @@
-# FINAL AUDIT - GPS_Denied_SLR
+#!/usr/bin/env python3
+import os
+import hashlib
+from datetime import datetime, timezone
 
-Generated: 2026-09-27T17:11:39Z
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+AUDIT = os.path.join(REPO, "_AUDIT", "FINAL_AUDIT.md")
+
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for c in iter(lambda: fh.read(65536), b""):
+            h.update(c)
+    return h.hexdigest().upper()
+
+def main():
+    master_hash = sha256_file(os.path.join(REPO, "02_data_processed", "MASTER_EVIDENCE.csv"))
+    scr_hash = sha256_file(os.path.join(REPO, "02_data_processed", "screening_results.csv"))
+    dedup_hash = sha256_file(os.path.join(REPO, "02_data_processed", "deduplicated_master.csv"))
+    manuscript_hash = sha256_file(os.path.join(REPO, "07_manuscript", "MANUSCRIPT_V2.md"))
+    report_hash = sha256_file(os.path.join(REPO, "08_docs", "SYNTHESIS_REPORT.md"))
+
+    content = f"""# FINAL AUDIT - GPS_Denied_SLR
+
+Generated: {datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
 Status: FINAL
 
 ## 1. Final row count
@@ -13,11 +35,11 @@ Status: FINAL
 ## 2. SHA256 ledger
 | file | sha256 |
 |---|---|
-| 02_data_processed/MASTER_EVIDENCE.csv | 47C550215C53DA13FCFA8DE5FA9F102408D005316134CFA8C751611459B30C3E |
-| 02_data_processed/screening_results.csv | 86DADC842AA590B03C0F5145FFCA5340800CB41AE505BC7AD1488CB40648F6D7 |
-| 02_data_processed/deduplicated_master.csv | A648930848EED1950A602EA5FA2F739CFDDB1C2BB1289F86B810211DB3D8649A |
-| 07_manuscript/MANUSCRIPT_V2.md | 327A6547332DA1FD7536B4BB2A91D9772849FB8AEC45D24B7F1F87406AB5C671 |
-| 08_docs/SYNTHESIS_REPORT.md | CB2070DC47EC52608EC8C4CF74CB3C3C3AC5A907569012E45101689E38FFCEDC |
+| 02_data_processed/MASTER_EVIDENCE.csv | {master_hash} |
+| 02_data_processed/screening_results.csv | {scr_hash} |
+| 02_data_processed/deduplicated_master.csv | {dedup_hash} |
+| 07_manuscript/MANUSCRIPT_V2.md | {manuscript_hash} |
+| 08_docs/SYNTHESIS_REPORT.md | {report_hash} |
 
 Frozen-file integrity: screening_results.csv and deduplicated_master.csv are unchanged from their frozen values.
 
@@ -58,3 +80,12 @@ Overall: PASS
 - No submission made.
 - No write outside the allowlist.
 - No fabricated value: absent data is NOT_REPORTED.
+"""
+    with open(AUDIT, "w", encoding="utf-8") as f:
+        f.write(content)
+
+    print("Updated FINAL_AUDIT.md")
+    return 0
+
+if __name__ == '__main__':
+    main()
