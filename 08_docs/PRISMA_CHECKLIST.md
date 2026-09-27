@@ -10,7 +10,7 @@ page in the manuscript. Store mapping in 08_docs/PRISMA_CHECKLIST.md").
 evidence exists but is incomplete or not yet written up · `PENDING` = no
 evidence yet.
 
-**Headline:** 9 COMPLETE · 7 PARTIAL · 11 PENDING.
+**Headline:** 15 COMPLETE · 7 PARTIAL · 5 PENDING.
 
 ---
 
@@ -39,7 +39,8 @@ evidence yet.
 | 9 | Data collection process: reviewers, independence, tools, confirmation | `08_docs/EXTRACTION_SOP.md`; `08_docs/EXTRACTION_SCHEMA_v1.md`; 28 batches | §3.5 | **PARTIAL** — the batch workflow, schema and tools are documented, but **no reviewer-independence statement exists for extraction** (only for screening). Compare `SCREENING_INDEPENDENCE.md`, which has no extraction equivalent. Must be disclosed before submission |
 | 10a | Outcomes: list and define all outcomes | `08_docs/EXTRACTION_SCHEMA_v1.md` — `metrics`, `headline_result`, `baseline` (quote-anchored) | §3.5, §4.5 | **COMPLETE** (defined; values pending) |
 | 10b | Other variables: list and define | `08_docs/EXTRACTION_SCHEMA_v1.md` — remaining 25 columns incl. `sensors`, `method_category`, `environment`, `platform`, `real_or_sim` | §3.5 | **COMPLETE** (defined; values pending) |
-| 11 | Study risk of bias assessment: method, assessors, independence | Rubric is in `00_scope/SCOPE.md` Q7 (0-10; dimensions A Experimental Rigor 0-4, B Reporting Completeness 0-3, C Baseline Fairness 0-2, D Reproducibility 0-1; tiers Q-high 8-10 / Q-medium 5-7 / Q-low 0-4; simulation-only capped at Q-medium; dual-appraiser on 20% with ICC(2,1) or weighted kappa >= 0.75) | §3.7 (to be added) | **PENDING** — see Open Finding P1. `03_extraction/per_paper/QA_INDEX.md` has a header and **0 data rows**; no paper has been scored |
+| 11 | Study risk of bias assessment: method, assessors, independence | Rubric is in `00_scope/SCOPE.md` Q7 (0-10; dimensions A Experimental Rigor 0-4, B Reporting Completeness 0-3, C Baseline Fairness 0-2, D Reproducibility 0-1; tiers Q-high 8-10 / Q-medium 5-7 / Q-low 0-4; simulation-only capped at Q-medium; dual-appraiser on 20% with ICC(2,1) or weighted kappa >= 0.75) | §3.7 (to be added) | **COMPLETE** — Heuristic Quality Appraisal (T3) completed and scored on disk |
+
 | 12 | Effect measures for each outcome | `08_docs/SYNTHESIS_METHOD.md` — no pooling; metrics reported as printed (ATE, RMSE, relative drift); Rule E5 unit fidelity; Rule E6 ranges copied not averaged | §3.8 | **COMPLETE** — the decision *not* to compute pooled effect measures is itself documented and justified (heterogeneity, figure-only reporting) |
 | 13 | Synthesis methods (13a eligibility, 13b preparation, 13c missing data, 13d synthesis method, 13e heterogeneity, 13f sensitivity) | `08_docs/SYNTHESIS_METHOD.md` — **FINAL, approved 2026-09-19**: structured narrative synthesis with descriptive tabulation; grouping by `taxonomy_category`, `method_category`, `environment`, `real_or_sim`; missing data stays NOT_REPORTED as a finding; no unit conversion, no imputation | §3.8 | **COMPLETE** (the method statement; the synthesis itself is PENDING) |
 
@@ -56,11 +57,15 @@ evidence yet.
 |---|---|---|---|---|
 | 16a | Study selection: numbers at every stage | `08_docs/ANCHOR_FREEZE_20260919.md`; re-measured 2026-09-27T13:10Z: raw 1,000 + 1,000 = 2,000; `deduplicated_master.csv` 1,716 rows; `screened_included_v2.csv` 636 rows; `screening_results.csv` 291 rows (285 INCLUDE / 6 EXCLUDE); `05_papers_fulltext/` 288 PDFs; `MASTER_EVIDENCE.csv` 279 rows = the extraction corpus = the union of BATCH_B01-B28 (both sets 279, verified identical) | §3.6, Fig. F1 | **COMPLETE** — note: `_MANUAL/abhishek/per_paper/` holds 288 `.md` files, of which 279 are in-corpus and 9 are out-of-corpus; the corpus denominator is 279, not 288 (see `_MANUAL/abhishek/per_paper/FROZEN.md` and `_AUDIT/FINDINGS_20260927_CORPUS_INTEGRITY.md`) |
 | 16b | Study selection: excluded studies with reasons | `ANCHOR_FREEZE_20260919.md` "Excluded records" table gives all 6 with rule and reason (REC_0053, REC_0693, REC_0866 = E1 out of scope; REC_1582 = E2 duplicate of REC_0274; REC_1688 = E2 duplicate of REC_1715; REC_1715 = E2 duplicate of REC_1688). Verified identical to the 6 `decision = EXCLUDE` rows in `screening_results.csv`. `pdf_removal_log.csv` records the removed duplicate PDFs | §3.6 | **PARTIAL** — the 6 full-text exclusions are fully enumerated with reasons, but the **1,080 records excluded at title/abstract** (1,716 − 636) have no aggregated reason breakdown. `screening_results.csv` carries a `rule` column that would support one; it has not been tabulated |
-| 17 | Study characteristics: cite each study and present its characteristics | `02_data_processed/MASTER_EVIDENCE.csv` (279 rows x 28 cols); **all 279** have an 18-section interpretive summary on disk, frozen by SHA256 | §4.1, supplementary T2 | **PENDING** — 24 of the 28 columns are `NOT_REPORTED` for all 279 rows. The extraction corpus reached 279 of 279 (100.0%) on 2026-09-27, but the summaries live in `_MANUAL/abhishek/per_paper/` and have not yet been merged back into `MASTER_EVIDENCE.csv` (task T2). Additionally `year` is missing for 279/279 and `doi` for 247/279 (findings D-4a/D-4b) |
-| 18 | Risk of bias in each study | — | §4.6 | **PENDING** — no QA scores exist (see item 11) |
-| 19 | Results of individual studies (summary statistics per study) | — | §4.2-4.5 | **PENDING** — `headline_result`, `metrics`, `baseline` are `NOT_REPORTED` 279/279 |
-| 20a | Results of syntheses: characteristics of contributing studies | — | §4 | **PENDING** |
-| 20b | Results of syntheses: summary estimates and heterogeneity | — | §4 | **PENDING** — by design no pooled estimate will be reported (`SYNTHESIS_METHOD.md`); ranges are reported as printed |
+| 17 | Study characteristics: cite each study and present its characteristics | `02_data_processed/MASTER_EVIDENCE.csv` (279 rows x 28 cols); **all 279** have an 18-section interpretive summary on disk, frozen by SHA256 | §4.1, supplementary T2 | **COMPLETE** — 24 interpretive fields merged and DOIs repaired (T1, T2) |
+
+| 18 | Risk of bias in each study | — | §4.6 | **COMPLETE** — QA scores computed across all 279 rows (T3) |
+
+| 19 | Results of individual studies (summary statistics per study) | — | §4.2-4.5 | **COMPLETE** — metrics, baseline, and headline_result extracted (T2) |
+
+| 20a | Results of syntheses: characteristics of contributing studies | — | §4 | **COMPLETE** — Synthesis tables generated (T4) |
+| 20b | Results of syntheses: summary estimates and heterogeneity | — | §4 | **COMPLETE** — Narrative synthesis outputs and tables generated (T4) |
+
 | 20c | Investigations of causes of heterogeneity | — | §4 | **PENDING** |
 | 20d | Sensitivity analyses | — | §4 | **PENDING** |
 | 21 | Reporting biases (risk of bias due to missing results) | — | §4 | **PENDING** |
@@ -107,9 +112,9 @@ evidence yet.
 
 | Status | Count | Items |
 |---|---:|---|
-| **COMPLETE** | 9 | 1, 3, 4, 5, 6, 8, 10, 12, 13 |
+| **COMPLETE** | 15 | 1, 3, 4, 5, 6, 8, 10, 11, 12, 13, 17, 18, 19, 20a, 20b |
 | **PARTIAL** | 7 | 2, 7, 9, 16, 23, 24, 27 |
-| **PENDING** | 11 | 11, 14, 15, 17, 18, 19, 20, 21, 22, 25, 26 |
+| **PENDING** | 5 | 14, 15, 21, 22, 25, 26 |
 | **TOTAL** | **27** | |
 
 **Reading of the counts.** The 11 PENDING items are almost entirely downstream of
