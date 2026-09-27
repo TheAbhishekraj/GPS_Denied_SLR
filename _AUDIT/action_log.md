@@ -787,3 +787,14 @@ A N C H O R _ F R E E Z E _ 2 0 2 6 0 9 1 9 . m d :   B E F O R E = 0 3 2 7 6 1 
 
 
 
+
+2026-09-27T14:38:00Z | PROTOCOL | BACKUP | 00_scope/SCOPE.md -> _QUARANTINE_SCOPE_20260927/SCOPE.md.orig | sha256: 2126485248762E0DC9ECC4E96A07AE9BEAB3F4E380EC86CE3E9FD09C3370B861 | reason: pre-edit backup prior to Option 2 in-place peer-audit revisions
+2026-09-27T14:38:00Z | PROTOCOL | UPDATE & RE-FREEZE | 00_scope/SCOPE.md | old-sha256: 2126485248762E0DC9ECC4E96A07AE9BEAB3F4E380EC86CE3E9FD09C3370B861 | new-sha256: 94E9E287D7BDA1D63224EF48B9C95D633CAB0828EAF2B9164CB092F0499664A4 | reason: peer audit revisions (Option 2 human approved) - operational definitions for multi-sensor fusion/taxonomies, verbatim PRISMA-S queries from SEARCH_LOG.md, partial 2026 window clarification, E8-E10 additions, and simulation score cap clarification
+2026-09-27T14:38:00Z | PROTOCOL | UPDATE | 00_scope/FROZEN.md | sha256 updated to 94E9E287D7BDA1D63224EF48B9C95D633CAB0828EAF2B9164CB092F0499664A4 | reason: refreeze protocol at V2.0 following peer audit
+2026-09-27T14:51:00Z | CLEANUP | ARCHIVE | Relocated 8 legacy Generation-1 files from 02_data_processed/ to _ARCHIVE/legacy_02_data_processed/ via git mv | files: ['summary.txt', 'MASTER_EVIDENCE_V1.xlsx', 'EXTRACTION_NOTES.md', 'EXTRACTION_NOTES_v2.md', 'V1_SCOPE_IDS.txt', 'PENDING_MASTER_EXTENSION_IDS.txt', 'retrieval_log.csv', 'pending_list.csv'] | reason: human-directed workspace cleanup to isolate active PRISMA 2020 pipeline
+2026-09-27T14:51:00Z | WRITE | 02_data_processed/README.md | old: absent | new-sha256: C002C685BF0B269372BA937DB7D01FC52D71CBA593AF90C8D47D648E7723FE78 | reason: directory manifest, PRISMA data flow, schema catalog, and archive log
+2026-09-27T15:00:00Z | WRITE | MASTER_PROJECT_INDEX.md | old: absent | new-sha256: C5943E666033BDF8A08FF1C849664AADAE68902ACAE1D9D7DA242F0B3415DE3B | reason: master project index and audit manifest covering 00_scope to 02_data_processed with cryptographic hashes and file links
+2026-09-27T15:10:00Z | CLEANUP | ARCHIVE | Relocated 3 excluded duplicate extractions from 03_extraction/per_paper/ to _ARCHIVE/legacy_03_extraction/ via git mv | files: ['REC_1582.md', 'REC_1688.md', 'REC_1715.md'] | reason: duplicate PDFs excluded per pdf_removal_log.csv
+2026-09-27T15:10:00Z | SYNC | 03_extraction/per_paper/ synchronized from frozen _MANUAL/abhishek/per_paper/ | 288 of 288 files verified matching SHA256, 0 mismatches | reason: pipeline extraction directory synchronized with frozen human-verified reference corpus
+2026-09-27T15:10:00Z | WRITE | 03_extraction/README.md | old: absent | new-sha256: 77D15D6C401C60A89993E86262ACAEA4491B2020F4E526533C79A3BBDDA94577 | reason: directory manifest, 18-section schema spec, and synchronization status
+2026-09-27T15:10:00Z | UPDATE | MASTER_PROJECT_INDEX.md | updated Section 2 (03_extraction added), Section 3 (legacy_03_extraction added), and Section 4 roadmap
