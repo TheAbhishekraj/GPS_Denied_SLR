@@ -822,3 +822,7 @@ A N C H O R _ F R E E Z E _ 2 0 2 6 0 9 1 9 . m d :   B E F O R E = 0 3 2 7 6 1 
 2026-09-27T16:45:00Z | UPDATE | .gitignore | added _ARCHIVE/quarantines/ to prevent git tracking of 11k intermediate backup files
 2026-09-27T16:45:00Z | UPDATE | _ARCHIVE/README.md | updated with quarantines/ and legacy_NEXT_STEPS_TO_330.md catalog entries
 2026-09-27T16:45:00Z | UPDATE | MASTER_PROJECT_INDEX.md | updated with _AUDIT, _PROJECT, _MANUAL, _ARCHIVE updates, and Phase 6 Tasks T1–T8 roadmap
+2026-09-27T17:00:00Z | WRITE | 00_scope/README.md | old: absent | new-sha256: AB24C82CD3510E61018A580AC56700A41807BA25DB087A09A844D645232B5935 | reason: directory manifest for review protocol and freeze records
+2026-09-27T17:00:00Z | WRITE | 01_corpus/README.md | old: absent | new-sha256: C6E6951BD69482859C83020276458C253E40F0DFDEF723982FAC92ED4C6F8FCA | reason: directory manifest for corpus extraction template
+2026-09-27T17:00:00Z | WRITE | 01_data_raw/README.md | old: absent | new-sha256: 357FD888C4CFCE03B0855ACA5A0B0E5928F025A13384077A96EAEAB6B243FEE9 | reason: directory manifest for raw database search records
+2026-09-27T17:00:00Z | UPDATE | MASTER_PROJECT_INDEX.md | updated Section 2 with manifests for 00_scope, 01_corpus, and 01_data_raw

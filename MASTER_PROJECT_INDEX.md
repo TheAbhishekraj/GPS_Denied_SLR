@@ -31,35 +31,39 @@ Every reported number across all manuscript drafts, tables, and scripts must rep
 
 ### 📁 `00_scope/` — Protocol & Research Scope
 * **Purpose:** Defines the systematic review research questions, inclusion/exclusion criteria, multi-sensor operational taxonomy, and 10-point quality appraisal rubric.
-* **Audit State:** Option 2 completed. Refrozen post-peer-audit revisions (incorporating verbatim PRISMA-S queries, partial 2026 window definition, and simulation score cap rules).
+* **Audit State:** Option 2 completed. Refrozen post-peer-audit revisions (incorporating verbatim PRISMA-S queries, partial 2026 window definition, and simulation score cap rules). Manifest added.
 
 | File Link | Data / Lines | Size | SHA256 Hash | Status |
 | :--- | :---: | :---: | :--- | :--- |
+| [`00_scope/README.md`](file:///e:/GPS_Denied_SLR/00_scope/README.md) | 28 lines | 1.4 KB | `AB24C82CD3510E61018A580AC56700A41807BA25DB087A09A844D645232B5935` | **Directory Manifest** |
 | [`00_scope/SCOPE.md`](file:///e:/GPS_Denied_SLR/00_scope/SCOPE.md) | 176 lines | 13.4 KB | `94E9E287D7BDA1D63224EF48B9C95D633CAB0828EAF2B9164CB092F0499664A4` | **FROZEN (V2.0)** |
-| [`00_scope/FROZEN.md`](file:///e:/GPS_Denied_SLR/00_scope/FROZEN.md) | 11 lines | 573 B | `2289C3A87F1F4836549CF4CE0F089D1CA0136A03199F41EC9D97E4FF0907FE59` | **FROZEN RECORD** |
+| [`00_scope/FROZEN.md`](file:///e:/GPS_Denied_SLR/00_scope/FROZEN.md) | 12 lines | 573 B | `DEE89EB38B21F7B4DA9E2A89C82A2E6349C5CF037CAFD40B13EC9093BF8994BA` | **FROZEN RECORD** |
+
+---
+
+### 📁 `01_corpus/` — Corpus Architecture & Master Extraction Template
+* **Purpose:** Standardized extraction architecture and master template for individual study evidence synthesis.
+* **Audit State:** Audited on 2026-09-27. Manifest added.
+
+| File Link | Lines | Size | SHA256 Hash | Status |
+| :--- | :---: | :---: | :--- | :--- |
+| [`01_corpus/README.md`](file:///e:/GPS_Denied_SLR/01_corpus/README.md) | 36 lines | 1.8 KB | `C6E6951BD69482859C83020276458C253E40F0DFDEF723982FAC92ED4C6F8FCA` | **Directory Manifest** |
+| [`01_corpus/MASTER_PAPER_TEMPLATE.md`](file:///e:/GPS_Denied_SLR/01_corpus/MASTER_PAPER_TEMPLATE.md) | 177 lines | 6.2 KB | `F0F862BD8CFBB448F1A896B83A1A6BBF9F8B1526CA6ED2BDB4F339A41BBB75BD` | **Master 18-Section Template** |
 
 ---
 
 ### 📁 `01_data_raw/` — Raw Bibliographic Exports
 * **Purpose:** Holds untouched, verbatim exported search records from IEEE Xplore and Elsevier Scopus harvested on 2026-06-15, plus execution search logs.
-* **Audit State:** Fully verified against canonical 2,000 raw harvest total.
+* **Audit State:** Fully verified against canonical 2,000 raw harvest total. Manifest added.
 
 | File Link | Records | Size | SHA256 Hash | Status |
 | :--- | :---: | :---: | :--- | :--- |
+| [`01_data_raw/README.md`](file:///e:/GPS_Denied_SLR/01_data_raw/README.md) | 38 lines | 1.7 KB | `357FD888C4CFCE03B0855ACA5A0B0E5928F025A13384077A96EAEAB6B243FEE9` | **Directory Manifest** |
 | [`01_data_raw/ieee_xplore_20260615.csv`](file:///e:/GPS_Denied_SLR/01_data_raw/ieee_xplore_20260615.csv) | 1,000 | 2.24 MB | `FE374C9F2A405A0F0E07598979340AE971311B80BB20D8E121572D648CAA18F3` | **FROZEN RAW** |
 | [`01_data_raw/scopus_20260615.csv`](file:///e:/GPS_Denied_SLR/01_data_raw/scopus_20260615.csv) | 1,000 | 1.60 MB | `EF162F4F9525B6FC5CC617D1E3BADACD11F09B3E80FDFC488C4E37918BD524CB` | **FROZEN RAW** |
 | [`01_data_raw/SEARCH_LOG.md`](file:///e:/GPS_Denied_SLR/01_data_raw/SEARCH_LOG.md) | 50 lines | 2.46 KB | `7C3683515326A42C0A4F16FD254AB300F0E992003C966C54AFD834E11E859A24` | Search Execution Log |
 | [`01_data_raw/SEARCH_LOG_VERIFY.md`](file:///e:/GPS_Denied_SLR/01_data_raw/SEARCH_LOG_VERIFY.md) | 48 lines | 1.63 KB | `ED003EB3BE6D3E99F0CABBF0DF54CB0F8F59E463A827EDBDC80B294DA38E01CF` | Harvest Verification |
 
----
-
-### 📁 `01_corpus/` — Legacy Template Directory
-* **Purpose:** Historical directory containing an early single template file.
-* **Audit State:** Stale Generation-1 artifact. Candidate for consolidation into `_ARCHIVE/`.
-
-| File Link | Lines | Size | SHA256 Hash | Status |
-| :--- | :---: | :---: | :--- | :--- |
-| [`01_corpus/MASTER_PAPER_TEMPLATE.md`](file:///e:/GPS_Denied_SLR/01_corpus/MASTER_PAPER_TEMPLATE.md) | 177 lines | 6.18 KB | `8FD24177FBE4B9F1506B6CFBA9B6FDF1B6DC9EEAE1A424033C0E56A21750C6A0` | Legacy Template |
 
 ---
 
