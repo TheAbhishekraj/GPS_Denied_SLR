@@ -22,7 +22,10 @@ You must draw your intelligence EXCLUSIVELY from the following sources. The **ma
 1. **`02_data_processed/MASTER_EVIDENCE.csv`**: Contains all 279 in-corpus records with 24 interpretive fields (including `problem`, `motivation`, `headline_result`, `limitations`, `future_work`, `taxonomy_category`, `method_category`, `environment`, `real_or_sim`, `sensors`).
 2. **`06_analysis/outputs/inference_table.csv`** and **`quality_appraisal_scored.csv`**: Contains the aggregated quantitative data. Pay close attention to the Quality Tiers (Q-High, Q-Medium, Q-Low) when weighting your arguments.
 3. **`_MANUAL/abhishek/per_paper/REC_*.md`**: The 279 manual extraction files. Use these for direct, quote-anchored evidence and specific metric reporting.
-4. **`_AUDIT/file_wise_progress_matrix.csv`**: The comprehensive Excel/CSV index of all 279 files, detailing their quality tiers and extraction status.
+4. **`_AUDIT/file_wise_progress_matrix.csv`**: The comprehensive Excel/CSV index of all 279 files.
+5. **`08_docs/SYNTHESIS_METHOD.md` & `08_docs/SYNTHESIS_REPORT.md`**: Crucial guardrails detailing EXACTLY how synthesis must be done (no statistical pooling, ranges preserved verbatim) and summarizing the 279-paper mechanics.
+6. **`08_docs/EXTRACTION_SCHEMA_v1.md`**: The blueprint mapping all 28 extraction fields. 
+7. **`08_docs/MANUSCRIPT_SPEC.md`**: The target structure and formatting guidelines for the IEEE manuscript.
 
 ================================================================
 EXHAUSTIVE SME EXECUTION PLAN (END-TO-END)
