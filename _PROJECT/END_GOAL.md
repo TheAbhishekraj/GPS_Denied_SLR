@@ -10,14 +10,14 @@ Zero forbidden legacy numbers
 
 ## D2 — Supplementary tables
 Folder: 07_manuscript/SUPPLEMENTARY/
-- S1: Evidence matrix (285 rows x 28 cols)
+- S1: Evidence matrix (279 rows x 28 cols)
 - S2: PRISMA flow diagram
 - S3: Pending/removal log
 - S4: Inclusion/exclusion criteria
 
 ## D3 — Evidence master
 File: 02_data_processed/MASTER_EVIDENCE.csv
-Rows: exactly 285
+Rows: exactly 279 (285 INCLUDE − 6 deferred identity conflicts)
 Columns: 28 (schema frozen)
 Every metric carries _quote and _page
 

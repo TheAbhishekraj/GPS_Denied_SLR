@@ -3,7 +3,8 @@
 Human marks each EXIT PASS. Agent never self-approves.
 
 Current position (2026-09-27): Phase 5 COMPLETE, Phase 6 COMPLETE.
-Phase 7 entry satisfied. Awaiting T1 of _PROJECT/MASTER_PROMPT_3.md.
+Phase 7 EXIT CANDIDATE: T1-T6 complete. Awaiting human PHASE 7 PASS.
+T7 (out-of-corpus disposition) and T8 (Phase 8/9 manuscript) remaining.
 Extraction frozen at 279 of 279 in-corpus
 (_MANUAL/abhishek/per_paper/FROZEN.md).
 
@@ -39,8 +40,10 @@ DELIVERABLES:
   - 06_analysis/outputs/taxonomy_distribution.csv
   - 06_analysis/outputs/figures/*.png
   - 08_docs/SYNTHESIS_REPORT.md
-EXIT: every figure regenerates from a script.
-  Human approves.
+EXIT: every figure regenerates from a script. ✅ MET (2026-09-27).
+  All synthesis CSVs generated. All 9 figures generated (figures.py).
+  PRISMA_FLOW.md created. PRISMA_CHECKLIST.md updated.
+  Human approves "PHASE 7 PASS" — PENDING.
 
 ## PHASE 8 — Manuscript V2
 ENTRY: Phase 7 PASS.

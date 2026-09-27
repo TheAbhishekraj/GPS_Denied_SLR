@@ -93,14 +93,20 @@ EXACT CURRENT POSITION — as measured 2026-09-27T13:10Z
 
 PHASE 5  Extraction pipeline rebuild ......... COMPLETE
 PHASE 6  Extraction batches ................. COMPLETE (all 28 batches closed)
-PHASE 7  Synthesis & analysis ............... PARTIAL
-         (the 3 outputs/ CSVs and SYNTHESIS_REPORT.md exist and are
-          hash-verified; figures were deferred; all substance blocked)
+PHASE 7  Synthesis & analysis ............... EXIT CANDIDATE
+         T1 COMPLETE: doi/year repaired in MASTER_EVIDENCE.csv
+         T2 COMPLETE: 24 interpretive fields merged (279/279 rows)
+         T3 COMPLETE: QA heuristic scored (quality_appraisal_scored.csv)
+         T4 COMPLETE: inference_table.csv, taxonomy_distribution.csv, SYNTHESIS_REPORT.md
+         T5 COMPLETE: figures.py written; F1-F9 generated
+         T6 COMPLETE: PRISMA_FLOW.md created; PRISMA_CHECKLIST updated
+         T7 PENDING: human ruling on 9 out-of-corpus files
+         T8 PENDING: Phase 8 manuscript + Phase 9 final audit
 PHASE 8  Manuscript V2 ...................... DRAFT
          (MANUSCRIPT_V2.md exists with 13 [UNRESOLVED] markers;
           the Phase 8 exit gate is "zero [UNRESOLVED]", so NOT passable)
 PHASE 9  Final audit & submission ........... DRAFT
-         (FINAL_AUDIT.md exists, marked AWAITING HUMAN REVIEW)
+         (FINAL_AUDIT.md exists, needs update post T1-T6)
 
 Extraction coverage
   B01-B27 : 10 of 10 each, all closed
@@ -115,15 +121,11 @@ What exists and is verified
   - 5 core research scripts in 06_analysis/scripts/
   - 08_docs/PRISMA_CHECKLIST.md: all 27 PRISMA items mapped
 
-What does NOT yet exist
-  - The 24 interpretive fields are still NOT_REPORTED for all 279 rows
-    in MASTER_EVIDENCE.csv. The extraction content lives in the
-    per_paper files and has NOT been merged back into the pipeline file.
-  - 06_analysis/outputs/figures/ does not exist. figures.py does not exist.
-  - 08_docs/PRISMA_FLOW.md does not exist (named by MANUSCRIPT_SPEC).
-  - Quality appraisal: 0 of 279 papers scored. The rubric is in
-    SCOPE.md Q7; the file RULINGS R2 names does not exist.
-  - _AUDIT/rules_log.md does not exist (required by EXTRACTION_RULES E11).
+What does NOT yet exist / remains pending
+  - _AUDIT/rules_log.md (required by EXTRACTION_RULES E11)
+  - Ruling on 9 out-of-corpus files (T7)
+  - Phase 8: resolve 13 [UNRESOLVED] in MANUSCRIPT_V2.md
+  - Phase 9: FINAL_AUDIT.md update, SUBMISSION_CHECKLIST.md
 
 What ALREADY EXISTS — update, do not recreate
   - 06_analysis/outputs/inference_table.csv        279 rows, hash-verified

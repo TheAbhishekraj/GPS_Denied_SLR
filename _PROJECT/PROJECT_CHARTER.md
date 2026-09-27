@@ -6,7 +6,7 @@ UAV navigation. Produce a verification-grade evidence base.
 Submit a manuscript to IEEE T-RO or IEEE Access.
 
 ## Scope
-- Corpus: 285 INCLUDE papers (from 291 full-text assessed)
+- Corpus: 285 INCLUDE papers (extraction corpus: 279; 6 deferred)
 - Evidence: per-paper extraction with quote-anchored metrics
 - Deliverables: manuscript, supplementary tables, PRISMA flow,
   audit trail
@@ -20,7 +20,7 @@ Submit a manuscript to IEEE T-RO or IEEE Access.
 
 ## Success criteria
 1. Anchor frozen and hash-recorded.
-2. All 285 papers extracted with quote-anchored evidence.
+2. All 279 in-corpus papers extracted with quote-anchored evidence.
 3. Manuscript drafted with every number traced.
 4. Zero forbidden legacy numbers in any deliverable.
 5. Full PRISMA 2020 audit trail.
