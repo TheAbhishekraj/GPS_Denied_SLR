@@ -104,7 +104,7 @@ Stratification yielded **3 Q-High studies (1.1%)**, **98 Q-Medium studies (35.1%
 The temporal trajectory of the corpus illustrates a steady expansion that accelerated exponentially after 2021:
 
 ```
-Table II: Chronological Publication Trajectory (2013–2026, n = 279)
+Table 1: Chronological Publication Trajectory (2013–2026, n = 279)
 ┌──────┬───────┬────────────┬────────────┬────────────────────────────────────────────────────────┐
 │ Year │ Count │ % Corpus   │ Cumulative │ Technological Era & Distinctive Paradigm               │
 ├──────┼───────┼────────────┼────────────┼────────────────────────────────────────────────────────┤
@@ -139,7 +139,7 @@ Geographically, research leadership is concentrated across major robotics ecosys
 To answer **RQ1**, we analyzed the operational prevalence of primary sensor modalities and multi-sensor pairing configurations across the three historical epochs:
 
 ```
-Table III (part 1): Sensor Modality Frequency Across Historical Epochs
+Table 2: Sensor Modality Frequency Across Historical Epochs
 ┌──────────────────────┬─────────────────┬─────────────────┬──────────────────────┬─────────────┐
 │ Sensor Modality      │ 2013–2016 (n=26)│ 2017–2021 (n=79)│ 2022–2026 (n=174)    │ Total Occur.│
 ├──────────────────────┼─────────────────┼─────────────────┼──────────────────────┼─────────────┤
@@ -160,7 +160,7 @@ Table III (part 1): Sensor Modality Frequency Across Historical Epochs
 ```
 
 ```
-Table III (part 2): Multi-Sensor Fusion Pair Evolution
+Table 3: Multi-Sensor Fusion Pair Evolution
 ┌─────────────────────────┬─────────────┬─────────────┬─────────────┬─────────────┐
 │ Multi-Sensor Pairing    │ 2013–2016   │ 2017–2021   │ 2022–2026   │ Overall (%) │
 ├─────────────────────────┼─────────────┼─────────────┼─────────────┼─────────────┤
@@ -186,7 +186,7 @@ Table III (part 2): Multi-Sensor Fusion Pair Evolution
 To address **RQ2**, the corpus was categorized into five primary operational environments, extracting verifiable trajectory error metrics, drift percentages, and performance envelopes:
 
 ```
-Table IV: Environmental Categorization & Reported Accuracy Envelopes
+Table 4: Environmental Categorization & Reported Accuracy Envelopes
 ┌─────────────────────────┬───────┬────────────┬─────────────────────────────────┬────────────────────────────────────┐
 │ Environment Category    │ Count │ % Corpus   │ Primary Degradation Stressor    │ Reported Accuracy Metric Ranges    │
 ├─────────────────────────┼───────┼────────────┼─────────────────────────────────┼────────────────────────────────────┤
@@ -226,7 +226,7 @@ High-rise urban corridors induce severe GNSS pseudorange multipath, non-line-of-
 To answer **RQ3**, we cross-tabulated algorithmic families against empirical validation fidelity:
 
 ```
-Fig 7 Data: Algorithmic Family Distribution vs. Validation Mode (n = 279)
+Table 5: Algorithmic Family Distribution vs. Validation Mode (n = 279)
 ┌─────────────────────────────────┬───────┬────────────┬─────────────┬─────────────┬─────────────┐
 │ Algorithmic Paradigm            │ Total │ % Corpus   │ Real Flight │ Simulation  │ Both / Other│
 ├─────────────────────────────────┼───────┼────────────┼─────────────┼─────────────┼─────────────┤
@@ -263,7 +263,7 @@ Validation Mode Totals Across Entire Corpus:
 Only 3 of the 279 studies (1.1%) met all criteria for **Q-High** classification: rigorous theoretical formulation, comprehensive baseline benchmarking against open-source SOTA, exhaustive reporting of operational parameters, and reproducible experimental validation:
 
 ```
-Table IV (cont): Authoritative Q-High Anchor Investigations
+Table 6: Authoritative Q-High Anchor Investigations
 ┌──────────┬──────┬────────────────────────────┬──────────────────┬─────────────────┬───────────────────────────────────────────┐
 │ Study ID │ Year │ Platform & Sensor Suite    │ Algorithmic Core │ Benchmark Target│ Quantified Performance Headline           │
 ├──────────┼──────┼────────────────────────────┼──────────────────┼─────────────────┼───────────────────────────────────────────┤
@@ -342,7 +342,7 @@ Over **51% of all studies in the corpus never execute closed-loop autonomous fli
 To address **RQ4**, we systematically extracted and categorized the failure modes, technological limitations, and proposed future directions across all 279 studies:
 
 ```
-Table VI: Top Documented Limitations and Future Research Priorities (n = 279)
+Table 7: Top Documented Limitations and Future Research Priorities (n = 279)
 ┌──────────────────────────────────────────────┬───────┬────────────┬────────────────────────────────────────────────────────┐
 │ Documented Limitation / Failure Theme        │ Count │ % Corpus   │ Primary Physical Mechanism                             │
 ├──────────────────────────────────────────────┼───────┼────────────┼────────────────────────────────────────────────────────┤
