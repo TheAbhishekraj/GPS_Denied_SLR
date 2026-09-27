@@ -100,20 +100,21 @@ Every reported number across all manuscript drafts, tables, and scripts must rep
 
 To prevent confusion with live PRISMA 2020 statistics, obsolete Generation-1 files have been safely relocated using `git mv` into [`_ARCHIVE/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/):
 
-### Subfolder: `_ARCHIVE/legacy_02_data_processed/`
-1. [`summary.txt`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_02_data_processed/summary.txt) (Old 2026-09-06 test numbers: 722 unique papers, 1,278 duplicates).
-2. [`MASTER_EVIDENCE_V1.xlsx`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_02_data_processed/MASTER_EVIDENCE_V1.xlsx) (Pre-rebuild Excel table).
-3. [`EXTRACTION_NOTES.md`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_02_data_processed/EXTRACTION_NOTES.md) (Deprecated 1,700-row notes).
-4. [`EXTRACTION_NOTES_v2.md`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_02_data_processed/EXTRACTION_NOTES_v2.md) (Deprecated 171-paper notes).
-5. [`V1_SCOPE_IDS.txt`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_02_data_processed/V1_SCOPE_IDS.txt) (Old scope ID list).
-6. [`PENDING_MASTER_EXTENSION_IDS.txt`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_02_data_processed/PENDING_MASTER_EXTENSION_IDS.txt) (121-paper extension tracking list).
-7. [`retrieval_log.csv`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_02_data_processed/retrieval_log.csv) (Empty header template).
-8. [`pending_list.csv`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_02_data_processed/pending_list.csv) (Empty header template).
+### Manifest: [`_ARCHIVE/README.md`](file:///e:/GPS_Denied_SLR/_ARCHIVE/README.md)
 
-### Subfolder: `_ARCHIVE/legacy_03_extraction/`
-1. [`REC_1582.md`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_03_extraction/REC_1582.md) (Extraction for excluded byte-identical duplicate PDF of `REC_0274`).
-2. [`REC_1688.md`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_03_extraction/REC_1688.md) (Extraction for excluded byte-identical duplicate PDF of `REC_1715`).
-3. [`REC_1715.md`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_03_extraction/REC_1715.md) (Extraction for excluded byte-identical duplicate PDF of `REC_1688`).
+1. **[`_ARCHIVE/legacy_02_data_processed/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_02_data_processed/)** (8 items):
+   - `summary.txt` (conflicting 2026-09-06 numbers)
+   - `MASTER_EVIDENCE_V1.xlsx` (pre-reset Excel table)
+   - `EXTRACTION_NOTES.md` & `EXTRACTION_NOTES_v2.md` (deprecated notes)
+   - `V1_SCOPE_IDS.txt` & `PENDING_MASTER_EXTENSION_IDS.txt` (stale ID lists)
+   - `retrieval_log.csv` & `pending_list.csv` (empty templates)
+2. **[`_ARCHIVE/legacy_03_extraction/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_03_extraction/)** (3 items):
+   - `REC_1582.md`, `REC_1688.md`, `REC_1715.md` (extractions for excluded duplicate PDFs)
+3. **[`_ARCHIVE/legacy_03_prompts/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_03_prompts/)** (5,134 files, 65.6 MB):
+   - Historical Generation-1 prompt store (`extraction_prompts/`, `screening_prompts/`, `.jsonl` streams)
+   - Permanently resolves the Rule 5 count collision.
+4. **[`_ARCHIVE/legacy_04_ai_responses/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_04_ai_responses/)** (5,142 files, 6.7 MB):
+   - Historical Generation-1 raw LLM response dumps (`extraction/`, `screening/`, `.jsonl` streams)
 
 ---
 
@@ -121,8 +122,6 @@ To prevent confusion with live PRISMA 2020 statistics, obsolete Generation-1 fil
 
 | Directory | Items / Size | Current State | Planned Action |
 | :--- | :---: | :--- | :--- |
-| **`03_prompts/`** | 5,134 files (65.6 MB) | Generation-1 prompt text files | Move to `_ARCHIVE/legacy_prompts/` |
-| **`04_ai_responses/`** | 5,142 files (6.7 MB) | Generation-1 LLM response dumps | Move to `_ARCHIVE/legacy_ai_responses/` |
 | **`05_papers_fulltext/`** | 288 PDFs (1.54 GB) | Core frozen full-text PDF repository | Verify PDF integrity & presence |
 | **`06_analysis/`** | 687 files (25.3 MB) | Live `scripts/` & `outputs/` vs legacy `output/` (singular) | Move legacy `output/` to `_ARCHIVE/` |
 | **`07_manuscript/`** | 37 files (3.5 MB) | Live V2 manuscript vs legacy V1 / submitted | Archive legacy drafts, retain V2 |

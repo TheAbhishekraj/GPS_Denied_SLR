@@ -798,3 +798,6 @@ A N C H O R _ F R E E Z E _ 2 0 2 6 0 9 1 9 . m d :   B E F O R E = 0 3 2 7 6 1 
 2026-09-27T15:10:00Z | SYNC | 03_extraction/per_paper/ synchronized from frozen _MANUAL/abhishek/per_paper/ | 288 of 288 files verified matching SHA256, 0 mismatches | reason: pipeline extraction directory synchronized with frozen human-verified reference corpus
 2026-09-27T15:10:00Z | WRITE | 03_extraction/README.md | old: absent | new-sha256: 77D15D6C401C60A89993E86262ACAEA4491B2020F4E526533C79A3BBDDA94577 | reason: directory manifest, 18-section schema spec, and synchronization status
 2026-09-27T15:10:00Z | UPDATE | MASTER_PROJECT_INDEX.md | updated Section 2 (03_extraction added), Section 3 (legacy_03_extraction added), and Section 4 roadmap
+2026-09-27T15:45:00Z | CLEANUP | ARCHIVE | Relocated legacy directories 03_prompts/ (5,134 files) and 04_ai_responses/ (5,142 files) to _ARCHIVE/ via git mv | reason: human-directed workspace cleanup to isolate active PRISMA 2020 pipeline and eliminate Rule 5 count collisions
+2026-09-27T15:45:00Z | WRITE | _ARCHIVE/README.md | old: absent | new-sha256: 461368E6A34A5D6A31F50690CDA47010EBDCF311E96BA9DAE777E144012C68DA | reason: archive catalog and directory guide
+2026-09-27T15:45:00Z | UPDATE | MASTER_PROJECT_INDEX.md | updated Section 3 (_ARCHIVE catalog) and Section 4 roadmap
