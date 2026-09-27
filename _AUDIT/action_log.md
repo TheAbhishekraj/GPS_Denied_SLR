@@ -836,3 +836,4 @@ A N C H O R _ F R E E Z E _ 2 0 2 6 0 9 1 9 . m d :   B E F O R E = 0 3 2 7 6 1 
 2 0 2 6 - 0 9 - 2 7 T 1 6 : 5 5 : 0 0 Z   |   P H A S E 7   |   T 5   F I G U R E S   |   0 6 _ a n a l y s i s / o u t p u t s / f i g u r e s /   |   g e n e r a t e d   F 1 - F 9  
  2026-09-27T17:00:48Z | PHASE7 | T6 PRISMA | 08_docs/PRISMA_FLOW.md | sha256: 520A62436B1A71212741794597CB1F3BAB59E6A522A9207F662A05125EB10423
 2026-09-27T17:00:48Z | PHASE7 | T6 PRISMA | 08_docs/PRISMA_CHECKLIST.md | flipped 11,17,18,19,20a,20b to COMPLETE | sha256: 848D7E3246A77749FBF8D68D0CCE5A741E03FF3B0A953CC9A305352128200979
+2026-09-27T17:06:34Z | PHASE7 | T7 DISPOSITION | Moved 9 out-of-corpus files to _ARCHIVE/out_of_corpus_extractions
