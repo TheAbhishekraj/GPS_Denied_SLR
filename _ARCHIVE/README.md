@@ -12,7 +12,9 @@ _ARCHIVE/
 ├── legacy_02_data_processed/      # Stale Generation-1 data files and obsolete notes
 ├── legacy_03_extraction/          # Extractions for excluded duplicate PDFs
 ├── legacy_03_prompts/             # Generation-1 prompt files and JSONL execution logs (5,134 files)
-└── legacy_04_ai_responses/        # Generation-1 raw LLM responses and calibration logs (5,142 files)
+├── legacy_04_ai_responses/        # Generation-1 raw LLM responses and calibration logs (5,142 files)
+├── legacy_06_analysis/            # Generation-1 analysis output folder (673 files) and stale synthesis notes
+└── legacy_07_manuscript/          # Generation-1 draft papers, submitted versions, and obsolete tables (24 files)
 ```
 
 ---
@@ -48,3 +50,19 @@ Relocated on 2026-09-27 from `04_ai_responses/`:
 * `extraction/` — Raw LLM completion outputs from early extraction attempts.
 * `screening/`, `screening_v2/`, `screening_v2_calibration/` — Raw LLM screening responses.
 * `screening_calibration.jsonl`, `screening_results.jsonl`, `screening_results_v2.jsonl` — Completion logs.
+
+### 📁 `legacy_06_analysis/` (678 items)
+Relocated on 2026-09-27 from `06_analysis/`:
+* `output/` (singular, 673 files: legacy `figures_v1/`, `figures_v2/`, old tables, workbooks).
+* `audit/` (3 files: `MANUAL_REVIEW.md`, `V1_audit_*.csv/json` from old 171-paper run).
+* `SYNTHESIS.md` & `SYNTHESIS_v2.md` (citing deprecated 1,700-row pre-reset numbers).
+
+### 📁 `legacy_07_manuscript/` (24 items)
+Relocated on 2026-09-27 from `07_manuscript/`:
+* `submitted/` directory (5 legacy files: `GPS_Denied_SLR_Manuscript_V1_291.*`, `figures_list_V1_291.md`, `tables_V1_291.md`).
+* `GPS_Denied_SLR_Manuscript_V1_171.*` (7 files: `.tex`, `.pdf`, `.md`, `.aux`, `.log`, and `_COMPLETE.*` variants).
+* `GPS_Denied_SLR_Manuscript_V1_291.*` (6 files: `.tex`, `.pdf`, `.md`, `.aux`, `.log`, `.out`).
+* `GPS_Denied_SLR_Manuscript_v1_171.md`.
+* `GPS_Denied_SLR_Manuscript_v2.docx` (stale binary export).
+* `GPS_Denied_SLR_IEEE.tex` & `GPS_Denied_SLR_Manuscript.md` (unversioned legacy drafts).
+* `tables_V1.md`, `tables_V1_291.md`, `figures_list_V1.md`, `figures_list_V1_291.md`.

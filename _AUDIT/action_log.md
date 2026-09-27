@@ -805,3 +805,7 @@ A N C H O R _ F R E E Z E _ 2 0 2 6 0 9 1 9 . m d :   B E F O R E = 0 3 2 7 6 1 
 2026-09-27T16:00:00Z | WRITE | 06_analysis/README.md | old: absent | new-sha256: DFF99A156527C6392EBA8DF0B7E8CE129AE9F0580A586B90CCE86E6DDF2D6C8E | reason: directory manifest and scripts catalog
 2026-09-27T16:00:00Z | WRITE | 05_papers_fulltext/README.md | old: absent | new-sha256: F4DE108422A1E2752178229F84B0661159C2D32EC3628F50B6AE21B9720BA78D | reason: directory manifest for 288 PDFs
 2026-09-27T16:00:00Z | UPDATE | MASTER_PROJECT_INDEX.md | updated Section 2 (05_papers_fulltext and 06_analysis added) and Section 3 (_ARCHIVE catalog)
+2026-09-27T16:15:00Z | CLEANUP | ARCHIVE | Relocated 24 legacy files from 07_manuscript/ (submitted/, V1_171.*, V1_291.*, old tables/figures) to _ARCHIVE/legacy_07_manuscript/ via git mv | reason: human-directed workspace cleanup to isolate active Generation-2 manuscript drafts
+2026-09-27T16:15:00Z | WRITE | 07_manuscript/README.md | old: absent | new-sha256: CDF8D74E21A2214FC0A1C5F6787C4B290FE4F4DA185EC2978F90DBAC5F25AC3E | reason: directory manifest for live manuscript files and archive trace
+2026-09-27T16:15:00Z | UPDATE | _ARCHIVE/README.md | updated with legacy_06_analysis and legacy_07_manuscript catalog entries
+2026-09-27T16:15:00Z | UPDATE | MASTER_PROJECT_INDEX.md | updated Section 2 (07_manuscript added), Section 3 (legacy_07_manuscript added), and Section 4 roadmap

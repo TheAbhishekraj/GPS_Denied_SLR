@@ -119,6 +119,23 @@ Every reported number across all manuscript drafts, tables, and scripts must rep
 | [`06_analysis/outputs/taxonomy_distribution.csv`](file:///e:/GPS_Denied_SLR/06_analysis/outputs/taxonomy_distribution.csv) | **4** rows | 182 B | `954898BE6434E398FD477FDC3EB70C8BF6DBF38AA3902CC6AE8D064A89B7B122` | Taxonomy Breakdown |
 | [`06_analysis/scripts/`](file:///e:/GPS_Denied_SLR/06_analysis/scripts/) | **6** scripts | ~30 KB | 6 core Python scripts (`01_dedup.py`, `merge_batch.py`, etc.) | **Pipeline Scripts** |
 
+### 📁 `07_manuscript/` — Manuscript Drafts, Tables, and Submission Files
+* **Purpose:** Live Generation-2 manuscript drafts, performance tables, IEEE LaTeX template, and submission checklists.
+* **Audit State:** Audited on 2026-09-27. Relocated 24 legacy Generation-1 files (`submitted/`, `V1_171.*`, `V1_291.*`, old figures/tables) to `_ARCHIVE/legacy_07_manuscript/`.
+
+| File Link | Size | SHA256 Hash | Role / Status |
+| :--- | :---: | :--- | :--- |
+| [`07_manuscript/README.md`](file:///e:/GPS_Denied_SLR/07_manuscript/README.md) | 2.5 KB | `CDF8D74E21A2214FC0A1C5F6787C4B290FE4F4DA185EC2978F90DBAC5F25AC3E` | **Directory Manifest** |
+| [`07_manuscript/MANUSCRIPT_V2.md`](file:///e:/GPS_Denied_SLR/07_manuscript/MANUSCRIPT_V2.md) | 7.3 KB | `542BE0ED72D6CED9AA58FE1D0C95ADA4015AABAF058B2DC169EB313D56D4C391` | **Canonical Active Draft** (13 unresolved markers) |
+| [`07_manuscript/GPS_Denied_SLR_Manuscript_v2.md`](file:///e:/GPS_Denied_SLR/07_manuscript/GPS_Denied_SLR_Manuscript_v2.md) | 10.8 KB | `7423A55018B58F6EF77724110323BFEBFE6520E8D342AD93586341AE6C12FCCB` | Manuscript text draft v2 |
+| [`07_manuscript/GPS_Denied_SLR_Manuscript_v3.md`](file:///e:/GPS_Denied_SLR/07_manuscript/GPS_Denied_SLR_Manuscript_v3.md) | 6.5 KB | `B7C6A3F64023EBEE88A3CFB241F3E0205DCD20013E62E38C389F77547DCF632F` | Manuscript text draft v3 |
+| [`07_manuscript/GPS_Denied_SLR_IEEE_v2.tex`](file:///e:/GPS_Denied_SLR/07_manuscript/GPS_Denied_SLR_IEEE_v2.tex) | 3.2 KB | `02CF0DE1CFD13C29BF4B056139A3E638B0CD9D5C4070AC0ACB20B6A90B8AD680` | IEEE-format LaTeX template |
+| [`07_manuscript/references.bib`](file:///e:/GPS_Denied_SLR/07_manuscript/references.bib) | 4.6 KB | `19F4ED3311010EAF3B10970FEE8216ED5BBA1B92791284DCA1843D0C86459BE3` | Master BibTeX bibliography |
+| [`07_manuscript/perf_summary.csv`](file:///e:/GPS_Denied_SLR/07_manuscript/perf_summary.csv) | 921 B | `9DAECB658F8F3A6856AFFC7BD77C35BCF009C0DF0E74B8F2A5D7A27F97DE5222` | Extracted performance summary |
+| [`07_manuscript/perf_tables.md`](file:///e:/GPS_Denied_SLR/07_manuscript/perf_tables.md) | 958 B | `26CA25F0F245C2A156067CF18DE4A2D760D9689EB1E1FB8C4112888C82CCAD05` | Performance tables |
+| [`07_manuscript/SUBMISSION_CHECKLIST.md`](file:///e:/GPS_Denied_SLR/07_manuscript/SUBMISSION_CHECKLIST.md) | 3.2 KB | `DB018A93D1AA6CCCC5531819F75FF10C6B79F235A9EB6D31E53459413DBF68FD` | Submission checklist |
+| [`07_manuscript/BUILD.md`](file:///e:/GPS_Denied_SLR/07_manuscript/BUILD.md) | 248 B | `E321505B20F861E3EACF34BECA4B9CE481217C8681A9D7996B94E20584A8D901` | Build guide |
+
 ---
 
 ## 3. Relocated Legacy Archives: `_ARCHIVE/`
@@ -144,6 +161,14 @@ To prevent confusion with live PRISMA 2020 statistics, obsolete Generation-1 fil
    - `output/` (singular, 673 files: legacy `figures_v1/`, `figures_v2/`, old tables, workbooks)
    - `audit/` (3 files: `MANUAL_REVIEW.md`, `V1_audit_*.csv/json` from old 171-paper run)
    - `SYNTHESIS.md` & `SYNTHESIS_v2.md` (citing deprecated 1,700-row pre-reset numbers)
+6. **[`_ARCHIVE/legacy_07_manuscript/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_07_manuscript/)** (24 items):
+   - `submitted/` directory (5 legacy files: `GPS_Denied_SLR_Manuscript_V1_291.*`, `figures_list_V1_291.md`, `tables_V1_291.md`)
+   - `GPS_Denied_SLR_Manuscript_V1_171.*` (7 files: `.tex`, `.pdf`, `.md`, `.aux`, `.log`, and `_COMPLETE.*` variants)
+   - `GPS_Denied_SLR_Manuscript_V1_291.*` (6 files: `.tex`, `.pdf`, `.md`, `.aux`, `.log`, `.out`)
+   - `GPS_Denied_SLR_Manuscript_v1_171.md`
+   - `GPS_Denied_SLR_Manuscript_v2.docx` (stale binary export)
+   - `GPS_Denied_SLR_IEEE.tex` & `GPS_Denied_SLR_Manuscript.md` (unversioned legacy drafts)
+   - `tables_V1.md`, `tables_V1_291.md`, `figures_list_V1.md`, `figures_list_V1_291.md`
 
 ---
 
@@ -151,7 +176,6 @@ To prevent confusion with live PRISMA 2020 statistics, obsolete Generation-1 fil
 
 | Directory | Items / Size | Current State | Planned Action |
 | :--- | :---: | :--- | :--- |
-| **`07_manuscript/`** | 37 files (3.5 MB) | Live V2 manuscript vs legacy V1 / submitted | Archive legacy drafts, retain V2 |
 | **`08_docs/`** | 10 files (40 KB) | Live PRISMA & extraction specifications | Keep and cross-reference |
 | **`09_prompts/`** | 1 file (<1 MB) | Legacy PDCA prompt | Move to `_ARCHIVE/` |
 | **`10_validation/`** | 8 files (260 KB) | Legacy 171-paper validation set | Move to `_ARCHIVE/` |
