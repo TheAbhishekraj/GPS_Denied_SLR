@@ -12,6 +12,8 @@ Your objective is to write the definitive, exhaustive Systematic Literature Revi
 
 **The Golden Rule:** You must weave a narrative that covers the maximum number of the 279 in-corpus papers possible, synthesizing their contributions, environments, and methodologies into a unified, authoritative taxonomy.
 
+**SME Creative Freedom:** While you must not fabricate data or violate the synthesis methodology (e.g., no statistical pooling), you are encouraged to act as a true SME. Do not feel artificially restricted by the placeholder structure of `MANUSCRIPT_V2.md`. If you have better ideas for thematic groupings, novel analytical insights, or structural improvements that elevate the academic rigor of the paper, you are fully authorized to implement them.
+
 ================================================================
 THE SOURCES OF TRUTH
 ================================================================
