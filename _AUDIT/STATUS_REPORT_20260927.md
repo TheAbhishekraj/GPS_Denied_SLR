@@ -72,6 +72,28 @@ The corpus and the frozen anchor are unaffected.
 `_MANUAL/abhishek/per_paper/REC_1103, 1105, 1106, 1107, 1110.md` and all files
 with `extraction_date: "2026-09-27"` (44+ files). Recorded per R5 item 4.
 
+### 1.6 Recurrence — the writer resumed after the Step 1 snapshot
+
+The writer is **intermittent, not stopped**. It pauses for minutes between bursts,
+which makes a short silence window an unreliable test.
+
+| Check (UTC) | manual count | newest file | silence at check |
+|---|---|---|---|
+| 10:57:36Z | 212 | REC_1251 @ 10:56:07Z | 89 s |
+| 10:58:16Z | 212 | REC_1251 @ 10:56:07Z | 129 s — this was accepted as "stopped" |
+| 11:04:40Z | **213** | **REC_1252 @ 11:04:32Z** | **8 s** |
+
+`REC_1252.md` is the next missing member of BATCH_B21. It was written **after**
+commit `78f00c5c` (the Step 1 snapshot), so it is deliberately **left
+untracked and unlogged**: it belongs to a session other than this one and must
+be logged by a future, single-writer session.
+
+Lesson recorded for the file: a flat count over ~80 s does not establish that a
+second writer has stopped. A reliable check requires either (a) confirmation
+that the other session is closed, or (b) a substantially longer observation
+window. Better still, `.agent_lock` per R5 would prevent the situation entirely.
+
+
 ---
 
 ## 2. Integrity verification (read-only, 2026-09-27)
@@ -319,14 +341,24 @@ under `_MANUAL/abhishek/per_paper/`.
 
 | Written (UTC) | ID | SHA256 |
 |---|---|---|
-| 2026-09-27T10:55:16Z | REC_1243 | 70576D965CBEDD3F0369E657D8DCE0C37B1FAFAFB6AC9F854EAAC86DD925FB3BD |
-| 2026-09-27T10:55:29Z | REC_1245 | 36B0A0877D2FD7FCFB8F60EB3D8D022BCBD7A415341AAA17CA77C7F245A188DC8 |
-| 2026-09-27T10:55:41Z | REC_1248 | 04D1D2B78ED885DC28C6D08B7133A009E717C3E2B1FED83945EE1C29DD52AA3B5 |
-| 2026-09-27T10:55:53Z | REC_1250 | 0AB308D17D310E6BE9759B3ABEDE08748E0FB48FEB547E5BCB77F1D0132718D16 |
-| 2026-09-27T10:56:07Z | REC_1251 | D1032AFEC71F7588CD799B5A97E52F6A50D2291E2AD4649EC633627BC04D83141 |
+| 2026-09-27T10:55:16Z | REC_1243 | 70576D965CBEDD3F0369E657D8DCE0C37B1FAFAFB6AC9F854EAC86DD925FB3BD |
+| 2026-09-27T10:55:29Z | REC_1245 | 36B0A0877D2FD7FCFB8F60EB3D8D022BCBD7A415341AAA17CA7C7F245A188DC8 |
+| 2026-09-27T10:55:41Z | REC_1248 | 04D1D2B78ED885DC28C6D08B7133A009E717C3E2B1FED83945E1C29DD52AA3B5 |
+| 2026-09-27T10:55:53Z | REC_1250 | 0AB308D17D310E6BE9759B3ABEDE08748E0FB48FEB547E5BCB7F1D0132718D16 |
+| 2026-09-27T10:56:07Z | REC_1251 | D1032AFEC71F7588CD799B5A97E52F6A50D2291E2AD4649EC63627BC04D83141 |
 
 Wave 5 is the last observed activity. Filesystem silence held from 10:56:07Z
 through at least 10:58:16Z (three samples, flat count of 212).
+
+**Correction applied 2026-09-27T11:20:00Z.** The five hashes in this table were
+first recorded in `_AUDIT/action_log.md` as 65-character strings, each carrying
+one duplicated hex character introduced by this session while transcribing
+wrapped console output. A self-check re-hashed all 49 files: 44 matched, 5 did
+not. The 5 defective values were corrected here and in `_AUDIT/action_log.md`.
+No file content changed: `REC_1251.md` last-write time remained 10:56:07Z and
+the directory count remained 212 throughout. All 49 logged hashes now re-verify
+against disk (49 match / 0 mismatch).
+
 
 ### 7.7 Also pending commit (not new extractions)
 
