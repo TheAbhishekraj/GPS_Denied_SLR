@@ -809,3 +809,9 @@ A N C H O R _ F R E E Z E _ 2 0 2 6 0 9 1 9 . m d :   B E F O R E = 0 3 2 7 6 1 
 2026-09-27T16:15:00Z | WRITE | 07_manuscript/README.md | old: absent | new-sha256: CDF8D74E21A2214FC0A1C5F6787C4B290FE4F4DA185EC2978F90DBAC5F25AC3E | reason: directory manifest for live manuscript files and archive trace
 2026-09-27T16:15:00Z | UPDATE | _ARCHIVE/README.md | updated with legacy_06_analysis and legacy_07_manuscript catalog entries
 2026-09-27T16:15:00Z | UPDATE | MASTER_PROJECT_INDEX.md | updated Section 2 (07_manuscript added), Section 3 (legacy_07_manuscript added), and Section 4 roadmap
+2026-09-27T16:30:00Z | WRITE | 08_docs/README.md | old: absent | new-sha256: F14D8BF2D867E926186DDEB16BFAC2B3F9560ACAFCFDA4ED68DF51CA31EA0E1A | reason: directory manifest cataloging 10 normative methodology specifications
+2026-09-27T16:30:00Z | CLEANUP | ARCHIVE | Relocated obsolete PDCA prompt 09_prompts/PDCA_PHASE_1_VALIDATE.md to _ARCHIVE/legacy_09_prompts/ via git mv | reason: isolates active prompts in _PROJECT/
+2026-09-27T16:30:00Z | WRITE | 09_prompts/README.md | old: absent | new-sha256: 3A820D5DAB0E8D067BF929DE62FACA8D23A7116AD34FD6B87FFA086CED07B085 | reason: directory manifest pointing to _PROJECT/
+2026-09-27T16:30:00Z | CLEANUP | ARCHIVE | Relocated legacy Generation-1 packages 10_validation/ (8 files) and supplementary/ (8 files) to _ARCHIVE/legacy_10_validation/ and _ARCHIVE/legacy_supplementary/ via git mv | reason: removes deprecated 171/172-paper pre-reset data from pipeline
+2026-09-27T16:30:00Z | UPDATE | _ARCHIVE/README.md | updated with legacy_09_prompts, legacy_10_validation, and legacy_supplementary catalog entries
+2026-09-27T16:30:00Z | UPDATE | MASTER_PROJECT_INDEX.md | updated Section 2 (08_docs and 09_prompts added), Section 3 (_ARCHIVE catalog), and Section 4 roadmap

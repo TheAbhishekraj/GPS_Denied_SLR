@@ -136,6 +136,32 @@ Every reported number across all manuscript drafts, tables, and scripts must rep
 | [`07_manuscript/SUBMISSION_CHECKLIST.md`](file:///e:/GPS_Denied_SLR/07_manuscript/SUBMISSION_CHECKLIST.md) | 3.2 KB | `DB018A93D1AA6CCCC5531819F75FF10C6B79F235A9EB6D31E53459413DBF68FD` | Submission checklist |
 | [`07_manuscript/BUILD.md`](file:///e:/GPS_Denied_SLR/07_manuscript/BUILD.md) | 248 B | `E321505B20F861E3EACF34BECA4B9CE481217C8681A9D7996B94E20584A8D901` | Build guide |
 
+### 📁 `08_docs/` — PRISMA 2020 Protocol, Extraction Schema & Methodology Specifications
+* **Purpose:** Core normative methodology specifications, 28-column extraction schema, and PRISMA 2020 checklists.
+* **Audit State:** Audited on 2026-09-27. All 10 active specification documents verified and cataloged. Manifest added.
+
+| File Link | Size | SHA256 Hash | Role / Status |
+| :--- | :---: | :--- | :--- |
+| [`08_docs/README.md`](file:///e:/GPS_Denied_SLR/08_docs/README.md) | 2.8 KB | `F14D8BF2D867E926186DDEB16BFAC2B3F9560ACAFCFDA4ED68DF51CA31EA0E1A` | **Directory Manifest** |
+| [`08_docs/ANCHOR_FREEZE_20260919.md`](file:///e:/GPS_Denied_SLR/08_docs/ANCHOR_FREEZE_20260919.md) | 2.1 KB | `D165BB14A6C932A74479A0BFA2C4477694A13CFA80AD6CC382FF4DB43A91607C` | Anchor Freeze Hashes |
+| [`08_docs/EXTRACTION_RULES.md`](file:///e:/GPS_Denied_SLR/08_docs/EXTRACTION_RULES.md) | 1.6 KB | `684ED59DB69C4ACA29822B75374163499880BC885DFD2A4CDD4B2B81DAC14C56` | Rules E1–E6: Verbatim extraction rules |
+| [`08_docs/EXTRACTION_SCHEMA_v1.md`](file:///e:/GPS_Denied_SLR/08_docs/EXTRACTION_SCHEMA_v1.md) | 3.7 KB | `876D42D237AFC21BB9B07D53552813DFBC872AC42A4E16B294ADF35B36E4A81B` | 28-Column Master Evidence Schema |
+| [`08_docs/EXTRACTION_SOP.md`](file:///e:/GPS_Denied_SLR/08_docs/EXTRACTION_SOP.md) | 2.3 KB | `AF916B13FC9B4EF9C8C8C383734D50D3462AA14180E86C8D10065379B7D44D8A` | Extraction Standard Operating Procedure |
+| [`08_docs/MANUSCRIPT_SPEC.md`](file:///e:/GPS_Denied_SLR/08_docs/MANUSCRIPT_SPEC.md) | 2.1 KB | `FEA98930115ABD7FE039DEB44DF9EFA99E083D7332DBD933625C556A157D7B5B` | Manuscript Tables T1–T8 & Figures F1–F9 Spec |
+| [`08_docs/NUMBER_TRACE.md`](file:///e:/GPS_Denied_SLR/08_docs/NUMBER_TRACE.md) | 3.9 KB | `B297EFC4EA60D98561A5B09952637EAEB2E8BCF3C8E66557FA56609725F9ABA5` | Cryptographic Number Trace |
+| [`08_docs/PRISMA_CHECKLIST.md`](file:///e:/GPS_Denied_SLR/08_docs/PRISMA_CHECKLIST.md) | 16.0 KB | `AAA45B5A1CA2AC68666F8688CB9258CD5D875B93852D1699F9A834FA02DC6C36` | 27-Item PRISMA 2020 Compliance Checklist |
+| [`08_docs/SCREENING_INDEPENDENCE.md`](file:///e:/GPS_Denied_SLR/08_docs/SCREENING_INDEPENDENCE.md) | 2.4 KB | `2266FB177877B395408BA5A3C40892F20BC973BF74A392996B41894960EFD5D3` | Reviewer Screening Independence Protocol |
+| [`08_docs/SYNTHESIS_METHOD.md`](file:///e:/GPS_Denied_SLR/08_docs/SYNTHESIS_METHOD.md) | 2.3 KB | `8B4867009FABD5F28481C583602A6E0A576D88254E94F75B37110B783305DB09` | PRISMA 2020 Synthesis Methodology |
+| [`08_docs/SYNTHESIS_REPORT.md`](file:///e:/GPS_Denied_SLR/08_docs/SYNTHESIS_REPORT.md) | 3.7 KB | `1E4DC5A86C23C1FA9A90546D228CAED9BEA6D554E7F766BD600B84E6E788AAD5` | Phase 7 Synthesis Report (279 papers) |
+
+### 📁 `09_prompts/` — Execution Prompts Directory
+* **Purpose:** Directory for operational prompts. (Active execution prompts are centrally located in `_PROJECT/`).
+* **Audit State:** Audited on 2026-09-27. Relocated obsolete `PDCA_PHASE_1_VALIDATE.md` to `_ARCHIVE/legacy_09_prompts/`.
+
+| File Link | Size | SHA256 Hash | Role / Status |
+| :--- | :---: | :--- | :--- |
+| [`09_prompts/README.md`](file:///e:/GPS_Denied_SLR/09_prompts/README.md) | 520 B | `3A820D5DAB0E8D067BF929DE62FACA8D23A7116AD34FD6B87FFA086CED07B085` | **Directory Manifest & Pointer to `_PROJECT/`** |
+
 ---
 
 ## 3. Relocated Legacy Archives: `_ARCHIVE/`
@@ -169,6 +195,12 @@ To prevent confusion with live PRISMA 2020 statistics, obsolete Generation-1 fil
    - `GPS_Denied_SLR_Manuscript_v2.docx` (stale binary export)
    - `GPS_Denied_SLR_IEEE.tex` & `GPS_Denied_SLR_Manuscript.md` (unversioned legacy drafts)
    - `tables_V1.md`, `tables_V1_291.md`, `figures_list_V1.md`, `figures_list_V1_291.md`
+7. **[`_ARCHIVE/legacy_09_prompts/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_09_prompts/)** (1 item):
+   - `PDCA_PHASE_1_VALIDATE.md` (historical PDCA prompt referencing obsolete numbers)
+8. **[`_ARCHIVE/legacy_10_validation/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_10_validation/)** (8 items):
+   - `adjudicated.csv`, `extraction_validation_results.csv`, `extraction_validation_sample.csv`, `reviewer_A.csv`, `reviewer_B.csv`, `sample.csv`, `kappa_report.md`, `extraction_validation_report.md` (172-paper validation data from deprecated 1,700-row run)
+9. **[`_ARCHIVE/legacy_supplementary/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_supplementary/)** (8 items):
+   - `S1_prisma_checklist.md`, `S2_search_queries.txt`, `S3_quality_scores.csv` (172 rows), `S4_full_reference_list.bib`, `S5_extracted_master_snapshot_v2.csv` (172 rows), `S6_screening_criteria_v2.md`, `S7_human_validation_report.md`, `S8_extraction_validation_report.md`
 
 ---
 
@@ -176,11 +208,8 @@ To prevent confusion with live PRISMA 2020 statistics, obsolete Generation-1 fil
 
 | Directory | Items / Size | Current State | Planned Action |
 | :--- | :---: | :--- | :--- |
-| **`08_docs/`** | 10 files (40 KB) | Live PRISMA & extraction specifications | Keep and cross-reference |
-| **`09_prompts/`** | 1 file (<1 MB) | Legacy PDCA prompt | Move to `_ARCHIVE/` |
-| **`10_validation/`** | 8 files (260 KB) | Legacy 171-paper validation set | Move to `_ARCHIVE/` |
-| **`supplementary/`** | 8 files (160 KB) | Legacy S1–S8 snapshots | Move to `_ARCHIVE/` |
-| **`_AUDIT/`** | 55 files (350 KB) | Live audit ledger and batch reports | Clean up stray scratch scripts |
+| **`_AUDIT/`** | 55 files (350 KB) | Live audit ledger and batch reports | Clean up stray scratch scripts, add manifest |
 | **`_MANUAL/`** | 291 files (1.5 MB) | **FROZEN manual extraction evidence base** | Preserve and lock |
 | **`_PROJECT/`** | 7 files (40 KB) | Governance & master prompts | Update and maintain |
 | **47 `_QUARANTINE_*`** | ~17,800 files (~180 MB) | Cluttering the root directory | Consolidate into `_ARCHIVE/quarantines/` |
+

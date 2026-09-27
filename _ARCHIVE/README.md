@@ -14,7 +14,10 @@ _ARCHIVE/
 ├── legacy_03_prompts/             # Generation-1 prompt files and JSONL execution logs (5,134 files)
 ├── legacy_04_ai_responses/        # Generation-1 raw LLM responses and calibration logs (5,142 files)
 ├── legacy_06_analysis/            # Generation-1 analysis output folder (673 files) and stale synthesis notes
-└── legacy_07_manuscript/          # Generation-1 draft papers, submitted versions, and obsolete tables (24 files)
+├── legacy_07_manuscript/          # Generation-1 draft papers, submitted versions, and obsolete tables (24 files)
+├── legacy_09_prompts/             # Obsolete PDCA prompt file (1 file)
+├── legacy_10_validation/          # Obsolete 172-paper validation data and reports (8 files)
+└── legacy_supplementary/          # Deprecated S1–S8 supplementary files from 171-paper run (8 files)
 ```
 
 ---
@@ -66,3 +69,17 @@ Relocated on 2026-09-27 from `07_manuscript/`:
 * `GPS_Denied_SLR_Manuscript_v2.docx` (stale binary export).
 * `GPS_Denied_SLR_IEEE.tex` & `GPS_Denied_SLR_Manuscript.md` (unversioned legacy drafts).
 * `tables_V1.md`, `tables_V1_291.md`, `figures_list_V1.md`, `figures_list_V1_291.md`.
+
+### 📁 `legacy_09_prompts/` (1 item)
+Relocated on 2026-09-27 from `09_prompts/`:
+* `PDCA_PHASE_1_VALIDATE.md` — Historical PDCA recovery cycle prompt referencing legacy pre-reset numbers.
+
+### 📁 `legacy_10_validation/` (8 items)
+Relocated on 2026-09-27 from `10_validation/`:
+* `adjudicated.csv`, `extraction_validation_results.csv`, `extraction_validation_sample.csv`, `reviewer_A.csv`, `reviewer_B.csv`, `sample.csv` (172-paper sample from deprecated 1,700-row pre-reset run).
+* `kappa_report.md` & `extraction_validation_report.md` (legacy validation reports).
+
+### 📁 `legacy_supplementary/` (8 items)
+Relocated on 2026-09-27 from `supplementary/`:
+* `S1_prisma_checklist.md`, `S2_search_queries.txt`, `S3_quality_scores.csv` (172 rows), `S4_full_reference_list.bib`, `S5_extracted_master_snapshot_v2.csv` (172 rows), `S6_screening_criteria_v2.md`, `S7_human_validation_report.md`, `S8_extraction_validation_report.md`.
+
