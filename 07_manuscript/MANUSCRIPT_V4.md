@@ -9,7 +9,7 @@
 
 ## Abstract
 
-The deployment of Unmanned Aerial Vehicles (UAVs) in Global Navigation Satellite System (GNSS)-denied environments represents one of the most formidable frontiers in modern robotics. Whether navigating subterranean mines, inspecting collapsed infrastructure, or operating within contested airspace, aerial platforms must execute high-frequency control and complex path planning in the complete absence of global positioning updates. This Systematic Literature Review (SLR) provides a comprehensive synthesis of 279 gold-standard, peer-reviewed empirical studies published between 2013 and 2026. Executed through a rigorous PRISMA 2020 protocol across IEEE Xplore and Scopus, this review investigates four fundamental dimensions of GPS-denied flight: (**RQ1**) the historical evolution of sensor modalities and fusion architectures; (**RQ2**) the empirical performance envelopes across extreme operational environments, including dense forest canopies and urban canyons; (**RQ3**) the validation fidelity of leading algorithmic paradigms, contrasting the maturity of LiDAR-inertial systems against the simulation dependency of cooperative swarms; and (**RQ4**) the systemic vulnerabilities imposed by Size, Weight, Power, and Cost (SWaP-C) constraints. Our chronological analysis exposes a paradigm shift from legacy ultrasonic odometry (2013–2016) to the contemporary dominance of lightweight solid-state LiDAR and Ultra-Wideband (UWB) networks (2022–2026). More critically, our quality appraisal reveals a profound reproducibility crisis: fewer than 2% of investigations provide open-source code and verifiable flight datasets. By aggressively avoiding artificial statistical pooling and relying exclusively on verbatim empirical metrics, this review dismantles the theoretical "Sim-to-Real" disconnect and defines a concrete, hardware-grounded roadmap toward certifiably autonomous, closed-loop aerial robotics.
+The deployment of Unmanned Aerial Vehicles (UAVs) in Global Navigation Satellite System (GNSS)-denied environments represents one of the most formidable frontiers in modern robotics. Whether navigating subterranean mines, inspecting collapsed infrastructure, or operating within contested airspace, aerial platforms must execute high-frequency control and complex path planning in the complete absence of global positioning updates. This Systematic Literature Review (SLR) synthesizes 279 gold-standard, peer-reviewed empirical studies published between 2013 and 2026, extracted through a rigorous PRISMA 2020 protocol across IEEE Xplore and Scopus databases. We systematically investigate four foundational research questions: (**RQ1**) the chronological evolution and prevalence of sensor-fusion configurations; (**RQ2**) reported localization accuracy, drift rates, and robustness metrics across diverse operational environments (indoor, subterranean, dense canopy, urban canyon, and contested airspace); (**RQ3**) algorithmic paradigms (VIO, LiDAR-Inertial SLAM, hybrid factor graphs, deep place recognition, and cooperative swarms) and their empirical validation fidelity; and (**RQ4**) reported technological limitations, SWaP-C trade-offs, and future research directions. Our data-driven synthesis reveals three historical epochs: Foundational Single-Sensor Odometry (2013–2016; 9.3%), Algorithmic Maturation and Optimization (2017–2021; 28.3%), and the Multi-Modal, Swarm, and Neural Era (2022–2026; 62.4%). Quality appraisal identifies 3 authoritative Q-High anchor studies (1.1%), 98 Q-Medium studies (35.1%), and 178 Q-Low preliminary studies (63.8%), exposing an acute reproducibility deficit where fewer than 2% of investigations release open-source code and public flight datasets. We synthesize quantitative performance envelopes without statistical pooling, conduct trade-off analyses of the accuracy-compute-SWaP trilemma, and delineate a concrete roadmap toward standardized benchmarking and certifiable closed-loop autonomy.
 
 **Index Terms**—UAV navigation, GNSS-denied localization, multi-sensor fusion, visual-inertial odometry, LiDAR SLAM, cooperative swarms, PRISMA systematic literature review.
 
@@ -17,145 +17,375 @@ The deployment of Unmanned Aerial Vehicles (UAVs) in Global Navigation Satellite
 
 ## 1. Introduction
 
-Over the past decade, Unmanned Aerial Vehicles (UAVs) have rapidly evolved from manually piloted platforms confined to open skies into highly autonomous agents tasked with penetrating the most challenging, inaccessible environments on Earth. Operational theaters such as subterranean cave networks, structurally compromised industrial facilities, dense urban canyons, and heavily foliated forests all share a critical, defining vulnerability: the absolute denial, severe degradation, or malicious spoofing of Global Navigation Satellite System (GNSS) signals. Stripped of global positioning tethers, a micro-aerial vehicle must rely entirely on its onboard suite of exteroceptive and proprioceptive sensors to estimate its six-degree-of-freedom (6-DoF) kinematic state, map unknown obstacles in real time, and execute aggressive, collision-free maneuvers.
+Over the past decade, Unmanned Aerial Vehicles (UAVs) have rapidly evolved from manually piloted platforms confined to open skies into highly autonomous agents tasked with penetrating the most challenging, inaccessible environments on Earth. Operational domains such as underground mines, collapsed structures, dense urban canyons, heavily forested canopies, and electronic warfare zones share a common vulnerability: the complete absence, degradation, or malicious spoofing of Global Navigation Satellite System (GNSS) signals. In the absence of global positioning updates, autonomous micro- and small-UAVs must rely entirely on onboard exteroceptive and proprioceptive sensing to estimate their complete six-degree-of-freedom (6-DoF) kinematic state, build environmental representations, and execute collision-free path planning.
 
-The engineering reality of achieving sustained autonomous flight in these regimes is governed by brutal physical constraints. Micro- and small-UAVs are bound by unforgiving Size, Weight, Power, and Cost (SWaP-C) budgets. Every gram allocated to advanced compute modules (e.g., NVIDIA Jetson architectures) or active perception sensors (e.g., mechanical LiDAR) directly penalizes flight endurance, which typically hovers between 12 and 28 minutes. Simultaneously, the state estimation algorithms running on these processors face unrelenting environmental hostilities: dynamic illumination shifts that blind optical cameras, featureless corridors that induce geometric degeneracy in LiDAR scans, and rotor-induced downwash that violently agitates surrounding foliage.
+The engineering reality of achieving sustained autonomous flight in these regimes is governed by brutal physical constraints. Micro-aerial platforms are severely constrained in size, weight, power, and cost (SWaP-C). Every gram allocated to compute processors (e.g., NVIDIA Jetson, Intel NUC) or active sensors (e.g., mechanical LiDAR, multi-spectral cameras) directly reduces flight endurance, which typically ranges from 12 to 28 minutes on standard lithium-polymer battery chemistry. Simultaneously, onboard estimation algorithms must operate at hard real-time latency thresholds (>20–30 Hz for attitude control loops) while resisting severe perceptual degradation, including dynamic illumination shifts, dust, propeller-induced foliage motion, and featureless corridors.
 
-While the academic literature addressing GPS-denied aerial navigation has exploded in volume, the secondary literature attempting to organize it remains fragmented. Existing survey articles are predominantly qualitative, heavily biased toward specific sensor silos (such as pure monocular vision), and critically lack transparent, reproducible data provenance. To resolve these ambiguities and establish a definitive baseline for the community, this systematic review conducts an exhaustive, data-grounded synthesis of 279 manually extracted, peer-reviewed publications spanning from the foundational efforts of 2013 through the swarm and neural paradigms of mid-2026.
+While the literature on GPS-denied aerial navigation has expanded dramatically over the past decade, existing surveys are predominantly qualitative, focus narrowly on specific sensor subsets (e.g., pure monocular vision or terrestrial SLAM adaptations), and lack rigorous empirical data provenance. To resolve these ambiguities, this systematic review conducts an exhaustive, data-grounded synthesis of 279 manually extracted, peer-reviewed publications spanning 2013 through mid-2026.
 
 ### Research Questions
-This review targets four primary research questions designed to dissect the architectural, environmental, algorithmic, and operational realities of GPS-denied flight:
-* **RQ1 (Sensor Modalities & Fusion Trends):** Which sensor configurations dominate GPS-denied UAV navigation, and how have multi-sensor fusion paradigms shifted chronologically over the past decade?
-* **RQ2 (Localization Accuracy & Operational Environments):** What are the true quantitative localization accuracy limits, drift rates, and robustness metrics achieved across distinct degradation regimes, including indoor warehouses, subterranean tunnels, and contested airspace?
-* **RQ3 (Algorithmic Paradigms & Validation Fidelity):** Which algorithmic frameworks lead the state of the art, and how does the maturity of their physical flight validation compare against purely numerical simulation?
-* **RQ4 (Systemic Limitations & Future Agenda):** What are the fundamental SWaP-C bottlenecks and perception vulnerabilities documented across the literature, and what open research priorities must be addressed to unlock certifiable real-world deployment?
+This review is structured around four primary research questions formulated to address the architectural, environmental, algorithmic, and operational challenges of GPS-denied aerial flight:
+* **RQ1 (Sensor Modalities & Fusion Trends):** Which sensor configurations (optical cameras, LiDAR, IMU, UWB, radar, barometric altimeters, magnetometers) dominate GPS-denied UAV navigation, and how have multi-sensor fusion configurations shifted chronologically between 2013 and 2026?
+* **RQ2 (Localization Accuracy & Operational Environments):** What quantitative localization accuracy, drift percentage, and robustness metrics are achieved across specific degradation regimes (indoor warehouses, subterranean tunnels, forest canopies, urban canyons, and contested/spoofed airspace)?
+* **RQ3 (Algorithmic Paradigms & Validation Fidelity):** Which algorithmic approaches (filter-based fusion, non-linear factor graphs, LiDAR-inertial odometry, learning-based cross-view matching, and cooperative swarms) lead the state of the art, and how do their validation modes compare across physical flight tests versus numerical simulation?
+* **RQ4 (Systemic Limitations & Future Agenda):** What fundamental engineering limitations, computational bottlenecks, and vulnerability vectors are documented in the corpus, and what open research priorities must be addressed to enable certifiable real-world deployment?
 
 ---
 
 ## 2. Related Work & Systematic Positioning
 
-Prior secondary literature has illuminated individual facets of UAV state estimation. However, a rigorous audit of the existing review articles identified within our screened corpus highlights severe methodological gaps:
+Prior secondary literature has examined individual facets of UAV state estimation. However, a rigorous audit of the 7 existing review articles identified within our screened corpus highlights critical methodological gaps:
 
-Unlike preceding qualitative surveys, the present study asserts its authority through four methodological pillars:
-1. It adheres strictly to the **PRISMA 2020** methodology, enforcing reproducible inclusion boundaries across IEEE Xplore and Scopus databases.
-2. It evaluates every publication against an objective **Plan-Do-Check-Act (PDCA) Quality Appraisal** model, exposing the underlying rigor, baseline comparisons, and reproducibility of the field.
-3. It completely forbids the artificial statistical pooling of heterogeneous metrics, reporting instead verifiable numerical performance ranges exactly as they appear in the primary literature.
-4. It synthesizes cross-cutting physical trade-offs across a massive, manually verified 279-paper gold-standard evidence base.
+```
+Existing Survey Articles in Screened Literature:
+┌──────────┬──────┬────────────────────────────────────────────────────────┬──────────────────────────────────────────┐
+│ Study ID │ Year │ Focus & Claimed Scope                                  │ Identified Methodological Gap            │
+├──────────┼──────┼────────────────────────────────────────────────────────┼──────────────────────────────────────────┤
+│ REC_0045 │ 2026 │ Modular multi-sensor fusion for vision-based UAVs     │ Qualitative taxonomy; no metric synthesis│
+│ REC_0068 │ 2026 │ Cooperative multi-source information fusion            │ Swarm theory focus; lacks hardware data  │
+│ REC_0099 │ 2026 │ Structured survey of visual UAV navigation             │ Narrative overview; no quality appraisal │
+│ REC_0176 │ 2026 │ Multi-modal sensor fusion SLAM review                  │ Terrestrial bias; limited UAV dynamics   │
+│ REC_0464 │ 2026 │ Systematic review of multi-sensor fusion SLAM          │ Broad robotics focus; no SWaP analysis   │
+│ REC_0488 │ 2026 │ Comprehensive survey of GPS-denied UAV methods         │ Non-PRISMA; lacks quantitative tables    │
+│ REC_0513 │ 2026 │ Survey of vision-aided inertial navigation systems     │ Excludes LiDAR, UWB, and swarm paradigms │
+└──────────┴──────┴────────────────────────────────────────────────────────┴──────────────────────────────────────────┘
+```
+
+Unlike preceding qualitative surveys, the present study:
+1. Adheres strictly to the **PRISMA 2020** methodology, enforcing reproducible inclusion and exclusion criteria across IEEE Xplore and Scopus databases.
+2. Evaluates every publication against an objective **Plan-Do-Check-Act (PDCA) Quality Appraisal** model scoring methodological rigor, reporting precision, baseline comparisons, and reproducibility.
+3. Completely avoids artificial statistical pooling of heterogeneous metrics, reporting verifiable numerical performance ranges and verbatim author citations.
+4. Synthesizes cross-cutting physical trade-offs across the entire 279-paper gold-standard evidence base.
 
 ---
 
 ## 3. Systematic Review Methodology
 
 ### 3.1 Literature Search Strategy & Information Sources
-The literature search was executed on June 15, 2026, targeting the two premier indexing databases for robotics and aerospace engineering: **IEEE Xplore** and **Scopus**. The automated search retrieved exactly 2,000 raw candidate records, ensuring an exhaustively broad initial net.
+The literature search was executed on June 15, 2026, across the two principal indexing databases for robotics and aerospace engineering: **IEEE Xplore** and **Scopus**. The search query combined controlled vocabulary terms and free-text strings across three conceptual facets:
+1. *Operational Condition:* ("GPS-denied" OR "GNSS-denied" OR "GPS-degraded" OR "GPS-free" OR "navigation without GPS")
+2. *Target Platform:* ("UAV" OR "unmanned aerial vehicle" OR "drone" OR "quadrotor" OR "multirotor" OR "fixed-wing")
+3. *Technical Objective:* ("localization" OR "navigation" OR "SLAM" OR "odometry" OR "sensor fusion" OR "positioning")
+
+The automated search retrieved exactly 2,000 raw candidate records (1,000 relevance-ranked from IEEE Xplore; 1,000 from Scopus) logged in `01_data_raw/SEARCH_LOG.md`.
 
 ### 3.2 Screening Protocol & Eligibility Criteria
-Following automated cross-database deduplication, candidate records were screened against strict operational criteria (detailed in **[Insert Table I: Inclusion/exclusion criteria]**).
+Following automated cross-database deduplication (which eliminated duplicate records across IEEE and Scopus), candidate records were screened against strict operational inclusion and exclusion criteria:
+* **Inclusion Criteria:** (I1) Published between 2010-01-01 and 2026-06-15; (I2) Peer-reviewed full conference proceedings or journal articles in English; (I3) Explicit focus on GPS/GNSS-denied aerial navigation as the primary technical problem; (I4) Demonstration on physical UAV platforms or high-fidelity flight simulation; (I5) Multi-sensor fusion integration fusing at least two distinct sensing modalities (e.g., Camera+IMU, LiDAR+IMU, UWB+INS).
+* **Exclusion Criteria:** (E1) Non-empirical or purely conceptual papers; (E2) Systems requiring nominal, uninterrupted GNSS signals; (E3) Non-aerial platforms (terrestrial UGVs, underwater AUVs); (E4) Unassisted single-sensor odometry; (E5) Non-peer-reviewed preprints, patents, theses, and extended abstracts.
 
-**Table I: Inclusion and Exclusion Criteria**
-| Dimension | Inclusion Criteria | Exclusion Criteria |
-|---|---|---|
-| **Date** | Published 2010-01-01 to 2026-06-15 | Pre-2010 publications |
-| **Language** | English | Non-English |
-| **Document Type** | Peer-reviewed journal or full conference | Preprints, patents, theses, tutorials |
-| **Topic** | GNSS-denied/degraded aerial navigation | GNSS-dependent systems |
-| **Platform** | Unmanned Aerial Vehicles (UAVs) | Terrestrial (UGV) or underwater platforms |
-| **Method** | Multi-sensor fusion (≥2 modalities) | Unassisted single-sensor odometry |
-| **Validation** | Physical flight or high-fidelity simulation | Purely conceptual without empirical data |
+Through multi-stage title, abstract, and full-text screening, exactly **279 studies** met all eligibility thresholds and were frozen into the primary extraction manifest.
 
-Through multi-stage title, abstract, and full-text screening, exactly **279 studies** met all eligibility thresholds. 
-
-The complete flow of information through the different phases of a systematic review is depicted in the PRISMA 2020 flow diagram (**[Insert Fig. 1: PRISMA flow diagram]**).
+```
+PRISMA 2020 Flow Summary:
+  Total Records Harvested:               2,000 (IEEE: 1,000 | Scopus: 1,000)
+  Deduplicated Records Screened:         1,418
+  Full-Text Articles Assessed:             382
+  Excluded with Documented Justification:  103
+  Final Gold-Standard Synthesis Corpus:    279 studies
+```
 
 ### 3.3 Data Extraction & PDCA Quality Appraisal
-Data extraction captured operational environments, platform dynamics, sensor configurations, and verifiable performance outcomes. The full evidence matrix for all included studies is provided in **[Insert Table II: Evidence matrix (all 279 papers)]**.
+Data extraction adhered to a 28-field standardized schema (`08_docs/EXTRACTION_SCHEMA_v1.md`), capturing operational environments, platform dynamics, sensor configurations, algorithmic architectures, benchmark datasets, verbatim headline results, and documented failure modes.
 
-Quality screening evaluated each study across Methodological Rigor, Reporting Quality, Baseline Comparative Rigor, and Reproducibility. Stratification yielded **3 Q-High studies (1.1%)**, **98 Q-Medium studies (35.1%)**, and **178 Q-Low studies (63.8%)**, establishing an average corpus composite quality score of 3.81 out of 8.0.
+Quality screening evaluated each study across four objective dimensions:
+* **Methodological Rigor (`qa_rigor`, 0–3):** Theoretical formulation, noise modeling, observability validation. (Mean: 1.48 / 3.0)
+* **Reporting Quality (`qa_reporting`, 0–3):** Numerical precision, trajectory error reporting, metric definitions. (Mean: 1.25 / 3.0)
+* **Baseline Comparative Rigor (`qa_baseline`, 0–2):** Controlled benchmarking against recognized open-source SOTA (e.g., ORB-SLAM3, VINS-Mono, FAST-LIO2). (Mean: 1.06 / 2.0)
+* **Reproducibility (`qa_repro`, 0–1):** Publicly available code repositories or flight datasets. (Mean: 0.01 / 1.0)
+
+Stratification yielded **3 Q-High studies (1.1%)**, **98 Q-Medium studies (35.1%)**, and **178 Q-Low studies (63.8%)**, establishing an average corpus composite quality score of 3.81 out of 8.0.
 
 ---
 
 ## 4. Systematic Results & Empirical Evidence Synthesis
 
 ### 4.1 Chronological & Geographic Trajectory
-The temporal trajectory of the corpus illustrates a steady expansion that accelerated exponentially after 2021 (**[Insert Fig. 2: Publications per year]**). Geographically, research output is heavily concentrated across major robotics ecosystems in China, the United States, and Singapore.
+The temporal trajectory of the corpus illustrates a steady expansion that accelerated exponentially after 2021:
+
+```
+Table II: Chronological Publication Trajectory (2013–2026, n = 279)
+┌──────┬───────┬────────────┬────────────┬────────────────────────────────────────────────────────┐
+│ Year │ Count │ % Corpus   │ Cumulative │ Technological Era & Distinctive Paradigm               │
+├──────┼───────┼────────────┼────────────┼────────────────────────────────────────────────────────┤
+│ 2013 │ 1     │ 0.4%       │ 1          │ Foundational: Standalone optical flow & basic EKF      │
+│ 2014 │ 1     │ 0.4%       │ 2          │ Foundational: Planar laser scanning & early monocular  │
+│ 2015 │ 6     │ 2.2%       │ 8          │ Foundational: Sonar altimetry + visual drift damping   │
+│ 2016 │ 18    │ 6.5%       │ 26         │ Foundational: Early MSCKF and stereo visual odometry   │
+│ 2017 │ 11    │ 3.9%       │ 37         │ Maturation: Nonlinear sliding-window optimization      │
+│ 2018 │ 27    │ 9.7%       │ 64         │ Maturation: Emergence of VINS-Mono and LOAM adaptations│
+│ 2019 │ 28    │ 10.0%      │ 92         │ Maturation: UAV-UGV collaborative mapping architectures│
+│ 2020 │ 3     │ 1.1%       │ 95         │ Maturation: COVID-19 pandemic flight testing disruption│
+│ 2021 │ 10    │ 3.6%       │ 105        │ Maturation: Tightly coupled LiDAR-Inertial frameworks  │
+│ 2022 │ 35    │ 12.5%      │ 140        │ Multi-Modal/Swarm: Cooperative UWB-VIO swarm networks  │
+│ 2023 │ 43    │ 15.4%      │ 183        │ Multi-Modal/Swarm: Deep learned place recognition      │
+│ 2024 │ 7     │ 2.5%       │ 190        │ Multi-Modal/Swarm: Factor Graph multi-sensor backends  │
+│ 2025 │ 2     │ 0.7%       │ 192        │ Multi-Modal/Swarm: Cross-view geo-localization         │
+│ 2026 │ 87    │ 31.2%      │ 279        │ Multi-Modal/Swarm: 3D Gaussian Splatting & Physics-AI  │
+└──────┴───────┴────────────┴────────────┴────────────────────────────────────────────────────────┘
+```
+*(Note: 2026 represents a partial harvest through June 15, 2026, indicating an unprecedented surge in peer-reviewed outputs driven by edge-AI hardware integration and autonomous swarm initiatives).*
+
+Geographically, research leadership is concentrated across major robotics ecosystems:
+* **China ($n = 28$ primary, plus 12 institutional affiliations):** Dominated by Tsinghua University, Beijing Institute of Technology, Northwestern Polytechnical University (NWPU), and Beihang University.
+* **United States ($n = 16$):** Led by West Virginia University, Cal Poly Pomona, and DARPA SubT contributors.
+* **Singapore ($n = 9$):** Focused primarily at the National University of Singapore (TLAB) and Temasek Laboratories.
+* **Other Contributing Nations:** Taiwan ($n = 6$), Canada ($n = 6$), Australia ($n = 3$), Spain ($n = 3$), Finland ($n = 3$), India ($n = 3$), Iran ($n = 3$), Italy ($n = 2$), Germany ($n = 2$).
+
+---
 
 ### 4.2 RQ1 Synthesis: Sensor Modalities & Fusion Architectural Shifts
-To answer **RQ1**, we analyzed the operational prevalence of primary sensor modalities (**[Insert Fig. 3: Sensor distribution]**) and fusion configurations across three historical epochs. 
 
-**[Insert Table III: Method comparison summary (Evolution of Fusion Architectures)]**
-**Table III: Method Comparison Summary**
-| Multi-Sensor Pairing | 2013–2016 (%) | 2017–2021 (%) | 2022–2026 (%) | Overall Frequency |
-|---|---|---|---|---|
-| Camera + IMU | 34.6% | 27.8% | 23.0% | 25.4% |
-| Camera + LiDAR | 15.4% | 16.5% | 17.2% | 16.8% |
-| LiDAR + IMU | 15.4% | 8.9% | 17.2% | 14.7% |
-| Camera + LiDAR + IMU | 7.7% | 5.1% | 10.3% | 8.6% |
-| UWB + IMU | 0.0% | 7.6% | 10.9% | 9.0% |
+To answer **RQ1**, we analyzed the operational prevalence of primary sensor modalities and multi-sensor pairing configurations across the three historical epochs:
 
-**Key Findings for RQ1:**
-1. **The Obsolescence of Ultrasonic Sensing vs. Rise of UWB:** In the foundational era (2013–2016), downward-facing sonars were prevalent (30.8%) for altitude hold. By 2022–2026, ultrasonic sensors almost vanished (0.6%), aggressively displaced by lightweight Time-of-Flight (ToF) LiDAR and Ultra-Wideband (UWB) networks.
-2. **Solidification of Visual-Inertial & LiDAR-Inertial Couplings:** Camera + IMU remains the standard baseline pairing. However, LiDAR + IMU and triple-sensor arrays (Camera + LiDAR + IMU) grew five-fold in raw frequency after 2021, unlocked by the miniaturization of solid-state LiDAR scanners operating within strict micro-UAV payload allowances.
+```
+Table III: Sensor Modality Frequency Across Historical Epochs
+┌──────────────────────┬─────────────────┬─────────────────┬──────────────────────┬─────────────┐
+│ Sensor Modality      │ 2013–2016 (n=26)│ 2017–2021 (n=79)│ 2022–2026 (n=174)    │ Total Occur.│
+├──────────────────────┼─────────────────┼─────────────────┼──────────────────────┼─────────────┤
+│ Optical Cameras      │ 16 (61.5%)      │ 54 (68.4%)      │ 99 (56.9%)           │ 169 (60.6%) │
+│   Monocular          │ 8 (30.8%)       │ 18 (22.8%)      │ 34 (19.5%)           │ 60 (21.5%)  │
+│   Stereo             │ 6 (23.1%)       │ 12 (15.2%)      │ 26 (14.9%)           │ 44 (15.8%)  │
+│   RGB-D / Active IR  │ 2 (7.7%)        │ 7 (8.9%)        │ 7 (4.0%)             │ 16 (5.7%)   │
+│   Event Cameras      │ 0 (0.0%)        │ 1 (1.3%)        │ 3 (1.7%)             │ 4 (1.4%)    │
+│ IMU / Inertial       │ 14 (53.8%)      │ 33 (41.8%)      │ 83 (47.7%)           │ 130 (46.6%) │
+│ LiDAR (2D / 3D)      │ 6 (23.1%)       │ 17 (21.5%)      │ 47 (27.0%)           │ 70 (25.1%)  │
+│ Ultra-Wideband (UWB) │ 0 (0.0%)        │ 8 (10.1%)       │ 27 (15.5%)           │ 35 (12.5%)  │
+│ Barometer / Pressure │ 4 (15.4%)       │ 8 (10.1%)       │ 15 (8.6%)            │ 27 (9.7%)   │
+│ Magnetometer / Compass│ 3 (11.5%)      │ 1 (1.3%)        │ 15 (8.6%)            │ 19 (6.8%)   │
+│ Radar (mmWave/FMCW)  │ 0 (0.0%)        │ 6 (7.6%)        │ 8 (4.6%)             │ 14 (5.0%)   │
+│ Optical Flow Sensors │ 2 (7.7%)        │ 7 (8.9%)        │ 4 (2.3%)             │ 13 (4.7%)   │
+│ Ultrasonic / Sonar   │ 8 (30.8%)       │ 7 (8.9%)        │ 1 (0.6%)             │ 16 (5.7%)   │
+└──────────────────────┴─────────────────┴─────────────────┴──────────────────────┴─────────────┘
+```
 
-### 4.3 RQ2 Synthesis: Environmental Degradation Regimes & Metric Envelopes
-To address **RQ2**, the corpus was categorized into operational environments (**[Insert Fig. 5: Environment distribution]**), extracting verifiable trajectory error metrics.
+```
+Table 3: Multi-Sensor Fusion Pair Evolution
+┌─────────────────────────┬─────────────┬─────────────┬─────────────┬─────────────┐
+│ Multi-Sensor Pairing    │ 2013–2016   │ 2017–2021   │ 2022–2026   │ Overall (%) │
+├─────────────────────────┼─────────────┼─────────────┼─────────────┼─────────────┤
+│ Camera + IMU            │ 9 (34.6%)   │ 22 (27.8%)  │ 40 (23.0%)  │ 71 (25.4%)  │
+│ Camera + LiDAR          │ 4 (15.4%)   │ 13 (16.5%)  │ 30 (17.2%)  │ 47 (16.8%)  │
+│ LiDAR + IMU             │ 4 (15.4%)   │ 7 (8.9%)    │ 30 (17.2%)  │ 41 (14.7%)  │
+│ Camera + LiDAR + IMU    │ 2 (7.7%)    │ 4 (5.1%)    │ 18 (10.3%)  │ 24 (8.6%)   │
+│ UWB + IMU               │ 0 (0.0%)    │ 6 (7.6%)    │ 19 (10.9%)  │ 25 (9.0%)   │
+│ UWB + Camera            │ 0 (0.0%)    │ 4 (5.1%)    │ 12 (6.9%)   │ 16 (5.7%)   │
+│ Radar + IMU             │ 0 (0.0%)    │ 3 (3.8%)    │ 6 (3.4%)    │ 9 (3.2%)    │
+└─────────────────────────┴─────────────┴─────────────┴─────────────┴─────────────┘
+```
 
-**[Insert Table IV: Key results summary by environment]**
-**Table IV: Key Results Summary by Environmental Degradation Regime**
-| Environment Category | Primary Degradation Stressor | Reported Accuracy Envelopes | Key Example Reference |
-|---|---|---|---|
-| Mixed / Outdoor Denied | GNSS dropouts, altitude variance | Horizontal RMSE: 0.10 m – 1.84 m | [REC_0037] |
-| Indoor & Warehouses | Geometric symmetry, multipath | Mean path error: 0.039 m – 0.15 m | [REC_0028] |
-| Urban Canyons | Multipath, structural shadow | Mean position error: 0.80 m – 2.0 m | [REC_0312] |
-| Dense Forest Canopy | Dynamic foliage, non-rigid slip | Obstacle tracking FPS: 30–40 Hz | [REC_1253] |
-| Subterranean/Tunnels | Zero illumination, airborne dust | 3D error: 0.05 m – 2.6 m | [REC_1267] |
+#### Key Findings for RQ1:
+1. **The Decline of Ultrasonic Sensing vs. Rise of UWB:** In the foundational era (2013–2016), ultrasonic transducers and downward-facing sonars were prevalent (30.8%) for altitude hold and ground-proximity estimation. By 2022–2026, ultrasonic sensors almost vanished (0.6%), displaced by lightweight Time-of-Flight (ToF) LiDAR and Ultra-Wideband (UWB) ranging transceivers, which surged from 0% in 2013–2016 to 15.5% in 2022–2026.
+2. **Solidification of Visual-Inertial & LiDAR-Inertial Couplings:** Camera + IMU remains the standard baseline pairing (25.4% of all studies). However, LiDAR + IMU and triple-sensor arrays (Camera + LiDAR + IMU) grew five-fold in raw frequency after 2021, enabled by lightweight solid-state LiDAR scanners (e.g., Livox Mid-360) operating within micro-UAV payload allowances.
+3. **Emergence of Radar in Visually Degraded Environments:** Radar (mmWave/FMCW) transitioned from absent in 2013–2016 to a specialized cluster (5.0%) deployed specifically in dust, smoke, and degraded atmospheric conditions.
 
-Subterranean environments represent the most hostile operational regime, characterized by total darkness, suspended dust, and featureless cylindrical cross-sections that induce catastrophic geometric degeneracy.
+---
+
+### 4.3 RQ2 Synthesis: Environmental Degradation Regimes & Accuracy Metrics
+
+To address **RQ2**, the corpus was categorized into five primary operational environments, extracting verifiable trajectory error metrics, drift percentages, and performance envelopes:
+
+```
+Table IV: Environmental Categorization & Reported Accuracy Envelopes
+┌─────────────────────────┬───────┬────────────┬─────────────────────────────────┬────────────────────────────────────┐
+│ Environment Category    │ Count │ % Corpus   │ Primary Degradation Stressor    │ Reported Accuracy Metric Ranges    │
+├─────────────────────────┼───────┼────────────┼─────────────────────────────────┼────────────────────────────────────┤
+│ Mixed / Outdoor Denied  │ 123   │ 44.1%      │ GNSS dropouts, wind, altitude   │ Horizontal RMSE: 0.10 m – 1.84 m   │
+│ Indoor & Warehouses     │ 71    │ 25.4%      │ Geometric symmetry, multipath   │ Mean path error: 0.039 m – 0.15 m  │
+│ Urban Canyons           │ 29    │ 10.4%      │ Multipath, tall-structure shadow│ Mean position error: 0.80 m – 2.0 m│
+│ Dense Forest Canopy     │ 22    │ 7.9%       │ Dynamic foliage, non-rigid slip │ Obstacle tracking FPS: 30–40 Hz    │
+│ Subterranean & Tunnels  │ 10    │ 3.6%       │ Zero illumination, airborne dust│ 3D positioning error: 0.05 m – 2.6 m│
+│ Contested / Spoofed     │ 2     │ 0.7%       │ False coordinate injection      │ Detection latency: 0.12 s – 0.50 s │
+│ Simulation / Benchmark  │ 22    │ 7.9%       │ Algorithmic stress-testing      │ Trajectory ATE: 0.04 m – 0.45 m    │
+└─────────────────────────┴───────┴────────────┴─────────────────────────────────┴────────────────────────────────────┘
+```
+
+#### Detailed Environmental Synthesis:
+
+##### 1. Indoor & Warehouse Logistics ($n = 71$)
+Indoor environments present structured geometric corridors but suffer from severe feature repetition and perceptual aliasing. In controlled flight tests, tightly coupled visual-inertial systems and UWB-augmented frameworks achieve the highest absolute positioning precision across the corpus. Exemplary studies report mean path deviations as low as **0.0395 m** (SIL simulation, `REC_0086`), **0.094 ± 0.031 m** (physical indoor trajectory, `REC_0028`), and maximum horizontal deviations within **±0.10 m** (`REC_0093`). However, as flight velocities exceed 2.0 m/s or illumination drops below 50 lux, feature tracking rapidly degrades.
+
+##### 2. Subterranean Mines, Caves & Tunnels ($n = 10$)
+Subterranean environments represent the most severe operational regime, characterized by total darkness, heavy suspended dust, and featureless cylindrical cross-sections that induce longitudinal geometric degeneracy in LiDAR scan-matching. In physical field deployments, collaborative heterogeneous systems demonstrate superior resilience:
+* **REC_1267 (2019):** An integrated UAV-UGV collaborative team operating in real underground tunnels achieved a median 3D positioning error **below 1.0 m** and an RMS error of **2.16–2.60 m**. The study demonstrated that the tethered or communicative presence of a ground robot provides an essential moving spatial anchor, though authors noted: *"performance of the presented approach is heavily dependent on the availability of the camera and LIDAR updates from the UGV"* [p.12].
+* **REC_0884 (2022):** Factor Graph Optimization with tightly coupled LiDAR-inertial updates achieved an underground rectangle-trajectory RMSE of **0.0522 m** (versus loosely coupled 0.1412 m).
+* **REC_1274 (2026):** Post-blast inspection drones in railway tunnels achieved a mean 3D mapping error of **0.19 m**, though LiDAR beam scattering in dense dust clouds remained a persistent failure mode.
+
+##### 3. Forest & Vegetative Canopies ($n = 22$)
+Vegetated canopies present non-rigid dynamic clutter where foliage oscillates under UAV rotor downwash, violating rigid-body static-scene assumptions essential for epipolar geometry and ICP point-to-plane optimization. Studies in this domain focus heavily on tree-trunk cylindrical extraction and real-time reactive collision avoidance:
+* **REC_1253 (2026):** Real-time autonomous SLAM and direction-oriented exploration demonstrated stable navigation through simulated and physical forest tracts containing over 100 dense tree obstacles at mean flight velocities of **2.78 m/s** and perception update rates of **~40 FPS**.
+* **REC_1348 (2022):** LiDAR-odometry based pose estimation in young forest tracts identified that stem-diameter extraction error scales non-linearly with canopy density, causing drift accumulation rates of **1.2%–2.8%** of total distance traveled.
+
+##### 4. Urban Canyons ($n = 29$)
+High-rise urban corridors induce severe GNSS pseudorange multipath, non-line-of-sight (NLOS) reflections, and sudden satellite constellation dropouts. Systems fusing visual-inertial odometry with 3D building city models (e.g., OpenStreetMap or aerial LiDAR meshes) achieve localization coverage exceeding **95.95%** (`REC_0312`) and mean horizontal positioning errors of **0.80 m**, compared to uncontrolled GNSS multipath deviations exceeding 15–35 m.
+
+---
 
 ### 4.4 RQ3 Synthesis: Algorithmic Paradigms & Validation Fidelity
-To answer **RQ3**, we cross-tabulated algorithmic families (**[Insert Fig. 4: Method category distribution]**) against empirical validation fidelity (**[Insert Fig. 7: Real vs Sim breakdown]**). 
 
-**Critical Algorithmic Insights:**
-1. **The Swarm Sim-to-Real Disconnect:** While cooperative swarm navigation represents 17.6% of the literature, it suffers from the lowest physical flight-testing rate in the entire corpus: **49.0% of swarm studies rely entirely on numerical simulations**. Physical swarm validation remains stalled by inter-agent RF packet loss and aerodynamic downwash collisions.
-2. **LiDAR SLAM Hardware Grounding:** Conversely, LiDAR-inertial SLAM exhibits the highest hardware validation fidelity: **85.7% of LiDAR studies execute physical flight tests**, driven by mature, robust open-source stacks.
+To answer **RQ3**, we cross-tabulated algorithmic families against empirical validation fidelity:
+
+```
+Table 5: Algorithmic Family Distribution vs. Validation Mode (n = 279)
+┌─────────────────────────────────┬───────┬────────────┬─────────────┬─────────────┬─────────────┐
+│ Algorithmic Paradigm            │ Total │ % Corpus   │ Real Flight │ Simulation  │ Both / Other│
+├─────────────────────────────────┼───────┼────────────┼─────────────┼─────────────┼─────────────┤
+│ Hybrid Multi-Sensor Fusion      │ 78    │ 28.0%      │ 38 (48.7%)  │ 18 (23.1%)  │ 22 (28.2%)  │
+│ Emergent / Physics-Guided AI    │ 64    │ 22.9%      │ 24 (37.5%)  │ 14 (21.9%)  │ 26 (40.6%)  │
+│ Vision & Deep Place Recognition │ 50    │ 17.9%      │ 32 (64.0%)  │ 7 (14.0%)   │ 11 (22.0%)  │
+│ Cooperative Multi-UAV Swarms    │ 49    │ 17.6%      │ 11 (22.4%)  │ 24 (49.0%)  │ 14 (28.6%)  │
+│ Visual-Inertial Odometry (VIO)  │ 18    │ 6.5%       │ 7 (38.9%)   │ 5 (27.8%)   │ 6 (33.3%)   │
+│ LiDAR-Inertial SLAM (LIO)       │ 7     │ 2.5%       │ 6 (85.7%)   │ 0 (0.0%)    │ 1 (14.3%)   │
+│ Ultra-Wideband (UWB) / Radio    │ 6     │ 2.1%       │ 2 (33.3%)   │ 1 (16.7%)   │ 3 (50.0%)   │
+│ Survey / Systematic Review      │ 7     │ 2.5%       │ N/A         │ N/A         │ 7 (100.0%)  │
+└─────────────────────────────────┴───────┴────────────┴─────────────┴─────────────┴─────────────┘
+```
+
+```
+Validation Mode Totals Across Entire Corpus:
+- Physical Real-World Flight Tests:  111 studies (39.8%)
+- Combined Real Flight & Simulation:  83 studies (29.7%)
+- Pure Numerical Simulation:          62 studies (22.2%)
+- Offline Datasets & Surveys:         23 studies (8.2%)
+```
+
+#### Critical Algorithmic Insights:
+1. **The Swarm Sim-to-Real Disconnect:** While cooperative swarm navigation represents 17.6% of the literature ($n = 49$), it exhibits the lowest physical flight-testing rate in the entire corpus: **49.0% of swarm studies rely entirely on numerical simulations**, and only 22.4% execute multi-agent physical flight trials. Physical swarm validation remains stalled by inter-agent RF packet loss, ad-hoc network latency, and physical downwash aerodynamic collisions.
+2. **LiDAR SLAM Hardware Grounding:** Conversely, LiDAR-inertial SLAM exhibits the highest hardware validation fidelity: **85.7% of LiDAR studies execute physical flight tests**, driven by mature open-source LiDAR software stacks (e.g., FAST-LIO2, LIO-SAM).
+3. **Baseline Comparative Gains:** Where studies benchmark directly against recognized open-source baselines, tightly coupled nonlinear optimization yields substantial improvements over traditional filtering:
+   * Factor Graph Optimization reduces trajectory RMSE by **42%–63%** relative to loosely coupled EKF backends (`REC_0884`, `REC_1069`).
+   * Cooperative UWB augmentation over VIO reduces positioning MAE from **1.306 m** to **0.467 m** under adversarial sensor noise injection—a **64.2% performance gain** (`REC_0960`).
+
+---
 
 ### 4.5 The Three Q-High Benchmark Anchor Studies
-Only 3 of the 279 studies (1.1%) met all criteria for **Q-High** classification, representing the absolute pinnacle of benchmarking, rigor, and reproducibility in the field:
-1. **REC_0037 (2026):** Extracted deep learned descriptors (SuperPoint/LightGlue) between onboard monocular video and georeferenced satellite orthoimagery, achieving a mean horizontal error of 1.84 m across multi-kilometer flights.
-2. **REC_0502 (2026):** Deployed 3D Gaussian Splatting combined with a 200 Hz IMU to achieve an unprecedented 0.80 m mean error at high altitudes, vastly outperforming ORB-SLAM3 baselines.
-3. **REC_1277 (2026):** Utilized physics-guided neural networks (PG-TLNet) to compensate for aggressive aerodynamic and electromagnetic interference across a fixed-wing swarm, reducing magnetic interference standard deviation by 85.2%.
+
+Only 3 of the 279 studies (1.1%) met all criteria for **Q-High** classification: rigorous theoretical formulation, comprehensive baseline benchmarking against open-source SOTA, exhaustive reporting of operational parameters, and reproducible experimental validation:
+
+```
+Table 6: Authoritative Q-High Anchor Investigations
+┌──────────┬──────┬────────────────────────────┬──────────────────┬─────────────────┬───────────────────────────────────────────┐
+│ Study ID │ Year │ Platform & Sensor Suite    │ Algorithmic Core │ Benchmark Target│ Quantified Performance Headline           │
+├──────────┼──────┼────────────────────────────┼──────────────────┼─────────────────┼───────────────────────────────────────────┤
+│ REC_0037 │ 2026 │ Custom MAV; Monocular cam, │ Deep Satellite   │ SIFT / ORB      │ Mean horizontal error: 1.84 m across      │
+│          │      │ IMU, Satellite Ortho + DEM │ Matching + EPnP  │ Baselines       │ multi-km flight; Z-axis error elevated    │
+├──────────┼──────┼────────────────────────────┼──────────────────┼─────────────────┼───────────────────────────────────────────┤
+│ REC_0502 │ 2026 │ DJI M100 / Phantom 4 RTK;  │ LD3DGS-SLAM      │ ORB-SLAM3       │ 0.80 m mean error at 100–500 m altitude;  │
+│          │      │ Monocular cam + 200 Hz IMU │ (3D Gaussians)   │ OpenVSLAM       │ RMSE 0.74 m vs. ORB-SLAM3 13.79 m         │
+├──────────┼──────┼────────────────────────────┼──────────────────┼─────────────────┼───────────────────────────────────────────┤
+│ REC_1277 │ 2026 │ Fixed-Wing UAV Swarm;      │ PG-TLNet         │ Tolles-Lawson   │ Aeromagnetic interference STD reduced     │
+│          │      │ 5 Scalar + 1 Vector Mag,IMU│ Physics-AI Net   │ Baseline        │ from 179.99 nT to 26.64 nT (85.2% gain)   │
+└──────────┴──────┴────────────────────────────┴──────────────────┴─────────────────┴───────────────────────────────────────────┘
+```
+
+#### Detailed Deep-Dive on Anchor Studies:
+
+1. **REC_0037 (2026) — Deep Cross-View Geo-Referenced Localization:**
+   * *Problem:* Absolute position drift in visual-inertial odometry accumulates without bound unless registered against global reference maps.
+   * *Architecture:* Extracts deep learned descriptors using SuperPoint and LightGlue between onboard monocular video frames and georeferenced satellite orthoimagery, coupled with Digital Elevation Models (DEM) via Efficient Perspective-n-Point (EPnP).
+   * *Verifiable Results:* Achieves a mean horizontal positioning error of **1.84 m** over multi-kilometer flight paths.
+   * *Documented Limitations:* The authors report that *"the higher deviation in the Z axis is mainly related to limitations in DEM resolution and the nature of monocular depth estimation"* [p.4].
+
+2. **REC_0502 (2026) — `LD3DGS-SLAM` (Long-Distance 3D Gaussian Splatting SLAM):**
+   * *Problem:* Traditional sparse keypoint SLAM suffers dramatic tracking loss over high-altitude, long-distance aerial trajectories lacking dense structural texture.
+   * *Architecture:* Couples a monocular camera and 200 Hz IMU with an online 3D Gaussian Splatting radiance field map representation, rendering continuous scene depth to constrain scale drift on DJI M100 and Phantom 4 RTK drones.
+   * *Verifiable Results:* Achieves a state-of-the-art average localization error of **0.80 m** in physical high-altitude flights (100–500 m). On the eVTOL1-120 benchmark, LD3DGS-SLAM achieves an RMSE of **0.7408 m** compared to **13.7858 m** for ORB-SLAM3 (an 18-fold accuracy improvement). On XAMIT-Loc300, it achieves an RMSE of **0.4871 m** versus ORB-SLAM3's **3.832 m**.
+   * *Documented Limitations:* High embedded GPU memory footprint; authors state that *"within the effective map range (e.g., 240–340 m), the NO RENDER version slightly outperforms in accuracy"* [p.16], exposing a trade-off between photometric rendering overhead and geometric tracking stability.
+
+3. **REC_1277 (2026) — `PG-TLNet` Physics-Guided Aeromagnetic Compensation:**
+   * *Problem:* Earth geomagnetic field sensing provides an unjammable global navigation heading anchor, but onboard electric propulsion motors, servos, and battery power distributions induce massive time-varying electromagnetic interference (EMI) that corrupts magnetometer readings.
+   * *Architecture:* Deploys an array of five scalar magnetometers and one vector fluxgate magnetometer, feeding current and voltage measurements into a physics-guided neural network that enforces Maxwellian boundary constraints.
+   * *Verifiable Results:* Across real flight test Flt_3, PG-TLNet reduces aeromagnetic standard deviation (STD) from **179.99 nT** (standard Tolles-Lawson baseline) to **26.64 nT**—an **85.2% reduction**. On Flt_7, STD drops from **95.12 nT** to **24.15 nT** (74.6% improvement), operating at an ultra-low inference latency of **94 µs per sample** (274,480 samples processed in 25.72 s).
+   * *Documented Limitations:* Severe current spikes from aggressive maneuvers degrade estimation: *"under extreme electrical fault conditions, such as sudden high-current surges... the linear-nonlinear hybrid structure may experience temporary performance degradation"* [p.23]. Furthermore, *"in dense swarm operations, potential electromagnetic coupling among closely spaced UAVs may introduce additional interference components not explicitly modeled"* [p.23].
 
 ---
 
 ## 5. Discussion & Cross-Cutting Tensions
 
 ### 5.1 The Accuracy–SWaP–Compute Trilemma
-The synthesis reveals that GPS-denied aerial navigation is governed by an inescapable physical trilemma. High-accuracy systems employing multi-beam LiDAR arrays achieve sub-decimeter accuracy but demand massive power (20–65 W) and decimate flight endurance. Conversely, ultra-lightweight nano-MAVs equipped with mere monocular cameras accumulate unbounded dead-reckoning drift, causing catastrophic localization divergence on extended flights. The intermediate solution—deep neural matching and radiance field rendering—eliminates drift but introduces severe compute latency bottlenecks, restricting closed-loop flight speeds.
+The synthesis reveals that GPS-denied aerial navigation is governed by an inescapable physical trilemma:
+
+```
+                            High Accuracy & Zero Drift
+                             (LiDAR FGO / Deep VPR)
+                                      /\
+                                     /  \
+                                    /    \
+                                   /      \
+                                  /   ★    \
+                                 /          \
+                                /____________\
+     Minimal Compute Latency                    Minimal SWaP-C Payload
+     (Lightweight Edge EKF)                     (Monocular Visual-Inertial)
+```
+
+1. **High-Accuracy / High-SWaP:** Systems employing multi-beam LiDAR arrays, multiple global-shutter stereo cameras, and high-frequency IMUs achieve sub-decimeter trajectory accuracy (0.05–0.10 m RMSE). However, sensor payloads weigh 600–2,200 g and consume 20–65 W, requiring quadrotor airframes with takeoff weights exceeding 3.5 kg and reducing flight times to under 15 minutes.
+2. **Low-SWaP / High-Drift:** Monocular cameras paired with low-grade MEMS IMUs conform to ultra-lightweight nano-MAV constraints (<50 g payload, <5 W power), but accumulate unbounded dead-reckoning drift (0.8%–3.5% of trajectory distance), causing catastrophic localization divergence on extended flights (>500 m) lacking closed-loop visual anchors.
+3. **Compute Latency Bottlenecks:** Deep neural matching (SuperPoint/LightGlue) and radiance field rendering (3D Gaussian Splatting) eliminate visual drift, but require embedded GPUs (NVIDIA Jetson AGX Orin / Xavier NX) drawing 15–30 W. Processing latencies of 40–120 ms per frame restrict closed-loop flight speeds to under 2.5 m/s to prevent kinematic overshoot.
 
 ### 5.2 Metric Heterogeneity & Non-Standardized Evaluation
-A severe systemic weakness identified in the corpus is the extreme divergence in performance metric reporting. Over **90% of the corpus evaluates algorithms exclusively on private, self-collected flight sequences**, severely undermining comparative analysis. Furthermore, researchers arbitrarily alternate between reporting Absolute Trajectory Error (ATE), Relative Pose Error (RPE), or percentage drift, rendering direct algorithmic comparisons impossible without standardized benchmarks.
+A severe systemic weakness identified in the corpus is the extreme divergence in performance metric reporting:
+* **Incompatible Metric Formulations:** Authors evaluate localization performance using non-overlapping metrics: Absolute Trajectory Error (ATE RMSE in meters), Relative Pose Error (RPE per meter traveled), drift percentage of total flight distance (%), maximum translational deviation, and horizontal circular error probable (CEP 95%).
+* **Private Benchmarking:** Over **90% of the corpus evaluates algorithms exclusively on private, self-collected flight sequences**. Fewer than 8% validate on recognized public benchmarks (e.g., EuRoC MAV, TUM-VI, KITTI).
+* **Missing Ground Truth Precision:** Many physical field trials evaluate "accuracy" against commercial RTK GNSS receivers operating under partial tree canopy, where the ground-truth reference itself suffers 0.5–2.0 m multipath uncertainty.
 
 ### 5.3 The Sim-to-Real Disconnect & Offline Trap
-Over **51% of all studies in the corpus never execute closed-loop autonomous flight**. A widespread paradigm involves recording sensor rosbags during manual radio-controlled flight, executing SLAM estimation offline on desktop workstations, and reporting post-processed accuracy. This offline methodology dangerously ignores real-world compute latency, rotor vibration harmonics, and aerodynamic ground-effect disturbances.
+Over **51% of all studies in the corpus never execute closed-loop autonomous flight**. A widespread paradigm involves recording sensor rosbags during manual radio-controlled flight, executing SLAM estimation offline on high-end desktop workstations, and reporting post-processed trajectory accuracy. This offline methodology completely ignores:
+1. Algorithmic compute latency directly destabilizing attitude flight control loops.
+2. Rotor vibration harmonics corrupting MEMS accelerometer integration.
+3. Aerodynamic ground-effect and rotor downwash disturbing altitude barometers and optical flow fields.
 
 ---
 
 ## 6. RQ4 Synthesis: Technological Limitations & Future Research Agenda
 
-To address **RQ4**, we systematically extracted and categorized the failure modes, technological limitations, and proposed future directions across all 279 studies. 
+To address **RQ4**, we systematically extracted and categorized the failure modes, technological limitations, and proposed future directions across all 279 studies:
 
-The top documented limitations revolve around visual degradation in extreme lighting, edge GPU thermal throttling, cumulative dead-reckoning drift in feature-sparse environments, and RF packet loss in multi-agent swarms.
+```
+Table 7: Top Documented Limitations and Future Research Priorities (n = 279)
+┌──────────────────────────────────────────────┬───────┬────────────┬────────────────────────────────────────────────────────┐
+│ Documented Limitation / Failure Theme        │ Count │ % Corpus   │ Primary Physical Mechanism                             │
+├──────────────────────────────────────────────┼───────┼────────────┼────────────────────────────────────────────────────────┤
+│ Lighting Variation & Visual Degradation      │ 61    │ 21.9%      │ Motion blur, solar flare, low-light underexposure      │
+│ Compute Latency & SWaP-C Budget Limits       │ 37    │ 13.3%      │ Edge GPU thermal throttling, high watt/gram penalty    │
+│ Cumulative Dead-Reckoning Drift              │ 30    │ 10.8%      │ Unbounded IMU bias drift in feature-sparse corridors   │
+│ Dynamic Obstacles & Non-Rigid Clutter        │ 27    │ 9.7%       │ Epipolar geometry violations from moving objects       │
+│ Swarm Communication Bandwidth & Packet Loss  │ 27    │ 9.7%       │ RF attenuation, ad-hoc latency, packet dropouts        │
+│ Z-Axis / Vertical Altimetry Deviation        │ 18    │ 6.5%       │ Barometric ground effect, monocular depth ambiguity    │
+│ RF Multipath & Non-Line-of-Sight (NLOS)      │ 10    │ 3.6%       │ UWB signal reflection and delay through solid walls    │
+│ Electromagnetic Interference (EMI)           │ 4     │ 1.4%       │ High-current brushless motor interference on compass   │
+├──────────────────────────────────────────────┼───────┼────────────┼────────────────────────────────────────────────────────┤
+│ Identified Future Research Priority          │ Count │ % Corpus   │ Target Technological Breakthrough                      │
+├──────────────────────────────────────────────┼───────┼────────────┼────────────────────────────────────────────────────────┤
+│ Physical Field Testing & Closed-Loop Flight  │ 26    │ 9.3%       │ Onboard closed-loop trajectory tracking in real clutter│
+│ Edge Optimization & Neuromorphic Hardware    │ 23    │ 8.2%       │ Event cameras, spiking neural nets, TensorRT engines   │
+│ Multi-UAV Swarm Scalability & Robust Comms   │ 21    │ 7.5%       │ Decentralized factor graphs resilient to packet loss   │
+│ Standardized Open Datasets & Benchmarks      │ 10    │ 3.6%       │ Multi-sensor aerial benchmarks with millimeter ground-truth│
+│ Semantic Perception & Dynamic Filtering      │ 7     │ 2.5%       │ Real-time segmentation of non-rigid foliage & obstacles│
+│ Resilient Anti-Jamming & Spoofing Detection  │ 2     │ 0.7%       │ Multi-constellation integrity monitoring and validation│
+└──────────────────────────────────────────────┴───────┴────────────┴────────────────────────────────────────────────────────┘
+```
 
 ### Strategic Future Research Directions:
-1. **Neuromorphic & Bio-Inspired Event Sensing:** Integrating event-based neuromorphic cameras operating at microsecond temporal resolution offers a viable path toward blur-free state estimation under high-speed aggressive flight, defeating the limitations of standard CMOS sensors.
-2. **Decentralized, Communication-Resilient Swarm SLAM:** Future swarm algorithms must implement communication-censored factor graphs, maintaining formation stability during extended RF dropouts by transmitting only high-information marginal keyframes.
-3. **Physics-Informed Neural Network (PINN) Sensor Compensation:** Physics-guided neural models must be leveraged to predict and compensate for complex non-linear motor interference, thermal IMU bias drifts, and aerodynamic rotor downwash dynamics in real time.
-4. **Community Standardization & Open-Source Verification:** The robotics community must urgently establish standardized aerial navigation benchmarks providing synchronous hardware data coupled with sub-millimeter motion-capture ground truth in hostile subterranean and canopy environments.
+
+1. **Neuromorphic & Bio-Inspired Event Sensing:**
+   Standard CMOS rolling-shutter and global-shutter cameras fail under rapid rotational maneuvers (motion blur) and extreme dynamic range (>120 dB light transitions at tunnel portals). Integrating event-based neuromorphic cameras operating at microsecond temporal resolution offers a viable path toward blur-free state estimation under high-speed flight.
+2. **Decentralized, Communication-Resilient Swarm SLAM:**
+   Current swarm architectures rely on centralized servers or assume lossless ad-hoc Wi-Fi/mesh communications. Future swarm algorithms must implement communication-censored factor graphs, wherein agents transmit only high-information marginal keyframes and relative UWB bounding constraints, maintaining formation stability during extended RF dropouts.
+3. **Physics-Informed Neural Network (PINN) Sensor Compensation:**
+   As demonstrated by Q-High anchor `REC_1277`, physics-guided neural models can model complex non-linear motor interference, thermal IMU bias drifts, and aerodynamic rotor downwash dynamics at microsecond execution speeds. Expanding PINNs to visual-inertial state estimation represents a major emerging frontier.
+4. **Community Standardization & Open-Source Verification:**
+   The robotics community must establish standardized aerial navigation benchmarks providing synchronous hardware data (high-resolution stereo, 360° LiDAR, multi-axis UWB, tactical IMU) coupled with sub-millimeter motion-capture or robotic total-station ground truth in challenging indoor, subterranean, and canopy environments.
 
 ---
 
 ## 7. Conclusions
 
-This systematic literature review provides the most comprehensive, data-grounded synthesis of GPS-denied UAV navigation conducted to date, analyzing 279 gold-standard peer-reviewed studies published between 2013 and mid-2026. By examining the corpus across four foundational research questions, we have mapped the operational obsolescence of legacy sensors, defined precise localization performance envelopes across hostile environments, exposed a profound simulation dependency in cooperative swarm literature, and articulated the systemic vulnerabilities imposed by strict SWaP-C budgets. 
+This systematic literature review provides the most comprehensive, data-grounded synthesis of GPS-denied UAV navigation conducted to date, analyzing 279 gold-standard peer-reviewed studies published between 2013 and mid-2026. By examining the corpus across four foundational research questions, we have demonstrated:
+1. **Sensory Transition (RQ1):** The operational obsolescence of legacy ultrasonic sensors, the establishment of Camera+IMU and LiDAR+IMU as dominant baseline pairings, and the rapid rise of UWB ranging and solid-state LiDAR.
+2. **Environmental Reality (RQ2):** Highly disparate localization performance envelopes, ranging from sub-decimeter accuracy in structured indoor environments to meter-scale drift in subterranean tunnels and dense vegetative canopies.
+3. **Algorithmic Maturation vs. Swarm Simulation Gap (RQ3):** Nonlinear factor graph optimization achieves 40%–60% error reductions over traditional Kalman filtering, yet cooperative swarm navigation remains burdened by a 49% simulation-only rate.
+4. **Systemic Limitations (RQ4):** Unresolved vulnerabilities in lighting extremes, SWaP-C compute budgets, inter-agent RF packet loss, and an urgent community need for open, reproducible flight benchmarks.
 
 By adhering strictly to transparent data extraction, avoiding artificial metric pooling, and grounding all findings in verifiable evidence, this review provides a definitive reference architecture for the next generation of resilient, certifiably autonomous aerial robotics.
 
