@@ -304,3 +304,56 @@ Destination: `_MANUAL/abhishek/per_paper/`
 | 2026-09-20T10:50:53Z | REC_1055 | `_MANUAL/abhishek/per_paper/REC_1055.md` | `D7D3A3913BAADB0CFDBB8AC6A0A6F311CAE7082F19146D314710842F66D7FCB2` | PARTIAL |
 
 Total files extracted and saved: 153
+
+---
+
+## CORRECTION AND CONTINUATION — 2026-09-27
+
+**The line above is superseded.** It read 153 when written and was already stale
+at that point. Measured by file listing on 2026-09-27:
+
+| Measure | Value |
+|---|---|
+| `_MANUAL/abhishek/per_paper/*.md` on disk | 212 |
+| Batch-covered (of the 279 manifest) | 204 (73.1%) |
+| Out-of-batch (4 deferred IDs, 3 x E1 EXCLUDEs, REC_1217) | 8 |
+| Remaining to reach 279 | 75 |
+
+The 153 figure is retained only as a historical record; it must not be quoted.
+
+### Batches closed on 2026-09-27 (written by a parallel session, backfilled here)
+
+Full per-file SHA256 for every file below is recorded in
+`_AUDIT/action_log.md` (49 backfill rows) and in
+`_AUDIT/STATUS_REPORT_20260927.md` section 7.
+
+| Batch | Timestamp range (UTC) | Record IDs | Status |
+|---|---|---|---|
+| B18 | 09:41:42Z - 10:30:22Z | REC_1137, REC_1140, REC_1142, REC_1146, REC_1148, REC_1150, REC_1159, REC_1160, REC_1163, REC_1165 | COMPLETE 10 of 10 |
+| B19 | 10:23:08Z - 10:30:22Z | REC_1167, REC_1171, REC_1172, REC_1175, REC_1178, REC_1185, REC_1186, REC_1187, REC_1189, REC_1190 | COMPLETE 10 of 10 |
+| B20 | 10:34:42Z - 10:46:12Z | REC_1191, REC_1192, REC_1194, REC_1196, REC_1207, REC_1208, REC_1212, REC_1216, REC_1223, REC_1232 | COMPLETE 10 of 10 |
+| B21 | 10:46:12Z - 10:56:07Z | REC_1235, REC_1243, REC_1245, REC_1248, REC_1250, REC_1251 | PARTIAL 6 of 10 |
+| out of manifest | 10:44:47Z | REC_1217 | deferred ID — see OPEN FINDING B |
+
+Also carried over unlogged from 2026-09-20T17:22Z - 17:23Z:
+REC_1103, REC_1105, REC_1106, REC_1107, REC_1110.
+
+### Open findings recorded 2026-09-27 — NOT resolved
+
+1. **OPEN FINDING A** — `REC_1232` and `REC_1235` carry identical title, authors,
+   year, venue and DOI (10.3233/ATDE260245). Same failure class as the E2 pairs
+   REC_1582/REC_0274 and REC_1688/REC_1715. Identity audit required.
+2. **OPEN FINDING B** — `REC_1217`, one of the 6 deferred IDs, has been extracted
+   against the frozen deferral list. Human ruling required.
+3. **RULINGS R5 incident** — a second writer was active in this repository from
+   09:39Z to 10:56:07Z with `.agent_lock` absent. Recorded as an incident.
+
+### Resume point
+
+Next in order: `REC_1032` (closes B14) -> `REC_1118` (closes B17) ->
+B21 remainder (`REC_1252`, `REC_1253`, `REC_1267`, `REC_1270`) -> B22.
+Source text is read-only at
+`02_data_processed/evidence_batches/BATCH_BXX_pages/REC_XXXX.txt`.
+
+Total files on disk after this correction: 212 (204 of 279 batch-covered).
+
