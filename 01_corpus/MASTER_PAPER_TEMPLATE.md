@@ -1,9 +1,10 @@
 # MASTER_PAPER_TEMPLATE.md
-# Canonical per-paper summary template for GPS_Denied_SLR V1
+# Reference per-paper summary template for GPS_Denied_SLR
 
-Purpose: every paper in the V1 corpus (N = 171) is rendered into this template
-as a standalone file at `03_extraction/per_paper/<id>.md`. This template is
-also the column plan for `02_data_processed/MASTER_EVIDENCE_V1.csv`.
+Purpose: Reference template for the PRISMA 2020 systematic review corpus (N = 279).
+Evidence Base: 279 in-corpus papers (288 files on disk) frozen in `_MANUAL/abhishek/per_paper/`.
+Target Master: `02_data_processed/MASTER_EVIDENCE.csv` (279 rows).
+Active Extraction Schema: 18-section PRISMA 2020 Master Prompt schema (`MASTER_PROMPT.txt`).
 
 Rules:
 - Every field is filled. If the paper does not report it, write `NOT_REPORTED`.
