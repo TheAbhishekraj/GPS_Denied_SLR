@@ -2,7 +2,10 @@
 
 Human marks each EXIT PASS. Agent never self-approves.
 
-Current position: Phase 4 complete. Ready for Phase 5.
+Current position (2026-09-27): Phase 5 COMPLETE, Phase 6 COMPLETE.
+Phase 7 entry satisfied. Awaiting T1 of _PROJECT/MASTER_PROMPT_3.md.
+Extraction frozen at 279 of 279 in-corpus
+(_MANUAL/abhishek/per_paper/FROZEN.md).
 
 ## PHASE 5 — Extraction pipeline rebuild
 ENTRY: Anchor frozen. Schema header defined.
@@ -22,8 +25,12 @@ DELIVERABLES per batch:
   - _AUDIT/batch_BXX_report.md
 EXIT per batch: 10 rows, no missing required fields,
   human spot-check passes, merge_batch.py runs.
-EXIT phase: MASTER_EVIDENCE.csv has exactly 285 rows.
+EXIT phase: MASTER_EVIDENCE.csv has exactly 279 rows.
+  (Corrected 2026-09-27 from 285. The corpus is 279: the 285 INCLUDE
+  records less the 6 deferred records. Batch B28 holds 9, not 10.)
   Human approves "PHASE 6 PASS".
+  STATUS 2026-09-27: EXIT MET. 279 of 279 in-corpus extractions on
+  disk, 28 batches closed, zero gaps.
 
 ## PHASE 7 — Synthesis & analysis
 ENTRY: Phase 6 PASS.
