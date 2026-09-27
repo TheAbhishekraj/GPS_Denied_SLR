@@ -250,17 +250,14 @@ To prevent confusion with live PRISMA 2020 statistics, obsolete Generation-1 fil
 
 ---
 
-## 4. Next Project Execution Steps: Phase 6 Data Enrichment (Tasks T1–T8)
+## 4. Next Project Execution Steps: Phase 10 Literature Review Synthesis
 
-With workspace decluttering, directory cataloging, and legacy isolation 100% complete, the active project is ready to execute Tasks T1–T8 defined in [`_PROJECT/MASTER_PROMPT_3.md`](file:///e:/GPS_Denied_SLR/_PROJECT/MASTER_PROMPT_3.md):
+With workspace decluttering, directory cataloging, legacy isolation, and the Phase 1-9 data pipeline 100% complete, the active project is ready to execute Phase 10 defined in [`_PROJECT/MASTER_PROMPT_4.md`](file:///e:/GPS_Denied_SLR/_PROJECT/MASTER_PROMPT_4.md):
 
-* **Task T1:** Repair missing `doi` (5 rows) and `year` (5 rows) in `MASTER_EVIDENCE.csv` using canonical `screening_results.csv`.
-* **Task T2:** Parse all 24 interpretive fields from `_MANUAL/abhishek/per_paper/REC_*.md` into `MASTER_EVIDENCE.csv` (enriching beyond the deterministic defaults).
-* **Task T3:** Regenerate `06_analysis/outputs/inference_table.csv` and `evidence_matrix.csv` from enriched master.
-* **Task T4:** Re-evaluate and close the remaining open gaps in BATCH_B14 (`REC_1032`) and BATCH_B17 (`REC_1118`).
-* **Task T5:** Implement and execute `06_analysis/scripts/figures.py` per `_AUDIT/RULE9_SPEC_figures_py.md` to produce figures F2–F9.
-* **Task T6:** Resolve the 13 `[UNRESOLVED]` markers in [`07_manuscript/MANUSCRIPT_V2.md`](file:///e:/GPS_Denied_SLR/07_manuscript/MANUSCRIPT_V2.md) (including screening independence Case selection).
-* **Task T7:** Compile and verify IEEE LaTeX manuscript (`07_manuscript/GPS_Denied_SLR_IEEE_v2.tex`).
-* **Task T8:** Execute final PRISMA 2020 exit audit and produce submission-ready package.
+* **Task T9:** Read the 279 verified records from `MASTER_EVIDENCE.csv` and `_MANUAL/abhishek/per_paper/`.
+* **Task T10:** Group the literature by method and environment.
+* **Task T11:** Exhaustively synthesize the findings narratively into Section 4, 5, and 6 of the manuscript (`07_manuscript/MANUSCRIPT_V2.md`).
+* **Task T12:** Add all citations to `references.bib` and embed IEEE references in the text.
+* **Goal:** A complete, end-to-end, publication-ready literature review.
 
 
