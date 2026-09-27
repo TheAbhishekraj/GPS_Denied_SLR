@@ -422,6 +422,60 @@ No conflict in section 5 was resolved, changed or quarantined.
 - Rule 7: no phase marked PASS by the agent.
 - Rule 9: no new script written or executed.
 
+## 10. Addendum — 2026-09-27T11:20Z — state advanced by the other session
+
+This section is added after the report body to keep the earlier sections as an
+honest snapshot of the time they were written. Nothing above is retracted.
+
+### 10.1 What changed since the body was written
+
+| Item | At body time | Now |
+|---|---|---|
+| `_MANUAL/abhishek/per_paper/` | 212 | **219** |
+| Coverage of the 279 manifest | 204 (73.1%) | **211 (75.6%)** |
+| Remaining | 75 | **68** |
+| BATCH_B14 | 9/10 | **10/10 COMPLETE** |
+| BATCH_B17 | 9/10 | **10/10 COMPLETE** |
+| BATCH_B21 | 6/10 | **10/10 COMPLETE** |
+| BATCH_B22 | not started | 1/10 (REC_1274) |
+
+### 10.2 The writer resumed twice more (third recurrence)
+
+| UTC | Files |
+|---|---|
+| 11:06:21 – 11:07:09 | `REC_1252, REC_1253, REC_1267, REC_1270, REC_1274` (12 s apart) |
+| 11:14:01 | `REC_1118` |
+| 11:17:56 | `REC_1032` |
+
+**`REC_1032` and `REC_1118` were this session's Step 2 gap-fill targets.** Both
+were written by the other session before this session could begin. No collision
+occurred only because this session halted first. Step 2 is therefore complete —
+attributed to the other session, not to this one.
+
+**Observed correlation:** each burst lands within roughly 1–2 minutes of the
+operator sending a message, consistent with a queued second Cline task in this
+workspace that resumes when input arrives.
+
+### 10.3 Ledger catch-up performed by this session (collision-free)
+
+This session wrote **only** to `_AUDIT/**` — the other session has never written
+a log file in over two hours of activity. All 7 new extraction files were
+verified (18 sections each, mtimes stable between 85 s and 780 s at hashing
+time) and their SHA256 recorded in `_AUDIT/action_log.md`.
+
+**No extraction file was written by this session at any point.**
+
+### 10.4 Updated resume point
+
+Next in order: **BATCH_B22 remainder** (`REC_1277, REC_1282, REC_1283,
+REC_1285, REC_1286, REC_1289, REC_1295, REC_1298, REC_1302`), then B23–B27,
+then B28. The B14 and B17 gaps are **closed**.
+
+The two OPEN FINDINGS (A: `REC_1232` ≡ `REC_1235`; B: `REC_1217` extracted
+despite deferral) remain **unresolved**, and 69 of the 133 files logged today
+were not written by this session.
+
 ---
 
 END OF REPORT
+

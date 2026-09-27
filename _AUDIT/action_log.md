@@ -627,6 +627,29 @@ A N C H O R _ F R E E Z E _ 2 0 2 6 0 9 1 9 . m d :   B E F O R E = 0 3 2 7 6 1 
 2026-09-27T11:22:00Z | PHASE7 | WRITE | _AUDIT/STATUS_REPORT_20260927.md (addendum section 1.6) | new: recurrence record + lesson | reason: Rule 8 log every write; record that the silence test was insufficient
 2026-09-27T11:22:00Z | GOVERNANCE | COMMIT | git commit of the two corrected _AUDIT files only | old: 5 malformed hashes + stale incident record | new: corrected audit trail | reason: intentional partial commit; REC_1252.md excluded so that unlogged work stays visibly unlogged
 
+### 2026-09-27 third recurrence - parallel writer resumed twice more
+2026-09-27T11:20:00Z | GOVERNANCE | INCIDENT (3rd recurrence) | _MANUAL/abhishek/per_paper/ | old: 213 files | new: 219 files | reason: the parallel writer resumed twice more after the operator reported it closed (burst 11:06:21Z-11:07:09Z = 5 files at 12 s intervals; then 11:14:01Z; then 11:17:56Z); OBSERVED CORRELATION - each burst lands within ~1-2 min of the operator sending a message, consistent with a queued second Cline task in this workspace that resumes when input arrives; this session wrote NO extraction file at any point
+2026-09-27T11:20:00Z | GOVERNANCE | NOTE | REC_1032 and REC_1118 were this session's Step 2 gap-fill targets | reason: both were written by the parallel session (11:17:56Z and 11:14:01Z) before this session could start; Step 2 is therefore completed by that session, not by this one; no collision occurred only because this session halted first
+
+### Backfilled provenance - 7 extraction files written by the parallel session after the Step 1 snapshot
+2026-09-27T11:06:21Z | PHASE7 | WRITE (backfill) | _MANUAL/abhishek/per_paper/REC_1252.md | old: untracked, unlogged | new-sha256: A850AB853E3DD50D30AE4EEA3BB15418605642EFE5615EC1BD94800549747A26 | reason: Rule 8 backfill, BATCH_B21, 18 sections verified
+2026-09-27T11:06:33Z | PHASE7 | WRITE (backfill) | _MANUAL/abhishek/per_paper/REC_1253.md | old: unlogged | new-sha256: 08F5CA2D75D322A61DD513ED1D9D5530FE2B21F5BCEB34B18AB2E539709118F7 | reason: Rule 8 backfill, BATCH_B21, 18 sections verified
+2026-09-27T11:06:45Z | PHASE7 | WRITE (backfill) | _MANUAL/abhishek/per_paper/REC_1267.md | old: unlogged | new-sha256: 98AECD70CA48A19EC079D01461F3A5646A844947776F0ADB846B1A9EFC2A5799 | reason: Rule 8 backfill, BATCH_B21, 18 sections verified
+2026-09-27T11:06:57Z | PHASE7 | WRITE (backfill) | _MANUAL/abhishek/per_paper/REC_1270.md | old: unlogged | new-sha256: 2C7540A869FB5771B2B332035F0BBA451C2A0EC78830CD7B4871E5F9101B9127 | reason: Rule 8 backfill, BATCH_B21, 18 sections verified
+2026-09-27T11:07:09Z | PHASE7 | WRITE (backfill) | _MANUAL/abhishek/per_paper/REC_1274.md | old: unlogged | new-sha256: A9919996F3CD071F6380A164DCD6CEE995D0E4B526A768D08653C95D61784AC3 | reason: Rule 8 backfill, BATCH_B22 first member, 18 sections verified
+2026-09-27T11:14:01Z | PHASE7 | WRITE (backfill) | _MANUAL/abhishek/per_paper/REC_1118.md | old: unlogged | new-sha256: 3F40FBF7477E1BC32D7F65B6EE2E817BB92CF34FE084132A71C54CE9403E7DF2 | reason: Rule 8 backfill, BATCH_B17 gap (closes B17), 18 sections verified
+2026-09-27T11:17:56Z | PHASE7 | WRITE (backfill) | _MANUAL/abhishek/per_paper/REC_1032.md | old: unlogged | new-sha256: 2F38A60A3D47756C5EEE21B228B90E08276076BEB5DCDF0C327E2BF27F90FB4F | reason: Rule 8 backfill, BATCH_B14 gap (closes B14), 18 sections verified
+
+### 2026-09-27 batch status changes (2nd pass)
+2026-09-27T11:20:00Z | PHASE7 | BATCH COMPLETE | BATCH_B14 interpretive pass 10 of 10 | previously missing REC_1032 | reason: written by the parallel session 11:17:56Z; logged by backfill
+2026-09-27T11:20:00Z | PHASE7 | BATCH COMPLETE | BATCH_B17 interpretive pass 10 of 10 | previously missing REC_1118 | reason: written by the parallel session 11:14:01Z; logged by backfill
+2026-09-27T11:20:00Z | PHASE7 | BATCH COMPLETE | BATCH_B21 interpretive pass 10 of 10 | ids REC_1235, REC_1243, REC_1245, REC_1248, REC_1250, REC_1251, REC_1252, REC_1253, REC_1267, REC_1270 | reason: REC_1252/1253/1267/1270 written by the parallel session 11:06:21Z-11:06:57Z
+2026-09-27T11:20:00Z | PHASE7 | BATCH OPENED | BATCH_B22 interpretive pass 1 of 10 | present REC_1274 | missing REC_1277, REC_1282, REC_1283, REC_1285, REC_1286, REC_1289, REC_1295, REC_1298, REC_1302
+2026-09-27T11:20:00Z | PHASE7 | PROGRESS | interpretive pass 211 of 279 (75.6%) | old: 204 of 279 (73.1%) | new: 211 of 279 | reason: file-listing count; remaining 68 = B22 x9, B23-B27 x50, B28 x9
+2026-09-27T11:20:00Z | PHASE7 | VERIFY | 7 of 7 newly backfilled files | result: 18 sections each, mtimes stable 85 s - 780 s at time of hashing, SHA256 recorded
+2026-09-27T11:20:00Z | GOVERNANCE | COMMIT | partial commit | files: 7 extraction files + 3 ledger files | reason: persistence and provenance; staging explicit (not -A) so in-flight work is not captured
+
+
 ### 2026-09-27 batch status changes (evidence: file listing of _MANUAL/abhishek/per_paper)
 2026-09-27T10:58:00Z | PHASE7 | BATCH COMPLETE | BATCH_B18 interpretive pass 10 of 10 | ids REC_1137, REC_1140, REC_1142, REC_1146, REC_1148, REC_1150, REC_1159, REC_1160, REC_1163, REC_1165 | reason: all 10 present in _MANUAL/abhishek/per_paper; closed by the parallel session, logged here by backfill
 2026-09-27T10:58:00Z | PHASE7 | BATCH COMPLETE | BATCH_B19 interpretive pass 10 of 10 | ids REC_1167, REC_1171, REC_1172, REC_1175, REC_1178, REC_1185, REC_1186, REC_1187, REC_1189, REC_1190 | reason: all 10 present; closed by the parallel session, logged here by backfill
