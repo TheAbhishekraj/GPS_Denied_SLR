@@ -342,7 +342,7 @@ Over **51% of all studies in the corpus never execute closed-loop autonomous fli
 To address **RQ4**, we systematically extracted and categorized the failure modes, technological limitations, and proposed future directions across all 279 studies:
 
 ```
-Limitations summary: Top Documented Limitations and Future Research Priorities (n = 279)
+Table VI: Top Documented Limitations and Future Research Priorities (n = 279)
 ┌──────────────────────────────────────────────┬───────┬────────────┬────────────────────────────────────────────────────────┐
 │ Documented Limitation / Failure Theme        │ Count │ % Corpus   │ Primary Physical Mechanism                             │
 ├──────────────────────────────────────────────┼───────┼────────────┼────────────────────────────────────────────────────────┤
