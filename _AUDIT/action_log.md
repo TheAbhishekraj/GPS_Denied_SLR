@@ -826,3 +826,6 @@ A N C H O R _ F R E E Z E _ 2 0 2 6 0 9 1 9 . m d :   B E F O R E = 0 3 2 7 6 1 
 2026-09-27T17:00:00Z | WRITE | 01_corpus/README.md | old: absent | new-sha256: C6E6951BD69482859C83020276458C253E40F0DFDEF723982FAC92ED4C6F8FCA | reason: directory manifest for corpus extraction template
 2026-09-27T17:00:00Z | WRITE | 01_data_raw/README.md | old: absent | new-sha256: 357FD888C4CFCE03B0855ACA5A0B0E5928F025A13384077A96EAEAB6B243FEE9 | reason: directory manifest for raw database search records
 2026-09-27T17:00:00Z | UPDATE | MASTER_PROJECT_INDEX.md | updated Section 2 with manifests for 00_scope, 01_corpus, and 01_data_raw
+# #   2 0 2 6 - 0 9 - 2 7 :   T a s k   T 1   I m p l e m e n t a t i o n  
+ -   R e p a i r e d   m i s s i n g   d o i   a n d   y e a r   v a l u e s   i n   M A S T E R _ E V I D E N C E . c s v   u s i n g   c a n o n i c a l   v a l u e s   f r o m   s c r e e n i n g _ r e s u l t s . c s v .  
+ 
