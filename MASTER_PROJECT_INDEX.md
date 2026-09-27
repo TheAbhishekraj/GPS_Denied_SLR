@@ -19,7 +19,7 @@ Every reported number across all manuscript drafts, tables, and scripts must rep
 | **Duplicate Records Dropped** | **280** | [`02_data_processed/dedup_log.csv`](file:///e:/GPS_Denied_SLR/02_data_processed/dedup_log.csv) | **FROZEN** |
 | **Title/Abstract Screened Included** | **636** | [`02_data_processed/screened_included_v2.csv`](file:///e:/GPS_Denied_SLR/02_data_processed/screened_included_v2.csv) | **FROZEN** |
 | **Full-Text Assessed Records** | **291** | [`02_data_processed/screening_results.csv`](file:///e:/GPS_Denied_SLR/02_data_processed/screening_results.csv) (285 INCLUDE, 6 EXCLUDE) | **FROZEN** |
-| **Full-Text PDF Corpus** | **288** | [`05_papers_fulltext/`](file:///e:/GPS_Denied_SLR/05_papers_fulltext/) (288 PDFs on disk, 1.54 GB) | **FROZEN** |
+| **Full-Text PDF Corpus** | **288** | [`05_papers_fulltext/`](file:///e:/GPS_Denied_SLR/05_papers_fulltext/) (288 PDFs on disk, 1.50 GB) | **FROZEN** |
 | **Final Synthesis Corpus** | **279** | [`02_data_processed/MASTER_EVIDENCE.csv`](file:///e:/GPS_Denied_SLR/02_data_processed/MASTER_EVIDENCE.csv) (285 Include − 6 Deferred = 279 rows) | **LIVE MASTER** |
 | **Extraction Batches** | **28** | [`02_data_processed/evidence_batches/`](file:///e:/GPS_Denied_SLR/02_data_processed/evidence_batches/) (B01–B27: 10 rows; B28: 9 rows) | **COMPLETE** |
 | **Manual Extraction Evidence Base** | **288** | [`_MANUAL/abhishek/per_paper/`](file:///e:/GPS_Denied_SLR/_MANUAL/abhishek/per_paper/) (279 in-corpus + 9 out-of-corpus) | **FROZEN MANIFEST** |
@@ -96,6 +96,31 @@ Every reported number across all manuscript drafts, tables, and scripts must rep
 
 ---
 
+### 📁 `05_papers_fulltext/` — Full-Text PDF Corpus
+* **Purpose:** Complete collection of full-text research paper PDFs corresponding to the screening corpus.
+* **Audit State:** Audited on 2026-09-27. Stale empty directory removed. Manifest added.
+
+| File Link | Items | Size | SHA256 Hash | Status |
+| :--- | :---: | :---: | :--- | :--- |
+| [`05_papers_fulltext/README.md`](file:///e:/GPS_Denied_SLR/05_papers_fulltext/README.md) | 22 lines | 1.15 KB | `F4DE108422A1E2752178229F84B0661159C2D32EC3628F50B6AE21B9720BA78D` | **Directory Manifest** |
+| [`05_papers_fulltext/`](file:///e:/GPS_Denied_SLR/05_papers_fulltext/) | **288** PDFs | **1.50 GB** | All 288 PDFs verified present on local disk | **FROZEN PDF CORPUS** |
+
+---
+
+### 📁 `06_analysis/` — Analysis Scripts & Phase 7 Synthesis Tables
+* **Purpose:** Pipeline analysis scripts and quantitative output tables for PRISMA 2020 synthesis.
+* **Audit State:** Audited on 2026-09-27. Moved 673 legacy output files and pre-reset synthesis drafts to archive. Manifest added.
+
+| File Link | Items / Lines | Size | SHA256 Hash | Status |
+| :--- | :---: | :---: | :--- | :--- |
+| [`06_analysis/README.md`](file:///e:/GPS_Denied_SLR/06_analysis/README.md) | 55 lines | 3.53 KB | `DFF99A156527C6392EBA8DF0B7E8CE129AE9F0580A586B90CCE86E6DDF2D6C8E` | **Directory Manifest** |
+| [`06_analysis/outputs/evidence_matrix.csv`](file:///e:/GPS_Denied_SLR/06_analysis/outputs/evidence_matrix.csv) | **279** rows | 134 KB | `15B26C59DFAAAD0A62A3D473AC7EB4DFC0491A89B7B6D4D5CF78BB8FB512B2C6` | Evidence Matrix (Live) |
+| [`06_analysis/outputs/inference_table.csv`](file:///e:/GPS_Denied_SLR/06_analysis/outputs/inference_table.csv) | **279** rows | 64.8 KB | `2344A340ED06F9DDDFBCEAB7D2D3D3262CBA73AFA927C72B9331359DBBD4C842` | Inference Synthesis Table |
+| [`06_analysis/outputs/taxonomy_distribution.csv`](file:///e:/GPS_Denied_SLR/06_analysis/outputs/taxonomy_distribution.csv) | **4** rows | 182 B | `954898BE6434E398FD477FDC3EB70C8BF6DBF38AA3902CC6AE8D064A89B7B122` | Taxonomy Breakdown |
+| [`06_analysis/scripts/`](file:///e:/GPS_Denied_SLR/06_analysis/scripts/) | **6** scripts | ~30 KB | 6 core Python scripts (`01_dedup.py`, `merge_batch.py`, etc.) | **Pipeline Scripts** |
+
+---
+
 ## 3. Relocated Legacy Archives: `_ARCHIVE/`
 
 To prevent confusion with live PRISMA 2020 statistics, obsolete Generation-1 files have been safely relocated using `git mv` into [`_ARCHIVE/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/):
@@ -115,6 +140,10 @@ To prevent confusion with live PRISMA 2020 statistics, obsolete Generation-1 fil
    - Permanently resolves the Rule 5 count collision.
 4. **[`_ARCHIVE/legacy_04_ai_responses/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_04_ai_responses/)** (5,142 files, 6.7 MB):
    - Historical Generation-1 raw LLM response dumps (`extraction/`, `screening/`, `.jsonl` streams)
+5. **[`_ARCHIVE/legacy_06_analysis/`](file:///e:/GPS_Denied_SLR/_ARCHIVE/legacy_06_analysis/)** (678 items):
+   - `output/` (singular, 673 files: legacy `figures_v1/`, `figures_v2/`, old tables, workbooks)
+   - `audit/` (3 files: `MANUAL_REVIEW.md`, `V1_audit_*.csv/json` from old 171-paper run)
+   - `SYNTHESIS.md` & `SYNTHESIS_v2.md` (citing deprecated 1,700-row pre-reset numbers)
 
 ---
 
@@ -122,8 +151,6 @@ To prevent confusion with live PRISMA 2020 statistics, obsolete Generation-1 fil
 
 | Directory | Items / Size | Current State | Planned Action |
 | :--- | :---: | :--- | :--- |
-| **`05_papers_fulltext/`** | 288 PDFs (1.54 GB) | Core frozen full-text PDF repository | Verify PDF integrity & presence |
-| **`06_analysis/`** | 687 files (25.3 MB) | Live `scripts/` & `outputs/` vs legacy `output/` (singular) | Move legacy `output/` to `_ARCHIVE/` |
 | **`07_manuscript/`** | 37 files (3.5 MB) | Live V2 manuscript vs legacy V1 / submitted | Archive legacy drafts, retain V2 |
 | **`08_docs/`** | 10 files (40 KB) | Live PRISMA & extraction specifications | Keep and cross-reference |
 | **`09_prompts/`** | 1 file (<1 MB) | Legacy PDCA prompt | Move to `_ARCHIVE/` |

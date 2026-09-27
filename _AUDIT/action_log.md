@@ -801,3 +801,7 @@ A N C H O R _ F R E E Z E _ 2 0 2 6 0 9 1 9 . m d :   B E F O R E = 0 3 2 7 6 1 
 2026-09-27T15:45:00Z | CLEANUP | ARCHIVE | Relocated legacy directories 03_prompts/ (5,134 files) and 04_ai_responses/ (5,142 files) to _ARCHIVE/ via git mv | reason: human-directed workspace cleanup to isolate active PRISMA 2020 pipeline and eliminate Rule 5 count collisions
 2026-09-27T15:45:00Z | WRITE | _ARCHIVE/README.md | old: absent | new-sha256: 461368E6A34A5D6A31F50690CDA47010EBDCF311E96BA9DAE777E144012C68DA | reason: archive catalog and directory guide
 2026-09-27T15:45:00Z | UPDATE | MASTER_PROJECT_INDEX.md | updated Section 3 (_ARCHIVE catalog) and Section 4 roadmap
+2026-09-27T16:00:00Z | CLEANUP | ARCHIVE | Relocated legacy items from 06_analysis/ (output/ singular with 673 files, audit/ with 3 files, SYNTHESIS.md, SYNTHESIS_v2.md) to _ARCHIVE/legacy_06_analysis/ via git mv | reason: human-directed workspace cleanup to isolate active Generation-2 analysis engine and tables
+2026-09-27T16:00:00Z | WRITE | 06_analysis/README.md | old: absent | new-sha256: DFF99A156527C6392EBA8DF0B7E8CE129AE9F0580A586B90CCE86E6DDF2D6C8E | reason: directory manifest and scripts catalog
+2026-09-27T16:00:00Z | WRITE | 05_papers_fulltext/README.md | old: absent | new-sha256: F4DE108422A1E2752178229F84B0661159C2D32EC3628F50B6AE21B9720BA78D | reason: directory manifest for 288 PDFs
+2026-09-27T16:00:00Z | UPDATE | MASTER_PROJECT_INDEX.md | updated Section 2 (05_papers_fulltext and 06_analysis added) and Section 3 (_ARCHIVE catalog)
