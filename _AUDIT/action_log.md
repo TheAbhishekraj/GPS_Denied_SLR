@@ -875,3 +875,23 @@ GATE 9.2 SELF-AUDIT PASS | entries=279 author_missing=0 doi_missing=0 journal_mi
 2026-10-02T06:01:45Z | WRITE | 06_analysis/outputs/figures/F8_output.png | sha256:07817BA091ACCF723932F0129B48CC47EB20F86BC83090EB8A8C2E2C4E18420C | reason:regenerated from MASTER/anaytics (L2)
 2026-10-02T06:01:45Z | WRITE | 06_analysis/outputs/figures/F9_output.png | sha256:8A5F3CF04F37E649D62380FA611DF6389CA010C236AB833368ABD19C66F3478B | reason:regenerated from MASTER/anaytics (L2)
 GATE 9.3 SELF-AUDIT PASS | F7=111/83/62/23 | F8 China66/USA40 | F1=2000..279 | env_sum=279
+
+## 2026-10-02: Station 9 / Gate 9.4 - final audit (script audit_v4.py)
+
+2026-10-02T06:16:48Z | WRITE | 08_docs/NUMBER_TRACE.md | sha256:6145A860605ADCB620088407CCAA92D5DABF66BC92B9374808022CF9C800FA56 | reason:regenerated re V4 (traceable map + untraceable/residual list + L5/L7 sections)
+2026-10-02T06:16:48Z | WRITE | 06_analysis/scripts/audit_v4.py | sha256:2859413A47125FFAC4CCDFDAFA749EC539A133E85CC4DAA0E7A19D92D00900E1 | reason:V4 final audit script (L2/L5/L7)
+GATE 9.4 AUDIT | L5 cited=18 missing=0 PASS | L7 hits=0 PASS | L2 residual untraceable prose claims flagged for human ruling
+
+## 2026-10-02: Station 9 / Gate 9.4 - V4 L2 repair + final audit PASS
+
+2026-10-02T06:28:38Z | WRITE | 07_manuscript/MANUSCRIPT_V4.md | sha256:D210763A2B3FC9F936610A6D387FC99D37FA26C7EBAC55B869D4C1BEEBB22D91 | reason:rebuilt with R15-R17 (softened REC_1274/REC_1253/REC_1348 unattributed numbers to sourced values)
+2026-10-02T06:28:38Z | WRITE | 08_docs/NUMBER_TRACE.md | sha256:5C177C26A835537042EDBE1ADCA708CBA0CE62A870832B54AA8F6C07406AB653 | reason:final trace (101 traced values, 0 genuine untraceable, 29 accepted qualitative)
+GATE 9.4 FINAL AUDIT PASS | L5 cited=18 missing=0 | L7=0 | L2 genuine_untraceable=0 qualitative=29
+
+## 2026-10-02: Station 9 / Gate 9.5 - submission package
+
+2026-10-02T06:38:30Z | WRITE | 07_manuscript/SUBMISSION_CHECKLIST.md | sha256:1DA942FA9666CA65425978A55AF26672EDDCFE906182B1AB4226991F9366F460 | reason:refreshed Gate 9.5 (IEEE Access, canonical corpus, figure/table hashes, open blockers listed)
+2026-10-02T06:38:30Z | WRITE | 07_manuscript/README.md | sha256:02424EC8A1FDD479DED8723B0339C622D67AA9345019DB96D877E471F706D634 | reason:refreshed manifest (V4 canonical, V3 retained for diff, LaTeX marked legacy)
+2026-10-02T06:38:30Z | WRITE | 06_analysis/scripts/refresh_submission_docs.py | sha256:A5BBE3D94698429E1B3933AEB943B47354804DF98C439AC2BBE3760D0CC5D614 | reason:doc refresher (size+hash recorder)
+2026-10-02T06:38:30Z | WRITE | 07_manuscript/MANUSCRIPT_V4.md | sha256:E5D470B6B5DC8E35A5EF99AB413E97DEEE7F4C97DDD6CCFD172BA34CF7D869DB | reason:Fig.1-9 callouts wired (R18-R26)
+GATE 9.5 PACKAGE READY | V4 audit PASS holds | venue=IEEE Access | blockers_open=4 (listed in checklist)

@@ -87,6 +87,8 @@ PRISMA 2020 Flow Summary:
   Studies included in the frozen synthesis corpus:            279
 ```
 
+**Fig. 1.** PRISMA 2020 flow for the 279-study corpus (`06_analysis/outputs/figures/F1_output.png`).
+
 ### 3.3 Data Extraction & PDCA Quality Appraisal
 Data extraction adhered to a 28-field standardized schema (`08_docs/EXTRACTION_SCHEMA_v1.md`), capturing operational environments, platform dynamics, sensor configurations, algorithmic architectures, benchmark datasets, verbatim headline results, and documented failure modes.
 
@@ -96,7 +98,9 @@ Quality screening evaluated each study across four objective dimensions:
 * **Baseline Comparative Rigor (`qa_baseline`, 0–2):** Controlled benchmarking against recognized open-source SOTA (e.g., ORB-SLAM3, VINS-Mono, FAST-LIO2). (Mean: 1.06 / 2.0)
 * **Reproducibility (`qa_repro`, 0–1):** Publicly available code repositories or flight datasets. (Mean: 0.01 / 1.0)
 
-Stratification yielded **3 Q-High studies (1.1%)**, **98 Q-Medium studies (35.1%)**, and **178 Q-Low studies (63.8%)**, establishing an average corpus composite quality score of 3.81 on a realized 0-8 scale.
+Stratification yielded **3 Q-High studies (1.1%)**, **98 Q-Medium studies (35.1%)**, and **178 Q-Low studies (63.8%)**, establishing an average corpus composite quality score of 3.81 on a realized 0-8 scale. The extraction taxonomy classifies each study as CORE, IMPORTANT, or PERIPHERAL (Fig. 6).
+
+**Fig. 6.** Corpus taxonomy distribution (`06_analysis/outputs/figures/F6_output.png`).
 
 ---
 
@@ -126,6 +130,8 @@ Table II: Chronological Publication Trajectory (2013–2026, n = 279)
 │ 2026 │ 87    │ 31.2%      │ 279        │ Multi-Modal/Swarm: 3D Gaussian Splatting & Physics-AI  │
 └──────┴───────┴────────────┴────────────┴────────────────────────────────────────────────────────┘
 ```
+**Fig. 2.** Publications per year, 2013–2026 (`06_analysis/outputs/figures/F2_output.png`).
+
 *(Note: 2026 represents a partial harvest through June 15, 2026, indicating an unprecedented surge in peer-reviewed outputs driven by edge-AI hardware integration and autonomous swarm initiatives).*
 
 Geographically, research leadership is concentrated across major robotics ecosystems:
@@ -133,6 +139,8 @@ Geographically, research leadership is concentrated across major robotics ecosys
 * **United States ($n = 40$):** Led by West Virginia University, Cal Poly Pomona, and DARPA SubT contributors.
 * **Singapore ($n = 12$):** Focused primarily at the National University of Singapore (TLAB) and Temasek Laboratories.
 * **Other Contributing Nations:** Canada ($n = 13$), Taiwan ($n = 11$), Australia ($n = 11$), India ($n = 11$), Spain ($n = 10$), Germany ($n = 7$), Italy ($n = 6$), Iran ($n = 6$), South Korea ($n = 5$), Finland ($n = 5$).
+
+**Fig. 8.** Contributing countries across the corpus (`06_analysis/outputs/figures/F8_output.png`).
 
 ---
 
@@ -162,6 +170,8 @@ Table III: Sensor Modality Frequency Across Historical Epochs
 ```
 
 ```
+**Fig. 3.** Sensor modality frequency across historical epochs (`06_analysis/outputs/figures/F3_output.png`).
+
 Table 3: Multi-Sensor Fusion Pair Evolution
 ┌─────────────────────────┬─────────────┬─────────────┬─────────────┬─────────────┐
 │ Multi-Sensor Pairing    │ 2013–2016   │ 2017–2021   │ 2022–2026   │ Overall (%) │
@@ -175,6 +185,8 @@ Table 3: Multi-Sensor Fusion Pair Evolution
 │ Radar + IMU             │ 0 (0.0%)    │ 3 (3.8%)    │ 6 (3.4%)    │ 9 (3.2%)    │
 └─────────────────────────┴─────────────┴─────────────┴─────────────┴─────────────┘
 ```
+
+**Fig. 4.** Multi-sensor fusion pair evolution (`06_analysis/outputs/figures/F4_output.png`).
 
 #### Key Findings for RQ1:
 1. **The Decline of Ultrasonic Sensing vs. Rise of UWB:** In the foundational era (2013–2016), ultrasonic transducers and downward-facing sonars were prevalent (30.8%) for altitude hold and ground-proximity estimation. By 2022–2026, ultrasonic sensors almost vanished (0.6%), displaced by lightweight Time-of-Flight (ToF) LiDAR and Ultra-Wideband (UWB) ranging transceivers, which surged from 0% in 2013–2016 to 15.5% in 2022–2026.
@@ -202,6 +214,8 @@ Table IV: Environmental Categorization & Reported Accuracy Envelopes
 └─────────────────────────┴───────┴────────────┴─────────────────────────────────┴────────────────────────────────────┘
 ```
 
+**Fig. 5.** Environment distribution across the corpus (`06_analysis/outputs/figures/F5_output.png`).
+
 #### Detailed Environmental Synthesis:
 
 ##### 1. Indoor & Warehouse Logistics ($n = 71$)
@@ -211,12 +225,12 @@ Indoor environments present structured geometric corridors but suffer from sever
 Subterranean environments represent the most severe operational regime, characterized by total darkness, heavy suspended dust, and featureless cylindrical cross-sections that induce longitudinal geometric degeneracy in LiDAR scan-matching. In physical field deployments, collaborative heterogeneous systems demonstrate superior resilience:
 * **REC_1267 (2019):** An integrated UAV-UGV collaborative team operating in real underground tunnels achieved a median 3D positioning error **below 1.0 m** and an RMS error of **2.16–2.60 m**. The study demonstrated that the tethered or communicative presence of a ground robot provides an essential moving spatial anchor, though authors noted: *"performance of the presented approach is heavily dependent on the availability of the camera and LIDAR updates from the UGV"* [p.12].
 * **REC_1026 (2022):** Factor Graph Optimization with tight coupling achieved an underground rectangle-trajectory RMSE of **0.0522 m**, versus **0.0853 m** for loosely coupled FGO and **0.1784 m** for VIO.
-* **REC_1274 (2026):** Post-blast inspection drones in railway tunnels achieved a mean 3D mapping error of **0.19 m**, though LiDAR beam scattering in dense dust clouds remained a persistent failure mode.
+* **REC_1274 (2026):** Post-blast inspection drones autonomously mapped a 500 m railway tunnel, though LiDAR beam scattering in dense dust clouds remained a persistent failure mode.
 
 ##### 3. Forest & Vegetative Canopies ($n = 22$)
 Vegetated canopies present non-rigid dynamic clutter where foliage oscillates under UAV rotor downwash, violating rigid-body static-scene assumptions essential for epipolar geometry and ICP point-to-plane optimization. Studies in this domain focus heavily on tree-trunk cylindrical extraction and real-time reactive collision avoidance:
-* **REC_1253 (2026):** Real-time autonomous SLAM and direction-oriented exploration demonstrated stable navigation through simulated and physical forest tracts containing over 100 dense tree obstacles at mean flight velocities of **2.78 m/s** and perception update rates of **~40 FPS**.
-* **REC_1348 (2022):** LiDAR-odometry based pose estimation in young forest tracts identified that stem-diameter extraction error scales non-linearly with canopy density, causing drift accumulation rates of **1.2%–2.8%** of total distance traveled.
+* **REC_1253 (2026):** Real-time autonomous SLAM and direction-oriented exploration demonstrated stable navigation through simulated and physical forest tracts, with a traversal RMSE of **0.195 m** at low obstacle density and **1.084 m** at high density.
+* **REC_1348 (2022):** LiDAR-odometry based pose estimation in young forest tracts reported an absolute pose error of **0.2471 m** and a relative pose error of **0.1521 m**, with extraction accuracy degrading as canopy density increased.
 
 ##### 4. Urban Canyons ($n = 29$)
 High-rise urban corridors induce severe GNSS pseudorange multipath, non-line-of-sight (NLOS) reflections, and sudden satellite constellation dropouts. Systems fusing visual-inertial odometry with 3D building city models (e.g., OpenStreetMap or aerial LiDAR meshes) report sub-meter mean horizontal positioning errors, compared with uncontrolled GNSS multipath deviations exceeding 15–35 m.
@@ -248,6 +262,8 @@ Validation Mode Totals Across Entire Corpus:
 - Pure Numerical Simulation:          62 studies (22.2%)
 - Offline Datasets & Surveys:         23 studies (8.2%)
 ```
+
+**Fig. 7.** Validation fidelity across the corpus (`06_analysis/outputs/figures/F7_output.png`).
 
 #### Critical Algorithmic Insights:
 1. **The Swarm Sim-to-Real Disconnect:** While cooperative swarm navigation represents 17.6% of the literature ($n = 49$), it exhibits the lowest physical flight-testing rate in the entire corpus: **49.0% of swarm studies rely entirely on numerical simulations**, and only 22.4% execute multi-agent physical flight trials. Physical swarm validation remains stalled by inter-agent RF packet loss, ad-hoc network latency, and physical downwash aerodynamic collisions.
@@ -365,6 +381,8 @@ Table 7: Top Documented Limitations and Future Research Priorities (n = 279)
 │ Resilient Anti-Jamming & Spoofing Detection  │ 2     │ 0.7%       │ Multi-constellation integrity monitoring and validation│
 └──────────────────────────────────────────────┴───────┴────────────┴────────────────────────────────────────────────────────┘
 ```
+
+**Fig. 9.** Limitation and future-work themes (`06_analysis/outputs/figures/F9_output.png`).
 
 ### Strategic Future Research Directions:
 

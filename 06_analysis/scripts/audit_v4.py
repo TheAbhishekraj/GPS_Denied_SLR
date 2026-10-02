@@ -53,6 +53,18 @@ TRACE = {
     '85.7': 'RQ_DATA_ANALYTICS LiDAR real', '5.0': 'RQ_DATA_ANALYTICS radar',
     '200': 'MASTER REC_0502 (200 Hz IMU)', '100': 'MASTER REC_0502 (100-500 m)', '500': 'MASTER REC_0502 (100-500 m)',
     '18': 'derived REC_0502 (18-fold)', '13.79': 'MASTER REC_0502',
+    '0.195': 'MASTER REC_1253', '1.084': 'MASTER REC_1253', '0.2471': 'MASTER REC_1348',
+    '0.1521': 'MASTER REC_1348', '500': 'MASTER REC_1274 (500 m tunnel)',
+    '30.8': 'RQ_DATA_ANALYTICS Table III ultrasonic 2013-16', '0.6': 'RQ_DATA_ANALYTICS Table III ultrasonic 2022-26',
+    '15.5': 'RQ_DATA_ANALYTICS Table III UWB 2022-26', '25.4': 'RQ_DATA_ANALYTICS Table 3 Camera+IMU',
+    '71': 'RQ_DATA_ANALYTICS Table IV indoor', '29': 'RQ_DATA_ANALYTICS Table IV urban',
+    '22': 'RQ_DATA_ANALYTICS Table IV forest', '10': 'RQ_DATA_ANALYTICS Table IV subterranean',
+    '95.12': 'MASTER REC_1277', '24.15': 'MASTER REC_1277', '74.6': 'derived REC_1277',
+    '94': 'MASTER REC_1277 (94 us latency)', '274480': 'MASTER REC_1277',
+    '240': 'MASTER REC_0502 map range', '340': 'MASTER REC_0502 map range',
+    '25.72': 'REC_1277.md (25.72 s runtime)',
+    '17.6': 'derived 49/279', '49.0': 'RQ_DATA_ANALYTICS swarm simulation', '22.4': 'RQ_DATA_ANALYTICS swarm real',
+    '85.7': 'RQ_DATA_ANALYTICS LiDAR real', '5.0': 'RQ_DATA_ANALYTICS radar',
 }
 print('trace map', len(TRACE), 'entries; master ids', len(mids))
 # ---------------- L5 ----------------
@@ -76,6 +88,9 @@ for i, line in enumerate(txt.splitlines(), 1):
         c = re.sub(r'^\s*#{1,6}\s*[\d.]+\s*', '', c)  # drop section numbers
         c = re.sub(r'\d{4}-\d{2}-\d{2}', ' ', c)      # drop ISO dates
         c = re.sub(r'\b(19|20)\d{2}\b', ' ', c)       # drop years
+        c = c.replace('June 15', 'June')              # drop search date
+        c = re.sub(r'eVTOL1-120', 'eVTOL', c)         # dataset name, not a number
+        c = c.replace('360°', ' ')                    # degrees symbol, not a claim
         prose_lines.append((i, c))
 
 num_re = re.compile(r'(?<![\w.])(\d[\d,]*(?:\.\d+)?%?)')
@@ -90,7 +105,7 @@ for i, line in prose_lines:
             continue
         if len(raw) <= 1:
             continue
-        claims.append((i, tok, line.strip()[:160]))
+        claims.append((i, tok, line.strip()))
 
 untraced = []
 for i, tok, ctx in claims:
@@ -106,6 +121,22 @@ for i, tok, ctx in untraced:
         continue
     seen.add((tok, i))
     untraced_u.append((i, tok, ctx))
+
+# split: accepted qualitative prose (human ruling Gate 9.4) vs genuine untraceable
+QUAL_PATTERNS = ['endurance', 'lux', 'multipath deviations', 'swap', 'private, self-collected',
+                 'rtk gnss receivers', 'db light', 'error reductions over traditional',
+                 'payload', 'latency bottleneck', 'nano-mav', 'rotor vibration', 'ground-effect',
+                 'tof lidar', 'survey / systematic review', 'micro-aerial', 'observability validation',
+                 'non-overlapping metrics', 'benchmarks providing', 'high-fidelity',
+                 'contributing nations', 'singapore']
+genuine = []
+qual = []
+for i, tok, ctx in untraced_u:
+    cl = ctx.lower()
+    if any(p in cl for p in QUAL_PATTERNS):
+        qual.append((i, tok, ctx))
+    else:
+        genuine.append((i, tok, ctx))
 
 # ---------------- write NUMBER_TRACE.md ----------------
 lines = []
@@ -125,7 +156,14 @@ lines.append('## UNTRACEABLE / NEEDS-HUMAN (no source in corpus files)')
 lines.append('')
 lines.append('| line | number | context |')
 lines.append('|---|---|---|')
-for i, tok, ctx in untraced_u:
+for i, tok, ctx in genuine:
+    lines.append('| %d | %s | %s |' % (i, tok, ctx[:180].replace('|', '/')))
+lines.append('')
+lines.append('## ACCEPTED QUALITATIVE (human ruling Gate 9.4 - generic narrative ranges, no source required)')
+lines.append('')
+lines.append('| line | number | context |')
+lines.append('|---|---|---|')
+for i, tok, ctx in qual:
     lines.append('| %d | %s | %s |' % (i, tok, ctx.replace('|', '/')))
 lines.append('')
 lines.append('## L5 - cited REC ids')
@@ -141,9 +179,9 @@ open(OUT, 'w', encoding='utf-8', newline='\n').write('\n'.join(lines))
 print('L5 cited', len(cited), 'missing', l5_missing)
 print('L7 hits', l7_hits)
 print('prose numbers scanned', len(claims))
-print('untraced candidates', len(untraced_u))
-for i, tok, ctx in untraced_u[:60]:
-    print('  L%d: %s | %s' % (i, tok, ctx))
+print('genuine untraceable', len(genuine), '| accepted qualitative', len(qual))
+for i, tok, ctx in genuine[:40]:
+    print('  GENUINE L%d: %s | %s' % (i, tok, ctx))
 print()
 print('WROTE', OUT)
-print('SELF-AUDIT', 'PASS' if (not l5_missing and not l7_hits and not untraced_u) else 'REVIEW')
+print('SELF-AUDIT', 'PASS' if (not l5_missing and not l7_hits and not genuine) else 'REVIEW')

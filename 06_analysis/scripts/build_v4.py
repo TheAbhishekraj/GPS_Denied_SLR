@@ -121,6 +121,38 @@ rep('   * Factor Graph Optimization reduces trajectory RMSE by **42%–63%** rel
 rep('Achieves a state-of-the-art average localization error of **0.80 m**',
     'Achieves an average localization error of **0.80 m**')
 
+# R15 L2: REC_1274 (0.19 m not in record) -> soften to sourced fact
+rep('* **REC_1274 (2026):** Post-blast inspection drones in railway tunnels achieved a mean 3D mapping error of **0.19 m**, though LiDAR beam scattering in dense dust clouds remained a persistent failure mode.',
+    '* **REC_1274 (2026):** Post-blast inspection drones autonomously mapped a 500 m railway tunnel, though LiDAR beam scattering in dense dust clouds remained a persistent failure mode.')
+
+# R16 L2: REC_1253 (2.78 m/s, 40 FPS not in record) -> real metrics
+rep('* **REC_1253 (2026):** Real-time autonomous SLAM and direction-oriented exploration demonstrated stable navigation through simulated and physical forest tracts containing over 100 dense tree obstacles at mean flight velocities of **2.78 m/s** and perception update rates of **~40 FPS**.',
+    '* **REC_1253 (2026):** Real-time autonomous SLAM and direction-oriented exploration demonstrated stable navigation through simulated and physical forest tracts, with a traversal RMSE of **0.195 m** at low obstacle density and **1.084 m** at high density.')
+
+# R17 L2: REC_1348 (1.2-2.8% drift not in record) -> real metrics
+rep('* **REC_1348 (2022):** LiDAR-odometry based pose estimation in young forest tracts identified that stem-diameter extraction error scales non-linearly with canopy density, causing drift accumulation rates of **1.2%–2.8%** of total distance traveled.',
+    '* **REC_1348 (2022):** LiDAR-odometry based pose estimation in young forest tracts reported an absolute pose error of **0.2471 m** and a relative pose error of **0.1521 m**, with extraction accuracy degrading as canopy density increased.')
+
+# R18-R26 L4/Gate 9.5: wire Fig. F1-F9 callouts (number-free captions)
+rep('### 3.3 Data Extraction & PDCA Quality Appraisal',
+    '**Fig. 1.** PRISMA 2020 flow for the 279-study corpus (`06_analysis/outputs/figures/F1_output.png`).\n\n### 3.3 Data Extraction & PDCA Quality Appraisal')
+rep('*(Note: 2026 represents a partial harvest',
+    '**Fig. 2.** Publications per year, 2013–2026 (`06_analysis/outputs/figures/F2_output.png`).\n\n*(Note: 2026 represents a partial harvest')
+rep('Table 3: Multi-Sensor Fusion Pair Evolution',
+    '**Fig. 3.** Sensor modality frequency across historical epochs (`06_analysis/outputs/figures/F3_output.png`).\n\nTable 3: Multi-Sensor Fusion Pair Evolution')
+rep('#### Key Findings for RQ1:',
+    '**Fig. 4.** Multi-sensor fusion pair evolution (`06_analysis/outputs/figures/F4_output.png`).\n\n#### Key Findings for RQ1:')
+rep('#### Detailed Environmental Synthesis:',
+    '**Fig. 5.** Environment distribution across the corpus (`06_analysis/outputs/figures/F5_output.png`).\n\n#### Detailed Environmental Synthesis:')
+rep('establishing an average corpus composite quality score of 3.81 on a realized 0-8 scale.',
+    'establishing an average corpus composite quality score of 3.81 on a realized 0-8 scale. The extraction taxonomy classifies each study as CORE, IMPORTANT, or PERIPHERAL (Fig. 6).\n\n**Fig. 6.** Corpus taxonomy distribution (`06_analysis/outputs/figures/F6_output.png`).')
+rep('#### Critical Algorithmic Insights:',
+    '**Fig. 7.** Validation fidelity across the corpus (`06_analysis/outputs/figures/F7_output.png`).\n\n#### Critical Algorithmic Insights:')
+rep('South Korea ($n = 5$), Finland ($n = 5$).',
+    'South Korea ($n = 5$), Finland ($n = 5$).\n\n**Fig. 8.** Contributing countries across the corpus (`06_analysis/outputs/figures/F8_output.png`).')
+rep('### Strategic Future Research Directions:',
+    '**Fig. 9.** Limitation and future-work themes (`06_analysis/outputs/figures/F9_output.png`).\n\n### Strategic Future Research Directions:')
+
 # ---- write V4 ----
 open(DST, 'w', encoding='utf-8', newline='').write(txt)
 h = hashlib.sha256(open(DST, 'rb').read()).hexdigest().upper()
