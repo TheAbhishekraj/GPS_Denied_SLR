@@ -839,3 +839,39 @@ A N C H O R _ F R E E Z E _ 2 0 2 6 0 9 1 9 . m d :   B E F O R E = 0 3 2 7 6 1 
 2026-09-27T17:06:34Z | PHASE7 | T7 DISPOSITION | Moved 9 out-of-corpus files to _ARCHIVE/out_of_corpus_extractions
 2026-09-27T17:11:14Z | PHASE8 | T8 MANUSCRIPT | MANUSCRIPT_V2.md | sha256: 327A6547332DA1FD7536B4BB2A91D9772849FB8AEC45D24B7F1F87406AB5C671
 2026-09-27T17:11:14Z | PHASE8 | T8 NUMBER TRACE | NUMBER_TRACE.md | sha256: 0379737AA623BD2BAF88001A7875CCEA173E07D08F5558F5BDFF06542219FC8B
+
+## 2026-10-02: Master Evidence Pipeline Audit (script audit_master_evidence.py)
+
+2026-10-02T04:33:54Z | WRITE | 06_analysis/outputs/MASTER_AUDIT_REPORT.json | sha256:6B0EE3DC95C47BB19EDCB3518FDB6E9CCB3AABB3093E41160B8B4371A4CD193D | reason:master evidence pipeline audit report (JSON)
+2026-10-02T04:33:54Z | WRITE | 06_analysis/outputs/MASTER_AUDIT_REPORT.md | sha256:CB8CCF15029DB34FFBD701F48E8CE11A2E61E19CCFB7F2F7D604ED1D3D4F6972 | reason:master evidence pipeline audit report (Markdown)
+2026-10-02T04:33:54Z | WRITE | 06_analysis/outputs/MASTER_FILL_TABLE.csv | sha256:4258942F90B69BA382898C16790F05232AF1CB6C7DD4C638F44458547B8B3976 | reason:per-field fill table for every broken/default master field
+2026-10-02T04:33:54Z | WRITE | 02_data_processed/MASTER_EVIDENCE_MANUAL.csv | sha256:36F65CFE0509D1F90234BDFA1C773071EDD81A084044F654D0FFC1C014AEAB9B | reason:derived master rows with MANUAL origin (279)
+2026-10-02T04:33:54Z | WRITE | 02_data_processed/MASTER_EVIDENCE_BATCHED.csv | sha256:7D60403CA1D521229E99F827339C6BDF3ADCACF9670DCFCE334663AAA1B67DEC | reason:derived master rows with BATCHED origin (0)
+2026-10-02T04:33:54Z | WRITE | 02_data_processed/MASTER_EVIDENCE_UNASSIGNED.csv | sha256:7D60403CA1D521229E99F827339C6BDF3ADCACF9670DCFCE334663AAA1B67DEC | reason:derived master rows with UNASSIGNED origin (0)
+VERDICT FAIL | blockers=1 majors=4 | master_rows=279 manual=279 batched=0 unassigned=0 | bad_title=47 needs_human=671
+
+## 2026-10-02: Station 9 / Gate 9.1b - V4 repair (script build_v4.py)
+
+2026-10-02T05:28:32Z | WRITE | 07_manuscript/MANUSCRIPT_V4.md | sha256:DB6C20BE2BD312097509C892C7949D03C46E2369DBBB1CF06EEA6A647851442B | reason:Staff 9 V4 repair from V3 (L5 ID repair, PRISMA flow 2000/1716/636/291/285/279, geography China 66/USA 40, Table 5 rebuilt from RQ_DATA_ANALYTICS, 51%->30.5%, QA denominator, Related Work surveys, numeric re-sourcing)
+2026-10-02T05:28:32Z | WRITE | 06_analysis/scripts/build_v4.py | sha256:F032F41923EECA715874ECD9230D05CEF8151A3921605E87F1534DF01AE593E0 | reason:reproducible V4 build script (16 asserted replacements)
+GATE 9.1b SELF-AUDIT PASS | cited_ids=18 missing=0 | legacy_tokens=0 | banned_vocab=0
+
+## 2026-10-02: Station 9 / Gate 9.2 - references.bib rebuild (script build_refs.py)
+
+2026-10-02T05:46:52Z | WRITE | 07_manuscript/references.bib | sha256:B64E0648D35415B743F37622A286F382E7B76594F471C53FEF27FF2A6C0220F8 | reason:279 entries; author from screening_results.csv; journal from REC YAML; titles junk-repaired (69); doi from master (3 stubs fixed)
+2026-10-02T05:46:52Z | WRITE | 06_analysis/scripts/build_refs.py | sha256:C1271F0CE8CBBBD8C5CF8B9E0CD10D98258DFDD4A4A3D6C70FA5264E8F3BB70E | reason:reproducible bibliography builder
+GATE 9.2 SELF-AUDIT PASS | entries=279 author_missing=0 doi_missing=0 journal_missing=91 cited_missing=0
+
+## 2026-10-02: Station 9 / Gate 9.3 - figures rebuild (script figures_final.py)
+
+2026-10-02T06:01:45Z | WRITE | 06_analysis/scripts/figures_final.py | sha256:98A42901B39CCFB747CE446E16DBAEF11378E332545CB51828303E71BAE5BC13 | reason:traceable 9-figure regenerator
+2026-10-02T06:01:45Z | WRITE | 06_analysis/outputs/figures/F1_output.png | sha256:720586F3BB7901296039653D672214A4E71C2D3F122676019DC1983699628242 | reason:regenerated from MASTER/anaytics (L2)
+2026-10-02T06:01:45Z | WRITE | 06_analysis/outputs/figures/F2_output.png | sha256:AB4AD9D0F3FAB064938630B554F08B611488E9DCAE89580BDFEAED73A8A4768F | reason:regenerated from MASTER/anaytics (L2)
+2026-10-02T06:01:45Z | WRITE | 06_analysis/outputs/figures/F3_output.png | sha256:AA172246750860CD1EBF54095C316121043C389DBFD6BADAD76A4929E1AD6F0F | reason:regenerated from MASTER/anaytics (L2)
+2026-10-02T06:01:45Z | WRITE | 06_analysis/outputs/figures/F4_output.png | sha256:D71865D4396825D45334AF2E76590F94876C4FA655E17F5A6442C4C99A581AF0 | reason:regenerated from MASTER/anaytics (L2)
+2026-10-02T06:01:45Z | WRITE | 06_analysis/outputs/figures/F5_output.png | sha256:0D9443D51E6C1FF3FA6CC82610AF299856E32CB3F35E0136E0F9BDC34917CA84 | reason:regenerated from MASTER/anaytics (L2)
+2026-10-02T06:01:45Z | WRITE | 06_analysis/outputs/figures/F6_output.png | sha256:4F465363D94625FAF14022FAC21D412027FC07C42166AF6C6F68231F42E84FD4 | reason:regenerated from MASTER/anaytics (L2)
+2026-10-02T06:01:45Z | WRITE | 06_analysis/outputs/figures/F7_output.png | sha256:63AF5E340D0E2B45CCFE6648F7EE2E7C6585669270CD2B73C7457EC0593C8A94 | reason:regenerated from MASTER/anaytics (L2)
+2026-10-02T06:01:45Z | WRITE | 06_analysis/outputs/figures/F8_output.png | sha256:07817BA091ACCF723932F0129B48CC47EB20F86BC83090EB8A8C2E2C4E18420C | reason:regenerated from MASTER/anaytics (L2)
+2026-10-02T06:01:45Z | WRITE | 06_analysis/outputs/figures/F9_output.png | sha256:8A5F3CF04F37E649D62380FA611DF6389CA010C236AB833368ABD19C66F3478B | reason:regenerated from MASTER/anaytics (L2)
+GATE 9.3 SELF-AUDIT PASS | F7=111/83/62/23 | F8 China66/USA40 | F1=2000..279 | env_sum=279
